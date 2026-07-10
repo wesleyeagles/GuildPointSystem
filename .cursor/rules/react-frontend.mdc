@@ -1,0 +1,40 @@
+---
+description: React frontend structure, conventions, and data layer
+globs: frontend/**/*.{ts,tsx,scss}
+alwaysApply: false
+---
+
+# React Frontend
+
+## Folder structure (mandatory)
+
+```
+src/
+├── Features/     # Page/route features (UI + local context + subcomponents)
+├── Shared/       # Reusable UI, utils, websocket client
+└── Domain/       # React Query hooks per entity (HTTP/WS isolated here)
+```
+
+Example: `Features/Auction/`, `Domain/Auction/hooks/useAuction.ts`.
+
+## Component file conventions
+
+Colocate in the same directory when applicable:
+
+- `Component.tsx` — component
+- `Component.types.ts` — props/types
+- `Component.styles.scss` — scoped styles
+- `Component.test.ts` — tests (Vitest)
+
+Subcomponents live under `components/`; feature utils under `utils/`; local state in `contexts/`.
+
+## Data & real-time
+
+- **All API calls** via React Query hooks in `Domain/{Entity}/hooks/` — never fetch directly from feature components.
+- **WebSocket:** single shared client at `Shared/websocket/socketClient.ts`; subscribe by topic, don't create per-feature clients.
+- Real-time features (events, auctions, logs, balance) subscribe through Domain hooks or a thin wrapper around `socketClient`.
+
+## Styling
+
+- SCSS only; **central theme** at `Shared/styles/theme.scss` — use variables for colors, never hardcode palette in components.
+- Import component styles as `Component.styles.scss` alongside the `.tsx`.

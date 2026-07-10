@@ -1,0 +1,64 @@
+.objectives-page {
+  h2 {
+    @include theme.page-heading;
+  }
+}
+
+.objectives-form {
+  @include theme.card;
+  display: flex;
+  flex-wrap: wrap;
+  gap: theme.$spacing-sm;
+  margin-bottom: theme.$spacing-lg;
+  align-items: center;
+
+  input,
+  select {
+    @include theme.field-input;
+    width: auto;
+    flex: 1;
+    min-width: 120px;
+  }
+}
+
+.objectives-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+
+  &__item {
+    @include theme.card;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: theme.$spacing-sm;
+    transition: border-left-color 0.15s;
+
+    &:hover {
+      border-left-color: theme.$color-primary;
+    }
+
+    strong {
+      font-family: theme.$font-heading;
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    small {
+      font-size: 11px;
+      letter-spacing: 1px;
+      color: theme.$color-text-muted;
+      text-transform: uppercase;
+      font-family: theme.$font-heading;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    gap: theme.$spacing-sm;
+    flex-shrink: 0;
+  }
+}

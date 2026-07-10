@@ -1,0 +1,662 @@
+﻿[
+    {
+        "Name":  "Focus",
+        "Class":  "Holy",
+        "Rank":  "Basic",
+        "Type":  "Buff",
+        "Slug":  "focus",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/item-1-3_14.png",
+        "SortOrder":  1,
+        "LocalPath":  "/forces/focus.png"
+    },
+    {
+        "Name":  "Energize",
+        "Class":  "Holy",
+        "Rank":  "Basic",
+        "Type":  "Buff",
+        "Slug":  "energize",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/item-1-3_15.png",
+        "SortOrder":  2,
+        "LocalPath":  "/forces/energize.png"
+    },
+    {
+        "Name":  "Soul Vitality",
+        "Class":  "Holy",
+        "Rank":  "Basic",
+        "Type":  "Buff",
+        "Slug":  "soul-vitality",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/item-1-3_16.png",
+        "SortOrder":  3,
+        "LocalPath":  "/forces/soul-vitality.png"
+    },
+    {
+        "Name":  "Resistance",
+        "Class":  "Holy",
+        "Rank":  "Expert",
+        "Type":  "Buff",
+        "Slug":  "resistance",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/item-1-3_17.png",
+        "SortOrder":  4,
+        "LocalPath":  "/forces/resistance.png"
+    },
+    {
+        "Name":  "Healing",
+        "Class":  "Holy",
+        "Rank":  "Expert",
+        "Type":  "Buff",
+        "Slug":  "healing",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/item-1-3_18.png",
+        "SortOrder":  5,
+        "LocalPath":  "/forces/healing.png"
+    },
+    {
+        "Name":  "Velocity",
+        "Class":  "Holy",
+        "Rank":  "Expert",
+        "Type":  "Buff",
+        "Slug":  "velocity",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/item-1-3_19.png",
+        "SortOrder":  6,
+        "LocalPath":  "/forces/velocity.png"
+    },
+    {
+        "Name":  "Agility",
+        "Class":  "Holy",
+        "Rank":  "Elite",
+        "Type":  "Buff",
+        "Slug":  "agility",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/item-1-3_20.png",
+        "SortOrder":  7,
+        "LocalPath":  "/forces/agility.png"
+    },
+    {
+        "Name":  "Aegis",
+        "Class":  "Holy",
+        "Rank":  "Elite",
+        "Type":  "Buff",
+        "Slug":  "aegis",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/item-1-3_21.png",
+        "SortOrder":  8,
+        "LocalPath":  "/forces/aegis.png"
+    },
+    {
+        "Name":  "Conservation",
+        "Class":  "Holy",
+        "Rank":  "Elite",
+        "Type":  "Biff",
+        "Slug":  "conservation",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/item-1-3_22.png",
+        "SortOrder":  9,
+        "LocalPath":  "/forces/conservation.png"
+    },
+    {
+        "Name":  "Prism Shard",
+        "Class":  "Fire",
+        "Rank":  "Basic",
+        "Type":  "Single Attack",
+        "Slug":  "prism-shard",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/item-1-3_26.png",
+        "SortOrder":  10,
+        "LocalPath":  "/forces/prism-shard.png"
+    },
+    {
+        "Name":  "Fire Wall",
+        "Class":  "Fire",
+        "Rank":  "Basic",
+        "Type":  "Close Range Damage",
+        "Slug":  "fire-wall",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/item-1-3_27.png",
+        "SortOrder":  11,
+        "LocalPath":  "/forces/fire-wall.png"
+    },
+    {
+        "Name":  "Fire Ball",
+        "Class":  "Fire",
+        "Rank":  "Basic",
+        "Type":  "Slash Attack",
+        "Slug":  "fire-ball",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/item-1-3_28.png",
+        "SortOrder":  12,
+        "LocalPath":  "/forces/fire-ball.png"
+    },
+    {
+        "Name":  "Flash Beam",
+        "Class":  "Fire",
+        "Rank":  "Basic",
+        "Type":  "Long Range Damage",
+        "Slug":  "flash-beam",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/item-1-3_29.png",
+        "SortOrder":  13,
+        "LocalPath":  "/forces/flash-beam.png"
+    },
+    {
+        "Name":  "Flame Arrow",
+        "Class":  "Fire",
+        "Rank":  "Expert",
+        "Type":  "Single Attack",
+        "Slug":  "flame-arrow",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/force-flamearrow.png",
+        "SortOrder":  14,
+        "LocalPath":  "/forces/flame-arrow.png"
+    },
+    {
+        "Name":  "Circle of Fire",
+        "Class":  "Fire",
+        "Rank":  "Expert",
+        "Type":  "Close Range Damage",
+        "Slug":  "circle-of-fire",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/item-1-3_31.png",
+        "SortOrder":  15,
+        "LocalPath":  "/forces/circle-of-fire.png"
+    },
+    {
+        "Name":  "Fire Bomb",
+        "Class":  "Fire",
+        "Rank":  "Expert",
+        "Type":  "Slash Attack",
+        "Slug":  "fire-bomb",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/item-1-3_32.png",
+        "SortOrder":  16,
+        "LocalPath":  "/forces/fire-bomb.png"
+    },
+    {
+        "Name":  "Radiant Fall",
+        "Class":  "Fire",
+        "Rank":  "Expert",
+        "Type":  "Long Range Damage",
+        "Slug":  "radiant-fall",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/item-1-3_33.png",
+        "SortOrder":  17,
+        "LocalPath":  "/forces/radiant-fall.png"
+    },
+    {
+        "Name":  "Blaze Pearl",
+        "Class":  "Fire",
+        "Rank":  "Elite",
+        "Type":  "Single Attack",
+        "Slug":  "blaze-pearl",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/force-blaze.png",
+        "SortOrder":  18,
+        "LocalPath":  "/forces/blaze-pearl.png"
+    },
+    {
+        "Name":  "Solar Blade",
+        "Class":  "Fire",
+        "Rank":  "Elite",
+        "Type":  "Close Range Damage",
+        "Slug":  "solar-blade",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/item-1-3_35.png",
+        "SortOrder":  19,
+        "LocalPath":  "/forces/solar-blade.png"
+    },
+    {
+        "Name":  "Blaze Lance",
+        "Class":  "Fire",
+        "Rank":  "Elite",
+        "Type":  "Slash Attack",
+        "Slug":  "blaze-lance",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/item-1-3_36.png",
+        "SortOrder":  20,
+        "LocalPath":  "/forces/blaze-lance.png"
+    },
+    {
+        "Name":  "Meteor Swarm",
+        "Class":  "Fire",
+        "Rank":  "Elite",
+        "Type":  "Long Range Damage",
+        "Slug":  "meteor-swarm",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/force-meteor.png",
+        "SortOrder":  21,
+        "LocalPath":  "/forces/meteor-swarm.png"
+    },
+    {
+        "Name":  "Ice Shard",
+        "Class":  "Aqua",
+        "Rank":  "Basic",
+        "Type":  "Single Attack",
+        "Slug":  "ice-shard",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/force-ice-shard.png",
+        "SortOrder":  22,
+        "LocalPath":  "/forces/ice-shard.png"
+    },
+    {
+        "Name":  "Geyser",
+        "Class":  "Aqua",
+        "Rank":  "Basic",
+        "Type":  "Slash Attack",
+        "Slug":  "geyser",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/item-1-3_43.png",
+        "SortOrder":  23,
+        "LocalPath":  "/forces/geyser.png"
+    },
+    {
+        "Name":  "Blind Sight",
+        "Class":  "Aqua",
+        "Rank":  "Basic",
+        "Type":  "Debuff",
+        "Slug":  "blind-sight",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/item-1-3_44.png",
+        "SortOrder":  24,
+        "LocalPath":  "/forces/blind-sight.png"
+    },
+    {
+        "Name":  "Weakness",
+        "Class":  "Aqua",
+        "Rank":  "Basic",
+        "Type":  "Debuff",
+        "Slug":  "weakness",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/force-weakness.png",
+        "SortOrder":  25,
+        "LocalPath":  "/forces/weakness.png"
+    },
+    {
+        "Name":  "Frost Arrow",
+        "Class":  "Aqua",
+        "Rank":  "Expert",
+        "Type":  "Slash Attack",
+        "Slug":  "frost-arrow",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/item-1-3_46.png",
+        "SortOrder":  26,
+        "LocalPath":  "/forces/frost-arrow.png"
+    },
+    {
+        "Name":  "Aqua Blade",
+        "Class":  "Aqua",
+        "Rank":  "Expert",
+        "Type":  "Slash Attack",
+        "Slug":  "aqua-blade",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/item-1-3_47.png",
+        "SortOrder":  27,
+        "LocalPath":  "/forces/aqua-blade.png"
+    },
+    {
+        "Name":  "Vulnerability",
+        "Class":  "Aqua",
+        "Rank":  "Expert",
+        "Type":  "Debuff",
+        "Slug":  "vulnerability",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/item-1-3_48.png",
+        "SortOrder":  28,
+        "LocalPath":  "/forces/vulnerability.png"
+    },
+    {
+        "Name":  "Enfeeblement",
+        "Class":  "Aqua",
+        "Rank":  "Expert",
+        "Type":  "Debuff",
+        "Slug":  "enfeeblement",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/item-1-3_49.png",
+        "SortOrder":  29,
+        "LocalPath":  "/forces/enfeeblement.png"
+    },
+    {
+        "Name":  "Raging Wave",
+        "Class":  "Aqua",
+        "Rank":  "Elite",
+        "Type":  "Single Attack",
+        "Slug":  "raging-wave",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/force-ragingwave.png",
+        "SortOrder":  30,
+        "LocalPath":  "/forces/raging-wave.png"
+    },
+    {
+        "Name":  "Frost Nova",
+        "Class":  "Aqua",
+        "Rank":  "Elite",
+        "Type":  "Close Range Damage",
+        "Slug":  "frost-nova",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/force-frostnova.png",
+        "SortOrder":  31,
+        "LocalPath":  "/forces/frost-nova.png"
+    },
+    {
+        "Name":  "Sloth",
+        "Class":  "Aqua",
+        "Rank":  "Elite",
+        "Type":  "Debuff",
+        "Slug":  "sloth",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/item-1-3_52.png",
+        "SortOrder":  32,
+        "LocalPath":  "/forces/sloth.png"
+    },
+    {
+        "Name":  "Slow",
+        "Class":  "Aqua",
+        "Rank":  "Elite",
+        "Type":  "Debuff",
+        "Slug":  "slow",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/item-1-3_53.png",
+        "SortOrder":  33,
+        "LocalPath":  "/forces/slow.png"
+    },
+    {
+        "Name":  "Vein Fall",
+        "Class":  "Terra",
+        "Rank":  "Basic",
+        "Type":  "Single Attack",
+        "Slug":  "vein-fall",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/item-1-3_58.png",
+        "SortOrder":  34,
+        "LocalPath":  "/forces/vein-fall.png"
+    },
+    {
+        "Name":  "Poison Mist",
+        "Class":  "Terra",
+        "Rank":  "Basic",
+        "Type":  "Long Range Damage",
+        "Slug":  "poison-mist",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/item-1-3_59.png",
+        "SortOrder":  35,
+        "LocalPath":  "/forces/poison-mist.png"
+    },
+    {
+        "Name":  "Suppress",
+        "Class":  "Terra",
+        "Rank":  "Basic",
+        "Type":  "Debuff",
+        "Slug":  "suppress",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/item-1-3_60.png",
+        "SortOrder":  36,
+        "LocalPath":  "/forces/suppress.png"
+    },
+    {
+        "Name":  "Repress",
+        "Class":  "Terra",
+        "Rank":  "Basic",
+        "Type":  "Debuff",
+        "Slug":  "repress",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/item-1-3_61.png",
+        "SortOrder":  37,
+        "LocalPath":  "/forces/repress.png"
+    },
+    {
+        "Name":  "Rock Blade",
+        "Class":  "Terra",
+        "Rank":  "Expert",
+        "Type":  "Single Attack",
+        "Slug":  "rock-blade",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/item-1-3_62.png",
+        "SortOrder":  38,
+        "LocalPath":  "/forces/rock-blade.png"
+    },
+    {
+        "Name":  "Poison Bloom",
+        "Class":  "Terra",
+        "Rank":  "Expert",
+        "Type":  "Long Range Damage",
+        "Slug":  "poison-bloom",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/item-1-3_63.png",
+        "SortOrder":  39,
+        "LocalPath":  "/forces/poison-bloom.png"
+    },
+    {
+        "Name":  "Stifle",
+        "Class":  "Terra",
+        "Rank":  "Expert",
+        "Type":  "Debuff",
+        "Slug":  "stifle",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/item-1-3_64.png",
+        "SortOrder":  40,
+        "LocalPath":  "/forces/stifle.png"
+    },
+    {
+        "Name":  "Entangle",
+        "Class":  "Terra",
+        "Rank":  "Expert",
+        "Type":  "Debuff",
+        "Slug":  "entangle",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/force-entangle.png",
+        "SortOrder":  41,
+        "LocalPath":  "/forces/entangle.png"
+    },
+    {
+        "Name":  "Venom",
+        "Class":  "Terra",
+        "Rank":  "Elite",
+        "Type":  "Single Attack",
+        "Slug":  "venom",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/force-venombreath.png",
+        "SortOrder":  42,
+        "LocalPath":  "/forces/venom.png"
+    },
+    {
+        "Name":  "Sand Storm",
+        "Class":  "Terra",
+        "Rank":  "Elite",
+        "Type":  "Slash Attack",
+        "Slug":  "sand-storm",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/item-1-3_67.png",
+        "SortOrder":  43,
+        "LocalPath":  "/forces/sand-storm.png"
+    },
+    {
+        "Name":  "Restrain",
+        "Class":  "Terra",
+        "Rank":  "Elite",
+        "Type":  "Debuff",
+        "Slug":  "restrain",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/item-1-3_68.png",
+        "SortOrder":  44,
+        "LocalPath":  "/forces/restrain.png"
+    },
+    {
+        "Name":  "Contain",
+        "Class":  "Terra",
+        "Rank":  "Elite",
+        "Type":  "Debuff",
+        "Slug":  "contain",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/item-1-3_69.png",
+        "SortOrder":  45,
+        "LocalPath":  "/forces/contain.png"
+    },
+    {
+        "Name":  "Spark",
+        "Class":  "Wind",
+        "Rank":  "Basic",
+        "Type":  "Single Attack",
+        "Slug":  "spark",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/item-1-3_74.png",
+        "SortOrder":  46,
+        "LocalPath":  "/forces/spark.png"
+    },
+    {
+        "Name":  "Wind Shear",
+        "Class":  "Wind",
+        "Rank":  "Basic",
+        "Type":  "Close Range Damage Attack",
+        "Slug":  "wind-shear",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/item-1-3_75.png",
+        "SortOrder":  47,
+        "LocalPath":  "/forces/wind-shear.png"
+    },
+    {
+        "Name":  "Counter",
+        "Class":  "Wind",
+        "Rank":  "Basic",
+        "Type":  "Debuff",
+        "Slug":  "counter",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/item-1-3_76.png",
+        "SortOrder":  48,
+        "LocalPath":  "/forces/counter.png"
+    },
+    {
+        "Name":  "Dispel",
+        "Class":  "Wind",
+        "Rank":  "Basic",
+        "Type":  "Debuff",
+        "Slug":  "dispel",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/item-1-3_77.png",
+        "SortOrder":  49,
+        "LocalPath":  "/forces/dispel.png"
+    },
+    {
+        "Name":  "Lightning Bolt",
+        "Class":  "Wind",
+        "Rank":  "Expert",
+        "Type":  "Single Attack",
+        "Slug":  "lightning-bolt",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/item-1-3_78.png",
+        "SortOrder":  50,
+        "LocalPath":  "/forces/lightning-bolt.png"
+    },
+    {
+        "Name":  "Air Blast",
+        "Class":  "Wind",
+        "Rank":  "Expert",
+        "Type":  "Close Range Damage Attack",
+        "Slug":  "air-blast",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/item-1-3_79.png",
+        "SortOrder":  51,
+        "LocalPath":  "/forces/air-blast.png"
+    },
+    {
+        "Name":  "Refresh",
+        "Class":  "Wind",
+        "Rank":  "Expert",
+        "Type":  "Buff",
+        "Slug":  "refresh",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/item-1-3_80.png",
+        "SortOrder":  52,
+        "LocalPath":  "/forces/refresh.png"
+    },
+    {
+        "Name":  "Sight",
+        "Class":  "Wind",
+        "Rank":  "Expert",
+        "Type":  "Buff",
+        "Slug":  "sight",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/item-1-3_81.png",
+        "SortOrder":  53,
+        "LocalPath":  "/forces/sight.png"
+    },
+    {
+        "Name":  "Wind Blast",
+        "Class":  "Wind",
+        "Rank":  "Elite",
+        "Type":  "Single Attack",
+        "Slug":  "wind-blast",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/item-1-3_82.png",
+        "SortOrder":  54,
+        "LocalPath":  "/forces/wind-blast.png"
+    },
+    {
+        "Name":  "Chain Lightning",
+        "Class":  "Wind",
+        "Rank":  "Elite",
+        "Type":  "Long Range Damage",
+        "Slug":  "chain-lightning",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/force-chain.png",
+        "SortOrder":  55,
+        "LocalPath":  "/forces/chain-lightning.png"
+    },
+    {
+        "Name":  "Individual Cancellation / Skill Revoker",
+        "Class":  "Wind",
+        "Rank":  "Elite",
+        "Type":  "Debuff",
+        "Slug":  "individual-cancellation-skill-revoker",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/force-skillrevoke.png",
+        "SortOrder":  56,
+        "LocalPath":  "/forces/individual-cancellation-skill-revoker.png"
+    },
+    {
+        "Name":  "Offensive Cancellation / Force Revoker",
+        "Class":  "Wind",
+        "Rank":  "Elite",
+        "Type":  "Debuff",
+        "Slug":  "offensive-cancellation-force-revoker",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/force-forcerevoker.png",
+        "SortOrder":  57,
+        "LocalPath":  "/forces/offensive-cancellation-force-revoker.png"
+    },
+    {
+        "Name":  "Celerity",
+        "Class":  "Dark",
+        "Rank":  "Basic",
+        "Type":  "Buff",
+        "Slug":  "celerity",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/item-1-3_02.png",
+        "SortOrder":  58,
+        "LocalPath":  "/forces/celerity.png"
+    },
+    {
+        "Name":  "Sacrifice",
+        "Class":  "Dark",
+        "Rank":  "Basic",
+        "Type":  "Buff",
+        "Slug":  "sacrifice",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/item-1-3_03.png",
+        "SortOrder":  59,
+        "LocalPath":  "/forces/sacrifice.png"
+    },
+    {
+        "Name":  "Tempo",
+        "Class":  "Dark",
+        "Rank":  "Basic",
+        "Type":  "Buff",
+        "Slug":  "tempo",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/item-1-3_04.png",
+        "SortOrder":  60,
+        "LocalPath":  "/forces/tempo.png"
+    },
+    {
+        "Name":  "Adept",
+        "Class":  "Dark",
+        "Rank":  "Expert",
+        "Type":  "Buff",
+        "Slug":  "adept",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/item-1-3_05.png",
+        "SortOrder":  61,
+        "LocalPath":  "/forces/adept.png"
+    },
+    {
+        "Name":  "Vista",
+        "Class":  "Dark",
+        "Rank":  "Expert",
+        "Type":  "Buff",
+        "Slug":  "vista",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/item-1-3_06.png",
+        "SortOrder":  62,
+        "LocalPath":  "/forces/vista.png"
+    },
+    {
+        "Name":  "Velocity / Speed",
+        "Class":  "Dark",
+        "Rank":  "Expert",
+        "Type":  "Buff",
+        "Slug":  "velocity-speed",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/item-1-3_07.png",
+        "SortOrder":  63,
+        "LocalPath":  "/forces/velocity-speed.png"
+    },
+    {
+        "Name":  "Acute",
+        "Class":  "Dark",
+        "Rank":  "Elite",
+        "Type":  "Buff",
+        "Slug":  "acute",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/item-1-3_08.png",
+        "SortOrder":  64,
+        "LocalPath":  "/forces/acute.png"
+    },
+    {
+        "Name":  "Torment",
+        "Class":  "Dark",
+        "Rank":  "Elite",
+        "Type":  "Debuff",
+        "Slug":  "torment",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/item-1-3_09.png",
+        "SortOrder":  65,
+        "LocalPath":  "/forces/torment.png"
+    },
+    {
+        "Name":  "Conservation",
+        "Class":  "Dark",
+        "Rank":  "Elite",
+        "Type":  "Buff",
+        "Slug":  "conservation",
+        "ImageUrl":  "https://wiki.rfdatabase.net/wp-content/uploads/2024/06/item-1-3_10.png",
+        "SortOrder":  66,
+        "LocalPath":  "/forces/conservation-dark.png"
+    }
+]

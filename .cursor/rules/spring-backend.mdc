@@ -1,0 +1,33 @@
+---
+description: Spring Boot backend layering, security, and persistence patterns
+globs: backend/**/*.java
+alwaysApply: false
+---
+
+# Spring Backend
+
+## Package-by-feature layout
+
+Base: `com.guild.app.{feature}/` — e.g. `auth`, `member`, `objective`, `event`, `points`, `item`, `auction`, `log`, `websocket`, `common`.
+
+Per feature: `controller` → `service` → `repository` (+ `entity`, `dto` as needed).
+
+## Security
+
+- Use `@PreAuthorize` on controllers/services for role checks (`hasRole('ADMINISTRADOR')`, etc.).
+- Validate member status (`APROVADO`) and `profile_complete` where required.
+- Return DTOs from controllers — never expose entities directly.
+
+## Persistence
+
+- **Flyway** migrations in `src/main/resources/db/migration/` — `ddl-auto: validate` only.
+- **Transactions + locks** for concurrent writes: event claims, auction bids, point adjustments. Use `@Transactional` with pessimistic/optimistic locking on hot rows (`member`, `auction`).
+- Idempotent mutations: guard with unique constraints or status checks.
+
+## Audit logging
+
+All auditable actions go through `AuditLogService.log(type, actor, target, payload)` — publishes to `/topic/logs` via `WebSocketPublisher`. Never write audit rows ad hoc.
+
+## WebSocket
+
+STOMP config in `websocket/` package. Topics per spec §11.2: `/topic/events`, `/topic/auctions/{id}`, `/topic/logs`, `/topic/points/{memberId}`.

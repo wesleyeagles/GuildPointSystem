@@ -1,0 +1,126 @@
+// ─── RF Online sci-fi design tokens ─────────────────────────────────────────
+
+// Core palette
+$color-bg:          #06080d;   // void — page background
+$color-bg-elevated: #0d121b;   // panel — header, elevated surfaces
+$color-bg-card:     #0d121b;   // card surface
+$color-border:      #1c2433;   // line — subtle borders
+
+// Text
+$color-text:        #cfd8e3;
+$color-text-muted:  #6c7689;
+
+// Interactive — cyan is the primary accent
+$color-primary:       #3fe3d6;
+$color-primary-hover: #5de8dd;
+
+// Semantic
+$color-success:  #3dd68c;
+$color-warning:  #e8a23f;   // amber
+$color-danger:   #ff5c5c;
+
+// Named extras
+$color-cyan:     #3fe3d6;
+$color-cyan-dim: #1a8a82;
+$color-amber:    #e8a23f;
+
+// Podium / rank
+$color-gold:   #e8a23f;   // amber repurposed as gold
+$color-silver: #9aa8b7;
+$color-bronze: #cd7f32;
+
+// Misc
+$color-accent: #e8a23f;
+
+// Shape — sharp, no rounded corners
+$radius-sm: 0;
+$radius-md: 0;
+$radius-lg: 2px;
+
+// Spacing
+$spacing-xs: 0.25rem;
+$spacing-sm: 0.5rem;
+$spacing-md: 1rem;
+$spacing-lg: 1.5rem;
+$spacing-xl: 2rem;
+
+// Typography
+$font-family: 'Rajdhani', 'Segoe UI', system-ui, sans-serif;
+$font-heading: 'Orbitron', sans-serif;
+
+// Single-line form controls (input, select, picker triggers)
+$field-control-height: 42px;
+
+// ─── Mixins ──────────────────────────────────────────────────────────────────
+
+// Base card — dark panel with left cyan accent
+@mixin card {
+  background: $color-bg-card;
+  border: 1px solid $color-border;
+  border-left: 2px solid $color-cyan-dim;
+  padding: $spacing-md;
+  position: relative;
+}
+
+// Form inputs / selects
+@mixin field-input {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid $color-border;
+  border-left: 2px solid $color-cyan-dim;
+  color: $color-text;
+  font-family: $font-family;
+  font-size: 15px;
+  font-weight: 500;
+  padding: 10px 12px;
+  outline: none;
+  transition: border-color 0.15s, background 0.15s;
+  appearance: none;
+  border-radius: 0;
+
+  &::placeholder { color: #3c4456; }
+
+  &:focus {
+    border-left-color: $color-primary;
+    background: rgba(63, 227, 214, 0.03);
+    border-color: $color-cyan-dim;
+  }
+
+  option {
+    background: $color-bg-elevated;
+    color: $color-text;
+  }
+}
+
+@mixin field-control-height {
+  box-sizing: border-box;
+  height: $field-control-height;
+  min-height: $field-control-height;
+  max-height: $field-control-height;
+  padding-block: 0;
+  padding-inline: 12px;
+  line-height: calc(#{$field-control-height} - 2px);
+}
+
+// Section / page headings
+@mixin page-heading {
+  font-family: $font-heading;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  color: $color-text;
+  text-transform: uppercase;
+  margin: 0 0 $spacing-lg;
+  padding-bottom: $spacing-sm;
+  border-bottom: 1px solid $color-border;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  &::before {
+    content: '';
+    width: 18px;
+    height: 1px;
+    background: $color-primary;
+    flex-shrink: 0;
+  }
+}

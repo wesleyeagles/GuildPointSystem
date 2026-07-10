@@ -1,0 +1,27 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: guild-postgres
+    environment:
+      POSTGRES_DB: guild_points
+      POSTGRES_USER: guild
+      POSTGRES_PASSWORD: guild
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U guild -d guild_points"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Redis — habilitar na Fase 5 (leilões)
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: guild-redis
+  #   ports:
+  #     - "6379:6379"
+
+volumes:
+  postgres_data:

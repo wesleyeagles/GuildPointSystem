@@ -1,0 +1,17 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/guild_points_test
+    username: guild
+    password: guild
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+
+guild:
+  jwt:
+    secret: test-secret-key-minimum-256-bits-for-hmac-sha256-algorithm
+    expiration-ms: 3600000
+  upload:
+    base-path: ./target/test-uploads

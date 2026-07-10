@@ -1,0 +1,121 @@
+import { useState } from 'react'
+import { Link, Navigate } from 'react-router-dom'
+import { useRegister } from '@/Domain/Auth/hooks/useAuth'
+import { useRaces, useClasses } from '@/Domain/Seed/hooks/useSeeds'
+import { useAuthContext } from '@/Features/Auth/contexts/AuthContext'
+import { SeedOptionPicker } from '@/Shared/ui/components/SeedOptionPicker/SeedOptionPicker'
+
+export function RegisterPage() {
+  const { isAuthenticated } = useAuthContext()
+  const register = useRegister()
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [nickname, setNickname] = useState('')
+  const [raceId, setRaceId] = useState<number>(0)
+  const [classId, setClassId] = useState<number>(0)
+  const [error, setError] = useState('')
+
+  const { data: races = [] } = useRaces()
+  const { data: classes = [] } = useClasses(raceId)
+
+  const handleRaceChange = (id: number) => {
+    setRaceId(id)
+    setClassId(0)
+  }
+
+  if (isAuthenticated) return <Navigate to="/" replace />
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+    try {
+      await register.mutateAsync({ email, password, nickname, raceId, classId })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao cadastrar')
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <div className="auth-field">
+        <label htmlFor="reg-email">Email</label>
+        <input
+          id="reg-email"
+          type="email"
+          placeholder="seuemail@dominio.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
+      </div>
+
+      <div className="auth-field">
+        <label htmlFor="reg-password">Senha</label>
+        <input
+          id="reg-password"
+          type="password"
+          placeholder="••••••••"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          minLength={6}
+          required
+        />
+      </div>
+
+      <div className="auth-field">
+        <label htmlFor="reg-nickname">Nickname</label>
+        <input
+          id="reg-nickname"
+          placeholder="Seu nick no jogo"
+          value={nickname}
+          onChange={(e) => setNickname(e.target.value)}
+          required
+        />
+      </div>
+
+      <div className="auth-field">
+        <label htmlFor="reg-race">Raça</label>
+        <select
+          id="reg-race"
+          value={raceId}
+          onChange={(e) => handleRaceChange(Number(e.target.value))}
+          required
+        >
+          <option value={0}>Selecione...</option>
+          {races.map((r) => (
+            <option key={r.id} value={r.id}>
+              {r.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {raceId > 0 ? (
+        <SeedOptionPicker
+          label="Classe"
+          options={classes}
+          value={classId}
+          onChange={setClassId}
+          required
+          showImages
+        />
+      ) : (
+        <p className="auth-muted">Selecione uma raça para ver as classes.</p>
+      )}
+
+      {error && <p className="auth-error">{error}</p>}
+
+      <button
+        type="submit"
+        className="auth-btn-primary"
+        disabled={register.isPending}
+      >
+        {register.isPending ? 'Cadastrando...' : 'Criar conta'}
+      </button>
+
+      <p className="auth-switch">
+        Já tem conta? <Link to="/login">Entrar</Link>
+      </p>
+    </form>
+  )
+}

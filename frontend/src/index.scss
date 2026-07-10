@@ -1,0 +1,35 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  // Void background + subtle full-page grid overlay (matches auth screen)
+  background:
+    linear-gradient(rgba(63, 227, 214, 0.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(63, 227, 214, 0.018) 1px, transparent 1px),
+    theme.$color-bg;
+  background-size: 48px 48px, 48px 48px, auto;
+  background-attachment: fixed;
+  color: theme.$color-text;
+  font-family: theme.$font-family;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+a {
+  color: theme.$color-primary;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+p {
+  margin: 0 0 theme.$spacing-sm;
+}

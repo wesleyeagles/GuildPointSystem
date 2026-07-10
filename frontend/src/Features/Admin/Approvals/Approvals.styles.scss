@@ -1,0 +1,51 @@
+.approvals-page {
+  h2 {
+    @include theme.page-heading;
+  }
+
+  &__empty {
+    color: theme.$color-text-muted;
+    font-size: 14px;
+    letter-spacing: 0.5px;
+    padding: theme.$spacing-lg 0;
+  }
+}
+
+.approvals-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+
+  &__item {
+    @include theme.card;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: theme.$spacing-sm;
+    transition: border-left-color 0.15s;
+
+    &:hover {
+      border-left-color: theme.$color-primary;
+    }
+
+    strong {
+      font-family: theme.$font-heading;
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    small {
+      font-size: 12px;
+      color: theme.$color-text-muted;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    gap: theme.$spacing-sm;
+    flex-shrink: 0;
+  }
+}

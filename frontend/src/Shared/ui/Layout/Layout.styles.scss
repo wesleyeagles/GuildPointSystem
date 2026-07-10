@@ -1,0 +1,125 @@
+.layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+
+  &__header {
+    display: flex;
+    align-items: stretch;
+    padding: 0 theme.$spacing-xl;
+    height: 54px;
+    background: theme.$color-bg-elevated;
+    border-bottom: 1px solid theme.$color-border;
+    border-top: 2px solid theme.$color-primary;
+    box-shadow: 0 0 28px rgba(63, 227, 214, 0.06);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    gap: 0;
+  }
+
+  &__title {
+    font-family: theme.$font-heading;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 5px;
+    color: theme.$color-primary;
+    margin: 0;
+    white-space: nowrap;
+    text-transform: uppercase;
+    padding-right: theme.$spacing-lg;
+    margin-right: theme.$spacing-lg;
+    border-right: 1px solid theme.$color-border;
+    display: flex;
+    align-items: center;
+    text-shadow: 0 0 14px rgba(63, 227, 214, 0.45);
+  }
+
+  &__nav {
+    display: flex;
+    align-items: stretch;
+    flex: 1;
+    gap: 0;
+  }
+
+  &__nav-link {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    padding: 0 theme.$spacing-md;
+    font-family: theme.$font-heading;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: theme.$color-text-muted;
+    text-decoration: none;
+    text-transform: uppercase;
+    position: relative;
+    transition: color 0.15s;
+    white-space: nowrap;
+
+    &:hover {
+      color: theme.$color-text;
+      text-decoration: none;
+    }
+
+    &--active {
+      color: theme.$color-primary;
+
+      &::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: theme.$color-primary;
+        box-shadow: 0 0 8px theme.$color-primary;
+      }
+    }
+  }
+
+  &__user {
+    display: flex;
+    align-items: center;
+    gap: theme.$spacing-md;
+    padding-left: theme.$spacing-lg;
+    border-left: 1px solid theme.$color-border;
+    font-family: theme.$font-family;
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  &__points {
+    font-family: theme.$font-heading;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    color: theme.$color-primary;
+    text-shadow: 0 0 8px rgba(63, 227, 214, 0.3);
+  }
+
+  &__logout {
+    background: transparent;
+    border: 1px solid theme.$color-border;
+    color: theme.$color-text-muted;
+    padding: 6px 16px;
+    font-family: theme.$font-heading;
+    font-size: 8px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: border-color 0.15s, color 0.15s;
+    border-radius: 0;
+
+    &:hover {
+      color: theme.$color-danger;
+      border-color: theme.$color-danger;
+    }
+  }
+
+  &__main {
+    padding: theme.$spacing-xl;
+    flex: 1;
+    min-height: 0;
+  }
+}

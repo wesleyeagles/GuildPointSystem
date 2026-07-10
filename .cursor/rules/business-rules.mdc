@@ -1,0 +1,37 @@
+---
+description: Core business rules from the Guild Points spec
+alwaysApply: true
+---
+
+# Business Rules (from spec)
+
+Refer to [especificacao-guild-points-rf-online.md](../../especificacao-guild-points-rf-online.md) for full detail.
+
+## Auth & membership
+
+- All registrations start **`PENDENTE`**; pending users see waiting screen only.
+- **Discord OAuth:** race/class NOT set at signup — mandatory modal on first login; block app until `profile_complete`.
+- Moderador+ approves/rejects; approved → `APROVADO`.
+
+## Profile & points
+
+- Nickname/class/race changes → public audit log (old + new values).
+- Líder/Admin: add/remove points with mandatory reason; modalities `AJUSTE` | `LEILAO`.
+- Manual event assignment to member also grants points.
+
+## Objetivos & Eventos
+
+- **`LIMITADO`:** max N redemptions per member per objective **per calendar day** (count `claimedAt` for member+objective+date).
+- Event: 4-char password, fixed durations; WS toast on create; one claim per member per event; expires at duration end.
+- Admin can **deny** a claim → auto-deduct points + log reversal.
+
+## Leilões (summary)
+
+- Bid ≤ total points; **availableBalance** = total − sum of winning bids in other open auctions.
+- Tie bid only if bid equals member's max available (not if they can exceed).
+- ≤15s left → extend to 25s; DOLE 1/2/3 bot sequence (+10s if bid during DOLE).
+- End tie → roulette (≥10s spin); winner debited via `LEILAO` modality.
+
+## Itens
+
+- All types require image on create. Talic rules enforced backend — see `talic-validation` skill.

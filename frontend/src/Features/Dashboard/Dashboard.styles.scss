@@ -1,0 +1,307 @@
+// ── Two-column dashboard ──────────────────────────────────────────────────────
+.dashboard {
+  display: grid;
+  grid-template-columns: 3fr 2fr;
+  gap: 0;
+  height: 100%;
+
+  h2 {
+    @include theme.page-heading;
+    flex-shrink: 0;
+  }
+
+  &__col {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding: 0 theme.$spacing-xl 0 0;
+
+    &--events {
+      padding: 0 0 0 theme.$spacing-xl;
+      border-left: 1px solid theme.$color-border;
+    }
+  }
+
+  &__empty {
+    color: theme.$color-text-muted;
+    font-size: 14px;
+    letter-spacing: 0.5px;
+    padding: theme.$spacing-lg 0;
+  }
+}
+
+// ── Podium ────────────────────────────────────────────────────────────────────
+.podium {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: theme.$spacing-md;
+  margin-bottom: theme.$spacing-lg;
+  flex-shrink: 0;
+
+  &__slot {
+    @include theme.card;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+    max-width: 160px;
+    text-align: center;
+    padding: theme.$spacing-lg theme.$spacing-md theme.$spacing-md;
+    border-left: none;
+
+    &--1 {
+      order: 2;
+      min-height: 148px;
+      border-top: 3px solid theme.$color-gold;
+    }
+
+    &--2 {
+      order: 1;
+      min-height: 112px;
+      border-top: 3px solid theme.$color-silver;
+    }
+
+    &--3 {
+      order: 3;
+      min-height: 96px;
+      border-top: 3px solid theme.$color-bronze;
+    }
+  }
+
+  &__place {
+    font-family: theme.$font-heading;
+    font-size: 22px;
+    font-weight: 900;
+    color: theme.$color-text-muted;
+    margin-bottom: theme.$spacing-sm;
+    line-height: 1;
+  }
+
+  &__name {
+    font-family: theme.$font-heading;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: theme.$color-text;
+    margin: 0 0 6px;
+    text-transform: uppercase;
+
+    &--link {
+      text-decoration: none;
+      transition: color 0.15s;
+
+      &:hover {
+        color: theme.$color-primary;
+      }
+    }
+  }
+
+  &__points {
+    font-family: theme.$font-heading;
+    font-size: 11px;
+    letter-spacing: 1px;
+    color: theme.$color-primary;
+    font-weight: 600;
+  }
+}
+
+// ── Ranking rest (4th+) ───────────────────────────────────────────────────────
+.ranking-rest {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.ranking-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  flex: 1;
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: theme.$spacing-md;
+    padding: 10px theme.$spacing-sm;
+    border-bottom: 1px solid theme.$color-border;
+    font-size: 14px;
+    font-family: theme.$font-family;
+    font-weight: 500;
+    transition: background 0.12s;
+
+    &:hover {
+      background: rgba(63, 227, 214, 0.02);
+    }
+
+    span:first-child {
+      width: 2.5rem;
+      font-family: theme.$font-heading;
+      font-size: 10px;
+      letter-spacing: 1px;
+      color: theme.$color-text-muted;
+      flex-shrink: 0;
+    }
+
+    span:last-child {
+      margin-left: auto;
+      color: theme.$color-primary;
+      font-family: theme.$font-heading;
+      font-size: 11px;
+      letter-spacing: 1px;
+      flex-shrink: 0;
+    }
+  }
+
+  &__name {
+    flex: 1;
+    min-width: 0;
+    color: theme.$color-text;
+    text-decoration: none;
+    transition: color 0.15s;
+
+    &:hover {
+      color: theme.$color-primary;
+    }
+  }
+}
+
+// ── Events paginated container ────────────────────────────────────────────────
+.events-paged {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+// ── Active events list ────────────────────────────────────────────────────────
+.event-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: theme.$spacing-sm;
+
+  &__item {
+    @include theme.card;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: theme.$spacing-md;
+  }
+
+  &__info {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+  }
+
+  &__pts {
+    color: theme.$color-primary;
+    font-family: theme.$font-heading;
+    font-size: 11px;
+    letter-spacing: 1px;
+  }
+
+  strong {
+    font-family: theme.$font-heading;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: theme.$color-text;
+    text-transform: uppercase;
+  }
+
+  small {
+    font-size: 11px;
+    color: theme.$color-text-muted;
+  }
+
+  &__claim {
+    display: flex;
+    gap: theme.$spacing-sm;
+    align-items: center;
+    flex-shrink: 0;
+
+    input {
+      @include theme.field-input;
+      width: 86px;
+      padding: 8px 8px;
+      text-align: center;
+      font-family: theme.$font-heading;
+      letter-spacing: 4px;
+      font-size: 14px;
+    }
+  }
+}
+
+// ── Pagination ────────────────────────────────────────────────────────────────
+.dash-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: theme.$spacing-md;
+  padding: theme.$spacing-md 0 0;
+  flex-shrink: 0;
+
+  &__btn {
+    background: transparent;
+    border: 1px solid theme.$color-border;
+    color: theme.$color-text-muted;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 20px;
+    line-height: 1;
+    transition: border-color 0.15s, color 0.15s;
+    border-radius: 0;
+    padding: 0;
+
+    &:hover:not(:disabled) {
+      border-color: theme.$color-primary;
+      color: theme.$color-primary;
+    }
+
+    &:disabled {
+      opacity: 0.25;
+      cursor: not-allowed;
+    }
+  }
+
+  &__info {
+    font-family: theme.$font-heading;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: theme.$color-text-muted;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  &__sep {
+    color: theme.$color-border;
+  }
+}
+
+// ── Responsive ────────────────────────────────────────────────────────────────
+@media (max-width: 900px) {
+  .dashboard {
+    grid-template-columns: 1fr;
+    height: auto;
+
+    &__col--events {
+      padding: theme.$spacing-lg 0 0;
+      border-left: none;
+      border-top: 1px solid theme.$color-border;
+    }
+
+    &__col--ranking {
+      padding-right: 0;
+    }
+  }
+}

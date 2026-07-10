@@ -1,0 +1,33 @@
+---
+description: PostgreSQL schema, JSONB usage, and migration conventions
+globs: backend/**/db/migration/**/*
+alwaysApply: false
+---
+
+# Database — PostgreSQL
+
+## General
+
+- PostgreSQL only; migrations via **Flyway** (`V{n}__description.sql`).
+- ACID transactions required for points/bids; consider Redis for ephemeral auction timer state (sync to Postgres on close).
+
+## JSONB usage
+
+- `audit_log.payload` — flexible audit data per `AuditLogType`.
+- `item_weapon.special_effects`, `item_armor.special_effects`, `item_accessory.special_effects` — arrays up to 4 effects.
+
+## Item modeling (1:1 extension)
+
+- Base `item` (type, name, rarity, image_url, …).
+- Type tables: `item_weapon`, `item_armor`, `item_accessory`, `item_misc`.
+- Upgrades: `item_talic` (item_id, talic_type, level 0–7, slot); `UNIQUE (item_id, talic_type)`.
+
+## Key indexes & constraints
+
+- `idx_event_claim_daily` on `(member_id, objective_id, claimed_date)` — LIMITADO daily cap (`claimed_date` generated column UTC).
+- `idx_single_leader` partial unique on `member(role)` WHERE `LIDER`.
+- `UNIQUE (event_id, member_id)` on `event_claim` — one claim per event.
+- `idx_auction_bid_auction` on `(auction_id, amount DESC, created_at DESC)`.
+- Check constraints for enums: role, status, objective type, item type, auction status.
+
+New migrations: additive preferred; never edit applied Flyway files.

@@ -1,0 +1,33 @@
+---
+description: Guild Points System — project context, stack, and core constraints
+alwaysApply: true
+---
+
+# Guild Points System — Overview
+
+**Source of truth:** [especificacao-guild-points-rf-online.md](../../especificacao-guild-points-rf-online.md) — consult before implementing business logic or architecture.
+
+## Stack
+
+| Layer | Tech |
+|---|---|
+| Frontend | React + React Query + SCSS (`frontend/`) |
+| Backend | Spring Boot + PostgreSQL (`backend/`) |
+| Real-time | STOMP over SockJS |
+
+Monorepo: `frontend/` and `backend/` at repo root. Do not edit the plan file.
+
+## Roles (hierarchy)
+
+`MEMBRO` < `MODERADOR` < `ADMINISTRADOR` = `LIDER` (single leader enforced in DB).
+
+- **Backend must validate role** on every sensitive endpoint — never trust frontend-only checks.
+- Mutations (Objetivo, Evento, Leilão, Item, point adjustments) require Líder/Administrador.
+- Moderador+ approves registrations.
+
+## Critical implementation rules
+
+- **Atomic operations:** event claims and auction bids must be idempotent; use transactions with optimistic/pessimistic locks.
+- **Audit everything:** point changes, profile edits, approvals, auctions → `AuditLogService`.
+- **Real-time:** Events, auctions, logs, available balance via shared WebSocket client (frontend) / STOMP topics (backend).
+- Prefer spec section numbers when tracing requirements (e.g. §9 Leilões, §8 Itens).

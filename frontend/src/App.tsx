@@ -1,0 +1,53 @@
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { Layout } from '@/Shared/ui/Layout/Layout'
+import { AuthProvider } from '@/Features/Auth/contexts/AuthContext'
+import { ProtectedRoute, ModeratorRoute } from '@/Features/Auth/ProtectedRoute'
+import { AuthShell } from '@/Features/Auth/AuthShell'
+import { LoginPage } from '@/Features/Auth/LoginPage'
+import { RegisterPage } from '@/Features/Auth/RegisterPage'
+import { DashboardPage } from '@/Features/Dashboard/Dashboard'
+import { LogsPage } from '@/Features/Logs/Logs'
+import { ObjectivesPage } from '@/Features/Objectives/Objectives'
+import { EventsPage } from '@/Features/Events/Events'
+import { ItemsPage } from '@/Features/Items/Items'
+import { AuctionListPage } from '@/Features/Auction/AuctionList'
+import { AuctionDetailPage } from '@/Features/Auction/AuctionDetail'
+import { ApprovalsPage } from '@/Features/Admin/Approvals/Approvals'
+import { ProfilePage } from '@/Features/Profile/Profile'
+import './App.styles.scss'
+
+function App() {
+  return (
+    <BrowserRouter>
+      <AuthProvider>
+        <Routes>
+          <Route element={<AuthShell />}>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+          </Route>
+
+          <Route element={<ProtectedRoute />}>
+            <Route element={<Layout />}>
+              <Route index element={<DashboardPage />} />
+              <Route path="logs" element={<LogsPage />} />
+              <Route path="objectives" element={<ObjectivesPage />} />
+              <Route path="events" element={<EventsPage />} />
+              <Route path="items" element={<ItemsPage />} />
+              <Route path="auctions" element={<AuctionListPage />} />
+              <Route path="auctions/:id" element={<AuctionDetailPage />} />
+              <Route path="profile" element={<ProfilePage />} />
+              <Route path="profile/:id" element={<ProfilePage />} />
+              <Route element={<ModeratorRoute />}>
+                <Route path="admin/approvals" element={<ApprovalsPage />} />
+              </Route>
+            </Route>
+          </Route>
+
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </AuthProvider>
+    </BrowserRouter>
+  )
+}
+
+export default App

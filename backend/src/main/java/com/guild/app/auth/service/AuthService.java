@@ -1,0 +1,131 @@
+package com.guild.app.auth.service;
+
+import com.guild.app.auth.dto.AuthResponse;
+import com.guild.app.auth.dto.DiscordProfileRequest;
+import com.guild.app.auth.dto.LoginRequest;
+import com.guild.app.auth.dto.RegisterRequest;
+import com.guild.app.auth.security.JwtService;
+import com.guild.app.auth.security.MemberPrincipal;
+import com.guild.app.common.enums.AuditLogType;
+import com.guild.app.common.enums.MemberStatus;
+import com.guild.app.common.exception.AppException;
+import com.guild.app.log.service.AuditLogService;
+import com.guild.app.member.entity.Member;
+import com.guild.app.member.entity.CharacterClass;
+import com.guild.app.member.entity.GameRace;
+import com.guild.app.member.repository.CharacterClassRepository;
+import com.guild.app.member.repository.GameRaceRepository;
+import com.guild.app.member.repository.MemberRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Map;
+
+@Service
+@RequiredArgsConstructor
+public class AuthService {
+
+    private final MemberRepository memberRepository;
+    private final GameRaceRepository gameRaceRepository;
+    private final CharacterClassRepository characterClassRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
+    private final AuthenticationManager authenticationManager;
+    private final AuditLogService auditLogService;
+
+    @Transactional
+    public AuthResponse register(RegisterRequest request) {
+        if (memberRepository.existsByEmail(request.email())) {
+            throw new AppException("Email already registered", HttpStatus.CONFLICT);
+        }
+        var race = gameRaceRepository.findById(request.raceId())
+                .orElseThrow(() -> new AppException("Race not found", HttpStatus.BAD_REQUEST));
+        var clazz = characterClassRepository.findById(request.classId())
+                .orElseThrow(() -> new AppException("Class not found", HttpStatus.BAD_REQUEST));
+        validateClassForRace(clazz, race);
+
+        var member = new Member();
+        member.setEmail(request.email());
+        member.setPasswordHash(passwordEncoder.encode(request.password()));
+        member.setNickname(request.nickname());
+        member.setRace(race);
+        member.setCharacterClass(clazz);
+        member.setAvatarUrl(request.avatarUrl());
+        member.setStatus(MemberStatus.PENDENTE);
+        member.setProfileComplete(true);
+        member = memberRepository.save(member);
+
+        auditLogService.log(AuditLogType.MEMBER_REGISTERED, member, member,
+                Map.of("email", request.email(), "nickname", request.nickname()));
+
+        return buildAuthResponse(member);
+    }
+
+    public AuthResponse login(LoginRequest request) {
+        authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(request.email(), request.password()));
+        var member = memberRepository.findByEmail(request.email())
+                .orElseThrow(() -> new AppException("Invalid credentials", HttpStatus.UNAUTHORIZED));
+        return buildAuthResponse(member);
+    }
+
+    @Transactional
+    public AuthResponse completeDiscordProfile(MemberPrincipal principal, DiscordProfileRequest request) {
+        var member = memberRepository.findById(principal.getId())
+                .orElseThrow(() -> new AppException("Member not found", HttpStatus.NOT_FOUND));
+        if (member.getDiscordId() == null) {
+            throw new AppException("Not a Discord account", HttpStatus.BAD_REQUEST);
+        }
+        var race = gameRaceRepository.findById(request.raceId())
+                .orElseThrow(() -> new AppException("Race not found", HttpStatus.BAD_REQUEST));
+        var clazz = characterClassRepository.findById(request.classId())
+                .orElseThrow(() -> new AppException("Class not found", HttpStatus.BAD_REQUEST));
+        validateClassForRace(clazz, race);
+
+        member.setNickname(request.nickname());
+        member.setRace(race);
+        member.setCharacterClass(clazz);
+        member.setProfileComplete(true);
+        memberRepository.save(member);
+        return buildAuthResponse(member);
+    }
+
+    @Transactional
+    public Member registerOrLoginDiscord(String discordId, String nickname, String avatarUrl, String email) {
+        return memberRepository.findByDiscordId(discordId).orElseGet(() -> {
+            var member = new Member();
+            member.setDiscordId(discordId);
+            member.setEmail(email);
+            member.setNickname(nickname);
+            member.setAvatarUrl(avatarUrl);
+            member.setStatus(MemberStatus.PENDENTE);
+            member.setProfileComplete(false);
+            member = memberRepository.save(member);
+            auditLogService.log(AuditLogType.MEMBER_REGISTERED, member, member,
+                    Map.of("discordId", discordId, "nickname", nickname));
+            return member;
+        });
+    }
+
+    private AuthResponse buildAuthResponse(Member member) {
+        var principal = new MemberPrincipal(member);
+        return new AuthResponse(
+                jwtService.generateToken(principal),
+                member.getId(),
+                member.getNickname(),
+                member.getRole(),
+                member.getStatus(),
+                member.isProfileComplete());
+    }
+
+    private void validateClassForRace(CharacterClass clazz, GameRace race) {
+        if (!clazz.getRace().getId().equals(race.getId())) {
+            throw new AppException("Class does not belong to selected race", HttpStatus.BAD_REQUEST);
+        }
+    }
+}

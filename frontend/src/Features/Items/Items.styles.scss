@@ -1,0 +1,303 @@
+.items-page {
+  h2 {
+    @include theme.page-heading;
+  }
+
+  &__loading,
+  &__empty {
+    color: theme.$color-text-muted;
+    font-family: theme.$font-heading;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: theme.$spacing-lg 0;
+  }
+}
+
+// ─── Tabs ─────────────────────────────────────────────────────────────────────
+
+.items-tabs {
+  display: flex;
+  gap: 2px;
+  margin-bottom: theme.$spacing-lg;
+  border-bottom: 1px solid theme.$color-border;
+
+  &__btn {
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    padding: 8px theme.$spacing-md;
+    font-family: theme.$font-heading;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: theme.$color-text-muted;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+
+    &:hover { color: theme.$color-text; }
+
+    &--active {
+      color: theme.$color-primary;
+      border-bottom-color: theme.$color-primary;
+    }
+  }
+}
+
+// ─── Items Grid ───────────────────────────────────────────────────────────────
+
+.items-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: theme.$spacing-md;
+  align-items: start;
+}
+
+// ─── Item Tooltip Card ────────────────────────────────────────────────────────
+
+.item-tooltip {
+  background: linear-gradient(180deg, #0c1220 0%, #080d17 100%);
+  border: 1px solid #1e2d45;
+  border-left: 2px solid #1a3a5c;
+  padding: 0;
+  position: relative;
+  font-family: theme.$font-family;
+
+  // Subtle inner glow matching RF Online dark panel
+  box-shadow: inset 0 0 40px rgba(0, 20, 60, 0.3);
+
+  // Header: icon + name
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: theme.$spacing-sm;
+    padding: theme.$spacing-sm theme.$spacing-sm;
+    background: rgba(0, 20, 50, 0.4);
+    border-bottom: 1px solid #1e2d45;
+    position: relative;
+  }
+
+  &__icon-wrap {
+    width: 52px;
+    height: 52px;
+    flex-shrink: 0;
+    border: 1px solid #1e2d45;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  &__icon {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    image-rendering: pixelated;
+  }
+
+  &__icon-fallback {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: theme.$font-heading;
+    font-size: 20px;
+    color: theme.$color-text-muted;
+    opacity: 0.35;
+  }
+
+  &__title-wrap {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  &__name {
+    font-family: theme.$font-heading;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    line-height: 1.2;
+    // color comes from inline style (rarity)
+  }
+
+  &__rarity {
+    font-family: theme.$font-heading;
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    opacity: 0.75;
+  }
+
+  &__delete {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 20px;
+    height: 20px;
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid #1e2d45;
+    color: theme.$color-text-muted;
+    font-size: 16px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+    opacity: 0;
+    transition: opacity 0.15s, border-color 0.15s, color 0.15s;
+
+    .item-tooltip:hover & { opacity: 1; }
+    &:hover {
+      border-color: theme.$color-danger;
+      color: theme.$color-danger;
+    }
+  }
+
+  // Horizontal separator line (matches RF Online blue divider)
+  &__divider {
+    height: 1px;
+    background: linear-gradient(90deg, #1a3a5c 0%, #0c1a2e 100%);
+    margin: 0;
+  }
+
+  &__body {
+    padding: theme.$spacing-xs 0;
+  }
+
+  // Stat rows: label (max-content) + value immediately beside
+  &__row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    padding: 3px theme.$spacing-sm;
+    gap: 8px;
+    text-align: left;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.02);
+    }
+  }
+
+  &__label {
+    flex: 0 0 auto;
+    width: max-content;
+    text-align: left;
+    font-size: 16px;
+    color: #7a9cbf;
+    white-space: nowrap;
+    line-height: 1.5;
+  }
+
+  &__value {
+    flex: 0 1 auto;
+    min-width: 0;
+    text-align: left;
+    font-size: 16px;
+    color: theme.$color-text;
+  }
+
+  &__boost {
+    font-weight: 600;
+    color: theme.$color-success;
+  }
+
+  &__cast {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  &__cast-icon {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+    image-rendering: pixelated;
+    flex-shrink: 0;
+  }
+
+  // Talic icons inside the upgrade row
+  &__talics {
+    display: flex;
+    gap: 3px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  &__talic {
+    height: 24px;
+    object-fit: contain;
+  }
+
+  // Description block at the bottom
+  &__desc {
+    margin: 0;
+    padding: theme.$spacing-xs theme.$spacing-sm theme.$spacing-sm;
+    font-size: 12px;
+    color: theme.$color-text-muted;
+    line-height: 1.5;
+    font-style: italic;
+  }
+}
+
+// ─── Confirm Modal ────────────────────────────────────────────────────────────
+
+.items-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.items-confirm {
+  @include theme.card;
+  min-width: 280px;
+  padding: theme.$spacing-lg;
+
+  p {
+    font-family: theme.$font-family;
+    font-size: 15px;
+    color: theme.$color-text;
+    margin: 0 0 theme.$spacing-md;
+  }
+
+  &__actions {
+    display: flex;
+    gap: theme.$spacing-sm;
+    justify-content: flex-end;
+  }
+
+  &__btn {
+    background: transparent;
+    border: 1px solid theme.$color-border;
+    font-family: theme.$font-heading;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 8px theme.$spacing-md;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+
+    &--cancel {
+      color: theme.$color-text-muted;
+      &:hover { color: theme.$color-text; border-color: theme.$color-text-muted; }
+    }
+
+    &--confirm {
+      color: theme.$color-danger;
+      border-color: theme.$color-danger;
+      &:hover { background: rgba(255, 92, 92, 0.1); }
+      &:disabled { opacity: 0.5; cursor: not-allowed; }
+    }
+  }
+}

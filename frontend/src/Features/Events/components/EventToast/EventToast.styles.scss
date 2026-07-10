@@ -1,0 +1,129 @@
+.event-toasts {
+  position: fixed;
+  bottom: theme.$spacing-lg;
+  right: theme.$spacing-lg;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: theme.$spacing-md;
+  width: min(340px, calc(100vw - #{theme.$spacing-lg * 2}));
+  pointer-events: none;
+}
+
+.event-toast {
+  width: 100%;
+  pointer-events: auto;
+  background: linear-gradient(180deg, #121826, #0d121b);
+  border: 1px solid theme.$color-border;
+  border-left: 3px solid theme.$color-amber;
+  padding: theme.$spacing-md;
+  position: relative;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.5),
+    0 0 18px rgba(232, 162, 63, 0.08);
+
+  // Bottom-right corner bracket in amber
+  &::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 10px;
+    height: 1px;
+    background: theme.$color-amber;
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 1px;
+    height: 10px;
+    background: theme.$color-amber;
+  }
+
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: theme.$spacing-sm;
+    margin-bottom: theme.$spacing-sm;
+
+    strong {
+      font-family: theme.$font-heading;
+      font-size: 9px;
+      letter-spacing: 3px;
+      color: theme.$color-amber;
+      text-transform: uppercase;
+    }
+  }
+
+  &__header-actions {
+    display: flex;
+    align-items: center;
+    gap: theme.$spacing-sm;
+    flex-shrink: 0;
+  }
+
+  &__timer {
+    font-family: theme.$font-heading;
+    font-size: 11px;
+    letter-spacing: 1px;
+    color: theme.$color-primary;
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 8px rgba(63, 227, 214, 0.35);
+  }
+
+  &__close {
+    background: none;
+    border: none;
+    color: theme.$color-text-muted;
+    font-size: 1.1rem;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0;
+
+    &:hover {
+      color: theme.$color-text;
+    }
+  }
+
+  p {
+    font-size: 14px;
+    font-family: theme.$font-family;
+    font-weight: 600;
+    color: theme.$color-text;
+    margin: 0 0 theme.$spacing-sm;
+  }
+
+  &__form {
+    display: flex;
+    gap: theme.$spacing-sm;
+    margin-top: theme.$spacing-sm;
+    min-width: 0;
+
+    .btn {
+      flex-shrink: 0;
+    }
+  }
+
+  &__input {
+    @include theme.field-input;
+    flex: 1;
+    min-width: 0;
+    text-align: center;
+    font-family: theme.$font-heading;
+    letter-spacing: 4px;
+    font-size: 15px;
+    padding: 8px 10px;
+  }
+
+  &__error {
+    color: theme.$color-danger;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    margin: theme.$spacing-xs 0 0;
+    font-family: theme.$font-family;
+  }
+}

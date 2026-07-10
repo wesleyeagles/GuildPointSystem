@@ -1,0 +1,424 @@
+.create-item-form {
+  @include theme.card;
+  margin-bottom: theme.$spacing-lg;
+
+  h3 {
+    margin: 0 0 theme.$spacing-md;
+    font-family: theme.$font-heading;
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: theme.$color-primary;
+  }
+
+  label {
+    display: flex;
+    flex-direction: column;
+    gap: theme.$spacing-xs;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: theme.$color-text-muted;
+    font-family: theme.$font-heading;
+  }
+
+  input:not([type='file']),
+  select {
+    @include theme.field-input;
+    @include theme.field-control-height;
+    width: 100%;
+  }
+
+  textarea {
+    @include theme.field-input;
+    width: 100%;
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: theme.$spacing-md;
+    margin-bottom: theme.$spacing-md;
+  }
+
+  &__full {
+    grid-column: 1 / -1;
+  }
+
+  &__image-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: theme.$spacing-xs;
+  }
+
+  &__image-label {
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: theme.$color-text-muted;
+    font-family: theme.$font-heading;
+  }
+
+  &__fieldset {
+    border: 1px solid theme.$color-border;
+    border-left: 2px solid theme.$color-cyan-dim;
+    padding: theme.$spacing-md;
+    margin: 0 0 theme.$spacing-md;
+
+    legend {
+      font-family: theme.$font-heading;
+      font-size: 10px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: theme.$color-text;
+      padding: 0 theme.$spacing-xs;
+    }
+  }
+
+  &__effect-row {
+    display: flex;
+    gap: theme.$spacing-sm;
+    margin-bottom: theme.$spacing-sm;
+  }
+
+  &__add-btn,
+  &__remove-btn {
+    background: transparent;
+    border: 1px solid theme.$color-border;
+    color: theme.$color-text-muted;
+    font-family: theme.$font-heading;
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+    padding: theme.$spacing-xs theme.$spacing-sm;
+
+    &:hover {
+      border-color: theme.$color-primary;
+      color: theme.$color-primary;
+    }
+  }
+
+  &__remove-btn {
+    flex-shrink: 0;
+    width: 36px;
+    padding: 0;
+    line-height: 32px;
+  }
+
+  &__error {
+    color: theme.$color-danger;
+    font-size: 12px;
+    text-transform: none;
+    letter-spacing: 0;
+    font-family: theme.$font-family;
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+  }
+
+}
+
+// ─── Input with boost suffix ──────────────────────────────────────────────────
+
+.input-boost-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+
+  input {
+    @include theme.field-input;
+    width: 100%;
+
+    &.input-boost-wrap__input--has-suffix {
+      padding-right: 72px;
+    }
+  }
+
+  &__suffix {
+    position: absolute;
+    right: 10px;
+    font-family: theme.$font-family;
+    font-size: 13px;
+    font-weight: 600;
+    color: theme.$color-success;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+}
+
+// ─── Image Uploader ───────────────────────────────────────────────────────────
+
+.image-uploader {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: theme.$spacing-xs;
+  min-height: 50px;
+  border: 1px dashed theme.$color-border;
+  border-left: 2px solid theme.$color-cyan-dim;
+  background: rgba(255, 255, 255, 0.01);
+  color: theme.$color-text-muted;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  padding: theme.$spacing-md;
+
+  &:hover,
+  &--drag {
+    border-color: theme.$color-primary;
+    border-left-color: theme.$color-primary;
+    background: rgba(63, 227, 214, 0.04);
+    color: theme.$color-primary;
+  }
+
+  &__icon {
+    width: 28px;
+    height: 28px;
+    opacity: 0.5;
+    flex-shrink: 0;
+
+    .image-uploader:hover & {
+      opacity: 0.9;
+    }
+  }
+
+  &__label {
+    font-family: theme.$font-heading;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  &__hint {
+    font-size: 10px;
+    letter-spacing: 1px;
+    opacity: 0.5;
+    font-family: theme.$font-heading;
+    text-transform: uppercase;
+  }
+
+  &__error {
+    color: theme.$color-danger;
+    font-size: 12px;
+    letter-spacing: 0;
+    text-transform: none;
+    font-family: theme.$font-family;
+    margin-top: 2px;
+  }
+
+  &--has-preview {
+    min-height: 0;
+    padding: 0;
+    border-style: solid;
+    border-color: theme.$color-border;
+    cursor: default;
+    align-items: center;
+    justify-content: center;
+    max-width: 100%;
+  }
+
+  &__preview {
+    display: block;
+    width: 100%;
+    max-height: 100px;
+    padding-block: 8px;
+    object-fit: contain;
+    background: rgba(0, 0, 0, 0.3);
+  }
+
+  &__remove {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 22px;
+    height: 22px;
+    background: rgba(6, 8, 13, 0.85);
+    border: 1px solid theme.$color-border;
+    color: theme.$color-text-muted;
+    font-size: 16px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+    transition: border-color 0.15s, color 0.15s;
+
+    &:hover {
+      border-color: theme.$color-danger;
+      color: theme.$color-danger;
+    }
+  }
+}
+
+// ─── Talic Slots ──────────────────────────────────────────────────────────────
+
+.talic-slots {
+  display: flex;
+  flex-direction: column;
+  gap: theme.$spacing-sm;
+
+  &__label {
+    font-family: theme.$font-heading;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: theme.$color-text;
+  }
+
+  &__row {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+
+  &__slot-wrap {
+    position: static;
+  }
+
+  &__slot {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid theme.$color-border;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    overflow: hidden;
+
+    &:hover {
+      border-color: rgba(63, 227, 214, 0.45);
+      box-shadow: 0 0 8px rgba(63, 227, 214, 0.15);
+    }
+
+    &--filled {
+      border-color: rgba(255, 255, 255, 0.2);
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.12);
+
+      &:hover {
+        box-shadow: 0 0 14px rgba(255, 255, 255, 0.22);
+      }
+    }
+
+    &--open {
+      border-color: theme.$color-primary;
+      box-shadow: 0 0 10px rgba(63, 227, 214, 0.3);
+    }
+  }
+
+  &__img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    object-position: center;
+    display: block;
+    image-rendering: pixelated;
+  }
+
+  &__legend {
+    display: flex;
+    gap: theme.$spacing-md;
+    flex-wrap: wrap;
+    margin-top: theme.$spacing-xs;
+    align-items: center;
+  }
+
+  &__tag {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: theme.$font-heading;
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: theme.$color-text-muted;
+  }
+
+  &__tag-img {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+    object-position: center;
+    image-rendering: pixelated;
+    flex-shrink: 0;
+  }
+
+  &__tag-bonus {
+    color: theme.$color-success;
+    font-size: 11px;
+  }
+}
+
+// ─── Talic Picker ─────────────────────────────────────────────────────────────
+
+.talic-picker {
+  position: fixed;
+  z-index: 9999;
+  background: theme.$color-bg-elevated;
+  border: 1px solid theme.$color-border;
+  border-left: 2px solid theme.$color-cyan-dim;
+  min-width: 180px;
+  padding: theme.$spacing-xs 0;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+
+  &__header {
+    font-family: theme.$font-heading;
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: theme.$color-text-muted;
+    padding: 4px theme.$spacing-sm 6px;
+    border-bottom: 1px solid theme.$color-border;
+    margin-bottom: 2px;
+  }
+
+  &__option {
+    display: flex;
+    align-items: center;
+    gap: theme.$spacing-sm;
+    width: 100%;
+    background: transparent;
+    border: none;
+    padding: 6px theme.$spacing-sm;
+    cursor: pointer;
+    font-family: theme.$font-family;
+    font-size: 13px;
+    color: theme.$color-text;
+    text-align: left;
+    transition: background 0.1s;
+
+    &:hover {
+      background: rgba(63, 227, 214, 0.07);
+      color: theme.$color-primary;
+    }
+
+    &--empty {
+      color: theme.$color-text-muted;
+      font-size: 11px;
+      font-family: theme.$font-heading;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+
+      &:hover {
+        color: theme.$color-danger;
+        background: rgba(255, 92, 92, 0.07);
+      }
+    }
+  }
+
+  &__img {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+    image-rendering: pixelated;
+    flex-shrink: 0;
+  }
+}

@@ -1,0 +1,533 @@
+// ─── RF Online sci-fi auth theme ───────────────────────────────────────────
+$void:      #06080d;
+$panel:     #0d121b;
+$panel-2:   #121826;
+$line:      #1c2433;
+$cyan:      #3fe3d6;
+$cyan-dim:  #1a8a82;
+$amber:     #e8a23f;
+$text:      #cfd8e3;
+$text-dim:  #6c7689;
+
+// ── Stage ────────────────────────────────────────────────────────────────────
+.auth-stage {
+  min-height: 100vh;
+  display: flex;
+  background:
+    radial-gradient(ellipse 900px 600px at 80% 20%, rgba(63, 227, 214, 0.06), transparent 60%),
+    radial-gradient(ellipse 700px 500px at 10% 90%, rgba(232, 162, 63, 0.05), transparent 60%),
+    $void;
+  position: relative;
+  overflow: hidden;
+  font-family: 'Rajdhani', sans-serif;
+
+  // grid overlay
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(63, 227, 214, 0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(63, 227, 214, 0.035) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+  }
+}
+
+// ── Corner frame decorations ─────────────────────────────────────────────────
+.auth-frame-corner {
+  position: absolute;
+  width: 46px;
+  height: 46px;
+  border: 1px solid $cyan-dim;
+  opacity: 0.5;
+  pointer-events: none;
+  z-index: 1;
+
+  &.fc-tl {
+    top: 32px;
+    left: 32px;
+    border-right: none;
+    border-bottom: none;
+  }
+
+  &.fc-br {
+    bottom: 32px;
+    right: 0;
+    border-left: none;
+    border-top: none;
+  }
+}
+
+// ── Left lore panel ──────────────────────────────────────────────────────────
+.auth-lore {
+  flex: 1.15;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 64px;
+  border-right: 1px solid $line;
+  min-width: 0;
+
+  .lore-eyebrow {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 12px;
+    letter-spacing: 5px;
+    color: $cyan;
+    margin: 0 0 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    &::before {
+      content: '';
+      width: 28px;
+      height: 1px;
+      background: $cyan;
+      display: inline-block;
+    }
+  }
+
+  .lore-title {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 900;
+    font-size: 56px;
+    line-height: 1.02;
+    color: #eef3f8;
+    margin: 0 0 18px;
+    letter-spacing: 1px;
+    text-shadow: 0 0 28px rgba(63, 227, 214, 0.25);
+
+    span { color: $cyan; }
+  }
+
+  .lore-desc {
+    font-size: 17px;
+    color: $text-dim;
+    max-width: 480px;
+    line-height: 1.6;
+    margin: 0 0 36px;
+  }
+}
+
+// ── Faction chips ────────────────────────────────────────────────────────────
+.faction-strip {
+  display: flex;
+  gap: 14px;
+}
+
+.faction-chip {
+  flex: 1;
+  border: 1px solid $line;
+  background: rgba(255, 255, 255, 0.015);
+  padding: 14px 16px;
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 14px;
+    height: 1px;
+    background: $cyan;
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 1px;
+    height: 14px;
+    background: $cyan;
+  }
+
+  .chip-name {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: #eef3f8;
+    margin-bottom: 4px;
+  }
+
+  .chip-role {
+    font-size: 13px;
+    color: $text-dim;
+  }
+}
+
+// ── Right auth panel ─────────────────────────────────────────────────────────
+.auth-panel {
+  width: 600px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+  position: relative;
+  z-index: 2;
+  // Width animates smoothly when the --wide modifier is toggled
+  transition: width 0.42s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &--wide {
+    width: 800px;
+  }
+}
+
+// ── Auth card ────────────────────────────────────────────────────────────────
+.auth-card {
+  width: 100%;
+  background: linear-gradient(180deg, $panel-2, $panel);
+  border: 1px solid $line;
+  position: relative;
+  padding: 40px 36px;
+
+  // corner brackets
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    border: 1.5px solid $cyan;
+  }
+
+  &::before {
+    top: -1px;
+    left: -1px;
+    border-right: none;
+    border-bottom: none;
+  }
+
+  &::after {
+    bottom: -1px;
+    right: -1px;
+    border-left: none;
+    border-top: none;
+  }
+}
+
+// ── Tabs ─────────────────────────────────────────────────────────────────────
+.auth-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 32px;
+  border-bottom: 1px solid $line;
+}
+
+.auth-tab {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 12px;
+  letter-spacing: 2px;
+  color: $text-dim;
+  padding: 0 0 14px;
+  margin-right: 28px;
+  cursor: pointer;
+  position: relative;
+  text-decoration: none;
+  background: none;
+  border: none;
+  transition: color 0.15s;
+
+  &:hover { color: $text; }
+
+  &.active {
+    color: $cyan;
+
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: $cyan;
+      box-shadow: 0 0 8px $cyan;
+    }
+  }
+}
+
+// ── Fields ───────────────────────────────────────────────────────────────────
+.auth-field {
+  margin-bottom: 22px;
+
+  label {
+    display: block;
+    font-size: 12px;
+    letter-spacing: 1.5px;
+    color: $text-dim;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    font-weight: 600;
+    font-family: 'Rajdhani', sans-serif;
+  }
+
+  input,
+  select {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid $line;
+    border-left: 2px solid $cyan-dim;
+    color: $text;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 16px;
+    font-weight: 500;
+    padding: 12px 14px;
+    outline: none;
+    transition: border-color 0.15s, background 0.15s;
+    appearance: none;
+
+    &::placeholder { color: #3c4456; }
+
+    &:focus {
+      border-left-color: $cyan;
+      background: rgba(63, 227, 214, 0.04);
+      border-color: $cyan-dim;
+    }
+
+    option {
+      background: $panel;
+      color: $text;
+    }
+  }
+}
+
+// ── Seed picker override ──────────────────────────────────────────────────────
+.auth-card {
+  .seed-picker-label {
+    font-size: 12px;
+    letter-spacing: 1.5px;
+    color: $text-dim;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+}
+
+// ── Buttons ───────────────────────────────────────────────────────────────────
+.auth-btn-primary {
+  width: 100%;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 13px;
+  letter-spacing: 3px;
+  font-weight: 700;
+  color: #06140f;
+  background: linear-gradient(90deg, $cyan, #6fe9c8);
+  border: none;
+  padding: 15px;
+  cursor: pointer;
+  margin-top: 6px;
+  text-transform: uppercase;
+  position: relative;
+  overflow: hidden;
+  transition: filter 0.15s;
+
+  &:hover { filter: brightness(1.08); }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.auth-btn-discord {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: rgba(88, 101, 242, 0.08);
+  border: 1px solid rgba(88, 101, 242, 0.35);
+  color: #a7b0fb;
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: 1px;
+  padding: 13px;
+  cursor: pointer;
+  transition: background 0.15s;
+
+  &:hover { background: rgba(88, 101, 242, 0.14); }
+}
+
+.auth-logout-btn {
+  width: 100%;
+  margin-top: 16px;
+  background: transparent;
+  border: 1px solid rgba(110, 130, 150, 0.35);
+  color: rgba(180, 195, 210, 0.85);
+  font-family: 'Orbitron', sans-serif;
+  font-size: 10px;
+  letter-spacing: 2px;
+  font-weight: 600;
+  padding: 12px;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: border-color 0.15s, color 0.15s;
+
+  &:hover {
+    color: #f87171;
+    border-color: rgba(248, 113, 113, 0.55);
+  }
+}
+
+// ── Divider ───────────────────────────────────────────────────────────────────
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 26px 0;
+  color: $text-dim;
+  font-size: 11px;
+  letter-spacing: 2px;
+
+  &::before,
+  &::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: $line;
+  }
+}
+
+// ── Switch line ───────────────────────────────────────────────────────────────
+.auth-switch {
+  text-align: center;
+  margin-top: 26px;
+  font-size: 14px;
+  color: $text-dim;
+
+  a {
+    color: $cyan;
+    text-decoration: none;
+    font-weight: 600;
+
+    &:hover { text-decoration: underline; }
+  }
+}
+
+// ── Error ─────────────────────────────────────────────────────────────────────
+.auth-error {
+  color: #ff5c5c;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  border-left: 2px solid #ff5c5c;
+  background: rgba(255, 92, 92, 0.06);
+}
+
+// ── Muted text ────────────────────────────────────────────────────────────────
+.auth-muted {
+  color: $text-dim;
+  font-size: 13px;
+  margin: 0 0 16px;
+  letter-spacing: 0.5px;
+}
+
+// ── Responsive ────────────────────────────────────────────────────────────────
+// Lore hides early when register panel (800px) would crowd it
+@media (max-width: 1100px) {
+  .auth-lore { display: none; }
+  .auth-panel,
+  .auth-panel--wide {
+    width: 100%;
+    transition: none; // no width transition when full-width
+  }
+}
+
+@media (max-width: 640px) {
+  .auth-panel { padding: 24px 16px; }
+  .auth-card { padding: 32px 24px; }
+}
+
+// ── Standalone card (WaitingApprovalPage) ────────────────────────────────────
+.auth-card--center {
+  text-align: center;
+
+  h1 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 22px;
+    letter-spacing: 2px;
+    color: #eef3f8;
+    margin: 0 0 16px;
+  }
+
+  p {
+    color: $text-dim;
+    font-size: 15px;
+    line-height: 1.6;
+    margin: 0 0 8px;
+  }
+}
+
+// standalone .auth-card when used outside .auth-panel
+.auth-page .auth-card {
+  width: 100%;
+  max-width: 480px;
+}
+
+// ── Legacy classes (kept for WaitingApprovalPage / DiscordProfileModal) ────────
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: $void;
+  padding: 1.5rem;
+
+  &::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(63, 227, 214, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(63, 227, 214, 0.03) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+  }
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.modal-card {
+  position: relative;
+  background: linear-gradient(180deg, $panel-2, $panel);
+  border: 1px solid $line;
+  padding: 40px 36px;
+  width: 100%;
+  max-width: 520px;
+
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    border: 1.5px solid $cyan;
+  }
+
+  &::before {
+    top: -1px;
+    left: -1px;
+    border-right: none;
+    border-bottom: none;
+  }
+
+  &::after {
+    bottom: -1px;
+    right: -1px;
+    border-left: none;
+    border-top: none;
+  }
+}

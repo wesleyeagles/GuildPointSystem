@@ -1,0 +1,58 @@
+spring:
+  application:
+    name: guild-points
+  datasource:
+    url: jdbc:postgresql://localhost:5432/guild_points
+    username: guild
+    password: guild
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  servlet:
+    multipart:
+      max-file-size: 2MB
+      max-request-size: 2MB
+  security:
+    oauth2:
+      client:
+        registration:
+          discord:
+            client-id: ${DISCORD_CLIENT_ID:local-dev-not-configured}
+            client-secret: ${DISCORD_CLIENT_SECRET:local-dev-not-configured}
+            scope: identify,email
+            authorization-grant-type: authorization_code
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+        provider:
+          discord:
+            authorization-uri: https://discord.com/api/oauth2/authorize
+            token-uri: https://discord.com/api/oauth2/token
+            user-info-uri: https://discord.com/api/users/@me
+            user-name-attribute: id
+
+server:
+  port: 8080
+
+guild:
+  jwt:
+    secret: ${JWT_SECRET:change-me-in-production-use-at-least-256-bits-secret-key-here}
+    expiration-ms: 86400000
+  upload:
+    base-path: ${UPLOAD_PATH:./uploads}
+    max-avatar-size: 2097152
+    max-item-size: 2097152
+    max-chat-size: 1048576
+  cors:
+    allowed-origins: ${CORS_ORIGINS:http://localhost:5173}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
