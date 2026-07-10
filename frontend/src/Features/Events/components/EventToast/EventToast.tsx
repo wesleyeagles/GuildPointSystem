@@ -10,6 +10,7 @@ import { useEventSubscription } from '@/Domain/Log/hooks/useLogs'
 import { useClaimEvent } from '@/Domain/Event/hooks/useEvents'
 import type { GuildEvent } from '@/Domain/types/models'
 import { Button } from '@/Shared/ui/components/Button/Button'
+import { useAppToast } from '@/Shared/ui/components/AppToast/AppToast'
 import './EventToast.styles.scss'
 
 interface EventToastContextValue {
@@ -21,6 +22,7 @@ const EventToastContext = createContext<EventToastContextValue | null>(null)
 export function EventToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<GuildEvent[]>([])
   const claimMutation = useClaimEvent()
+  const { showToast } = useAppToast()
 
   const pushEvent = useCallback((event: GuildEvent) => {
     if (!event.active) {
@@ -51,6 +53,10 @@ export function EventToastProvider({ children }: { children: ReactNode }) {
             onDismiss={() => dismiss(event.id)}
             onClaim={async (password) => {
               await claimMutation.mutateAsync({ id: event.id, password })
+              showToast(
+                `Evento "${event.objectiveName}" resgatado! +${event.points} pts`,
+                'success',
+              )
               dismiss(event.id)
             }}
             loading={claimMutation.isPending}

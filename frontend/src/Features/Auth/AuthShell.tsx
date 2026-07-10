@@ -42,7 +42,7 @@ export function AuthShell() {
 
       {/* ── Left lore panel ─────────────────────────────────────────────── */}
       <div className="auth-lore">
-        <p className="lore-eyebrow">RISING FORCE · GUILD NETWORK</p>
+        <p className="lore-eyebrow">RISING FORCE · GUILD NETWORK V2</p>
         <h1 className="lore-title">
           Acesse o<br />
           <span>terminal da guild</span>

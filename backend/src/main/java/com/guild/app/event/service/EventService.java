@@ -85,13 +85,13 @@ public class EventService {
                 .orElseThrow(() -> new AppException("Event not found", HttpStatus.NOT_FOUND));
 
         if (!event.isActive() || event.getExpiresAt().isBefore(Instant.now())) {
-            throw new AppException("Event expired", HttpStatus.BAD_REQUEST);
+            throw new AppException("Evento expirado", HttpStatus.BAD_REQUEST);
         }
         if (!event.getPassword().equals(request.password())) {
-            throw new AppException("Invalid password", HttpStatus.BAD_REQUEST);
+            throw new AppException("Senha inválida", HttpStatus.BAD_REQUEST);
         }
         if (eventClaimRepository.existsByEventIdAndMemberId(eventId, actor.getId())) {
-            throw new AppException("Already claimed", HttpStatus.CONFLICT);
+            throw new AppException("Você já resgatou este evento", HttpStatus.CONFLICT);
         }
 
         var objective = event.getObjective();
@@ -99,7 +99,7 @@ public class EventService {
             long todayClaims = eventClaimRepository.countDailyClaims(
                     actor.getId(), objective.getId());
             if (todayClaims >= objective.getDailyLimit()) {
-                throw new AppException("Daily limit reached for this objective", HttpStatus.BAD_REQUEST);
+                throw new AppException("Limite diário deste objetivo atingido", HttpStatus.BAD_REQUEST);
             }
         }
 
@@ -179,7 +179,7 @@ public class EventService {
         if (objective.getType() == ObjectiveType.LIMITADO) {
             long todayClaims = eventClaimRepository.countDailyClaims(memberId, objective.getId());
             if (todayClaims >= objective.getDailyLimit()) {
-                throw new AppException("Daily limit reached for this objective", HttpStatus.BAD_REQUEST);
+                throw new AppException("Limite diário deste objetivo atingido", HttpStatus.BAD_REQUEST);
             }
         }
 

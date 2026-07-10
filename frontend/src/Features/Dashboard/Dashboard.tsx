@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useMemberRanking } from '@/Domain/Member/hooks/useMembers'
 import { useActiveEvents, useClaimEvent } from '@/Domain/Event/hooks/useEvents'
 import { Button } from '@/Shared/ui/components/Button/Button'
+import { useAppToast } from '@/Shared/ui/components/AppToast/AppToast'
 import './Dashboard.styles.scss'
 
 const RANK_PER_PAGE = 14
@@ -43,7 +44,9 @@ export function DashboardPage() {
   const { data: ranking = [], isLoading } = useMemberRanking()
   const { data: events = [] } = useActiveEvents()
   const claimEvent = useClaimEvent()
+  const { showToast } = useAppToast()
   const [passwords, setPasswords] = useState<Record<number, string>>({})
+  const [claimErrors, setClaimErrors] = useState<Record<number, string>>({})
   const [rankPage, setRankPage] = useState(0)
   const [eventPage, setEventPage] = useState(0)
 
@@ -61,8 +64,26 @@ export function DashboardPage() {
 
   const handleClaim = async (eventId: number) => {
     const password = passwords[eventId] ?? ''
-    await claimEvent.mutateAsync({ id: eventId, password })
-    setPasswords((p) => ({ ...p, [eventId]: '' }))
+    const event = events.find((e) => e.id === eventId)
+    setClaimErrors((prev) => {
+      const next = { ...prev }
+      delete next[eventId]
+      return next
+    })
+
+    try {
+      await claimEvent.mutateAsync({ id: eventId, password })
+      setPasswords((p) => ({ ...p, [eventId]: '' }))
+      showToast(
+        event
+          ? `Evento "${event.objectiveName}" resgatado! +${event.points} pts`
+          : 'Evento resgatado com sucesso!',
+        'success',
+      )
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao resgatar evento'
+      setClaimErrors((prev) => ({ ...prev, [eventId]: message }))
+    }
   }
 
   if (isLoading) return <p>Carregando ranking...</p>
@@ -124,19 +145,36 @@ export function DashboardPage() {
                     <span className="event-list__pts">{event.points} pts</span>
                     <small>Expira: {new Date(event.expiresAt).toLocaleString()}</small>
                   </div>
-                  <div className="event-list__claim">
-                    <input
-                      type="password"
-                      maxLength={4}
-                      placeholder="Senha"
-                      value={passwords[event.id] ?? ''}
-                      onChange={(e) =>
-                        setPasswords((p) => ({ ...p, [event.id]: e.target.value }))
-                      }
-                    />
-                    <Button size="sm" onClick={() => handleClaim(event.id)} loading={claimEvent.isPending}>
-                      Resgatar
-                    </Button>
+                  <div className="event-list__claim-wrap">
+                    <div className="event-list__claim">
+                      <input
+                        type="password"
+                        maxLength={4}
+                        placeholder="Senha"
+                        value={passwords[event.id] ?? ''}
+                        onChange={(e) => {
+                          const value = e.target.value
+                          setPasswords((p) => ({ ...p, [event.id]: value }))
+                          if (claimErrors[event.id]) {
+                            setClaimErrors((prev) => {
+                              const next = { ...prev }
+                              delete next[event.id]
+                              return next
+                            })
+                          }
+                        }}
+                      />
+                      <Button
+                        size="sm"
+                        onClick={() => handleClaim(event.id)}
+                        loading={claimEvent.isPending && claimEvent.variables?.id === event.id}
+                      >
+                        Resgatar
+                      </Button>
+                    </div>
+                    {claimErrors[event.id] && (
+                      <p className="event-list__error">{claimErrors[event.id]}</p>
+                    )}
                   </div>
                 </li>
               ))}
