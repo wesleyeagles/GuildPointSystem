@@ -5,11 +5,12 @@ import { useAuthContext } from '@/Features/Auth/contexts/AuthContext'
 import { useAppToast } from '@/Shared/ui/components/AppToast/AppToast'
 import { CreateItemForm } from '@/Features/Items/components/CreateItemForm/CreateItemForm'
 import { ItemCard } from '@/Features/Items/components/ItemCard/ItemCard'
+import { AccessoryCatalog } from '@/Features/Items/components/AccessoryCatalog/AccessoryCatalog'
 import './Items.styles.scss'
 
 export { ItemCard } from '@/Features/Items/components/ItemCard/ItemCard'
 
-type Tab = 'list' | 'create'
+type Tab = 'list' | 'catalog' | 'create'
 
 export function ItemsPage() {
   const { data: items = [], isLoading } = useItems()
@@ -44,6 +45,13 @@ export function ItemsPage() {
         >
           Listagem
         </button>
+        <button
+          type="button"
+          className={`items-tabs__btn${tab === 'catalog' ? ' items-tabs__btn--active' : ''}`}
+          onClick={() => setTab('catalog')}
+        >
+          Catálogo
+        </button>
         {isAdmin && (
           <button
             type="button"
@@ -54,6 +62,8 @@ export function ItemsPage() {
           </button>
         )}
       </div>
+
+      {tab === 'catalog' && <AccessoryCatalog />}
 
       {tab === 'create' && isAdmin && (
         <CreateItemForm onSuccess={() => setTab('list')} />

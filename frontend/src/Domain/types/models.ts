@@ -100,6 +100,66 @@ export interface Item {
   createdAt: string
 }
 
+export type EffectDisplayType = 'PERCENT_100' | 'FLAT' | 'BOOLEAN'
+
+export interface GameAccessoryEffect {
+  code: number
+  name: string
+  displayType: EffectDisplayType
+  rawValue: number | null
+  displayValue: string
+}
+
+export interface GameAccessory {
+  id: number
+  gameCode: string
+  name: string
+  subtype: 'RING' | 'AMULET'
+  iconId: number
+  spriteSheet: string
+  grade: number
+  civilMask: string
+  levelRequired: number
+  fire: number
+  water: number
+  soil: number
+  wind: number
+  effects: GameAccessoryEffect[]
+}
+
+export interface ItemSetEffect {
+  code: number
+  name: string
+  displayType: EffectDisplayType
+  rawValue: number | null
+  displayValue: string
+}
+
+export interface ItemSet {
+  id: number
+  setCode: string
+  civilMask: string | null
+  head: string | null
+  upper: string | null
+  lower: string | null
+  shoes: string | null
+  gauntlet: string | null
+  weapon: string | null
+  shield: string | null
+  amul1: string | null
+  amul2: string | null
+  ring1: string | null
+  ring2: string | null
+  cloack: string | null
+  effects: ItemSetEffect[]
+}
+
+export interface EffectDefinition {
+  code: number
+  name: string
+  displayType: EffectDisplayType
+}
+
 export interface AuctionItem {
   itemId: number
   itemName: string
