@@ -9,6 +9,8 @@ export default defineConfig({
     proxy: {
       '/api': { target: 'http://localhost:8080', changeOrigin: true },
       '/ws': { target: 'http://localhost:8080', ws: true, changeOrigin: true },
+      '/oauth2': { target: 'http://localhost:8080', changeOrigin: true },
+      '/login': { target: 'http://localhost:8080', changeOrigin: true },
     },
   },
   define: {

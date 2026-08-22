@@ -29,13 +29,33 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
+    private final DiscordOAuth2SuccessHandler discordOAuth2SuccessHandler;
+    private final DiscordOAuth2FailureHandler discordOAuth2FailureHandler;
     private final String allowedOrigins;
 
     public SecurityConfig(
             JwtAuthFilter jwtAuthFilter,
+            DiscordOAuth2SuccessHandler discordOAuth2SuccessHandler,
+            DiscordOAuth2FailureHandler discordOAuth2FailureHandler,
             @Value("${guild.cors.allowed-origins}") String allowedOrigins) {
         this.jwtAuthFilter = jwtAuthFilter;
+        this.discordOAuth2SuccessHandler = discordOAuth2SuccessHandler;
+        this.discordOAuth2FailureHandler = discordOAuth2FailureHandler;
         this.allowedOrigins = allowedOrigins;
+    }
+
+    @Bean
+    @Order(0)
+    SecurityFilterChain oauthFilterChain(HttpSecurity http) throws Exception {
+        http
+                .securityMatcher("/oauth2/**", "/login/oauth2/**")
+                .csrf(AbstractHttpConfigurer::disable)
+                .cors(c -> c.configurationSource(corsConfigurationSource()))
+                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+                .oauth2Login(oauth2 -> oauth2
+                        .successHandler(discordOAuth2SuccessHandler)
+                        .failureHandler(discordOAuth2FailureHandler));
+        return http.build();
     }
 
     @Bean

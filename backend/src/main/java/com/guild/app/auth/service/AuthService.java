@@ -96,20 +96,41 @@ public class AuthService {
     }
 
     @Transactional
-    public Member registerOrLoginDiscord(String discordId, String nickname, String avatarUrl, String email) {
-        return memberRepository.findByDiscordId(discordId).orElseGet(() -> {
-            var member = new Member();
-            member.setDiscordId(discordId);
-            member.setEmail(email);
+    public AuthResponse loginWithDiscord(String discordId, String nickname, String avatarUrl, String email) {
+        var existing = memberRepository.findByDiscordId(discordId);
+        if (existing.isPresent()) {
+            var member = existing.get();
+            if (member.getStatus() == MemberStatus.REJEITADO) {
+                throw new AppException("Sua conta foi rejeitada.", HttpStatus.FORBIDDEN);
+            }
             member.setNickname(nickname);
             member.setAvatarUrl(avatarUrl);
-            member.setStatus(MemberStatus.PENDENTE);
-            member.setProfileComplete(false);
-            member = memberRepository.save(member);
-            auditLogService.log(AuditLogType.MEMBER_REGISTERED, member, member,
-                    Map.of("discordId", discordId, "nickname", nickname));
-            return member;
-        });
+            if (email != null && !email.isBlank()) {
+                member.setEmail(email);
+            }
+            memberRepository.save(member);
+            return buildAuthResponse(member);
+        }
+
+        if (email != null && !email.isBlank() && memberRepository.existsByEmail(email)) {
+            throw new AppException(
+                    "Este email já está vinculado a outra conta. Faça login com email e senha.",
+                    HttpStatus.CONFLICT);
+        }
+
+        var member = new Member();
+        member.setDiscordId(discordId);
+        member.setEmail(email);
+        member.setNickname(nickname);
+        member.setAvatarUrl(avatarUrl);
+        member.setStatus(MemberStatus.PENDENTE);
+        member.setProfileComplete(false);
+        member = memberRepository.save(member);
+
+        auditLogService.log(AuditLogType.MEMBER_REGISTERED, member, member,
+                Map.of("discordId", discordId, "nickname", nickname));
+
+        return buildAuthResponse(member);
     }
 
     private AuthResponse buildAuthResponse(Member member) {

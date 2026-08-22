@@ -1,7 +1,8 @@
-import { useState } from 'react'
-import { Link, Navigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { Link, Navigate, useSearchParams } from 'react-router-dom'
 import { useLogin } from '@/Domain/Auth/hooks/useAuth'
 import { useAuthContext } from '@/Features/Auth/contexts/AuthContext'
+import { getOAuthLoginUrl } from '@/Shared/utils/env'
 
 const DISCORD_ICON = (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
@@ -12,9 +13,19 @@ const DISCORD_ICON = (
 export function LoginPage() {
   const { isAuthenticated } = useAuthContext()
   const login = useLogin()
+  const [searchParams] = useSearchParams()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (searchParams.get('error') === 'discord') {
+      setError(
+        searchParams.get('message') ??
+          'Não foi possível entrar com Discord. Tente novamente.',
+      )
+    }
+  }, [searchParams])
 
   if (isAuthenticated) return <Navigate to="/" replace />
 
@@ -66,7 +77,13 @@ export function LoginPage() {
 
       <div className="auth-divider">OU</div>
 
-      <button type="button" className="auth-btn-discord">
+      <button
+        type="button"
+        className="auth-btn-discord"
+        onClick={() => {
+          window.location.href = getOAuthLoginUrl()
+        }}
+      >
         {DISCORD_ICON}
         Continuar com Discord
       </button>

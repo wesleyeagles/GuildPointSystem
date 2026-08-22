@@ -5,6 +5,7 @@ import { ProtectedRoute, ModeratorRoute } from '@/Features/Auth/ProtectedRoute'
 import { AuthShell } from '@/Features/Auth/AuthShell'
 import { LoginPage } from '@/Features/Auth/LoginPage'
 import { RegisterPage } from '@/Features/Auth/RegisterPage'
+import { DiscordCallbackPage } from '@/Features/Auth/DiscordCallbackPage'
 import { DashboardPage } from '@/Features/Dashboard/Dashboard'
 import { LogsPage } from '@/Features/Logs/Logs'
 import { ObjectivesPage } from '@/Features/Objectives/Objectives'
@@ -25,6 +26,8 @@ function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
           </Route>
+
+          <Route path="/auth/callback" element={<DiscordCallbackPage />} />
 
           <Route element={<ProtectedRoute />}>
             <Route element={<Layout />}>

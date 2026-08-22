@@ -1,10 +1,17 @@
+import { useEffect } from 'react'
 import { Navigate, Outlet } from 'react-router-dom'
 import { useAuthContext } from '@/Features/Auth/contexts/AuthContext'
 import { DiscordProfileModal } from '@/Features/Auth/DiscordProfileModal'
 import { WaitingApprovalPage } from '@/Features/Auth/WaitingApprovalPage'
 
 export function ProtectedRoute() {
-  const { isAuthenticated, isLoading, user } = useAuthContext()
+  const { isAuthenticated, isLoading, user, logout } = useAuthContext()
+
+  useEffect(() => {
+    if (user?.status === 'REJEITADO') {
+      logout()
+    }
+  }, [user?.status, logout])
 
   if (isLoading) {
     return (
@@ -18,12 +25,20 @@ export function ProtectedRoute() {
     return <Navigate to="/login" replace />
   }
 
+  if (!user.profileComplete) {
+    return <DiscordProfileModal />
+  }
+
   if (user.status === 'PENDENTE') {
     return <WaitingApprovalPage />
   }
 
-  if (!user.profileComplete) {
-    return <DiscordProfileModal />
+  if (user.status === 'REJEITADO') {
+    return (
+      <div className="loading-screen">
+        <p>Conta rejeitada. Redirecionando...</p>
+      </div>
+    )
   }
 
   return <Outlet />

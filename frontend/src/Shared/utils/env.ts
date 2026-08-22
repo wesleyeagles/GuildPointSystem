@@ -21,3 +21,12 @@ export function getMediaBaseUrl(): string {
   if (typeof window !== 'undefined') return window.location.origin
   return 'http://localhost:8080'
 }
+
+export function getOAuthLoginUrl(): string {
+  const api = import.meta.env.VITE_API_BASE_URL
+  if (api) {
+    const base = trimTrailingSlash(api.replace(/\/api$/, ''))
+    return `${base}/oauth2/authorization/discord`
+  }
+  return '/oauth2/authorization/discord'
+}
