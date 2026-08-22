@@ -1,11 +1,9 @@
 import { useEffect, useState } from 'react'
 import {
   useCatalogAccessories,
-  useCatalogSets,
 } from '@/Domain/Catalog/hooks/useCatalog'
 import { civilMaskLabel, CIVIL_MASK_OPTIONS } from '@/Domain/Catalog/utils/civilMaskUtils'
 import {
-  elementSummary,
   gradeColor,
   gradeLabel,
 } from '@/Domain/Catalog/utils/catalogUtils'
@@ -37,9 +35,6 @@ export function AccessoryCatalog() {
   }
 
   const { data: accessories = [], isLoading } = useCatalogAccessories(filters)
-  const { data: sets = [] } = useCatalogSets(selectedCode)
-
-  const selected = accessories.find((a) => a.gameCode === selectedCode) ?? null
 
   return (
     <div className="accessory-catalog">
@@ -89,29 +84,42 @@ export function AccessoryCatalog() {
       ) : accessories.length === 0 ? (
         <p className="accessory-catalog__status">Nenhum acessório encontrado.</p>
       ) : (
-        <div className="accessory-catalog__layout">
-          <div className="accessory-catalog__grid">
-            {accessories.map((accessory) => (
-              <AccessoryCard
-                key={accessory.gameCode}
-                accessory={accessory}
-                selected={selectedCode === accessory.gameCode}
-                onSelect={() =>
-                  setSelectedCode(
-                    selectedCode === accessory.gameCode ? null : accessory.gameCode
-                  )
-                }
-              />
-            ))}
-          </div>
-
-          {selected && (
-            <aside className="accessory-catalog__detail">
-              <AccessoryDetail accessory={selected} sets={sets} />
-            </aside>
-          )}
+        <div className="accessory-catalog__grid">
+          {accessories.map((accessory) => (
+            <AccessoryCard
+              key={accessory.gameCode}
+              accessory={accessory}
+              selected={selectedCode === accessory.gameCode}
+              onSelect={() =>
+                setSelectedCode(
+                  selectedCode === accessory.gameCode ? null : accessory.gameCode
+                )
+              }
+            />
+          ))}
         </div>
       )}
+    </div>
+  )
+}
+
+function ElementBadges({ fire, water, soil, wind }: { fire: number; water: number; soil: number; wind: number }) {
+  const elements = [
+    { label: 'Fire', value: fire, cls: 'fire' },
+    { label: 'Water', value: water, cls: 'water' },
+    { label: 'Soil', value: soil, cls: 'soil' },
+    { label: 'Wind', value: wind, cls: 'wind' },
+  ].filter((e) => e.value > 0)
+
+  if (elements.length === 0) return null
+
+  return (
+    <div className="accessory-card__elements">
+      {elements.map((el) => (
+        <span key={el.cls} className={`accessory-card__element accessory-card__element--${el.cls}`}>
+          {el.label} {el.value}
+        </span>
+      ))}
     </div>
   )
 }
@@ -125,105 +133,65 @@ function AccessoryCard({
   selected: boolean
   onSelect: () => void
 }) {
-  const elements = elementSummary(
-    accessory.fire,
-    accessory.water,
-    accessory.soil,
-    accessory.wind
-  )
-
   return (
     <button
       type="button"
       className={`accessory-card${selected ? ' accessory-card--selected' : ''}`}
       onClick={onSelect}
     >
-      <SpriteIcon iconId={accessory.iconId} spriteSheet={accessory.spriteSheet} size={48} />
-      <div className="accessory-card__body">
-        <span className="accessory-card__name" style={{ color: gradeColor(accessory.grade) }}>
-          {accessory.name}
-        </span>
-        <span className="accessory-card__meta">
-          {accessory.subtype} · {gradeLabel(accessory.grade)} · Lv {accessory.levelRequired}
-        </span>
-        <span className="accessory-card__meta">{civilMaskLabel(accessory.civilMask)}</span>
-        {elements && <span className="accessory-card__elements">{elements}</span>}
-        {accessory.effects.length > 0 && (
-          <ul className="accessory-card__effects">
-            {accessory.effects.map((eff) => (
-              <li key={eff.code}>
-                {eff.name}: {eff.displayType === 'BOOLEAN' ? 'Yes' : eff.displayValue}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-    </button>
-  )
-}
-
-function AccessoryDetail({
-  accessory,
-  sets,
-}: {
-  accessory: GameAccessory
-  sets: import('@/Domain/types/models').ItemSet[]
-}) {
-  const elements = elementSummary(
-    accessory.fire,
-    accessory.water,
-    accessory.soil,
-    accessory.wind
-  )
-
-  return (
-    <div className="accessory-detail">
-      <div className="accessory-detail__header">
-        <SpriteIcon iconId={accessory.iconId} spriteSheet={accessory.spriteSheet} size={64} />
-        <div>
-          <h3 style={{ color: gradeColor(accessory.grade) }}>{accessory.name}</h3>
-          <p className="accessory-detail__code">{accessory.gameCode}</p>
+      <div className="accessory-card__header">
+        <div className="accessory-card__icon">
+          <SpriteIcon iconId={accessory.iconId} spriteSheet={accessory.spriteSheet} size={36} />
+        </div>
+        <div className="accessory-card__title-group">
+          <span className="accessory-card__name" style={{ color: gradeColor(accessory.grade) }}>
+            {accessory.name}
+          </span>
+          <div className="accessory-card__tags">
+            <span className="accessory-card__tag">{accessory.subtype}</span>
+            <span className="accessory-card__tag accessory-card__tag--grade" style={{ color: gradeColor(accessory.grade) }}>
+              {gradeLabel(accessory.grade)}
+            </span>
+            <span className="accessory-card__tag">Lv {accessory.levelRequired}</span>
+          </div>
         </div>
       </div>
 
-      <dl className="accessory-detail__stats">
-        <div><dt>Tipo</dt><dd>{accessory.subtype}</dd></div>
-        <div><dt>Qualidade</dt><dd style={{ color: gradeColor(accessory.grade) }}>{gradeLabel(accessory.grade)}</dd></div>
-        <div><dt>Raça</dt><dd>{civilMaskLabel(accessory.civilMask)}</dd></div>
-        <div><dt>Level</dt><dd>{accessory.levelRequired}</dd></div>
-        {elements && <div><dt>Elementos</dt><dd>{elements}</dd></div>}
-      </dl>
+      <div className="accessory-card__body">
+        <span className="accessory-card__race">{civilMaskLabel(accessory.civilMask)}</span>
 
-      {accessory.effects.length > 0 && (
-        <section className="accessory-detail__section">
-          <h4>Efeitos</h4>
-          <ul>
-            {accessory.effects.map((eff) => (
-              <li key={eff.code}>
-                {eff.name}: {eff.displayType === 'BOOLEAN' ? 'Yes' : eff.displayValue}
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+        <ElementBadges
+          fire={accessory.fire}
+          water={accessory.water}
+          soil={accessory.soil}
+          wind={accessory.wind}
+        />
 
-      {sets.length > 0 && (
-        <section className="accessory-detail__section">
-          <h4>Set Bonus</h4>
-          {sets.map((set) => (
-            <div key={set.id} className="accessory-detail__set">
-              <p className="accessory-detail__set-code">{set.setCode}</p>
-              <ul>
-                {set.effects.map((eff) => (
-                  <li key={`${set.id}-${eff.code}`}>
-                    {eff.name}: {eff.displayType === 'BOOLEAN' ? 'Yes' : eff.displayValue}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </section>
-      )}
-    </div>
+        {accessory.effects.length > 0 && (
+          <div className="accessory-card__effects">
+            {accessory.effects.map((eff) => {
+              const direction =
+                eff.displayType === 'BOOLEAN'
+                  ? null
+                  : eff.rawValue != null && eff.rawValue < 0
+                    ? 'Decrease'
+                    : 'Increase'
+
+              return (
+                <span key={eff.code} className="accessory-card__effect">
+                  {eff.name}{' '}
+                  {direction && (
+                    <span className={`accessory-card__effect-dir accessory-card__effect-dir--${direction.toLowerCase()}`}>
+                      {direction}
+                    </span>
+                  )}{' '}
+                  <strong>{eff.displayType === 'BOOLEAN' ? 'Yes' : eff.displayValue}</strong>
+                </span>
+              )
+            })}
+          </div>
+        )}
+      </div>
+    </button>
   )
 }

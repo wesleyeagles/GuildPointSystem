@@ -17,13 +17,17 @@ public interface GameAccessoryRepository extends JpaRepository<GameAccessory, Lo
             WHERE (:subtype IS NULL OR g.subtype = :subtype)
               AND (:grade IS NULL OR g.grade = :grade)
               AND (:civilMask IS NULL OR g.civilMask = :civilMask)
-              AND (:search IS NULL OR LOWER(g.name) LIKE LOWER(CONCAT('%', :search, '%'))
-                   OR LOWER(g.gameCode) LIKE LOWER(CONCAT('%', :search, '%')))
+              AND (
+                :hasSearch = false
+                OR LOWER(g.name) LIKE :searchPattern
+                OR LOWER(g.gameCode) LIKE :searchPattern
+              )
             ORDER BY g.name ASC
             """)
     List<GameAccessory> findFiltered(
             @Param("subtype") String subtype,
             @Param("grade") Integer grade,
             @Param("civilMask") String civilMask,
-            @Param("search") String search);
+            @Param("hasSearch") boolean hasSearch,
+            @Param("searchPattern") String searchPattern);
 }

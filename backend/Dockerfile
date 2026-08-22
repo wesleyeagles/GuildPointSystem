@@ -24,7 +24,7 @@ COPY --from=build /app/target/*.jar app.jar
 
 EXPOSE 8080
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=90s --retries=5 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=240s --retries=10 \
   CMD curl -fsS http://localhost:8080/actuator/health || exit 1
 
 ENV JAVA_OPTS="-XX:MaxRAMPercentage=75.0 -XX:+UseContainerSupport"

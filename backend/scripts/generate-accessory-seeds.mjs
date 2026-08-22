@@ -4,7 +4,7 @@
  *
  * Usage: node backend/scripts/generate-accessory-seeds.mjs > backend/src/main/resources/db/migration/V6__accessory_catalog.sql
  */
-import { readFileSync } from 'fs'
+import { readFileSync, writeFileSync, unlinkSync } from 'fs'
 import { dirname, join } from 'path'
 import { fileURLToPath } from 'url'
 import XLSX from 'xlsx'
@@ -85,9 +85,10 @@ function readSheet(filePath) {
   })
 }
 
-function parseAccessories(filePath, subtype) {
+function parseAccessories(filePath, subtype, seenCodes) {
   const rows = readSheet(filePath)
   const inserts = []
+  let skipped = 0
 
   for (const row of rows) {
     const isExist = row.IsExist ?? row.isExist
@@ -96,6 +97,12 @@ function parseAccessories(filePath, subtype) {
     const gameCode = row.Code ?? row.code
     const name = row.Name ?? row.name
     if (!gameCode || !name) continue
+
+    if (seenCodes.has(gameCode)) {
+      skipped++
+      continue
+    }
+    seenCodes.add(gameCode)
 
     const iconId = sqlInt(row.IconID ?? row.iconID, 0)
     const grade = sqlInt(row.ItemGrade ?? row.itemGrade, 0)
@@ -118,6 +125,10 @@ function parseAccessories(filePath, subtype) {
     inserts.push(
       `(${sqlValue(gameCode)}, ${sqlValue(name)}, '${subtype}', ${iconId}, '/sprites/ringseamulets.png', ${grade}, '${escapeSql(String(civil))}', ${lvLim}, ${fire}, ${water}, ${soil}, ${wind}, ${effCode1}, ${effUnit1}, ${effCode2}, ${effUnit2}, ${effCode3}, ${effUnit3}, ${effCode4}, ${effUnit4})`
     )
+  }
+
+  if (skipped > 0) {
+    console.error(`Skipped ${skipped} duplicate game_code rows in ${subtype}`)
   }
 
   return inserts
@@ -164,109 +175,144 @@ function parseItemSets(filePath) {
   return inserts
 }
 
+function chunkArray(arr, size) {
+  const chunks = []
+  for (let i = 0; i < arr.length; i += size) {
+    chunks.push(arr.slice(i, i + size))
+  }
+  return chunks
+}
+
+function buildBatchedInserts(tableName, columns, rows, batchSize = 250) {
+  if (rows.length === 0) return []
+  const header = `INSERT INTO ${tableName} (${columns}) VALUES`
+  return chunkArray(rows, batchSize).map(
+    (batch) => `${header}\n${batch.join(',\n')};`
+  )
+}
+
+const ACCESSORY_COLUMNS =
+  'game_code, name, subtype, icon_id, sprite_sheet, grade, civil_mask, level_required, fire, water, soil, wind, eff_code_1, eff_unit_1, eff_code_2, eff_unit_2, eff_code_3, eff_unit_3, eff_code_4, eff_unit_4'
+
+const SET_COLUMNS =
+  'set_code, civil_mask, head, upper, lower, shoes, gauntlet, weapon, shield, amul1, amul2, ring1, ring2, cloack, eff1_code, eff1_unit, eff2_code, eff2_unit, eff3_code, eff3_unit, eff4_code, eff4_unit, eff5_code, eff5_unit, eff6_code, eff6_unit, eff7_code, eff7_unit, eff8_code, eff8_unit'
+
 // --- Generate SQL ---
-const lines = []
+const schemaLines = []
 
-lines.push('-- Accessory catalog: effect definitions, game accessories, and set item bonuses')
-lines.push('')
-lines.push('CREATE TABLE effect_definition (')
-lines.push('    code         INT PRIMARY KEY,')
-lines.push('    name         VARCHAR(100) NOT NULL,')
-lines.push('    display_type VARCHAR(20)  NOT NULL DEFAULT \'PERCENT_100\',')
-lines.push('    CONSTRAINT chk_effect_display_type CHECK (display_type IN (\'PERCENT_100\', \'FLAT\', \'BOOLEAN\'))')
-lines.push(');')
-lines.push('')
-lines.push('CREATE TABLE game_accessory (')
-lines.push('    id             BIGSERIAL PRIMARY KEY,')
-lines.push('    game_code      VARCHAR(50)  NOT NULL UNIQUE,')
-lines.push('    name           VARCHAR(200) NOT NULL,')
-lines.push('    subtype        VARCHAR(20)  NOT NULL,')
-lines.push('    icon_id        INT          NOT NULL DEFAULT 0,')
-lines.push('    sprite_sheet   VARCHAR(500) NOT NULL DEFAULT \'/sprites/ringseamulets.png\',')
-lines.push('    grade          INT          NOT NULL DEFAULT 0,')
-lines.push('    civil_mask     VARCHAR(20)  NOT NULL DEFAULT \'11111000\',')
-lines.push('    level_required INT          NOT NULL DEFAULT 0,')
-lines.push('    fire           INT          NOT NULL DEFAULT 0,')
-lines.push('    water          INT          NOT NULL DEFAULT 0,')
-lines.push('    soil           INT          NOT NULL DEFAULT 0,')
-lines.push('    wind           INT          NOT NULL DEFAULT 0,')
-lines.push('    eff_code_1     INT,')
-lines.push('    eff_unit_1     NUMERIC(10,6),')
-lines.push('    eff_code_2     INT,')
-lines.push('    eff_unit_2     NUMERIC(10,6),')
-lines.push('    eff_code_3     INT,')
-lines.push('    eff_unit_3     NUMERIC(10,6),')
-lines.push('    eff_code_4     INT,')
-lines.push('    eff_unit_4     NUMERIC(10,6),')
-lines.push('    CONSTRAINT chk_ga_subtype CHECK (subtype IN (\'RING\', \'AMULET\'))')
-lines.push(');')
-lines.push('')
-lines.push('CREATE INDEX idx_game_accessory_subtype ON game_accessory (subtype);')
-lines.push('CREATE INDEX idx_game_accessory_grade ON game_accessory (grade);')
-lines.push('CREATE INDEX idx_game_accessory_name ON game_accessory (name);')
-lines.push('')
-lines.push('CREATE TABLE item_set (')
-lines.push('    id          BIGSERIAL PRIMARY KEY,')
-lines.push('    set_code    VARCHAR(50) NOT NULL,')
-lines.push('    civil_mask  VARCHAR(20),')
-lines.push('    head        VARCHAR(50),')
-lines.push('    upper       VARCHAR(50),')
-lines.push('    lower       VARCHAR(50),')
-lines.push('    shoes       VARCHAR(50),')
-lines.push('    gauntlet    VARCHAR(50),')
-lines.push('    weapon      VARCHAR(50),')
-lines.push('    shield      VARCHAR(50),')
-lines.push('    amul1       VARCHAR(50),')
-lines.push('    amul2       VARCHAR(50),')
-lines.push('    ring1       VARCHAR(50),')
-lines.push('    ring2       VARCHAR(50),')
-lines.push('    cloack      VARCHAR(50),')
-lines.push('    eff1_code   INT,')
-lines.push('    eff1_unit   NUMERIC(10,6),')
-lines.push('    eff2_code   INT,')
-lines.push('    eff2_unit   NUMERIC(10,6),')
-lines.push('    eff3_code   INT,')
-lines.push('    eff3_unit   NUMERIC(10,6),')
-lines.push('    eff4_code   INT,')
-lines.push('    eff4_unit   NUMERIC(10,6),')
-lines.push('    eff5_code   INT,')
-lines.push('    eff5_unit   NUMERIC(10,6),')
-lines.push('    eff6_code   INT,')
-lines.push('    eff6_unit   NUMERIC(10,6),')
-lines.push('    eff7_code   INT,')
-lines.push('    eff7_unit   NUMERIC(10,6),')
-lines.push('    eff8_code   INT,')
-lines.push('    eff8_unit   NUMERIC(10,6)')
-lines.push(');')
-lines.push('')
-lines.push('CREATE INDEX idx_item_set_code ON item_set (set_code);')
-lines.push('')
-
-// Effect definitions seed
-lines.push('INSERT INTO effect_definition (code, name, display_type) VALUES')
+schemaLines.push('-- Accessory catalog schema + effect definitions')
+schemaLines.push('')
+schemaLines.push('CREATE TABLE effect_definition (')
+schemaLines.push('    code         INT PRIMARY KEY,')
+schemaLines.push('    name         VARCHAR(100) NOT NULL,')
+schemaLines.push('    display_type VARCHAR(20)  NOT NULL DEFAULT \'PERCENT_100\',')
+schemaLines.push('    CONSTRAINT chk_effect_display_type CHECK (display_type IN (\'PERCENT_100\', \'FLAT\', \'BOOLEAN\'))')
+schemaLines.push(');')
+schemaLines.push('')
+schemaLines.push('CREATE TABLE game_accessory (')
+schemaLines.push('    id             BIGSERIAL PRIMARY KEY,')
+schemaLines.push('    game_code      VARCHAR(50)  NOT NULL UNIQUE,')
+schemaLines.push('    name           VARCHAR(200) NOT NULL,')
+schemaLines.push('    subtype        VARCHAR(20)  NOT NULL,')
+schemaLines.push('    icon_id        INT          NOT NULL DEFAULT 0,')
+schemaLines.push('    sprite_sheet   VARCHAR(500) NOT NULL DEFAULT \'/sprites/ringseamulets.png\',')
+schemaLines.push('    grade          INT          NOT NULL DEFAULT 0,')
+schemaLines.push('    civil_mask     VARCHAR(20)  NOT NULL DEFAULT \'11111000\',')
+schemaLines.push('    level_required INT          NOT NULL DEFAULT 0,')
+schemaLines.push('    fire           INT          NOT NULL DEFAULT 0,')
+schemaLines.push('    water          INT          NOT NULL DEFAULT 0,')
+schemaLines.push('    soil           INT          NOT NULL DEFAULT 0,')
+schemaLines.push('    wind           INT          NOT NULL DEFAULT 0,')
+schemaLines.push('    eff_code_1     INT,')
+schemaLines.push('    eff_unit_1     NUMERIC(10,6),')
+schemaLines.push('    eff_code_2     INT,')
+schemaLines.push('    eff_unit_2     NUMERIC(10,6),')
+schemaLines.push('    eff_code_3     INT,')
+schemaLines.push('    eff_unit_3     NUMERIC(10,6),')
+schemaLines.push('    eff_code_4     INT,')
+schemaLines.push('    eff_unit_4     NUMERIC(10,6),')
+schemaLines.push('    CONSTRAINT chk_ga_subtype CHECK (subtype IN (\'RING\', \'AMULET\'))')
+schemaLines.push(');')
+schemaLines.push('')
+schemaLines.push('CREATE INDEX idx_game_accessory_subtype ON game_accessory (subtype);')
+schemaLines.push('CREATE INDEX idx_game_accessory_grade ON game_accessory (grade);')
+schemaLines.push('CREATE INDEX idx_game_accessory_name ON game_accessory (name);')
+schemaLines.push('')
+schemaLines.push('CREATE TABLE item_set (')
+schemaLines.push('    id          BIGSERIAL PRIMARY KEY,')
+schemaLines.push('    set_code    VARCHAR(50) NOT NULL,')
+schemaLines.push('    civil_mask  VARCHAR(20),')
+schemaLines.push('    head        VARCHAR(50),')
+schemaLines.push('    upper       VARCHAR(50),')
+schemaLines.push('    lower       VARCHAR(50),')
+schemaLines.push('    shoes       VARCHAR(50),')
+schemaLines.push('    gauntlet    VARCHAR(50),')
+schemaLines.push('    weapon      VARCHAR(50),')
+schemaLines.push('    shield      VARCHAR(50),')
+schemaLines.push('    amul1       VARCHAR(50),')
+schemaLines.push('    amul2       VARCHAR(50),')
+schemaLines.push('    ring1       VARCHAR(50),')
+schemaLines.push('    ring2       VARCHAR(50),')
+schemaLines.push('    cloack      VARCHAR(50),')
+schemaLines.push('    eff1_code   INT,')
+schemaLines.push('    eff1_unit   NUMERIC(10,6),')
+schemaLines.push('    eff2_code   INT,')
+schemaLines.push('    eff2_unit   NUMERIC(10,6),')
+schemaLines.push('    eff3_code   INT,')
+schemaLines.push('    eff3_unit   NUMERIC(10,6),')
+schemaLines.push('    eff4_code   INT,')
+schemaLines.push('    eff4_unit   NUMERIC(10,6),')
+schemaLines.push('    eff5_code   INT,')
+schemaLines.push('    eff5_unit   NUMERIC(10,6),')
+schemaLines.push('    eff6_code   INT,')
+schemaLines.push('    eff6_unit   NUMERIC(10,6),')
+schemaLines.push('    eff7_code   INT,')
+schemaLines.push('    eff7_unit   NUMERIC(10,6),')
+schemaLines.push('    eff8_code   INT,')
+schemaLines.push('    eff8_unit   NUMERIC(10,6)')
+schemaLines.push(');')
+schemaLines.push('')
+schemaLines.push('CREATE INDEX idx_item_set_code ON item_set (set_code);')
+schemaLines.push('')
+schemaLines.push('INSERT INTO effect_definition (code, name, display_type) VALUES')
 const effectRows = EFFECT_DEFINITIONS.map(
   (e) => `    (${e.code}, '${escapeSql(e.name)}', '${e.displayType}')`
 )
-lines.push(effectRows.join(',\n') + ';')
-lines.push('')
+schemaLines.push(effectRows.join(',\n') + ';')
 
-// Accessories
-const amuletInserts = parseAccessories(join(xlsxDir, 'AmuletItem.xlsx'), 'AMULET')
-const ringInserts = parseAccessories(join(xlsxDir, 'rIngItem.xlsx'), 'RING')
+const seenCodes = new Set()
+const amuletInserts = parseAccessories(join(xlsxDir, 'AmuletItem.xlsx'), 'AMULET', seenCodes)
+const ringInserts = parseAccessories(join(xlsxDir, 'rIngItem.xlsx'), 'RING', seenCodes)
 const allAccessoryInserts = [...amuletInserts, ...ringInserts]
-
-if (allAccessoryInserts.length > 0) {
-  lines.push('INSERT INTO game_accessory (game_code, name, subtype, icon_id, sprite_sheet, grade, civil_mask, level_required, fire, water, soil, wind, eff_code_1, eff_unit_1, eff_code_2, eff_unit_2, eff_code_3, eff_unit_3, eff_code_4, eff_unit_4) VALUES')
-  lines.push(allAccessoryInserts.join(',\n') + ';')
-  lines.push('')
-}
-
-// Item sets
 const setInserts = parseItemSets(join(xlsxDir, 'SetItemEff.xlsx'))
-if (setInserts.length > 0) {
-  lines.push('INSERT INTO item_set (set_code, civil_mask, head, upper, lower, shoes, gauntlet, weapon, shield, amul1, amul2, ring1, ring2, cloack, eff1_code, eff1_unit, eff2_code, eff2_unit, eff3_code, eff3_unit, eff4_code, eff4_unit, eff5_code, eff5_unit, eff6_code, eff6_unit, eff7_code, eff7_unit, eff8_code, eff8_unit) VALUES')
-  lines.push(setInserts.join(',\n') + ';')
+
+const accessoryDataLines = [
+  '-- Accessory catalog: game_accessory seed data (batched inserts)',
+  '',
+  ...buildBatchedInserts('game_accessory', ACCESSORY_COLUMNS, allAccessoryInserts),
+]
+
+const setDataLines = [
+  '-- Accessory catalog: item_set seed data',
+  '',
+  ...buildBatchedInserts('item_set', SET_COLUMNS, setInserts, 100),
+]
+
+const migrationDir = join(root, 'src/main/resources/db/migration')
+writeFileSync(join(migrationDir, 'V6__accessory_catalog_schema.sql'), schemaLines.join('\n') + '\n')
+writeFileSync(join(migrationDir, 'V7__accessory_catalog_data.sql'), accessoryDataLines.join('\n\n') + '\n')
+writeFileSync(join(migrationDir, 'V8__item_set_catalog_data.sql'), setDataLines.join('\n\n') + '\n')
+
+const legacy = join(migrationDir, 'V6__accessory_catalog.sql')
+try {
+  unlinkSync(legacy)
+  console.log('Removed legacy V6__accessory_catalog.sql')
+} catch {
+  // already removed
 }
 
-console.log(lines.join('\n'))
+console.log('Written migrations:')
+console.log('  V6__accessory_catalog_schema.sql')
+console.log('  V7__accessory_catalog_data.sql')
+console.log('  V8__item_set_catalog_data.sql')
 console.error(`\n--- Stats: ${amuletInserts.length} amulets, ${ringInserts.length} rings, ${setInserts.length} sets ---`)

@@ -33,7 +33,10 @@ public class CatalogService {
 
     public List<GameAccessoryResponse> listAccessories(String subtype, Integer grade, String civilMask, String search) {
         var effectMap = effectMap();
-        return gameAccessoryRepository.findFiltered(subtype, grade, civilMask, blankToNull(search)).stream()
+        var normalizedSearch = blankToNull(search);
+        var hasSearch = normalizedSearch != null;
+        var searchPattern = hasSearch ? "%" + normalizedSearch.toLowerCase() + "%" : "%";
+        return gameAccessoryRepository.findFiltered(subtype, grade, civilMask, hasSearch, searchPattern).stream()
                 .map(a -> toAccessoryResponse(a, effectMap))
                 .toList();
     }
