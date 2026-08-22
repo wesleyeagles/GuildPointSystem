@@ -1,19 +1,21 @@
 package com.guild.app.auth.security;
 
-import org.springframework.boot.autoconfigure.security.oauth2.client.servlet.OAuth2ClientAutoConfiguration;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.oauth2.client.registration.ClientRegistration;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.security.oauth2.client.registration.InMemoryClientRegistrationRepository;
+import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfigurationSource;
 
 @Configuration
 @Profile("discord")
-@Import(OAuth2ClientAutoConfiguration.class)
 public class DiscordOAuthSecurityConfig {
 
     private final DiscordOAuth2SuccessHandler successHandler;
@@ -27,6 +29,25 @@ public class DiscordOAuthSecurityConfig {
         this.successHandler = successHandler;
         this.failureHandler = failureHandler;
         this.corsConfigurationSource = corsConfigurationSource;
+    }
+
+    @Bean
+    ClientRegistrationRepository clientRegistrationRepository(
+            @Value("${spring.security.oauth2.client.registration.discord.client-id}") String clientId,
+            @Value("${spring.security.oauth2.client.registration.discord.client-secret}") String clientSecret) {
+        var registration = ClientRegistration.withRegistrationId("discord")
+                .clientId(clientId)
+                .clientSecret(clientSecret)
+                .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
+                .redirectUri("{baseUrl}/login/oauth2/code/{registrationId}")
+                .scope("identify", "email")
+                .authorizationUri("https://discord.com/api/oauth2/authorize")
+                .tokenUri("https://discord.com/api/oauth2/token")
+                .userInfoUri("https://discord.com/api/users/@me")
+                .userNameAttributeName("id")
+                .clientName("Discord")
+                .build();
+        return new InMemoryClientRegistrationRepository(registration);
     }
 
     @Bean

@@ -46,8 +46,9 @@ export async function apiClient<T>(path: string, options: RequestOptions = {}): 
   if (!response.ok) {
     let message = response.statusText
     try {
-      const err = (await response.json()) as { message?: string }
+      const err = (await response.json()) as { message?: string; error?: string }
       if (err.message) message = err.message
+      else if (err.error) message = err.error
     } catch {
       /* ignore */
     }
