@@ -210,6 +210,19 @@ $text-dim:  #6c7689;
 }
 
 // ── Tabs ─────────────────────────────────────────────────────────────────────
+.auth-logo-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 28px;
+}
+
+.auth-logo {
+  width: 148px;
+  height: auto;
+  display: block;
+  filter: drop-shadow(0 0 24px rgba(63, 227, 214, 0.18));
+}
+
 .auth-tabs {
   display: flex;
   gap: 0;

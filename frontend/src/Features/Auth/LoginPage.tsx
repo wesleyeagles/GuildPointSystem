@@ -41,6 +41,10 @@ export function LoginPage() {
 
   return (
     <form onSubmit={handleSubmit}>
+      <div className="auth-logo-wrap">
+        <img src="/Logo-Blacklist.png" alt="Blacklist" className="auth-logo" />
+      </div>
+
       <div className="auth-field">
         <label htmlFor="login-email">Email</label>
         <input
