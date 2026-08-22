@@ -1,9 +1,8 @@
-# Usage: .\deploy\validate-prod.ps1 -ApiHost api.seudominio.com -AppHost app.seudominio.com
+# Usage: .\deploy\validate-prod.ps1
+#        .\deploy\validate-prod.ps1 -ApiHost backend.guildsystem.com.br -AppHost blacklist.guildsystem.com.br
 param(
-    [Parameter(Mandatory = $true)]
-    [string] $ApiHost,
-    [Parameter(Mandatory = $true)]
-    [string] $AppHost
+    [string] $ApiHost = 'backend.guildsystem.com.br',
+    [string] $AppHost = 'blacklist.guildsystem.com.br'
 )
 
 $ErrorActionPreference = 'Stop'

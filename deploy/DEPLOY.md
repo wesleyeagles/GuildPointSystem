@@ -2,14 +2,14 @@
 
 Split deploy: **Vercel** (frontend) + **Hostinger VPS KVM 2** (backend + PostgreSQL) with **Coolify** for backend CI/CD.
 
-Replace `seudominio.com` with your domain everywhere below.
-
 ## Architecture
 
 | Host | Service |
 |------|---------|
-| `app.seudominio.com` | React SPA (Vercel) |
-| `api.seudominio.com` | Spring Boot + STOMP `/ws` + uploads (VPS) |
+| `blacklist.guildsystem.com.br` | React SPA (Vercel) |
+| `backend.guildsystem.com.br` | Spring Boot + STOMP `/ws` + uploads (VPS) |
+
+DNS is managed on **Vercel** (nameservers `ns1.vercel-dns.com` / `ns2.vercel-dns.com`).
 
 ---
 
@@ -31,14 +31,14 @@ Do **not** use Windows RDP — Linux + Docker is the intended stack.
 
 ---
 
-## 2. DNS
+## 2. DNS (Vercel)
 
-At your domain registrar:
+At [vercel.com](https://vercel.com) → **Domains** → `guildsystem.com.br` → **DNS Records**:
 
 | Record | Type | Value |
 |--------|------|-------|
-| `app` | CNAME | Value shown by Vercel when adding custom domain |
-| `api` | A | VPS public IP |
+| `blacklist` | CNAME / auto | Vercel frontend project |
+| `backend` | A | VPS public IP |
 
 Wait for propagation (often 5–30 min). SSL is automatic on Vercel and Coolify (Let's Encrypt).
 
@@ -50,7 +50,7 @@ Wait for propagation (often 5–30 min). SSL is automatic on Vercel and Coolify 
 
 1. Coolify → **+ New** → **Database** → **PostgreSQL 16**.
 2. Database name: `guild_points`, user: `guild`, strong password.
-3. Note internal hostname (e.g. `postgres-xxxx`).
+3. Note internal hostname (e.g. `guild-postgres`).
 
 ### Backend application
 
@@ -58,20 +58,27 @@ Wait for propagation (often 5–30 min). SSL is automatic on Vercel and Coolify 
 2. Branch: `main`.
 3. **Build pack:** Dockerfile.
 4. **Base directory:** `backend`.
-5. **Domains:** `api.seudominio.com` → enable HTTPS.
+5. **Domains:** `backend.guildsystem.com.br` → enable HTTPS.
 6. **Persistent storage:** mount volume at `/data/uploads`.
 7. **Environment variables** — copy from [`deploy/coolify.env.example`](coolify.env.example):
-   - `SPRING_PROFILES_ACTIVE=prod`
-   - `SPRING_DATASOURCE_URL=jdbc:postgresql://<postgres-host>:5432/guild_points`
-   - `JWT_SECRET` — generate: `openssl rand -base64 48`
-   - `CORS_ORIGINS=https://app.seudominio.com`
+
+   | Variable | Valor |
+   |----------|-------|
+   | `SPRING_PROFILES_ACTIVE` | `prod` |
+   | `SPRING_DATASOURCE_URL` | `jdbc:postgresql://<postgres-host>:5432/guild_points` |
+   | `JWT_SECRET` | `openssl rand -base64 48` |
+   | `CORS_ORIGINS` | `https://blacklist.guildsystem.com.br` |
+   | `OAUTH_FRONTEND_URL` | `https://blacklist.guildsystem.com.br` |
+   | `DISCORD_CLIENT_ID` | Client ID do Discord |
+   | `DISCORD_CLIENT_SECRET` | Client Secret do Discord |
+
 8. **Auto Deploy:** enable webhook on push to `main`.
 
 Alternative reference stack: [`deploy/docker-compose.prod.yml`](docker-compose.prod.yml).
 
 ### WebSocket
 
-Coolify/Caddy proxies WebSocket upgrades by default. After deploy, verify `https://api.seudominio.com/ws/info` returns SockJS info JSON.
+Coolify/Caddy proxies WebSocket upgrades by default. After deploy, verify `https://backend.guildsystem.com.br/ws/info` returns SockJS info JSON.
 
 ---
 
@@ -80,52 +87,70 @@ Coolify/Caddy proxies WebSocket upgrades by default. After deploy, verify `https
 1. [vercel.com](https://vercel.com) → **Add New Project** → import GitHub repo.
 2. **Root Directory:** `frontend`.
 3. Framework: Vite (auto-detected; [`frontend/vercel.json`](../frontend/vercel.json) included).
-4. **Environment variables** (Production):
+4. **Environment variables** (Production) — copy from [`deploy/vercel.env.example`](vercel.env.example):
 
    | Variable | Value |
    |----------|-------|
-   | `VITE_API_BASE_URL` | `https://api.seudominio.com/api` |
-   | `VITE_WS_BASE_URL` | `https://api.seudominio.com` |
+   | `VITE_API_BASE_URL` | `https://backend.guildsystem.com.br/api` |
+   | `VITE_WS_BASE_URL` | `https://backend.guildsystem.com.br` |
 
-5. **Domains:** add `app.seudominio.com`.
+5. **Domains:** add `blacklist.guildsystem.com.br`.
 6. Production branch: `main` → auto deploy on push.
 
-Local dev: leave env vars unset; Vite proxy handles `/api` and `/ws`.
+Local dev: leave env vars unset; Vite proxy handles `/api`, `/ws`, `/oauth2` and `/login`.
 
 ---
 
-## 5. CI (GitHub Actions)
+## 5. Discord OAuth
+
+1. [Discord Developer Portal](https://discord.com/developers/applications) → your app → **OAuth2**.
+2. **Redirects** — add exactly:
+
+   ```
+   https://backend.guildsystem.com.br/login/oauth2/code/discord
+   ```
+
+   (Dev local: `http://localhost:8080/login/oauth2/code/discord`)
+
+3. Copy **Client ID** and **Client Secret** into Coolify env vars (`DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`).
+4. Ensure `OAUTH_FRONTEND_URL=https://blacklist.guildsystem.com.br` is set on the backend.
+
+**Flow:** user clicks Discord on frontend → `backend.guildsystem.com.br/oauth2/authorization/discord` → Discord → backend callback → redirect to `blacklist.guildsystem.com.br/auth/callback?token=...`
+
+---
+
+## 6. CI (GitHub Actions)
 
 [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) runs tests on push/PR. Coolify and Vercel deploy independently on push to `main` after merge.
 
 ---
 
-## 6. Validation
+## 7. Validation
 
 Run after DNS and both deploys are live:
 
 ```powershell
-# Windows
-.\deploy\validate-prod.ps1 -ApiHost api.seudominio.com -AppHost app.seudominio.com
+# Windows (defaults to guildsystem.com.br hosts)
+.\deploy\validate-prod.ps1
 ```
 
 ```bash
 # Linux / macOS / VPS
-./deploy/validate-prod.sh api.seudominio.com app.seudominio.com
+./deploy/validate-prod.sh
 ```
 
 Manual checks:
 
-1. `https://app.seudominio.com` loads SPA.
-2. Register/login works.
-3. DevTools → Network → WS connects to `api.seudominio.com/ws`.
+1. `https://blacklist.guildsystem.com.br` loads SPA.
+2. Register/login and Discord OAuth work.
+3. DevTools → Network → WS connects to `backend.guildsystem.com.br/ws`.
 4. Auction bids update in real time for multiple users.
 5. Upload item image → survives backend container restart.
 6. Push to `main` → Vercel + Coolify redeploy without SSH.
 
 ---
 
-## 7. Secrets checklist
+## 8. Secrets checklist
 
 Never commit:
 

@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
-# Usage: ./deploy/validate-prod.sh api.seudominio.com app.seudominio.com
+# Usage: ./deploy/validate-prod.sh
+#        ./deploy/validate-prod.sh backend.guildsystem.com.br blacklist.guildsystem.com.br
 set -euo pipefail
 
-API_HOST="${1:?api host required}"
-APP_HOST="${2:?app host required}"
+API_HOST="${1:-backend.guildsystem.com.br}"
+APP_HOST="${2:-blacklist.guildsystem.com.br}"
 
 API_BASE="https://${API_HOST}"
 APP_BASE="https://${APP_HOST}"

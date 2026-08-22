@@ -44,8 +44,21 @@ source scripts/dev-env.sh          # JDK 21 na sessão
 |---|---|
 | `DISCORD_CLIENT_ID` | OAuth Discord |
 | `DISCORD_CLIENT_SECRET` | OAuth Discord |
+| `OAUTH_FRONTEND_URL` | URL do frontend após login Discord (prod: `https://blacklist.guildsystem.com.br`) |
 | `JWT_SECRET` | Chave JWT (min. 256 bits) |
-| `CORS_ORIGINS` | Origens permitidas (default: `http://localhost:5173`) |
+| `CORS_ORIGINS` | Origens permitidas (default dev: `http://localhost:5173`) |
+
+Produção: ver [`deploy/coolify.env.example`](deploy/coolify.env.example) (backend) e [`deploy/vercel.env.example`](deploy/vercel.env.example) (frontend).
+
+## Produção
+
+| Serviço | URL |
+|---|---|
+| Frontend | https://blacklist.guildsystem.com.br |
+| API | https://backend.guildsystem.com.br/api |
+| WebSocket | https://backend.guildsystem.com.br/ws |
+
+Deploy completo: [`deploy/DEPLOY.md`](deploy/DEPLOY.md)
 
 ## Documentação
 
