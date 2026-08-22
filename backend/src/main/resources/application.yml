@@ -2,9 +2,9 @@ spring:
   application:
     name: guild-points
   datasource:
-    url: jdbc:postgresql://localhost:5432/guild_points
-    username: guild
-    password: guild
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/guild_points}
+    username: ${SPRING_DATASOURCE_USERNAME:guild}
+    password: ${SPRING_DATASOURCE_PASSWORD:guild}
   jpa:
     hibernate:
       ddl-auto: validate

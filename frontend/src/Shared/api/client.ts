@@ -1,6 +1,7 @@
 import { formatApiError } from '@/Shared/utils/formatApiError'
+import { getApiBaseUrl } from '@/Shared/utils/env'
 
-const API_BASE = '/api'
+const API_BASE = getApiBaseUrl()
 const TOKEN_KEY = 'guild_points_token'
 
 export function getToken(): string | null {

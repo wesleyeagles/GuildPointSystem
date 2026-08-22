@@ -1,14 +1,12 @@
 import { Client, type IMessage, type StompSubscription } from '@stomp/stompjs'
 import SockJS from 'sockjs-client'
 import { getToken } from '@/Shared/api/client'
+import { getWsBaseUrl } from '@/Shared/utils/env'
 
 const CONNECT_TIMEOUT_MS = 10_000
 
 function getWsUrl(): string {
-  if (typeof window !== 'undefined') {
-    return `${window.location.origin}/ws`
-  }
-  return 'http://localhost:8080/ws'
+  return getWsBaseUrl()
 }
 
 export const WS_URL = getWsUrl()
