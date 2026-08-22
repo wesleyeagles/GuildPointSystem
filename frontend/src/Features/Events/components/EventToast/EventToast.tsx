@@ -7,7 +7,7 @@ import {
   type ReactNode,
 } from 'react'
 import { useEventSubscription } from '@/Domain/Log/hooks/useLogs'
-import { useClaimEvent } from '@/Domain/Event/hooks/useEvents'
+import { useActiveEvents, useClaimEvent } from '@/Domain/Event/hooks/useEvents'
 import type { GuildEvent } from '@/Domain/types/models'
 import { Button } from '@/Shared/ui/components/Button/Button'
 import { useAppToast } from '@/Shared/ui/components/AppToast/AppToast'
@@ -21,15 +21,15 @@ const EventToastContext = createContext<EventToastContextValue | null>(null)
 
 export function EventToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<GuildEvent[]>([])
+  const { data: activeEvents = [] } = useActiveEvents()
   const claimMutation = useClaimEvent()
   const { showToast } = useAppToast()
 
   const pushEvent = useCallback((event: GuildEvent) => {
-    if (!event.active) {
+    if (!event.active || event.claimedByMe) {
       setToasts((prev) => prev.filter((e) => e.id !== event.id))
       return
     }
-    if (event.claimedByMe) return
     setToasts((prev) => {
       if (prev.some((e) => e.id === event.id)) return prev
       return [...prev, event]
@@ -37,6 +37,15 @@ export function EventToastProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEventSubscription(pushEvent)
+
+  useEffect(() => {
+    setToasts((prev) =>
+      prev.filter((toast) => {
+        const match = activeEvents.find((e) => e.id === toast.id)
+        return match && match.active && !match.claimedByMe
+      }),
+    )
+  }, [activeEvents])
 
   const dismiss = (id: number) => {
     setToasts((prev) => prev.filter((e) => e.id !== id))
@@ -108,6 +117,10 @@ function EventToastCard({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    if (password.length !== 4) {
+      setError('A senha deve ter exatamente 4 caracteres.')
+      return
+    }
     try {
       await onClaim(password)
     } catch (err) {

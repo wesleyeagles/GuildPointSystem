@@ -1,4 +1,6 @@
-const API_BASE = 'http://localhost:8080/api'
+import { formatApiError } from '@/Shared/utils/formatApiError'
+
+const API_BASE = '/api'
 const TOKEN_KEY = 'guild_points_token'
 
 export function getToken(): string | null {
@@ -48,7 +50,7 @@ export async function apiClient<T>(path: string, options: RequestOptions = {}): 
     } catch {
       /* ignore */
     }
-    throw new ApiError(message, response.status)
+    throw new ApiError(formatApiError(message), response.status)
   }
 
   if (response.status === 204) {

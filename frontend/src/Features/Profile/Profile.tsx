@@ -33,6 +33,8 @@ export function ProfilePage() {
   const [pointsReason, setPointsReason] = useState('')
   const [modality, setModality] = useState<PointsModality>('AJUSTE')
   const [manualObjectiveId, setManualObjectiveId] = useState(0)
+  const [denyingClaimId, setDenyingClaimId] = useState<number | null>(null)
+  const [denyReason, setDenyReason] = useState('')
 
   const { data: races = [] } = useRaces()
   const { data: classes = [] } = useClasses(raceId)
@@ -56,6 +58,8 @@ export function ProfilePage() {
     setPointsAmount(0)
     setPointsReason('')
     setManualObjectiveId(0)
+    setDenyingClaimId(null)
+    setDenyReason('')
   }, [profile?.id, profile?.nickname, profile?.raceId, profile?.classId])
 
   if (!profile) return <p>Carregando perfil...</p>
@@ -112,125 +116,166 @@ export function ProfilePage() {
       </div>
 
       {(isOwn || isStaff) && (
-        <form className="profile-form" onSubmit={handleSaveProfile}>
-          <h3>Editar Perfil</h3>
-          <label>
-            Nickname
-            <input value={nickname} onChange={(e) => setNickname(e.target.value)} required />
-          </label>
-          <label>
-            Raça
-            <select value={raceId} onChange={(e) => handleRaceChange(Number(e.target.value))}>
-              {races.map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          {raceId > 0 && (
-            <SeedOptionPicker
-              label="Classe"
-              options={classes}
-              value={classId}
-              onChange={setClassId}
-              showImages
-            />
-          )}
-          <Button type="submit" loading={updateProfile.isPending}>
-            Salvar
-          </Button>
-        </form>
-      )}
-
-      {isStaff && !isOwn && (
-        <>
-          <form className="profile-form" onSubmit={handleAdjustPoints}>
-            <h3>Ajustar Pontos</h3>
+        <div className={`profile-page__grid${isStaff && !isOwn ? ' profile-page__grid--staff' : ''}`}>
+          <form className="profile-form" onSubmit={handleSaveProfile}>
+            <h3>Editar Perfil</h3>
             <label>
-              Quantidade (+/-)
-              <input
-                type="number"
-                value={pointsAmount}
-                onChange={(e) => setPointsAmount(Number(e.target.value))}
-                required
-              />
+              Nickname
+              <input value={nickname} onChange={(e) => setNickname(e.target.value)} required />
             </label>
             <label>
-              Modalidade
-              <select value={modality} onChange={(e) => setModality(e.target.value as PointsModality)}>
-                <option value="AJUSTE">Ajuste</option>
-                <option value="LEILAO">Leilão</option>
-              </select>
-            </label>
-            <label>
-              Motivo
-              <textarea
-                value={pointsReason}
-                onChange={(e) => setPointsReason(e.target.value)}
-                required
-              />
-            </label>
-            <Button type="submit" loading={adjustPoints.isPending}>
-              Aplicar
-            </Button>
-          </form>
-
-          <form className="profile-form" onSubmit={handleGrantManualEvent}>
-            <h3>Conceder Evento Manualmente</h3>
-            <label>
-              Objetivo
-              <select
-                value={manualObjectiveId}
-                onChange={(e) => setManualObjectiveId(Number(e.target.value))}
-                required
-              >
-                <option value={0}>Selecione...</option>
-                {objectives.map((obj) => (
-                  <option key={obj.id} value={obj.id}>
-                    {obj.name} ({obj.points} pts)
+              Raça
+              <select value={raceId} onChange={(e) => handleRaceChange(Number(e.target.value))}>
+                {races.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.name}
                   </option>
                 ))}
               </select>
             </label>
-            <Button type="submit" loading={grantManualEvent.isPending} disabled={manualObjectiveId <= 0}>
-              Conceder
+            {raceId > 0 && (
+              <SeedOptionPicker
+                label="Classe"
+                options={classes}
+                value={classId}
+                onChange={setClassId}
+                showImages
+              />
+            )}
+            <Button type="submit" loading={updateProfile.isPending}>
+              Salvar
             </Button>
           </form>
 
-          <section className="profile-claims">
-            <h3>Resgates de Eventos</h3>
-            {claims.length === 0 ? (
-              <p className="profile-claims__empty">Nenhum resgate registrado.</p>
-            ) : (
-              <ul className="profile-claims__list">
-                {claims.map((claim) => (
-                  <li key={claim.id} className={claim.denied ? 'profile-claims__item--denied' : ''}>
-                    <div>
-                      <strong>{claim.objectiveName}</strong>
-                      <span>+{claim.points} pts</span>
-                      <small>
-                        {new Date(claim.claimedAt).toLocaleString()}
-                        {claim.manual ? ' · manual' : ''}
-                        {claim.denied ? ' · negado' : ''}
-                      </small>
-                    </div>
-                    {!claim.denied && (
-                      <Button
-                        variant="danger"
-                        size="sm"
-                        onClick={() => denyClaim.mutate(claim.id)}
-                        loading={denyClaim.isPending}
-                      >
-                        Negar
-                      </Button>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-        </>
+          {isStaff && !isOwn && (
+            <>
+              <form className="profile-form" onSubmit={handleAdjustPoints}>
+                <h3>Ajustar Pontos</h3>
+                <label>
+                  Quantidade (+/-)
+                  <input
+                    type="number"
+                    value={pointsAmount}
+                    onChange={(e) => setPointsAmount(Number(e.target.value))}
+                    required
+                  />
+                </label>
+                <label>
+                  Modalidade
+                  <select value={modality} onChange={(e) => setModality(e.target.value as PointsModality)}>
+                    <option value="AJUSTE">Ajuste</option>
+                    <option value="LEILAO">Leilão</option>
+                  </select>
+                </label>
+                <label>
+                  Motivo
+                  <textarea
+                    value={pointsReason}
+                    onChange={(e) => setPointsReason(e.target.value)}
+                    required
+                  />
+                </label>
+                <Button type="submit" loading={adjustPoints.isPending}>
+                  Aplicar
+                </Button>
+              </form>
+
+              <section className="profile-claims">
+                <h3>Resgates de Eventos</h3>
+                {claims.length === 0 ? (
+                  <p className="profile-claims__empty">Nenhum resgate registrado.</p>
+                ) : (
+                  <ul className="profile-claims__list">
+                    {claims.map((claim) => (
+                      <li key={claim.id} className={claim.denied ? 'profile-claims__item--denied' : ''}>
+                        <div>
+                          <strong>{claim.objectiveName}</strong>
+                          <span>+{claim.points} pts</span>
+                          <small>
+                            {new Date(claim.claimedAt).toLocaleString()}
+                            {claim.manual ? ' · manual' : ''}
+                            {claim.denied ? ' · negado' : ''}
+                          </small>
+                        </div>
+                        {!claim.denied && denyingClaimId !== claim.id && (
+                          <Button
+                            variant="danger"
+                            size="sm"
+                            onClick={() => {
+                              setDenyingClaimId(claim.id)
+                              setDenyReason('')
+                            }}
+                          >
+                            Remover resgate
+                          </Button>
+                        )}
+                        {!claim.denied && denyingClaimId === claim.id && (
+                          <div className="profile-claims__deny">
+                            <textarea
+                              value={denyReason}
+                              onChange={(e) => setDenyReason(e.target.value)}
+                              placeholder="Motivo da remoção..."
+                              rows={2}
+                            />
+                            <div className="profile-claims__deny-actions">
+                              <Button
+                                variant="danger"
+                                size="sm"
+                                onClick={() => {
+                                  setDenyingClaimId(null)
+                                  setDenyReason('')
+                                }}
+                              >
+                                Cancelar
+                              </Button>
+                              <Button
+                                variant="danger"
+                                size="sm"
+                                loading={denyClaim.isPending}
+                                disabled={!denyReason.trim()}
+                                onClick={async () => {
+                                  const reason = denyReason.trim()
+                                  if (!reason) return
+                                  await denyClaim.mutateAsync({ claimId: claim.id, reason })
+                                  setDenyingClaimId(null)
+                                  setDenyReason('')
+                                }}
+                              >
+                                Confirmar
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
+
+              <form className="profile-form" onSubmit={handleGrantManualEvent}>
+                <h3>Conceder Evento Manualmente</h3>
+                <label>
+                  Objetivo
+                  <select
+                    value={manualObjectiveId}
+                    onChange={(e) => setManualObjectiveId(Number(e.target.value))}
+                    required
+                  >
+                    <option value={0}>Selecione...</option>
+                    {objectives.map((obj) => (
+                      <option key={obj.id} value={obj.id}>
+                        {obj.name} ({obj.points} pts)
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <Button type="submit" loading={grantManualEvent.isPending} disabled={manualObjectiveId <= 0}>
+                  Conceder
+                </Button>
+              </form>
+            </>
+          )}
+        </div>
       )}
     </div>
   )

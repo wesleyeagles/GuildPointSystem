@@ -20,8 +20,8 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handleValidation(MethodArgumentNotValidException ex) {
         String message = ex.getBindingResult().getFieldErrors().stream()
                 .findFirst()
-                .map(e -> e.getField() + ": " + e.getDefaultMessage())
-                .orElse("Validation error");
+                .map(e -> e.getDefaultMessage())
+                .orElse("Verifique os dados e tente novamente.");
         return ResponseEntity.badRequest().body(Map.of("message", message));
     }
 }

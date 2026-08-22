@@ -7,10 +7,7 @@
   gap: theme.$spacing-xs;
 
   legend {
-    font-size: 11px;
-    letter-spacing: 1.5px;
-    color: theme.$color-text-muted;
-    text-transform: uppercase;
+    @include theme.field-label;
     font-weight: 600;
     font-family: theme.$font-family;
     margin-bottom: theme.$spacing-sm;
@@ -40,7 +37,7 @@
     }
 
     span {
-      font-size: 9px;
+      font-size: theme.$font-size-heading;
       font-family: theme.$font-heading;
       letter-spacing: 1px;
       color: theme.$color-text-muted;

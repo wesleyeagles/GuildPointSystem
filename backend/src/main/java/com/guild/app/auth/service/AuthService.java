@@ -41,12 +41,12 @@ public class AuthService {
     @Transactional
     public AuthResponse register(RegisterRequest request) {
         if (memberRepository.existsByEmail(request.email())) {
-            throw new AppException("Email already registered", HttpStatus.CONFLICT);
+            throw new AppException("Este email já está cadastrado.", HttpStatus.CONFLICT);
         }
         var race = gameRaceRepository.findById(request.raceId())
-                .orElseThrow(() -> new AppException("Race not found", HttpStatus.BAD_REQUEST));
+                .orElseThrow(() -> new AppException("Raça inválida.", HttpStatus.BAD_REQUEST));
         var clazz = characterClassRepository.findById(request.classId())
-                .orElseThrow(() -> new AppException("Class not found", HttpStatus.BAD_REQUEST));
+                .orElseThrow(() -> new AppException("Classe inválida.", HttpStatus.BAD_REQUEST));
         validateClassForRace(clazz, race);
 
         var member = new Member();
@@ -70,21 +70,21 @@ public class AuthService {
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.email(), request.password()));
         var member = memberRepository.findByEmail(request.email())
-                .orElseThrow(() -> new AppException("Invalid credentials", HttpStatus.UNAUTHORIZED));
+                .orElseThrow(() -> new AppException("Email ou senha incorretos.", HttpStatus.UNAUTHORIZED));
         return buildAuthResponse(member);
     }
 
     @Transactional
     public AuthResponse completeDiscordProfile(MemberPrincipal principal, DiscordProfileRequest request) {
         var member = memberRepository.findById(principal.getId())
-                .orElseThrow(() -> new AppException("Member not found", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new AppException("Membro não encontrado.", HttpStatus.NOT_FOUND));
         if (member.getDiscordId() == null) {
-            throw new AppException("Not a Discord account", HttpStatus.BAD_REQUEST);
+            throw new AppException("Esta conta não é do Discord.", HttpStatus.BAD_REQUEST);
         }
         var race = gameRaceRepository.findById(request.raceId())
-                .orElseThrow(() -> new AppException("Race not found", HttpStatus.BAD_REQUEST));
+                .orElseThrow(() -> new AppException("Raça inválida.", HttpStatus.BAD_REQUEST));
         var clazz = characterClassRepository.findById(request.classId())
-                .orElseThrow(() -> new AppException("Class not found", HttpStatus.BAD_REQUEST));
+                .orElseThrow(() -> new AppException("Classe inválida.", HttpStatus.BAD_REQUEST));
         validateClassForRace(clazz, race);
 
         member.setNickname(request.nickname());
@@ -125,7 +125,7 @@ public class AuthService {
 
     private void validateClassForRace(CharacterClass clazz, GameRace race) {
         if (!clazz.getRace().getId().equals(race.getId())) {
-            throw new AppException("Class does not belong to selected race", HttpStatus.BAD_REQUEST);
+            throw new AppException("A classe não pertence à raça selecionada.", HttpStatus.BAD_REQUEST);
         }
     }
 }

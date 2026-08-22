@@ -15,11 +15,7 @@ export function EventsPage() {
   const { hasRole } = useAuthContext()
   const isAdmin = hasRole('ADMINISTRADOR')
 
-  const handleCancel = async (eventId: number) => {
-    if (!window.confirm('Cancelar este evento? Membros não poderão mais resgatar.')) return
-    await cancelEvent.mutateAsync(eventId)
-  }
-
+  const [confirmCancel, setConfirmCancel] = useState<number | null>(null)
   const [objectiveId, setObjectiveId] = useState(0)
   const [durationMinutes, setDurationMinutes] = useState(5)
   const [password, setPassword] = useState('')
@@ -28,6 +24,11 @@ export function EventsPage() {
     e.preventDefault()
     await createEvent.mutateAsync({ objectiveId, durationMinutes, password })
     setPassword('')
+  }
+
+  const handleCancel = async (eventId: number) => {
+    await cancelEvent.mutateAsync(eventId)
+    setConfirmCancel(null)
   }
 
   return (
@@ -88,7 +89,7 @@ export function EventsPage() {
               <Button
                 variant="danger"
                 size="sm"
-                onClick={() => handleCancel(event.id)}
+                onClick={() => setConfirmCancel(event.id)}
                 loading={cancelEvent.isPending && cancelEvent.variables === event.id}
               >
                 Cancelar
@@ -97,6 +98,31 @@ export function EventsPage() {
           </li>
         ))}
       </ul>
+
+      {confirmCancel !== null && (
+        <div className="events-confirm-overlay" onClick={() => setConfirmCancel(null)}>
+          <div className="events-confirm" onClick={(e) => e.stopPropagation()}>
+            <p>Cancelar este evento? Membros não poderão mais resgatar.</p>
+            <div className="events-confirm__actions">
+              <button
+                type="button"
+                className="events-confirm__btn events-confirm__btn--cancel"
+                onClick={() => setConfirmCancel(null)}
+              >
+                Voltar
+              </button>
+              <button
+                type="button"
+                className="events-confirm__btn events-confirm__btn--confirm"
+                onClick={() => handleCancel(confirmCancel)}
+                disabled={cancelEvent.isPending}
+              >
+                {cancelEvent.isPending ? 'Cancelando...' : 'Cancelar evento'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

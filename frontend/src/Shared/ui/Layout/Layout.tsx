@@ -2,6 +2,7 @@ import { Link, Outlet, useLocation } from 'react-router-dom'
 import { useAuthContext } from '@/Features/Auth/contexts/AuthContext'
 import { useCurrentMember } from '@/Domain/Member/hooks/useMembers'
 import { usePointsSubscription } from '@/Domain/Auction/hooks/useAuction'
+import { useMemberLogNotifications } from '@/Domain/Log/hooks/useLogs'
 import { EventToastProvider } from '@/Features/Events/components/EventToast/EventToast'
 import { AppToastProvider } from '@/Shared/ui/components/AppToast/AppToast'
 import './Layout.styles.scss'
@@ -17,15 +18,24 @@ const NAV_ITEMS = [
 ]
 
 export function Layout() {
+  return (
+    <AppToastProvider>
+      <EventToastProvider>
+        <LayoutShell />
+      </EventToastProvider>
+    </AppToastProvider>
+  )
+}
+
+function LayoutShell() {
   const { logout, hasRole, user } = useAuthContext()
   const { data: member } = useCurrentMember()
   const location = useLocation()
 
   usePointsSubscription(user?.memberId)
+  useMemberLogNotifications(user?.memberId)
 
   return (
-    <AppToastProvider>
-    <EventToastProvider>
       <div className="layout">
         <header className="layout__header">
           <h1 className="layout__title">Guild System</h1>
@@ -64,7 +74,5 @@ export function Layout() {
           <Outlet />
         </main>
       </div>
-    </EventToastProvider>
-    </AppToastProvider>
   )
 }

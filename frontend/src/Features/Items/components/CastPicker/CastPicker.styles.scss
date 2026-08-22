@@ -4,12 +4,8 @@
   gap: theme.$spacing-xs;
 
   &__label {
-    font-size: 11px;
-    letter-spacing: 1.5px;
-    color: theme.$color-text-muted;
-    text-transform: uppercase;
+    @include theme.field-label-heading;
     font-weight: 600;
-    font-family: theme.$font-heading;
   }
 
   &__control {
@@ -117,7 +113,7 @@
     h4 {
       margin: 0;
       font-family: theme.$font-heading;
-      font-size: 11px;
+      font-size: theme.$font-size-heading;
       letter-spacing: 2px;
       text-transform: uppercase;
       color: theme.$color-primary;
@@ -144,7 +140,7 @@
   &__grid {
     display: grid;
     grid-template-columns: repeat(9, minmax(0, 1fr));
-    gap: 6px;
+    gap: 8px;
     padding: theme.$spacing-sm;
   }
 
@@ -154,7 +150,7 @@
     align-items: center;
     justify-content: center;
     gap: 4px;
-    min-height: 64px;
+    min-height: 80px;
     padding: 6px 4px;
     background: rgba(0, 0, 0, 0.2);
     border: 1px solid theme.$color-border;
@@ -192,8 +188,8 @@
 
   &__option-name {
     font-family: theme.$font-heading;
-    font-size: 8px;
-    letter-spacing: 0.5px;
+    font-size: theme.$font-size-heading;
+    letter-spacing: 0.3px;
     line-height: 1.2;
     color: theme.$color-text-muted;
     text-transform: uppercase;

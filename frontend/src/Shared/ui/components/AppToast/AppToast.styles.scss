@@ -32,7 +32,7 @@
   &--info    { border-left-color: theme.$color-primary; }
 
   &__icon {
-    font-size: 13px;
+    font-size: theme.$font-size-base;
     font-weight: 700;
     flex-shrink: 0;
 
@@ -44,7 +44,7 @@
   &__msg {
     flex: 1;
     font-family: theme.$font-family;
-    font-size: 13px;
+    font-size: theme.$font-size-base;
     color: theme.$color-text;
     line-height: 1.4;
   }

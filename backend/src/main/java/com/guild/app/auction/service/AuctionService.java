@@ -61,7 +61,7 @@ public class AuctionService {
     @Transactional(readOnly = true)
     public AuctionResponse getById(Long id) {
         var auction = auctionRepository.findByIdWithWinner(id)
-                .orElseThrow(() -> new AppException("Auction not found", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new AppException("Leilão não encontrado.", HttpStatus.NOT_FOUND));
         return toResponse(auction);
     }
 
@@ -69,7 +69,7 @@ public class AuctionService {
     public AuctionResponse create(CreateAuctionRequest request, MemberPrincipal actor) {
         SecurityUtils.requireRole(Role.ADMINISTRADOR);
         if (!ALLOWED_DURATIONS.contains(request.durationMinutes())) {
-            throw new AppException("Invalid duration", HttpStatus.BAD_REQUEST);
+            throw new AppException("Duração inválida.", HttpStatus.BAD_REQUEST);
         }
 
         var auction = new Auction();
@@ -80,7 +80,7 @@ public class AuctionService {
 
         for (var entry : request.items()) {
             var item = itemRepository.findById(entry.itemId())
-                    .orElseThrow(() -> new AppException("Item not found", HttpStatus.NOT_FOUND));
+                    .orElseThrow(() -> new AppException("Item não encontrado.", HttpStatus.NOT_FOUND));
             var ai = new AuctionItem();
             ai.setAuction(auction);
             ai.setItem(item);
@@ -100,13 +100,13 @@ public class AuctionService {
     @Transactional
     public AuctionResponse placeBid(Long auctionId, PlaceBidRequest request, MemberPrincipal actor) {
         var auction = auctionRepository.findByIdForUpdate(auctionId)
-                .orElseThrow(() -> new AppException("Auction not found", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new AppException("Leilão não encontrado.", HttpStatus.NOT_FOUND));
 
         if (auction.getStatus() != AuctionStatus.OPEN && auction.getStatus() != AuctionStatus.DOLE) {
-            throw new AppException("Auction not accepting bids", HttpStatus.BAD_REQUEST);
+            throw new AppException("Este leilão não está aceitando lances.", HttpStatus.BAD_REQUEST);
         }
         if (auction.getEndsAt().isBefore(Instant.now()) && auction.getStatus() == AuctionStatus.OPEN) {
-            throw new AppException("Auction expired", HttpStatus.BAD_REQUEST);
+            throw new AppException("Este leilão já expirou.", HttpStatus.BAD_REQUEST);
         }
 
         long available = pointsService.getAvailablePoints(actor.getId());
@@ -114,17 +114,17 @@ public class AuctionService {
         long currentBid = auction.getCurrentBid();
 
         if (amount > available) {
-            throw new AppException("Insufficient available points", HttpStatus.BAD_REQUEST);
+            throw new AppException("Saldo disponível insuficiente para este lance.", HttpStatus.BAD_REQUEST);
         }
 
         if (amount > currentBid) {
             // valid — must not exceed available (already checked)
         } else if (amount == currentBid) {
             if (amount != available) {
-                throw new AppException("Must exceed current bid unless using full available balance", HttpStatus.BAD_REQUEST);
+                throw new AppException("O lance deve ser maior que o atual, ou igual ao seu saldo disponível total.", HttpStatus.BAD_REQUEST);
             }
         } else {
-            throw new AppException("Bid must be at least current bid", HttpStatus.BAD_REQUEST);
+            throw new AppException("O lance deve ser pelo menos igual ao lance atual.", HttpStatus.BAD_REQUEST);
         }
 
         var member = memberRepository.getReferenceById(actor.getId());
@@ -159,9 +159,9 @@ public class AuctionService {
     @Transactional
     public void sendChatMessage(Long auctionId, ChatMessageRequest request, MemberPrincipal actor) {
         var auction = auctionRepository.findById(auctionId)
-                .orElseThrow(() -> new AppException("Auction not found", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new AppException("Leilão não encontrado.", HttpStatus.NOT_FOUND));
         if (auction.getStatus() == AuctionStatus.CLOSED) {
-            throw new AppException("Auction is closed", HttpStatus.BAD_REQUEST);
+            throw new AppException("Este leilão já foi encerrado.", HttpStatus.BAD_REQUEST);
         }
         var msg = new AuctionMessage();
         msg.setAuction(auction);

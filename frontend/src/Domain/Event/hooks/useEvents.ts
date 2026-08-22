@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/Shared/api/client'
-import type { GuildEvent } from '@/Domain/types/models'
+import type { AuditLogEntry, GuildEvent, Page } from '@/Domain/types/models'
+import { getPayloadClaimId } from '@/Domain/Log/utils/logClaimUtils'
 import { memberKeys } from '@/Domain/Member/hooks/useMembers'
 
 export const eventKeys = {
@@ -11,6 +12,7 @@ export function useActiveEvents() {
   return useQuery({
     queryKey: eventKeys.active,
     queryFn: () => apiClient<GuildEvent[]>('/events'),
+    refetchInterval: 15_000,
   })
 }
 
@@ -72,7 +74,8 @@ export function useClaimEvent() {
   return useMutation({
     mutationFn: ({ id, password }: { id: number; password: string }) =>
       apiClient<GuildEvent>(`/events/${id}/claim`, { method: 'POST', body: { password } }),
-    onSuccess: () => {
+    onSuccess: (event) => {
+      mergeEventIntoCache(queryClient, event)
       queryClient.invalidateQueries({ queryKey: eventKeys.active })
       queryClient.invalidateQueries({ queryKey: memberKeys.all })
     },
@@ -82,9 +85,27 @@ export function useClaimEvent() {
 export function useDenyEventClaim() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (claimId: number) =>
-      apiClient<void>(`/events/claims/${claimId}/deny`, { method: 'POST' }),
-    onSuccess: () => {
+    mutationFn: ({ claimId, reason }: { claimId: number; reason: string }) =>
+      apiClient<void>(`/events/claims/${claimId}/deny`, {
+        method: 'POST',
+        body: { reason },
+      }),
+    onSuccess: (_, { claimId }) => {
+      queryClient.setQueriesData<Page<AuditLogEntry>>({ queryKey: ['logs'] }, (old) => {
+        if (!old) return old
+        return {
+          ...old,
+          content: old.content.map((log) => {
+            if (log.type !== 'EVENT_CLAIMED') return log
+            const logClaimId = getPayloadClaimId(log.payload)
+            if (logClaimId !== claimId) return log
+            return {
+              ...log,
+              payload: { ...log.payload, claimDenied: true },
+            }
+          }),
+        }
+      })
       queryClient.invalidateQueries({ queryKey: ['logs'] })
       queryClient.invalidateQueries({ queryKey: memberKeys.all })
       queryClient.invalidateQueries({ queryKey: ['members'] })

@@ -39,7 +39,7 @@ public class MemberService {
     @Transactional(readOnly = true)
     public MemberResponse getById(Long id) {
         var member = memberRepository.findById(id)
-                .orElseThrow(() -> new AppException("Member not found", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new AppException("Membro não encontrado.", HttpStatus.NOT_FOUND));
         return toResponse(member);
     }
 
@@ -60,16 +60,16 @@ public class MemberService {
     @Transactional
     public MemberResponse updateProfile(Long memberId, UpdateProfileRequest request, MemberPrincipal actor) {
         var member = memberRepository.findById(memberId)
-                .orElseThrow(() -> new AppException("Member not found", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new AppException("Membro não encontrado.", HttpStatus.NOT_FOUND));
 
         if (!member.getId().equals(actor.getId()) && !actor.getRole().isAtLeast(Role.ADMINISTRADOR)) {
-            throw new AppException("Forbidden", HttpStatus.FORBIDDEN);
+            throw new AppException("Você não tem permissão para esta ação.", HttpStatus.FORBIDDEN);
         }
 
         var race = gameRaceRepository.findById(request.raceId())
-                .orElseThrow(() -> new AppException("Race not found", HttpStatus.BAD_REQUEST));
+                .orElseThrow(() -> new AppException("Raça inválida.", HttpStatus.BAD_REQUEST));
         var clazz = characterClassRepository.findById(request.classId())
-                .orElseThrow(() -> new AppException("Class not found", HttpStatus.BAD_REQUEST));
+                .orElseThrow(() -> new AppException("Classe inválida.", HttpStatus.BAD_REQUEST));
         validateClassForRace(clazz, race);
 
         logProfileChange(member, actor, "nickname", member.getNickname(), request.nickname());
@@ -91,10 +91,10 @@ public class MemberService {
     public MemberResponse approve(Long memberId, ApprovalRequest request, MemberPrincipal actor) {
         SecurityUtils.requireRole(Role.MODERADOR);
         var member = memberRepository.findById(memberId)
-                .orElseThrow(() -> new AppException("Member not found", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new AppException("Membro não encontrado.", HttpStatus.NOT_FOUND));
 
         if (request.status() != MemberStatus.APROVADO && request.status() != MemberStatus.REJEITADO) {
-            throw new AppException("Invalid status", HttpStatus.BAD_REQUEST);
+            throw new AppException("Status inválido.", HttpStatus.BAD_REQUEST);
         }
 
         member.setStatus(request.status());
@@ -112,7 +112,7 @@ public class MemberService {
     public MemberResponse adjustPoints(Long memberId, PointsAdjustmentRequest request, MemberPrincipal actor) {
         SecurityUtils.requireRole(Role.ADMINISTRADOR);
         var member = memberRepository.findById(memberId)
-                .orElseThrow(() -> new AppException("Member not found", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new AppException("Membro não encontrado.", HttpStatus.NOT_FOUND));
         var actorEntity = memberRepository.getReferenceById(actor.getId());
 
         pointsService.adjustPoints(member, actorEntity, request.amount(), request.modality(), request.reason());
@@ -129,7 +129,7 @@ public class MemberService {
     public MemberResponse promoteToLeader(Long memberId, MemberPrincipal actor) {
         SecurityUtils.requireRole(Role.LIDER);
         if (actor.getRole() != Role.LIDER) {
-            throw new AppException("Only leader can assign leader role", HttpStatus.FORBIDDEN);
+            throw new AppException("Apenas o líder pode atribuir o cargo de líder.", HttpStatus.FORBIDDEN);
         }
 
         memberRepository.findByRole(Role.LIDER).ifPresent(existing -> {
@@ -140,7 +140,7 @@ public class MemberService {
         });
 
         var member = memberRepository.findById(memberId)
-                .orElseThrow(() -> new AppException("Member not found", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new AppException("Membro não encontrado.", HttpStatus.NOT_FOUND));
         member.setRole(Role.LIDER);
         return toResponse(memberRepository.save(member));
     }
@@ -154,7 +154,7 @@ public class MemberService {
 
     private void validateClassForRace(CharacterClass clazz, GameRace race) {
         if (!clazz.getRace().getId().equals(race.getId())) {
-            throw new AppException("Class does not belong to selected race", HttpStatus.BAD_REQUEST);
+            throw new AppException("A classe não pertence à raça selecionada.", HttpStatus.BAD_REQUEST);
         }
     }
 

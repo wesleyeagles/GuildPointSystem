@@ -64,6 +64,13 @@ export function DashboardPage() {
 
   const handleClaim = async (eventId: number) => {
     const password = passwords[eventId] ?? ''
+    if (password.length !== 4) {
+      setClaimErrors((prev) => ({
+        ...prev,
+        [eventId]: 'A senha deve ter exatamente 4 caracteres.',
+      }))
+      return
+    }
     const event = events.find((e) => e.id === eventId)
     setClaimErrors((prev) => {
       const next = { ...prev }

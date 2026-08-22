@@ -142,6 +142,7 @@ export function usePointsSubscription(memberId: number | undefined) {
 
     subscribeTopic(`/topic/points/${memberId}`, () => {
       queryClient.invalidateQueries({ queryKey: memberKeys.me })
+      queryClient.invalidateQueries({ queryKey: memberKeys.all })
     }).then((fn) => {
       unsubscribe = fn
     })

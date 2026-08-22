@@ -5,7 +5,11 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 public record DiscordProfileRequest(
-        @NotBlank @Size(max = 100) String nickname,
-        @NotNull Long raceId,
-        @NotNull Long classId
+        @NotBlank(message = "Informe o nickname.")
+        @Size(max = 100, message = "O nickname pode ter até 100 caracteres.")
+        String nickname,
+        @NotNull(message = "Selecione a raça.")
+        Long raceId,
+        @NotNull(message = "Selecione a classe.")
+        Long classId
 ) {}

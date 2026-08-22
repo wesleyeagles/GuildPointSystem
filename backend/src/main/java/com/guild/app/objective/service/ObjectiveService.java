@@ -62,7 +62,7 @@ public class ObjectiveService {
         validateLimitado(request);
 
         var objective = objectiveRepository.findById(id)
-                .orElseThrow(() -> new AppException("Objective not found", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new AppException("Objetivo não encontrado.", HttpStatus.NOT_FOUND));
         objective.setName(request.name());
         objective.setPoints(request.points());
         objective.setType(request.type());
@@ -80,7 +80,7 @@ public class ObjectiveService {
     public void delete(Long id, MemberPrincipal actor) {
         SecurityUtils.requireRole(Role.ADMINISTRADOR);
         var objective = objectiveRepository.findById(id)
-                .orElseThrow(() -> new AppException("Objective not found", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new AppException("Objetivo não encontrado.", HttpStatus.NOT_FOUND));
         objective.setDeleted(true);
         objectiveRepository.save(objective);
         auditLogService.log(AuditLogType.OBJECTIVE_DELETED,
@@ -90,7 +90,7 @@ public class ObjectiveService {
     private void validateLimitado(ObjectiveRequest request) {
         if (request.type() == ObjectiveType.LIMITADO
                 && (request.dailyLimit() == null || request.dailyLimit() < 1)) {
-            throw new AppException("Daily limit required for LIMITADO objectives", HttpStatus.BAD_REQUEST);
+            throw new AppException("Objetivos limitados precisam de um limite diário.", HttpStatus.BAD_REQUEST);
         }
     }
 

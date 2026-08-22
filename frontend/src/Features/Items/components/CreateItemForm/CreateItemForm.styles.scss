@@ -5,21 +5,17 @@
   h3 {
     margin: 0 0 theme.$spacing-md;
     font-family: theme.$font-heading;
-    font-size: 11px;
+    font-size: theme.$font-size-heading;
     letter-spacing: 3px;
     text-transform: uppercase;
     color: theme.$color-primary;
   }
 
   label {
+    @include theme.field-label-heading;
     display: flex;
     flex-direction: column;
     gap: theme.$spacing-xs;
-    font-size: 11px;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    color: theme.$color-text-muted;
-    font-family: theme.$font-heading;
   }
 
   input:not([type='file']),
@@ -52,11 +48,7 @@
   }
 
   &__image-label {
-    font-size: 11px;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    color: theme.$color-text-muted;
-    font-family: theme.$font-heading;
+    @include theme.field-label-heading;
   }
 
   &__fieldset {
@@ -67,7 +59,7 @@
 
     legend {
       font-family: theme.$font-heading;
-      font-size: 10px;
+      font-size: theme.$font-size-heading;
       letter-spacing: 2px;
       text-transform: uppercase;
       color: theme.$color-text;
@@ -87,7 +79,7 @@
     border: 1px solid theme.$color-border;
     color: theme.$color-text-muted;
     font-family: theme.$font-heading;
-    font-size: 10px;
+    font-size: theme.$font-size-heading;
     letter-spacing: 1px;
     text-transform: uppercase;
     cursor: pointer;
@@ -108,7 +100,7 @@
 
   &__error {
     color: theme.$color-danger;
-    font-size: 12px;
+    font-size: theme.$font-size-base;
     text-transform: none;
     letter-spacing: 0;
     font-family: theme.$font-family;
@@ -141,7 +133,7 @@
     position: absolute;
     right: 10px;
     font-family: theme.$font-family;
-    font-size: 13px;
+    font-size: theme.$font-size-base;
     font-weight: 600;
     color: theme.$color-success;
     pointer-events: none;
@@ -188,13 +180,13 @@
 
   &__label {
     font-family: theme.$font-heading;
-    font-size: 10px;
+    font-size: theme.$font-size-heading;
     letter-spacing: 2px;
     text-transform: uppercase;
   }
 
   &__hint {
-    font-size: 10px;
+    font-size: theme.$font-size-heading;
     letter-spacing: 1px;
     opacity: 0.5;
     font-family: theme.$font-heading;
@@ -203,7 +195,7 @@
 
   &__error {
     color: theme.$color-danger;
-    font-size: 12px;
+    font-size: theme.$font-size-heading;
     letter-spacing: 0;
     text-transform: none;
     font-family: theme.$font-family;
@@ -264,7 +256,7 @@
 
   &__label {
     font-family: theme.$font-heading;
-    font-size: 10px;
+    font-size: theme.$font-size-heading;
     letter-spacing: 2px;
     text-transform: uppercase;
     color: theme.$color-text;
@@ -336,7 +328,7 @@
     align-items: center;
     gap: 6px;
     font-family: theme.$font-heading;
-    font-size: 11px;
+    font-size: theme.$font-size-heading;
     letter-spacing: 1px;
     text-transform: uppercase;
     color: theme.$color-text-muted;
@@ -353,7 +345,7 @@
 
   &__tag-bonus {
     color: theme.$color-success;
-    font-size: 11px;
+    font-size: theme.$font-size-base;
   }
 }
 
@@ -371,7 +363,7 @@
 
   &__header {
     font-family: theme.$font-heading;
-    font-size: 9px;
+    font-size: theme.$font-size-heading;
     letter-spacing: 2px;
     text-transform: uppercase;
     color: theme.$color-text-muted;
@@ -390,7 +382,7 @@
     padding: 6px theme.$spacing-sm;
     cursor: pointer;
     font-family: theme.$font-family;
-    font-size: 13px;
+    font-size: theme.$font-size-base;
     color: theme.$color-text;
     text-align: left;
     transition: background 0.1s;
@@ -402,7 +394,7 @@
 
     &--empty {
       color: theme.$color-text-muted;
-      font-size: 11px;
+      font-size: theme.$font-size-heading;
       font-family: theme.$font-heading;
       text-transform: uppercase;
       letter-spacing: 1px;

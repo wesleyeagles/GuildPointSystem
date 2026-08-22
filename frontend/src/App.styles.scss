@@ -7,7 +7,7 @@
   background: theme.$color-bg;
   color: theme.$color-text-muted;
   font-family: theme.$font-heading;
-  font-size: 11px;
+  font-size: theme.$font-size-heading;
   letter-spacing: 4px;
   text-transform: uppercase;
   gap: theme.$spacing-md;

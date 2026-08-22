@@ -38,3 +38,4 @@ Subcomponents live under `components/`; feature utils under `utils/`; local stat
 
 - SCSS only; **central theme** at `Shared/styles/theme.scss` — use variables for colors, never hardcode palette in components.
 - Import component styles as `Component.styles.scss` alongside the `.tsx`.
+- **Typography minimum:** Rajdhani/body text — never below 16px (`$font-size-base`). Orbitron UI text — never below 14px (`$font-size-heading`). Use `$font-size-section` (18px) or larger for prominent titles. Prefer `@include theme.field-label` for Rajdhani form labels and `@include theme.field-label-heading` for Orbitron labels.

@@ -5,7 +5,7 @@
   --roulette-c4: #5c3fe3;
 
   position: relative;
-  width: 280px;
+  width: 300px;
   margin: theme.$spacing-lg auto;
   text-align: center;
 
@@ -24,8 +24,8 @@
   }
 
   &__wheel {
-    width: 280px;
-    height: 280px;
+    width: 300px;
+    height: 300px;
     filter: drop-shadow(0 0 20px rgba(63, 227, 214, 0.2));
   }
 
@@ -36,7 +36,7 @@
 
   &__label {
     fill: #06080d;
-    font-size: 9px;
+    font-size: theme.$font-size-heading;
     font-weight: 700;
     font-family: 'Orbitron', sans-serif;
   }
@@ -44,7 +44,7 @@
   &__status {
     margin-top: theme.$spacing-md;
     font-family: theme.$font-heading;
-    font-size: 10px;
+    font-size: theme.$font-size-heading;
     letter-spacing: 3px;
     color: theme.$color-amber;
     text-transform: uppercase;

@@ -49,7 +49,7 @@ guild:
     max-item-size: 2097152
     max-chat-size: 1048576
   cors:
-    allowed-origins: ${CORS_ORIGINS:http://localhost:5173,http://localhost:5174}
+    allowed-origins: ${CORS_ORIGINS:http://localhost:5173,http://localhost:5174,http://127.0.0.1:5173}
 
 management:
   endpoints:

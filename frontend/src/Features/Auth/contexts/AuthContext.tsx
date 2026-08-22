@@ -1,10 +1,18 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { getToken, setToken } from '@/Shared/api/client'
 import { authKeys, useAuthMe } from '@/Domain/Auth/hooks/useAuth'
 import type { AuthResponse, Role } from '@/Domain/types/models'
-import { disconnectSocket } from '@/Shared/websocket/socketClient'
+import { connectSocket, disconnectSocket } from '@/Shared/websocket/socketClient'
 
 interface AuthContextValue {
   user: AuthResponse | undefined
@@ -41,6 +49,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     [user],
   )
+
+  const canUseRealtime =
+    hasToken && !!user && user.status === 'APROVADO' && user.profileComplete
+
+  useEffect(() => {
+    if (!canUseRealtime) return
+
+    connectSocket().catch((err) => {
+      console.error('[WS] Failed to connect after auth:', err)
+    })
+  }, [canUseRealtime])
 
   const value = useMemo(
     () => ({

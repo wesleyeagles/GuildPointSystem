@@ -3,6 +3,7 @@ package com.guild.app.event.controller;
 import com.guild.app.common.security.SecurityUtils;
 import com.guild.app.event.dto.ClaimEventRequest;
 import com.guild.app.event.dto.CreateEventRequest;
+import com.guild.app.event.dto.DenyClaimRequest;
 import com.guild.app.event.dto.EventResponse;
 import com.guild.app.event.service.EventService;
 import jakarta.validation.Valid;
@@ -42,7 +43,7 @@ public class EventController {
 
     @PostMapping("/claims/{claimId}/deny")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void denyClaim(@PathVariable Long claimId) {
-        eventService.denyClaim(claimId, SecurityUtils.currentMember());
+    public void denyClaim(@PathVariable Long claimId, @Valid @RequestBody DenyClaimRequest request) {
+        eventService.denyClaim(claimId, request, SecurityUtils.currentMember());
     }
 }

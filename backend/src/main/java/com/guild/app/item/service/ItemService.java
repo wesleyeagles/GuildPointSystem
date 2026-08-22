@@ -39,7 +39,7 @@ public class ItemService {
 
     public ItemResponse getById(Long id) {
         var item = itemRepository.findById(id)
-                .orElseThrow(() -> new AppException("Item not found", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new AppException("Item não encontrado.", HttpStatus.NOT_FOUND));
         return toResponse(item);
     }
 
@@ -47,7 +47,7 @@ public class ItemService {
     public ItemResponse create(CreateItemRequest request, MemberPrincipal actor) {
         SecurityUtils.requireRole(Role.ADMINISTRADOR);
         if (request.imageUrl() == null || request.imageUrl().isBlank()) {
-            throw new AppException("Image required", HttpStatus.BAD_REQUEST);
+            throw new AppException("A imagem é obrigatória.", HttpStatus.BAD_REQUEST);
         }
 
         var item = new Item();
@@ -89,7 +89,7 @@ public class ItemService {
     }
 
     private void createWeapon(Item item, CreateItemRequest request) {
-        if (request.weapon() == null) throw new AppException("Weapon data required", HttpStatus.BAD_REQUEST);
+        if (request.weapon() == null) throw new AppException("Informe os dados da arma.", HttpStatus.BAD_REQUEST);
         var w = request.weapon();
         var weapon = new ItemWeapon();
         weapon.setItem(item);
@@ -105,7 +105,7 @@ public class ItemService {
     }
 
     private void createArmor(Item item, CreateItemRequest request) {
-        if (request.armor() == null) throw new AppException("Armor data required", HttpStatus.BAD_REQUEST);
+        if (request.armor() == null) throw new AppException("Informe os dados da armadura.", HttpStatus.BAD_REQUEST);
         var a = request.armor();
         var armor = new ItemArmor();
         armor.setItem(item);
@@ -119,10 +119,10 @@ public class ItemService {
     }
 
     private void createAccessory(Item item, CreateItemRequest request) {
-        if (request.accessory() == null) throw new AppException("Accessory data required", HttpStatus.BAD_REQUEST);
+        if (request.accessory() == null) throw new AppException("Informe os dados do acessório.", HttpStatus.BAD_REQUEST);
         var a = request.accessory();
         var race = gameRaceRepository.findById(a.raceId())
-                .orElseThrow(() -> new AppException("Race not found", HttpStatus.BAD_REQUEST));
+                .orElseThrow(() -> new AppException("Raça inválida.", HttpStatus.BAD_REQUEST));
         var accessory = new ItemAccessory();
         accessory.setItem(item);
         accessory.setRace(race);

@@ -33,7 +33,7 @@ public class UploadController {
             @RequestParam(defaultValue = "item") String type) throws IOException {
 
         if (file.isEmpty()) {
-            throw new AppException("Empty file", HttpStatus.BAD_REQUEST);
+            throw new AppException("Selecione um arquivo.", HttpStatus.BAD_REQUEST);
         }
 
         long maxSize = switch (type) {
@@ -43,12 +43,12 @@ public class UploadController {
         };
 
         if (file.getSize() > maxSize) {
-            throw new AppException("File too large", HttpStatus.BAD_REQUEST);
+            throw new AppException("O arquivo é muito grande.", HttpStatus.BAD_REQUEST);
         }
 
         String contentType = file.getContentType();
         if (contentType == null || !ALLOWED.contains(contentType)) {
-            throw new AppException("Invalid file type", HttpStatus.BAD_REQUEST);
+            throw new AppException("Tipo de arquivo inválido. Use JPG, PNG ou WebP.", HttpStatus.BAD_REQUEST);
         }
 
         String ext = contentType.replace("image/", "");

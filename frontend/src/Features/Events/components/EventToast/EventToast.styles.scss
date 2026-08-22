@@ -52,7 +52,7 @@
 
     strong {
       font-family: theme.$font-heading;
-      font-size: 9px;
+      font-size: theme.$font-size-heading;
       letter-spacing: 3px;
       color: theme.$color-amber;
       text-transform: uppercase;
@@ -68,7 +68,7 @@
 
   &__timer {
     font-family: theme.$font-heading;
-    font-size: 11px;
+    font-size: theme.$font-size-heading;
     letter-spacing: 1px;
     color: theme.$color-primary;
     font-variant-numeric: tabular-nums;
@@ -90,7 +90,7 @@
   }
 
   p {
-    font-size: 14px;
+    font-size: theme.$font-size-base;
     font-family: theme.$font-family;
     font-weight: 600;
     color: theme.$color-text;
@@ -115,13 +115,13 @@
     text-align: center;
     font-family: theme.$font-heading;
     letter-spacing: 4px;
-    font-size: 15px;
+    font-size: theme.$font-size-heading;
     padding: 8px 10px;
   }
 
   &__error {
     color: theme.$color-danger;
-    font-size: 11px;
+    font-size: theme.$font-size-heading;
     letter-spacing: 0.5px;
     margin: theme.$spacing-xs 0 0;
     font-family: theme.$font-family;

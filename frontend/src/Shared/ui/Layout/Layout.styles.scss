@@ -7,7 +7,7 @@
     display: flex;
     align-items: stretch;
     padding: 0 theme.$spacing-xl;
-    height: 54px;
+    height: 64px;
     background: theme.$color-bg-elevated;
     border-bottom: 1px solid theme.$color-border;
     border-top: 2px solid theme.$color-primary;
@@ -20,7 +20,7 @@
 
   &__title {
     font-family: theme.$font-heading;
-    font-size: 12px;
+    font-size: theme.$font-size-heading;
     font-weight: 700;
     letter-spacing: 5px;
     color: theme.$color-primary;
@@ -48,7 +48,7 @@
     height: 100%;
     padding: 0 theme.$spacing-md;
     font-family: theme.$font-heading;
-    font-size: 9px;
+    font-size: theme.$font-size-heading;
     letter-spacing: 2px;
     color: theme.$color-text-muted;
     text-decoration: none;
@@ -85,14 +85,14 @@
     padding-left: theme.$spacing-lg;
     border-left: 1px solid theme.$color-border;
     font-family: theme.$font-family;
-    font-size: 14px;
+    font-size: theme.$font-size-base;
     font-weight: 600;
     white-space: nowrap;
   }
 
   &__points {
     font-family: theme.$font-heading;
-    font-size: 10px;
+    font-size: theme.$font-size-heading;
     letter-spacing: 1.5px;
     color: theme.$color-primary;
     text-shadow: 0 0 8px rgba(63, 227, 214, 0.3);
@@ -102,9 +102,9 @@
     background: transparent;
     border: 1px solid theme.$color-border;
     color: theme.$color-text-muted;
-    padding: 6px 16px;
+    padding: 8px 18px;
     font-family: theme.$font-heading;
-    font-size: 8px;
+    font-size: theme.$font-size-heading;
     letter-spacing: 2px;
     cursor: pointer;
     text-transform: uppercase;

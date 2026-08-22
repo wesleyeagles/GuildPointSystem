@@ -2,7 +2,18 @@ import { Client, type IMessage, type StompSubscription } from '@stomp/stompjs'
 import SockJS from 'sockjs-client'
 import { getToken } from '@/Shared/api/client'
 
-const WS_URL = 'http://localhost:8080/ws'
+const CONNECT_TIMEOUT_MS = 10_000
+
+function getWsUrl(): string {
+  if (typeof window !== 'undefined') {
+    return `${window.location.origin}/ws`
+  }
+  return 'http://localhost:8080/ws'
+}
+
+export const WS_URL = getWsUrl()
+
+export type SocketState = 'disconnected' | 'connecting' | 'connected'
 
 interface SubscriptionEntry {
   topic: string
@@ -12,9 +23,38 @@ interface SubscriptionEntry {
 
 let stompClient: Client | null = null
 let connectResolve: ((c: Client) => void) | null = null
+let connectReject: ((err: Error) => void) | null = null
 let connectPromise: Promise<Client> | null = null
+let connectTimeoutId: ReturnType<typeof setTimeout> | null = null
 
 const subscriptions = new Map<symbol, SubscriptionEntry>()
+
+function clearConnectTimeout() {
+  if (connectTimeoutId !== null) {
+    clearTimeout(connectTimeoutId)
+    connectTimeoutId = null
+  }
+}
+
+function rejectPendingConnect(err: Error) {
+  clearConnectTimeout()
+  connectPromise = null
+  if (connectReject) {
+    connectReject(err)
+    connectReject = null
+    connectResolve = null
+  }
+}
+
+function resolvePendingConnect(client: Client) {
+  clearConnectTimeout()
+  connectPromise = null
+  if (connectResolve) {
+    connectResolve(client)
+    connectResolve = null
+    connectReject = null
+  }
+}
 
 function resubscribeAll() {
   if (!stompClient?.connected) return
@@ -28,7 +68,7 @@ function getOrCreateClient(): Client {
   if (stompClient) return stompClient
 
   stompClient = new Client({
-    webSocketFactory: () => new SockJS(WS_URL),
+    webSocketFactory: () => new SockJS(getWsUrl()),
     reconnectDelay: 3000,
     heartbeatIncoming: 10000,
     heartbeatOutgoing: 10000,
@@ -37,27 +77,34 @@ function getOrCreateClient(): Client {
       stompClient!.connectHeaders = token ? { Authorization: `Bearer ${token}` } : {}
     },
     onConnect: () => {
-      connectPromise = null
       resubscribeAll()
-      if (connectResolve) {
-        connectResolve(stompClient!)
-        connectResolve = null
-      }
+      resolvePendingConnect(stompClient!)
     },
     onStompError: (frame) => {
       console.error('[WS] STOMP error:', frame.headers.message)
-      connectPromise = null
-      connectResolve = null
+      rejectPendingConnect(new Error(frame.headers.message ?? 'STOMP error'))
+    },
+    onWebSocketError: (event) => {
+      console.error('[WS] WebSocket error:', event)
     },
     onWebSocketClose: () => {
-      connectPromise = null
       subscriptions.forEach((entry) => {
         entry.stomp = null
       })
+      if (connectPromise && stompClient && !stompClient.active) {
+        rejectPendingConnect(new Error('WebSocket closed before connect'))
+      }
     },
   })
 
   return stompClient
+}
+
+export function getSocketState(): SocketState {
+  if (!stompClient) return 'disconnected'
+  if (stompClient.connected) return 'connected'
+  if (stompClient.active) return 'connecting'
+  return 'disconnected'
 }
 
 export function connectSocket(): Promise<Client> {
@@ -66,9 +113,17 @@ export function connectSocket(): Promise<Client> {
   if (c.connected) return Promise.resolve(c)
   if (connectPromise) return connectPromise
 
-  connectPromise = new Promise<Client>((resolve) => {
+  connectPromise = new Promise<Client>((resolve, reject) => {
     connectResolve = resolve
-    if (!c.active) c.activate()
+    connectReject = reject
+
+    connectTimeoutId = setTimeout(() => {
+      rejectPendingConnect(new Error('WebSocket connect timeout'))
+    }, CONNECT_TIMEOUT_MS)
+
+    if (!c.active) {
+      c.activate()
+    }
   })
 
   return connectPromise
@@ -84,7 +139,6 @@ export async function subscribeTopic(
 
   try {
     const c = await connectSocket()
-    // resubscribeAll() in onConnect may have already subscribed this entry
     if (c.connected && subscriptions.has(key) && !entry.stomp) {
       entry.stomp = c.subscribe(topic, handler)
     }
@@ -100,11 +154,11 @@ export async function subscribeTopic(
 }
 
 export function disconnectSocket(): void {
+  clearConnectTimeout()
   subscriptions.clear()
   stompClient?.deactivate()
   stompClient = null
   connectPromise = null
   connectResolve = null
+  connectReject = null
 }
-
-export { WS_URL }

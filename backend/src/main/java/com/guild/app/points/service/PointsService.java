@@ -26,7 +26,7 @@ public class PointsService {
 
     public long getAvailablePoints(Long memberId) {
         var member = memberRepository.findById(memberId)
-                .orElseThrow(() -> new AppException("Member not found", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new AppException("Membro não encontrado.", HttpStatus.NOT_FOUND));
         long reserved = 0;
         var openStatuses = List.of(AuctionStatus.OPEN, AuctionStatus.DOLE, AuctionStatus.TIE_BREAK);
         var auctions = auctionRepository.findByStatusInOrderByCreatedAtDesc(openStatuses);
@@ -43,10 +43,10 @@ public class PointsService {
     @Transactional
     public void adjustPoints(Member member, Member actor, long amount, com.guild.app.common.enums.PointsModality modality, String reason) {
         var locked = memberRepository.findByIdForUpdate(member.getId())
-                .orElseThrow(() -> new AppException("Member not found", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new AppException("Membro não encontrado.", HttpStatus.NOT_FOUND));
 
         if (amount < 0 && locked.getPoints() + amount < 0) {
-            throw new AppException("Insufficient points", HttpStatus.BAD_REQUEST);
+            throw new AppException("Pontos insuficientes.", HttpStatus.BAD_REQUEST);
         }
 
         locked.setPoints(locked.getPoints() + amount);

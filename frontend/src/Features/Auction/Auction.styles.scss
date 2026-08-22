@@ -12,7 +12,7 @@
 
   &__empty {
     color: theme.$color-text-muted;
-    font-size: 14px;
+    font-size: theme.$font-size-base;
     padding: theme.$spacing-lg 0;
   }
 
@@ -22,7 +22,7 @@
 
   &__section-title {
     font-family: theme.$font-heading;
-    font-size: 10px;
+    font-size: theme.$font-size-heading;
     letter-spacing: 2.5px;
     text-transform: uppercase;
     color: theme.$color-text-muted;
@@ -51,10 +51,7 @@
     min-width: 140px;
 
     span {
-      font-size: 11px;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      color: theme.$color-text-muted;
+      @include theme.field-label-heading;
     }
   }
 
@@ -65,7 +62,7 @@
 
     legend {
       font-family: theme.$font-heading;
-      font-size: 10px;
+      font-size: theme.$font-size-heading;
       letter-spacing: 2px;
       text-transform: uppercase;
       padding: 0 theme.$spacing-xs;
@@ -122,7 +119,7 @@
 
     strong {
       font-family: theme.$font-heading;
-      font-size: 11px;
+      font-size: theme.$font-size-heading;
       letter-spacing: 2px;
       text-transform: uppercase;
       display: block;
@@ -130,7 +127,7 @@
     }
 
     small {
-      font-size: 12px;
+      font-size: theme.$font-size-base;
       color: theme.$color-text-muted;
     }
 
@@ -156,7 +153,7 @@
   &__loading {
     color: theme.$color-text-muted;
     font-family: theme.$font-heading;
-    font-size: 11px;
+    font-size: theme.$font-size-heading;
     letter-spacing: 2px;
     text-transform: uppercase;
     padding: theme.$spacing-lg 0;
@@ -190,13 +187,13 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 13px;
+    font-size: theme.$font-size-base;
   }
 
   &__info-label {
     color: theme.$color-text-muted;
     font-family: theme.$font-heading;
-    font-size: 10px;
+    font-size: theme.$font-size-heading;
     letter-spacing: 1.5px;
     text-transform: uppercase;
   }
@@ -208,7 +205,7 @@
 
   &__badge {
     font-family: theme.$font-heading;
-    font-size: 10px;
+    font-size: theme.$font-size-heading;
     letter-spacing: 1.5px;
     text-transform: uppercase;
     padding: 2px 8px;
@@ -252,7 +249,7 @@
   &__winner-name {
     color: theme.$color-amber;
     font-family: theme.$font-heading;
-    font-size: 12px;
+    font-size: theme.$font-size-heading;
     letter-spacing: 1.5px;
     font-weight: 700;
     text-transform: uppercase;
@@ -261,7 +258,7 @@
   &__leader--me {
     color: theme.$color-amber;
     font-family: theme.$font-heading;
-    font-size: 12px;
+    font-size: theme.$font-size-heading;
     letter-spacing: 1.5px;
     font-weight: 700;
     text-transform: uppercase;
@@ -273,7 +270,7 @@
     border-left: 3px solid theme.$color-amber;
     color: theme.$color-amber;
     font-family: theme.$font-heading;
-    font-size: 11px;
+    font-size: theme.$font-size-heading;
     letter-spacing: 1.5px;
     text-transform: uppercase;
     padding: theme.$spacing-sm theme.$spacing-md;
@@ -313,7 +310,7 @@
     background: rgba(0, 0, 0, 0.75);
     color: theme.$color-primary;
     font-family: theme.$font-heading;
-    font-size: 11px;
+    font-size: theme.$font-size-heading;
     letter-spacing: 1px;
     padding: 2px 6px;
     border: 1px solid theme.$color-primary;
@@ -327,7 +324,7 @@
   gap: theme.$spacing-sm;
   padding: theme.$spacing-md;
   color: theme.$color-text-muted;
-  font-size: 13px;
+  font-size: theme.$font-size-base;
 
   &__img {
     width: 40px;
@@ -356,7 +353,7 @@
 
   &__header {
     font-family: theme.$font-heading;
-    font-size: 10px;
+    font-size: theme.$font-size-heading;
     letter-spacing: 2.5px;
     text-transform: uppercase;
     color: theme.$color-text;
@@ -381,7 +378,7 @@
 
   &__empty {
     color: theme.$color-text-muted;
-    font-size: 12px;
+    font-size: theme.$font-size-base;
     text-align: center;
     padding: theme.$spacing-lg 0;
     margin: 0;
@@ -441,7 +438,7 @@
 
   &__nickname {
     font-family: theme.$font-heading;
-    font-size: 10px;
+    font-size: theme.$font-size-heading;
     letter-spacing: 1px;
     text-transform: uppercase;
     color: theme.$color-primary;
@@ -458,7 +455,7 @@
   }
 
   &__time {
-    font-size: 10px;
+    font-size: theme.$font-size-base;
     color: theme.$color-text-muted;
     align-self: flex-end;
     margin-top: 2px;

@@ -7,7 +7,7 @@
   &__empty {
     color: theme.$color-text-muted;
     font-family: theme.$font-heading;
-    font-size: 11px;
+    font-size: theme.$font-size-heading;
     letter-spacing: 2px;
     text-transform: uppercase;
     padding: theme.$spacing-lg 0;
@@ -29,7 +29,7 @@
     margin-bottom: -1px;
     padding: 8px theme.$spacing-md;
     font-family: theme.$font-heading;
-    font-size: 10px;
+    font-size: theme.$font-size-heading;
     letter-spacing: 2px;
     text-transform: uppercase;
     color: theme.$color-text-muted;
@@ -119,7 +119,7 @@
 
   &__name {
     font-family: theme.$font-heading;
-    font-size: 13px;
+    font-size: theme.$font-size-heading;
     font-weight: 700;
     letter-spacing: 1.5px;
     text-transform: uppercase;
@@ -129,7 +129,7 @@
 
   &__rarity {
     font-family: theme.$font-heading;
-    font-size: 9px;
+    font-size: theme.$font-size-heading;
     letter-spacing: 1.5px;
     text-transform: uppercase;
     opacity: 0.75;
@@ -240,7 +240,7 @@
   &__desc {
     margin: 0;
     padding: theme.$spacing-xs theme.$spacing-sm theme.$spacing-sm;
-    font-size: 12px;
+    font-size: theme.$font-size-base;
     color: theme.$color-text-muted;
     line-height: 1.5;
     font-style: italic;
@@ -266,7 +266,7 @@
 
   p {
     font-family: theme.$font-family;
-    font-size: 15px;
+    font-size: theme.$font-size-base;
     color: theme.$color-text;
     margin: 0 0 theme.$spacing-md;
   }
@@ -281,7 +281,7 @@
     background: transparent;
     border: 1px solid theme.$color-border;
     font-family: theme.$font-heading;
-    font-size: 10px;
+    font-size: theme.$font-size-heading;
     letter-spacing: 1.5px;
     text-transform: uppercase;
     padding: 8px theme.$spacing-md;

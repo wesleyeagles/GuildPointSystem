@@ -13,14 +13,14 @@ public final class SecurityUtils {
     public static MemberPrincipal currentMember() {
         var auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !(auth.getPrincipal() instanceof MemberPrincipal principal)) {
-            throw new AppException("Unauthorized", HttpStatus.UNAUTHORIZED);
+            throw new AppException("Não autorizado. Faça login novamente.", HttpStatus.UNAUTHORIZED);
         }
         return principal;
     }
 
     public static void requireRole(Role minimum) {
         if (!currentMember().getRole().isAtLeast(minimum)) {
-            throw new AppException("Forbidden", HttpStatus.FORBIDDEN);
+            throw new AppException("Você não tem permissão para esta ação.", HttpStatus.FORBIDDEN);
         }
     }
 }

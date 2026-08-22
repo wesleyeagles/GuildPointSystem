@@ -72,7 +72,7 @@ $text-dim:  #6c7689;
 
   .lore-eyebrow {
     font-family: 'Orbitron', sans-serif;
-    font-size: 12px;
+    font-size: theme.$font-size-heading;
     letter-spacing: 5px;
     color: $cyan;
     margin: 0 0 18px;
@@ -146,14 +146,14 @@ $text-dim:  #6c7689;
 
   .chip-name {
     font-family: 'Orbitron', sans-serif;
-    font-size: 11px;
+    font-size: theme.$font-size-heading;
     letter-spacing: 2px;
     color: #eef3f8;
     margin-bottom: 4px;
   }
 
   .chip-role {
-    font-size: 13px;
+    font-size: theme.$font-size-base;
     color: $text-dim;
   }
 }
@@ -219,7 +219,7 @@ $text-dim:  #6c7689;
 
 .auth-tab {
   font-family: 'Orbitron', sans-serif;
-  font-size: 12px;
+  font-size: theme.$font-size-heading;
   letter-spacing: 2px;
   color: $text-dim;
   padding: 0 0 14px;
@@ -255,7 +255,7 @@ $text-dim:  #6c7689;
 
   label {
     display: block;
-    font-size: 12px;
+    font-size: theme.$font-size-base;
     letter-spacing: 1.5px;
     color: $text-dim;
     text-transform: uppercase;
@@ -297,7 +297,7 @@ $text-dim:  #6c7689;
 // ── Seed picker override ──────────────────────────────────────────────────────
 .auth-card {
   .seed-picker-label {
-    font-size: 12px;
+    font-size: theme.$font-size-base;
     letter-spacing: 1.5px;
     color: $text-dim;
     text-transform: uppercase;
@@ -310,7 +310,7 @@ $text-dim:  #6c7689;
 .auth-btn-primary {
   width: 100%;
   font-family: 'Orbitron', sans-serif;
-  font-size: 13px;
+  font-size: theme.$font-size-heading;
   letter-spacing: 3px;
   font-weight: 700;
   color: #06140f;
@@ -343,7 +343,7 @@ $text-dim:  #6c7689;
   color: #a7b0fb;
   font-family: 'Rajdhani', sans-serif;
   font-weight: 600;
-  font-size: 15px;
+  font-size: theme.$font-size-base;
   letter-spacing: 1px;
   padding: 13px;
   cursor: pointer;
@@ -359,7 +359,7 @@ $text-dim:  #6c7689;
   border: 1px solid rgba(110, 130, 150, 0.35);
   color: rgba(180, 195, 210, 0.85);
   font-family: 'Orbitron', sans-serif;
-  font-size: 10px;
+  font-size: theme.$font-size-heading;
   letter-spacing: 2px;
   font-weight: 600;
   padding: 12px;
@@ -380,7 +380,7 @@ $text-dim:  #6c7689;
   gap: 12px;
   margin: 26px 0;
   color: $text-dim;
-  font-size: 11px;
+  font-size: theme.$font-size-base;
   letter-spacing: 2px;
 
   &::before,
@@ -396,7 +396,7 @@ $text-dim:  #6c7689;
 .auth-switch {
   text-align: center;
   margin-top: 26px;
-  font-size: 14px;
+  font-size: theme.$font-size-base;
   color: $text-dim;
 
   a {
@@ -411,7 +411,7 @@ $text-dim:  #6c7689;
 // ── Error ─────────────────────────────────────────────────────────────────────
 .auth-error {
   color: #ff5c5c;
-  font-size: 13px;
+  font-size: theme.$font-size-base;
   letter-spacing: 0.5px;
   margin: 0 0 16px;
   padding: 10px 14px;
@@ -422,7 +422,7 @@ $text-dim:  #6c7689;
 // ── Muted text ────────────────────────────────────────────────────────────────
 .auth-muted {
   color: $text-dim;
-  font-size: 13px;
+  font-size: theme.$font-size-base;
   margin: 0 0 16px;
   letter-spacing: 0.5px;
 }
@@ -457,7 +457,7 @@ $text-dim:  #6c7689;
 
   p {
     color: $text-dim;
-    font-size: 15px;
+    font-size: theme.$font-size-base;
     line-height: 1.6;
     margin: 0 0 8px;
   }

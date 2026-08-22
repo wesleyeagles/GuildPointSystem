@@ -6,7 +6,7 @@ const LOG_TYPE_LABELS: Record<AuditLogType, string> = {
   OBJECTIVE_DELETED: 'Objetivo removido',
   EVENT_CREATED: 'Evento criado',
   EVENT_CLAIMED: 'Evento resgatado',
-  EVENT_DENIED: 'Resgate negado',
+  EVENT_DENIED: 'Evento removido do membro',
   EVENT_CANCELLED: 'Evento cancelado',
   POINTS_ADJUSTED: 'Pontos ajustados',
   AUCTION_CREATED: 'Leilão criado',
@@ -50,8 +50,11 @@ export function formatLogDetails(log: AuditLogEntry): string {
       return `${str(p.objectiveName)} · ${str(p.durationMinutes)} min`
     case 'EVENT_CLAIMED':
       return `${str(p.objectiveName)} · +${str(p.points)} pts`
-    case 'EVENT_DENIED':
-      return `-${str(p.pointsReverted)} pts revertidos`
+    case 'EVENT_DENIED': {
+      const reason = str(p.reason)
+      const points = str(p.pointsReverted)
+      return reason ? `"${reason}" · -${points} pts` : `-${points} pts revertidos`
+    }
     case 'EVENT_CANCELLED':
       return str(p.objectiveName)
     case 'POINTS_ADJUSTED': {

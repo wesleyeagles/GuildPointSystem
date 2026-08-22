@@ -42,30 +42,48 @@ export function ObjectivesPage() {
 
       {isAdmin && (
         <form className="objectives-form" onSubmit={handleCreate}>
-          <input
-            placeholder="Nome"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-          />
-          <input
-            type="number"
-            min={1}
-            value={points}
-            onChange={(e) => setPoints(Number(e.target.value))}
-          />
-          <select value={type} onChange={(e) => setType(e.target.value as ObjectiveType)}>
-            <option value="NORMAL">Normal</option>
-            <option value="LIMITADO">Limitado</option>
-          </select>
-          {type === 'LIMITADO' && (
+          <label className="objectives-form__field objectives-form__field--name">
+            <span>Nome</span>
             <input
+              id="objective-name"
+              placeholder="Ex.: Boss semanal"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+            />
+          </label>
+          <label className="objectives-form__field objectives-form__field--points">
+            <span>Pontos</span>
+            <input
+              id="objective-points"
               type="number"
               min={1}
-              value={dailyLimit}
-              onChange={(e) => setDailyLimit(Number(e.target.value))}
-              placeholder="Limite/dia"
+              value={points}
+              onChange={(e) => setPoints(Number(e.target.value))}
             />
+          </label>
+          <label className="objectives-form__field objectives-form__field--type">
+            <span>Tipo</span>
+            <select
+              id="objective-type"
+              value={type}
+              onChange={(e) => setType(e.target.value as ObjectiveType)}
+            >
+              <option value="NORMAL">Normal</option>
+              <option value="LIMITADO">Limitado</option>
+            </select>
+          </label>
+          {type === 'LIMITADO' && (
+            <label className="objectives-form__field objectives-form__field--limit">
+              <span>Limite/dia</span>
+              <input
+                id="objective-daily-limit"
+                type="number"
+                min={1}
+                value={dailyLimit}
+                onChange={(e) => setDailyLimit(Number(e.target.value))}
+              />
+            </label>
           )}
           <Button type="submit" loading={createObjective.isPending}>
             Criar

@@ -24,7 +24,7 @@
 
   &__empty {
     color: theme.$color-text-muted;
-    font-size: 14px;
+    font-size: theme.$font-size-base;
     letter-spacing: 0.5px;
     padding: theme.$spacing-lg 0;
   }
@@ -45,7 +45,7 @@
     flex-direction: column;
     align-items: center;
     flex: 1;
-    max-width: 160px;
+    max-width: 180px;
     text-align: center;
     padding: theme.$spacing-lg theme.$spacing-md theme.$spacing-md;
     border-left: none;
@@ -80,7 +80,7 @@
 
   &__name {
     font-family: theme.$font-heading;
-    font-size: 9px;
+    font-size: theme.$font-size-heading;
     letter-spacing: 2px;
     color: theme.$color-text;
     margin: 0 0 6px;
@@ -98,7 +98,7 @@
 
   &__points {
     font-family: theme.$font-heading;
-    font-size: 11px;
+    font-size: theme.$font-size-heading;
     letter-spacing: 1px;
     color: theme.$color-primary;
     font-weight: 600;
@@ -125,7 +125,7 @@
     gap: theme.$spacing-md;
     padding: 10px theme.$spacing-sm;
     border-bottom: 1px solid theme.$color-border;
-    font-size: 14px;
+    font-size: theme.$font-size-base;
     font-family: theme.$font-family;
     font-weight: 500;
     transition: background 0.12s;
@@ -137,7 +137,7 @@
     span:first-child {
       width: 2.5rem;
       font-family: theme.$font-heading;
-      font-size: 10px;
+      font-size: theme.$font-size-heading;
       letter-spacing: 1px;
       color: theme.$color-text-muted;
       flex-shrink: 0;
@@ -147,7 +147,7 @@
       margin-left: auto;
       color: theme.$color-primary;
       font-family: theme.$font-heading;
-      font-size: 11px;
+      font-size: theme.$font-size-heading;
       letter-spacing: 1px;
       flex-shrink: 0;
     }
@@ -202,20 +202,20 @@
   &__pts {
     color: theme.$color-primary;
     font-family: theme.$font-heading;
-    font-size: 11px;
+    font-size: theme.$font-size-heading;
     letter-spacing: 1px;
   }
 
   strong {
     font-family: theme.$font-heading;
-    font-size: 10px;
+    font-size: theme.$font-size-heading;
     letter-spacing: 2px;
     color: theme.$color-text;
     text-transform: uppercase;
   }
 
   small {
-    font-size: 11px;
+    font-size: theme.$font-size-heading;
     color: theme.$color-text-muted;
   }
 
@@ -235,18 +235,25 @@
 
     input {
       @include theme.field-input;
-      width: 86px;
-      padding: 8px 8px;
+      @include theme.field-control-height;
+      width: 100px;
+      padding-inline: 8px;
       text-align: center;
       font-family: theme.$font-heading;
       letter-spacing: 4px;
-      font-size: 14px;
+      font-size: theme.$font-size-heading;
+    }
+
+    .btn {
+      @include theme.field-control-height;
+      padding-inline: 18px;
+      flex-shrink: 0;
     }
   }
 
   &__error {
     color: theme.$color-danger;
-    font-size: 11px;
+    font-size: theme.$font-size-base;
     letter-spacing: 0.5px;
     margin: 0;
     font-family: theme.$font-family;
@@ -293,7 +300,7 @@
 
   &__info {
     font-family: theme.$font-heading;
-    font-size: 10px;
+    font-size: theme.$font-size-heading;
     letter-spacing: 2px;
     color: theme.$color-text-muted;
     display: flex;

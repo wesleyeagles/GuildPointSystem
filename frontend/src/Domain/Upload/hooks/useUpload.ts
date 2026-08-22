@@ -1,5 +1,6 @@
 import { useMutation } from '@tanstack/react-query'
 import { ApiError, API_BASE, getToken } from '@/Shared/api/client'
+import { formatApiError } from '@/Shared/utils/formatApiError'
 
 interface UploadResponse {
   url: string
@@ -27,7 +28,7 @@ export function useUploadImage() {
         } catch {
           /* ignore */
         }
-        throw new ApiError(message, response.status)
+        throw new ApiError(formatApiError(message), response.status)
       }
 
       const data = (await response.json()) as UploadResponse

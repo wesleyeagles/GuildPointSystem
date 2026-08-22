@@ -2,7 +2,7 @@
   &__back {
     display: inline-block;
     margin-bottom: theme.$spacing-md;
-    font-size: 12px;
+    font-size: theme.$font-size-base;
     letter-spacing: 1px;
     color: theme.$color-text-muted;
     text-decoration: none;
@@ -28,7 +28,7 @@
     border-left: 2px solid theme.$color-cyan-dim;
 
     span {
-      font-size: 13px;
+      font-size: theme.$font-size-base;
       color: theme.$color-text-muted;
       letter-spacing: 0.5px;
       font-family: theme.$font-family;
@@ -37,22 +37,43 @@
       &:first-child,
       &:nth-child(2) {
         font-family: theme.$font-heading;
-        font-size: 11px;
+        font-size: theme.$font-size-heading;
         letter-spacing: 2px;
         color: theme.$color-primary;
       }
+    }
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: theme.$spacing-lg;
+    align-items: stretch;
+
+    &--staff {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    @media (max-width: 900px) {
+      grid-template-columns: 1fr;
+    }
+
+    > .profile-form,
+    > .profile-claims {
+      min-width: 0;
     }
   }
 }
 
 .profile-form {
   @include theme.card;
-  max-width: 880px;
-  margin-bottom: theme.$spacing-lg;
+  margin-bottom: 0;
+  display: flex;
+  flex-direction: column;
 
   h3 {
     font-family: theme.$font-heading;
-    font-size: 11px;
+    font-size: theme.$font-size-heading;
     letter-spacing: 3px;
     color: theme.$color-text;
     text-transform: uppercase;
@@ -62,14 +83,11 @@
   }
 
   label {
+    @include theme.field-label;
     display: flex;
     flex-direction: column;
     gap: theme.$spacing-xs;
     margin-bottom: theme.$spacing-md;
-    font-size: 11px;
-    letter-spacing: 1.5px;
-    color: theme.$color-text-muted;
-    text-transform: uppercase;
     font-weight: 600;
     font-family: theme.$font-family;
   }
@@ -89,11 +107,13 @@
 
 .profile-claims {
   @include theme.card;
-  max-width: 880px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 
   h3 {
     font-family: theme.$font-heading;
-    font-size: 11px;
+    font-size: theme.$font-size-heading;
     letter-spacing: 3px;
     color: theme.$color-text;
     text-transform: uppercase;
@@ -104,7 +124,7 @@
 
   &__empty {
     color: theme.$color-text-muted;
-    font-size: 13px;
+    font-size: theme.$font-size-base;
     margin: 0;
   }
 
@@ -137,20 +157,40 @@
 
     strong {
       font-family: theme.$font-heading;
-      font-size: 10px;
+      font-size: theme.$font-size-heading;
       letter-spacing: 2px;
       color: theme.$color-text;
       text-transform: uppercase;
     }
 
     span {
-      font-size: 12px;
+      font-size: theme.$font-size-heading;
       color: theme.$color-primary;
     }
 
     small {
-      font-size: 11px;
+      font-size: theme.$font-size-base;
       color: theme.$color-text-muted;
     }
+  }
+
+  &__deny {
+    display: flex;
+    flex-direction: column;
+    gap: theme.$spacing-xs;
+    min-width: 200px;
+
+    textarea {
+      @include theme.field-input;
+      min-height: 50px;
+      resize: vertical;
+      font-family: theme.$font-family;
+    }
+  }
+
+  &__deny-actions {
+    display: flex;
+    gap: theme.$spacing-xs;
+    justify-content: flex-end;
   }
 }

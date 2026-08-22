@@ -47,6 +47,10 @@ $spacing-xl: 2rem;
 // Typography
 $font-family: 'Rajdhani', 'Segoe UI', system-ui, sans-serif;
 $font-heading: 'Orbitron', sans-serif;
+$font-size-base:    16px;  // Rajdhani — body, inputs, labels
+$font-size-heading: 14px;  // Orbitron — nav, buttons, badges, UI chrome
+$font-size-section: 18px;  // prominent section titles (any font)
+$font-size-lg:      20px;
 
 // Single-line form controls (input, select, picker triggers)
 $field-control-height: 42px;
@@ -69,7 +73,7 @@ $field-control-height: 42px;
   border-left: 2px solid $color-cyan-dim;
   color: $color-text;
   font-family: $font-family;
-  font-size: 15px;
+  font-size: $font-size-base;
   font-weight: 500;
   padding: 10px 12px;
   outline: none;
@@ -101,10 +105,27 @@ $field-control-height: 42px;
   line-height: calc(#{$field-control-height} - 2px);
 }
 
+@mixin field-label {
+  font-size: $font-size-base;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: $color-text-muted;
+}
+
+@mixin field-label-heading {
+  @include field-label;
+  font-family: $font-heading;
+  font-size: $font-size-heading;
+}
+
+@mixin heading-ui {
+  font-family: $font-heading;
+  font-size: $font-size-heading;
+}
+
 // Section / page headings
 @mixin page-heading {
-  font-family: $font-heading;
-  font-size: 14px;
+  @include heading-ui;
   font-weight: 700;
   letter-spacing: 4px;
   color: $color-text;

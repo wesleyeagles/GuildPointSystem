@@ -10,6 +10,8 @@ public interface EventClaimRepository extends JpaRepository<EventClaim, Long> {
 
     boolean existsByEventIdAndMemberId(Long eventId, Long memberId);
 
+    List<EventClaim> findByEventIdAndDeniedFalse(Long eventId);
+
     List<EventClaim> findTop20ByMemberIdOrderByClaimedAtDesc(Long memberId);
 
     @Query(value = """

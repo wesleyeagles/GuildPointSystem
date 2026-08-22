@@ -5,7 +5,7 @@
 
   &__empty {
     color: theme.$color-text-muted;
-    font-size: 14px;
+    font-size: theme.$font-size-base;
     letter-spacing: 0.5px;
     padding: theme.$spacing-lg 0;
   }
@@ -30,7 +30,7 @@
 
     strong {
       font-family: theme.$font-heading;
-      font-size: 11px;
+      font-size: theme.$font-size-heading;
       letter-spacing: 2px;
       text-transform: uppercase;
       display: block;
@@ -38,7 +38,7 @@
     }
 
     small {
-      font-size: 12px;
+      font-size: theme.$font-size-base;
       color: theme.$color-text-muted;
     }
   }
