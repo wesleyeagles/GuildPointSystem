@@ -1,0 +1,155 @@
+.logs-page {
+  h2 {
+    @include theme.page-heading;
+  }
+
+  &__empty {
+    color: theme.$color-text-muted;
+    font-size: 14px;
+    letter-spacing: 0.5px;
+    padding: theme.$spacing-lg 0;
+  }
+}
+
+.logs-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+
+  &__item {
+    @include theme.card;
+    margin-bottom: theme.$spacing-sm;
+    transition: border-left-color 0.15s;
+
+    &:hover {
+      border-left-color: theme.$color-primary;
+    }
+
+    &--denied {
+      border-left-color: theme.$color-danger;
+
+      .logs-list__type {
+        color: theme.$color-danger;
+      }
+    }
+  }
+
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: theme.$spacing-sm;
+    margin-bottom: theme.$spacing-xs;
+  }
+
+  &__type {
+    font-family: theme.$font-heading;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: theme.$color-primary;
+  }
+
+  &__time {
+    font-size: 11px;
+    letter-spacing: 1px;
+    color: theme.$color-text-muted;
+    font-family: theme.$font-heading;
+    text-transform: uppercase;
+    flex-shrink: 0;
+  }
+
+  &__details {
+    margin: 0 0 theme.$spacing-xs;
+    font-size: 14px;
+    color: theme.$color-text;
+  }
+
+  &__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: theme.$spacing-md;
+    font-size: 12px;
+    color: theme.$color-text-muted;
+
+    a {
+      color: theme.$color-primary;
+      text-decoration: none;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+
+  &__actions {
+    margin-top: theme.$spacing-sm;
+  }
+
+  &__deny {
+    display: flex;
+    flex-direction: column;
+    gap: theme.$spacing-xs;
+    margin-top: theme.$spacing-sm;
+
+    textarea {
+      @include theme.field-input;
+      min-height: 50px;
+      resize: vertical;
+      font-family: theme.$font-family;
+    }
+  }
+
+  &__deny-actions {
+    display: flex;
+    gap: theme.$spacing-xs;
+    justify-content: flex-end;
+  }
+}
+
+.logs-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: theme.$spacing-md;
+  padding: theme.$spacing-md 0 0;
+
+  &__btn {
+    background: transparent;
+    border: 1px solid theme.$color-border;
+    color: theme.$color-text-muted;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 20px;
+    line-height: 1;
+    transition: border-color 0.15s, color 0.15s;
+    border-radius: 0;
+    padding: 0;
+
+    &:hover:not(:disabled) {
+      border-color: theme.$color-primary;
+      color: theme.$color-primary;
+    }
+
+    &:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+  }
+
+  &__info {
+    font-family: theme.$font-heading;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: theme.$color-text-muted;
+  }
+
+  &__sep {
+    opacity: 0.5;
+  }
+}
