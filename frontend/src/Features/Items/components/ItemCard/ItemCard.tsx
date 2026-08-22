@@ -202,7 +202,14 @@ export function ItemCard({
         )}
 
         {effects.length > 0 && (
-          <StatRow label="Special Effects" value={effects.join(' / ')} />
+          <div className="item-tooltip__row item-tooltip__row--effects">
+            <span className="item-tooltip__label">Special Effects</span>
+            <span className="item-tooltip__value item-tooltip__effects">
+              {effects.map((effect, i) => (
+                <span key={i} className="item-tooltip__effect">{effect}</span>
+              ))}
+            </span>
+          </div>
         )}
 
         <TalicUpgradeRow talics={item.talics} />

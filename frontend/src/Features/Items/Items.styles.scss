@@ -184,6 +184,10 @@
     &:hover {
       background: rgba(255, 255, 255, 0.02);
     }
+
+    &--effects {
+      align-items: flex-start;
+    }
   }
 
   &__label {
@@ -221,6 +225,17 @@
     object-fit: contain;
     image-rendering: pixelated;
     flex-shrink: 0;
+  }
+
+  &__effects {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  &__effect {
+    display: block;
+    line-height: 1.4;
   }
 
   // Talic icons inside the upgrade row
