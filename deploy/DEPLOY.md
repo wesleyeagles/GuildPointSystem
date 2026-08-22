@@ -46,6 +46,16 @@ Wait for propagation (often 5–30 min). SSL is automatic on Vercel and Coolify 
 
 ## 3. Coolify — Backend + PostgreSQL
 
+### Troubleshooting healthcheck
+
+If deploy builds but healthcheck fails (`Could not connect to localhost:8080`):
+
+1. Open **Logs** on the backend container — look for Flyway/PostgreSQL or `JWT_SECRET` errors.
+2. Confirm `SPRING_DATASOURCE_URL` uses the **internal** Postgres hostname (e.g. `guild-postgres`), not `localhost`.
+3. Confirm required env vars are set: `JWT_SECRET`, `CORS_ORIGINS`, `SPRING_DATASOURCE_*`.
+4. For Discord login, use `SPRING_PROFILES_ACTIVE=prod,discord` and set `DISCORD_CLIENT_ID` / `DISCORD_CLIENT_SECRET`.
+5. Mount persistent storage at `/data/uploads` on the backend container.
+
 ### PostgreSQL
 
 1. Coolify → **+ New** → **Database** → **PostgreSQL 16**.
@@ -64,7 +74,7 @@ Wait for propagation (often 5–30 min). SSL is automatic on Vercel and Coolify 
 
    | Variable | Valor |
    |----------|-------|
-   | `SPRING_PROFILES_ACTIVE` | `prod` |
+   | `SPRING_PROFILES_ACTIVE` | `prod,discord` |
    | `SPRING_DATASOURCE_URL` | `jdbc:postgresql://<postgres-host>:5432/guild_points` |
    | `JWT_SECRET` | `openssl rand -base64 48` |
    | `CORS_ORIGINS` | `https://blacklist.guildsystem.com.br` |

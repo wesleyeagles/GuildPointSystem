@@ -1,6 +1,7 @@
 package com.guild.app.common.controller;
 
 import com.guild.app.common.exception.AppException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,14 +17,23 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/uploads")
+@Slf4j
 public class UploadController {
 
     private static final Set<String> ALLOWED = Set.of("image/jpeg", "image/png", "image/webp");
 
     private final Path uploadPath;
 
-    public UploadController(@Value("${guild.upload.base-path}") String basePath) throws IOException {
+    public UploadController(@Value("${guild.upload.base-path}") String basePath) {
         this.uploadPath = Path.of(basePath);
+        try {
+            Files.createDirectories(uploadPath);
+        } catch (IOException ex) {
+            log.warn("Could not create upload directory {} at startup: {}", uploadPath, ex.getMessage());
+        }
+    }
+
+    private void ensureUploadDir() throws IOException {
         Files.createDirectories(uploadPath);
     }
 
@@ -53,6 +63,7 @@ public class UploadController {
 
         String ext = contentType.replace("image/", "");
         String filename = UUID.randomUUID() + "." + ext;
+        ensureUploadDir();
         Path target = uploadPath.resolve(filename);
         Files.copy(file.getInputStream(), target);
 

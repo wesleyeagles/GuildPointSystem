@@ -14,7 +14,7 @@ RUN ./mvnw package -DskipTests -B
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
-RUN apk add --no-cache curl \
+RUN apk add --no-cache curl su-exec \
     && addgroup -S guild \
     && adduser -S guild -G guild \
     && mkdir -p /data/uploads \
@@ -22,12 +22,15 @@ RUN apk add --no-cache curl \
 
 COPY --from=build /app/target/*.jar app.jar
 
-USER guild
 EXPOSE 8080
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=5s --start-period=90s --retries=5 \
   CMD curl -fsS http://localhost:8080/actuator/health || exit 1
 
 ENV JAVA_OPTS="-XX:MaxRAMPercentage=75.0 -XX:+UseContainerSupport"
+ENV UPLOAD_PATH=/data/uploads
 
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+
+ENTRYPOINT ["/docker-entrypoint.sh"]
