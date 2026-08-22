@@ -42,27 +42,32 @@ export function AuthShell() {
 
       {/* ── Left lore panel ─────────────────────────────────────────────── */}
       <div className="auth-lore">
-        <p className="lore-eyebrow">RISING FORCE · GUILD NETWORK V2</p>
-        <h1 className="lore-title">
-          Acesse o<br />
-          <span>terminal da guild</span>
-        </h1>
-        <p className="lore-desc">
-          Reivindique seu posto na frente de batalha. Pontos, leilões e eventos
-          sincronizados em tempo real entre os membros.
-        </p>
-        <div className="faction-strip">
-          <div className="faction-chip">
-            <div className="chip-name">ACCRETIA</div>
-            <div className="chip-role">Império mecânico</div>
-          </div>
-          <div className="faction-chip">
-            <div className="chip-name">BELLATO</div>
-            <div className="chip-role">União industrial</div>
-          </div>
-          <div className="faction-chip">
-            <div className="chip-name">CORA</div>
-            <div className="chip-role">Ordem mística</div>
+        <div className="auth-lore-logo">
+          <img src="/Logo-Blacklist.png" alt="Blacklist" className="auth-logo" />
+        </div>
+        <div className="auth-lore-content">
+          <p className="lore-eyebrow">RISING FORCE · GUILD NETWORK V2</p>
+          <h1 className="lore-title">
+            Acesse o<br />
+            <span>terminal da guild</span>
+          </h1>
+          <p className="lore-desc">
+            Reivindique seu posto na frente de batalha. Pontos, leilões e eventos
+            sincronizados em tempo real entre os membros.
+          </p>
+          <div className="faction-strip">
+            <div className="faction-chip">
+              <div className="chip-name">ACCRETIA</div>
+              <div className="chip-role">Império mecânico</div>
+            </div>
+            <div className="faction-chip">
+              <div className="chip-name">BELLATO</div>
+              <div className="chip-role">União industrial</div>
+            </div>
+            <div className="faction-chip">
+              <div className="chip-name">CORA</div>
+              <div className="chip-role">Ordem mística</div>
+            </div>
           </div>
         </div>
       </div>
