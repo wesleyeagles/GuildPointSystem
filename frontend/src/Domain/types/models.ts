@@ -100,7 +100,7 @@ export interface Item {
   createdAt: string
 }
 
-export type EffectDisplayType = 'PERCENT_100' | 'FLAT' | 'BOOLEAN'
+export type EffectDisplayType = 'PERCENT_100' | 'FLAT' | 'BOOLEAN' | 'SEC_MILLIS'
 
 export interface GameAccessoryEffect {
   code: number
@@ -125,6 +125,31 @@ export interface GameAccessory {
   soil: number
   wind: number
   effects: GameAccessoryEffect[]
+}
+
+export interface GameArmor {
+  id: number
+  gameCode: string
+  name: string
+  slot: 'HELMET' | 'UPPER' | 'LOWER' | 'GAUNTLET' | 'SHOES'
+  iconId: number
+  spriteSheet: string
+  spriteCols: number
+  grade: number
+  civilMask: string
+  levelRequired: number
+  defFc: number
+  defFacing: number | null
+  defFacingDisplay: number | null
+  effects: GameAccessoryEffect[]
+}
+
+export interface CatalogIconRef {
+  gameCode: string
+  name: string
+  iconId: number
+  spriteSheet: string
+  spriteCols?: number
 }
 
 export interface ItemSetEffect {

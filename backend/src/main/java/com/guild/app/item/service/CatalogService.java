@@ -5,10 +5,13 @@ import com.guild.app.common.exception.AppException;
 import com.guild.app.item.dto.*;
 import com.guild.app.item.entity.EffectDefinition;
 import com.guild.app.item.entity.GameAccessory;
+import com.guild.app.item.entity.GameArmor;
 import com.guild.app.item.entity.ItemSet;
 import com.guild.app.item.repository.EffectDefinitionRepository;
 import com.guild.app.item.repository.GameAccessoryRepository;
+import com.guild.app.item.repository.GameArmorRepository;
 import com.guild.app.item.repository.ItemSetRepository;
+import com.guild.app.item.util.DefFacingUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -28,6 +31,7 @@ import java.util.stream.Collectors;
 public class CatalogService {
 
     private final GameAccessoryRepository gameAccessoryRepository;
+    private final GameArmorRepository gameArmorRepository;
     private final EffectDefinitionRepository effectDefinitionRepository;
     private final ItemSetRepository itemSetRepository;
 
@@ -47,6 +51,26 @@ public class CatalogService {
         return toAccessoryResponse(accessory, effectMap());
     }
 
+    public List<GameArmorResponse> listArmor(
+            String slot, Integer grade, String civilMask, Integer minLevel, String search) {
+        var effectMap = effectMap();
+        var normalizedSearch = blankToNull(search);
+        var hasSearch = normalizedSearch != null;
+        var searchPattern = hasSearch ? "%" + normalizedSearch.toLowerCase() + "%" : "%";
+        int levelFloor = minLevel != null ? minLevel : 35;
+        return gameArmorRepository
+                .findFiltered(slot, grade, civilMask, levelFloor, hasSearch, searchPattern)
+                .stream()
+                .map(a -> toArmorResponse(a, effectMap))
+                .toList();
+    }
+
+    public GameArmorResponse getArmor(String gameCode) {
+        var armor = gameArmorRepository.findByGameCode(gameCode)
+                .orElseThrow(() -> new AppException("Armadura não encontrada no catálogo.", HttpStatus.NOT_FOUND));
+        return toArmorResponse(armor, effectMap());
+    }
+
     public List<EffectDefinitionResponse> listEffects() {
         return effectDefinitionRepository.findAll().stream()
                 .map(e -> new EffectDefinitionResponse(e.getCode(), e.getName(), e.getDisplayType()))
@@ -56,6 +80,13 @@ public class CatalogService {
     public List<ItemSetResponse> listSetsForGameCode(String gameCode) {
         var effectMap = effectMap();
         return itemSetRepository.findByGameCode(gameCode).stream()
+                .map(s -> toSetResponse(s, effectMap))
+                .toList();
+    }
+
+    public List<ItemSetResponse> listAllSets() {
+        var effectMap = effectMap();
+        return itemSetRepository.findAll().stream()
                 .map(s -> toSetResponse(s, effectMap))
                 .toList();
     }
@@ -79,6 +110,21 @@ public class CatalogService {
                 effects);
     }
 
+    private GameArmorResponse toArmorResponse(GameArmor a, Map<Integer, EffectDefinition> effectMap) {
+        var effects = new ArrayList<GameAccessoryEffectResponse>();
+        addAccessoryEffect(effects, effectMap, a.getEffCode1(), a.getEffUnit1());
+        addAccessoryEffect(effects, effectMap, a.getEffCode2(), a.getEffUnit2());
+        addAccessoryEffect(effects, effectMap, a.getEffCode3(), a.getEffUnit3());
+        addAccessoryEffect(effects, effectMap, a.getEffCode4(), a.getEffUnit4());
+
+        return new GameArmorResponse(
+                a.getId(), a.getGameCode(), a.getName(), a.getSlot(),
+                a.getIconId(), a.getSpriteSheet(), a.getSpriteCols(), a.getGrade(), a.getCivilMask(),
+                a.getLevelRequired(), a.getDefFc(), a.getDefFacing(),
+                DefFacingUtil.toClientDsr(a.getDefFacing()),
+                effects);
+    }
+
     private void addAccessoryEffect(
             List<GameAccessoryEffectResponse> effects,
             Map<Integer, EffectDefinition> effectMap,
@@ -89,7 +135,7 @@ public class CatalogService {
         var displayType = def != null ? def.getDisplayType() : EffectDisplayType.FLAT;
         var name = def != null ? def.getName() : "Effect " + code;
         effects.add(new GameAccessoryEffectResponse(
-                code, name, displayType, rawValue, formatEffectValue(displayType, rawValue)));
+                code, name, displayType, rawValue, formatEffectValue(displayType, rawValue, code)));
     }
 
     private ItemSetResponse toSetResponse(ItemSet s, Map<Integer, EffectDefinition> effectMap) {
@@ -120,10 +166,10 @@ public class CatalogService {
         var displayType = def != null ? def.getDisplayType() : EffectDisplayType.FLAT;
         var name = def != null ? def.getName() : "Effect " + code;
         effects.add(new ItemSetEffectResponse(
-                code, name, displayType, rawValue, formatEffectValue(displayType, rawValue)));
+                code, name, displayType, rawValue, formatEffectValue(displayType, rawValue, code)));
     }
 
-    static String formatEffectValue(EffectDisplayType displayType, BigDecimal rawValue) {
+    static String formatEffectValue(EffectDisplayType displayType, BigDecimal rawValue, Integer code) {
         if (displayType == EffectDisplayType.BOOLEAN) {
             return "true";
         }
@@ -136,9 +182,19 @@ public class CatalogService {
                 return pct.toPlainString() + "%";
             case FLAT:
                 return rawValue.setScale(0, RoundingMode.HALF_UP).toPlainString();
+            case SEC_MILLIS:
+                return formatSecDisplay(rawValue, code);
             default:
                 return rawValue.toPlainString();
         }
+    }
+
+    /** RF stores time bonuses as millis-like units; launcher uses ÷2000 when |raw| ≥ 100. */
+    static String formatSecDisplay(BigDecimal rawValue, Integer code) {
+        var abs = rawValue.abs();
+        int divisor = code != null && code == 25 && abs.compareTo(BigDecimal.valueOf(100)) >= 0 ? 2000 : 1000;
+        var sec = abs.divide(BigDecimal.valueOf(divisor), 3, RoundingMode.HALF_UP).stripTrailingZeros();
+        return sec.toPlainString();
     }
 
     private static String blankToNull(String value) {

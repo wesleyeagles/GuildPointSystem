@@ -28,13 +28,31 @@ public class CatalogController {
         return catalogService.getAccessory(gameCode);
     }
 
+    @GetMapping("/armor")
+    public List<GameArmorResponse> listArmor(
+            @RequestParam(required = false) String slot,
+            @RequestParam(required = false) Integer grade,
+            @RequestParam(required = false) String civilMask,
+            @RequestParam(required = false) Integer minLevel,
+            @RequestParam(required = false) String search) {
+        return catalogService.listArmor(slot, grade, civilMask, minLevel, search);
+    }
+
+    @GetMapping("/armor/{gameCode}")
+    public GameArmorResponse getArmor(@PathVariable String gameCode) {
+        return catalogService.getArmor(gameCode);
+    }
+
     @GetMapping("/effects")
     public List<EffectDefinitionResponse> listEffects() {
         return catalogService.listEffects();
     }
 
     @GetMapping("/sets")
-    public List<ItemSetResponse> listSets(@RequestParam String gameCode) {
-        return catalogService.listSetsForGameCode(gameCode);
+    public List<ItemSetResponse> listSets(@RequestParam(required = false) String gameCode) {
+        if (gameCode != null && !gameCode.isBlank()) {
+            return catalogService.listSetsForGameCode(gameCode);
+        }
+        return catalogService.listAllSets();
     }
 }

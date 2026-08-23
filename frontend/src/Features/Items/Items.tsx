@@ -5,7 +5,7 @@ import { useAuthContext } from '@/Features/Auth/contexts/AuthContext'
 import { useAppToast } from '@/Shared/ui/components/AppToast/AppToast'
 import { CreateItemForm } from '@/Features/Items/components/CreateItemForm/CreateItemForm'
 import { ItemCard } from '@/Features/Items/components/ItemCard/ItemCard'
-import { AccessoryCatalog } from '@/Features/Items/components/AccessoryCatalog/AccessoryCatalog'
+import { ItemCatalog } from '@/Features/Items/components/AccessoryCatalog/AccessoryCatalog'
 import './Items.styles.scss'
 
 export { ItemCard } from '@/Features/Items/components/ItemCard/ItemCard'
@@ -63,7 +63,7 @@ export function ItemsPage() {
         )}
       </div>
 
-      {tab === 'catalog' && <AccessoryCatalog />}
+      {tab === 'catalog' && <ItemCatalog />}
 
       {tab === 'create' && isAdmin && (
         <CreateItemForm onSuccess={() => setTab('list')} />

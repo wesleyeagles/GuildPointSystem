@@ -22,9 +22,29 @@ const EFFECT_DEFINITIONS = [
   { code: 6, name: 'All Attack Power', displayType: 'PERCENT_100' },
   { code: 7, name: 'Defense', displayType: 'PERCENT_100' },
   { code: 8, name: 'Skill Level', displayType: 'FLAT' },
+  { code: 9, name: 'Subtlety', displayType: 'BOOLEAN' },
   { code: 10, name: 'Detect', displayType: 'BOOLEAN' },
+  { code: 11, name: 'Remove Protective Ability', displayType: 'BOOLEAN' },
   { code: 12, name: 'Speed', displayType: 'FLAT' },
-  { code: 14, name: 'Unknown Effect 14', displayType: 'FLAT' },
+  { code: 13, name: 'Disclose Vulnerability', displayType: 'BOOLEAN' },
+  { code: 14, name: 'OP Regen', displayType: 'FLAT' },
+  { code: 15, name: 'Magic Attack Power', displayType: 'PERCENT_100' },
+  { code: 16, name: 'Max FP', displayType: 'PERCENT_100' },
+  { code: 18, name: 'Attack Damage to FP', displayType: 'PERCENT_100' },
+  { code: 19, name: 'Critical Rate', displayType: 'FLAT' },
+  { code: 21, name: 'Mage Protection', displayType: 'PERCENT_100' },
+  { code: 23, name: 'SP Regen', displayType: 'FLAT' },
+  { code: 24, name: 'Dodge Rate', displayType: 'PERCENT_100' },
+  { code: 25, name: 'Attack Delay of Launcher', displayType: 'SEC_MILLIS' },
+  { code: 26, name: 'Mage Attack Power', displayType: 'PERCENT_100' },
+  { code: 27, name: 'Receive Critical Rate', displayType: 'PERCENT_100' },
+  { code: 28, name: 'Shield Block', displayType: 'FLAT' },
+  { code: 29, name: 'All Resistance', displayType: 'FLAT' },
+  { code: 30, name: 'HP Max', displayType: 'PERCENT_100' },
+  { code: 31, name: 'Negative Force Duration', displayType: 'PERCENT_100' },
+  { code: 32, name: 'Breaking Block', displayType: 'FLAT' },
+  { code: 33, name: 'Stealth', displayType: 'BOOLEAN' },
+  { code: 34, name: 'Delay of Skill Attack', displayType: 'SEC_MILLIS' },
   { code: 17, name: 'Attack Damage to HP', displayType: 'PERCENT_100' },
   { code: 20, name: 'Range', displayType: 'FLAT' },
   { code: 22, name: 'Debuff Assisting Time', displayType: 'PERCENT_100' },
@@ -206,7 +226,7 @@ schemaLines.push('CREATE TABLE effect_definition (')
 schemaLines.push('    code         INT PRIMARY KEY,')
 schemaLines.push('    name         VARCHAR(100) NOT NULL,')
 schemaLines.push('    display_type VARCHAR(20)  NOT NULL DEFAULT \'PERCENT_100\',')
-schemaLines.push('    CONSTRAINT chk_effect_display_type CHECK (display_type IN (\'PERCENT_100\', \'FLAT\', \'BOOLEAN\'))')
+schemaLines.push('    CONSTRAINT chk_effect_display_type CHECK (display_type IN (\'PERCENT_100\', \'FLAT\', \'BOOLEAN\', \'SEC_MILLIS\'))')
 schemaLines.push(');')
 schemaLines.push('')
 schemaLines.push('CREATE TABLE game_accessory (')

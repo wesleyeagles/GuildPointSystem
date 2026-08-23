@@ -15,6 +15,7 @@ import { AuctionListPage } from '@/Features/Auction/AuctionList'
 import { AuctionDetailPage } from '@/Features/Auction/AuctionDetail'
 import { ApprovalsPage } from '@/Features/Admin/Approvals/Approvals'
 import { ProfilePage } from '@/Features/Profile/Profile'
+import { GuildLeagueRagPage } from '@/Features/GuildLeagueRag/GuildLeagueRagPage'
 import './App.styles.scss'
 
 function App() {
@@ -28,6 +29,7 @@ function App() {
           </Route>
 
           <Route path="/auth/callback" element={<DiscordCallbackPage />} />
+          <Route path="/guild-league-rag" element={<GuildLeagueRagPage />} />
 
           <Route element={<ProtectedRoute />}>
             <Route element={<Layout />}>
