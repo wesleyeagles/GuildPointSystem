@@ -7,6 +7,7 @@ import com.guild.app.event.service.EventService;
 import com.guild.app.member.dto.ApprovalRequest;
 import com.guild.app.member.dto.MemberResponse;
 import com.guild.app.member.dto.UpdateProfileRequest;
+import com.guild.app.member.dto.UpdateRoleRequest;
 import com.guild.app.member.service.MemberService;
 import com.guild.app.points.dto.PointsAdjustmentRequest;
 import jakarta.validation.Valid;
@@ -73,5 +74,10 @@ public class MemberController {
     @PostMapping("/{id}/promote-leader")
     public MemberResponse promoteToLeader(@PathVariable Long id) {
         return memberService.promoteToLeader(id, SecurityUtils.currentMember());
+    }
+
+    @PatchMapping("/{id}/role")
+    public MemberResponse updateRole(@PathVariable Long id, @Valid @RequestBody UpdateRoleRequest request) {
+        return memberService.updateRole(id, request, SecurityUtils.currentMember());
     }
 }

@@ -122,3 +122,17 @@ export function useAdjustPoints() {
     },
   })
 }
+
+export function useUpdateMemberRole() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, role }: { id: number; role: Member['role'] }) =>
+      apiClient<Member>(`/members/${id}/role`, { method: 'PATCH', body: { role } }),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: memberKeys.detail(id) })
+      queryClient.invalidateQueries({ queryKey: memberKeys.all })
+      queryClient.invalidateQueries({ queryKey: authKeys.me })
+      queryClient.invalidateQueries({ queryKey: ['logs'] })
+    },
+  })
+}

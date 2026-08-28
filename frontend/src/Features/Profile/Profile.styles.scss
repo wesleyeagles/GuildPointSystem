@@ -103,6 +103,12 @@
     resize: vertical;
     font-family: theme.$font-family;
   }
+
+  &__hint {
+    margin: 0 0 theme.$spacing-md;
+    font-size: theme.$font-size-base;
+    color: theme.$color-text-muted;
+  }
 }
 
 .profile-claims {

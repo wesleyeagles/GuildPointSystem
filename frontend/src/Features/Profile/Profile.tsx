@@ -6,16 +6,24 @@ import {
   useGrantManualEvent,
   useMember,
   useMemberClaims,
+  useUpdateMemberRole,
   useUpdateProfile,
 } from '@/Domain/Member/hooks/useMembers'
 import { useDenyEventClaim } from '@/Domain/Event/hooks/useEvents'
 import { useObjectives } from '@/Domain/Objective/hooks/useObjectives'
 import { useRaces, useClasses } from '@/Domain/Seed/hooks/useSeeds'
 import { useAuthContext } from '@/Features/Auth/contexts/AuthContext'
-import type { PointsModality } from '@/Domain/types/models'
+import type { PointsModality, Role } from '@/Domain/types/models'
 import { Button } from '@/Shared/ui/components/Button/Button'
 import { SeedOptionPicker } from '@/Shared/ui/components/SeedOptionPicker/SeedOptionPicker'
 import './Profile.styles.scss'
+
+const ROLE_OPTIONS: { value: Role; label: string }[] = [
+  { value: 'MEMBRO', label: 'Membro' },
+  { value: 'MODERADOR', label: 'Moderador' },
+  { value: 'ADMINISTRADOR', label: 'Administrador' },
+  { value: 'LIDER', label: 'Líder' },
+]
 
 export function ProfilePage() {
   const { id } = useParams<{ id: string }>()
@@ -35,14 +43,17 @@ export function ProfilePage() {
   const [manualObjectiveId, setManualObjectiveId] = useState(0)
   const [denyingClaimId, setDenyingClaimId] = useState<number | null>(null)
   const [denyReason, setDenyReason] = useState('')
+  const [memberRole, setMemberRole] = useState<Role>('MEMBRO')
 
   const { data: races = [] } = useRaces()
   const { data: classes = [] } = useClasses(raceId)
   const updateProfile = useUpdateProfile()
   const adjustPoints = useAdjustPoints()
+  const updateMemberRole = useUpdateMemberRole()
   const grantManualEvent = useGrantManualEvent()
   const denyClaim = useDenyEventClaim()
   const isStaff = hasRole('ADMINISTRADOR')
+  const isLeader = hasRole('LIDER')
   const isOwn = !id || Number(id) === user?.memberId
 
   const handleRaceChange = (nextRaceId: number) => {
@@ -60,7 +71,8 @@ export function ProfilePage() {
     setManualObjectiveId(0)
     setDenyingClaimId(null)
     setDenyReason('')
-  }, [profile?.id, profile?.nickname, profile?.raceId, profile?.classId])
+    setMemberRole(profile.role)
+  }, [profile?.id, profile?.nickname, profile?.raceId, profile?.classId, profile?.role])
 
   if (!profile) return <p>Carregando perfil...</p>
 
@@ -95,6 +107,15 @@ export function ProfilePage() {
       objectiveId: manualObjectiveId,
     })
     setManualObjectiveId(0)
+  }
+
+  const handleUpdateRole = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!isLeader || isOwn) return
+    await updateMemberRole.mutateAsync({
+      id: profile.id,
+      role: memberRole,
+    })
   }
 
   return (
@@ -149,6 +170,33 @@ export function ProfilePage() {
 
           {isStaff && !isOwn && (
             <>
+              {isLeader && (
+                <form className="profile-form" onSubmit={handleUpdateRole}>
+                  <h3>Papel do Membro</h3>
+                  <label>
+                    Papel
+                    <select
+                      value={memberRole}
+                      onChange={(e) => setMemberRole(e.target.value as Role)}
+                    >
+                      {ROLE_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  {memberRole === 'LIDER' && profile.role !== 'LIDER' && (
+                    <p className="profile-form__hint">
+                      Ao promover a Líder, você passará a ser Administrador.
+                    </p>
+                  )}
+                  <Button type="submit" loading={updateMemberRole.isPending}>
+                    Salvar papel
+                  </Button>
+                </form>
+              )}
+
               <form className="profile-form" onSubmit={handleAdjustPoints}>
                 <h3>Ajustar Pontos</h3>
                 <label>

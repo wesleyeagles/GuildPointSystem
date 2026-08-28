@@ -6,6 +6,7 @@ spring:
     hikari:
       connection-timeout: 30000
   flyway:
+    locations: classpath:db/migration,classpath:db/migration-prod
     connect-retries: 15
     connect-retries-interval: 5
 

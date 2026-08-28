@@ -10,6 +10,7 @@ import com.guild.app.log.service.AuditLogService;
 import com.guild.app.member.dto.ApprovalRequest;
 import com.guild.app.member.dto.MemberResponse;
 import com.guild.app.member.dto.UpdateProfileRequest;
+import com.guild.app.member.dto.UpdateRoleRequest;
 import com.guild.app.member.entity.Member;
 import com.guild.app.member.entity.CharacterClass;
 import com.guild.app.member.entity.GameRace;
@@ -132,17 +133,62 @@ public class MemberService {
             throw new AppException("Apenas o líder pode atribuir o cargo de líder.", HttpStatus.FORBIDDEN);
         }
 
-        memberRepository.findByRole(Role.LIDER).ifPresent(existing -> {
-            if (!existing.getId().equals(memberId)) {
-                existing.setRole(Role.ADMINISTRADOR);
-                memberRepository.save(existing);
-            }
-        });
+        var member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new AppException("Membro não encontrado.", HttpStatus.NOT_FOUND));
+        var previousLeader = memberRepository.findByRole(Role.LIDER).orElse(null);
+
+        if (previousLeader != null && !previousLeader.getId().equals(memberId)) {
+            previousLeader.setRole(Role.ADMINISTRADOR);
+            memberRepository.save(previousLeader);
+            logRoleChange(actor, previousLeader, Role.LIDER, Role.ADMINISTRADOR);
+        }
+
+        if (member.getRole() != Role.LIDER) {
+            var oldRole = member.getRole();
+            member.setRole(Role.LIDER);
+            memberRepository.save(member);
+            logRoleChange(actor, member, oldRole, Role.LIDER);
+        }
+
+        return toResponse(member);
+    }
+
+    @Transactional
+    public MemberResponse updateRole(Long memberId, UpdateRoleRequest request, MemberPrincipal actor) {
+        SecurityUtils.requireRole(Role.LIDER);
+        if (actor.getId().equals(memberId)) {
+            throw new AppException("Você não pode alterar o próprio papel.", HttpStatus.BAD_REQUEST);
+        }
+
+        if (request.role() == Role.LIDER) {
+            return promoteToLeader(memberId, actor);
+        }
 
         var member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new AppException("Membro não encontrado.", HttpStatus.NOT_FOUND));
-        member.setRole(Role.LIDER);
-        return toResponse(memberRepository.save(member));
+
+        if (member.getRole() == Role.LIDER) {
+            throw new AppException(
+                    "Para transferir a liderança, selecione outro membro como Líder.",
+                    HttpStatus.BAD_REQUEST);
+        }
+
+        var oldRole = member.getRole();
+        if (oldRole == request.role()) {
+            return toResponse(member);
+        }
+
+        member.setRole(request.role());
+        memberRepository.save(member);
+        logRoleChange(actor, member, oldRole, request.role());
+        return toResponse(member);
+    }
+
+    private void logRoleChange(MemberPrincipal actor, Member member, Role oldRole, Role newRole) {
+        Member actorEntity = memberRepository.getReferenceById(actor.getId());
+        auditLogService.log(AuditLogType.MEMBER_ROLE_CHANGED, actorEntity, member, Map.of(
+                "oldRole", oldRole.name(),
+                "newRole", newRole.name()));
     }
 
     private void logProfileChange(Member member, MemberPrincipal actor, String field, String oldVal, String newVal) {

@@ -15,6 +15,14 @@ const LOG_TYPE_LABELS: Record<AuditLogType, string> = {
   MEMBER_APPROVED: 'Cadastro aprovado',
   MEMBER_REJECTED: 'Cadastro rejeitado',
   MEMBER_REGISTERED: 'Novo cadastro',
+  MEMBER_ROLE_CHANGED: 'Papel alterado',
+}
+
+const ROLE_LABELS: Record<string, string> = {
+  MEMBRO: 'Membro',
+  MODERADOR: 'Moderador',
+  ADMINISTRADOR: 'Administrador',
+  LIDER: 'Líder',
 }
 
 const PROFILE_FIELD_LABELS: Record<string, string> = {
@@ -81,6 +89,8 @@ export function formatLogDetails(log: AuditLogEntry): string {
       return 'Cadastro rejeitado'
     case 'MEMBER_REGISTERED':
       return str(p.nickname)
+    case 'MEMBER_ROLE_CHANGED':
+      return `${ROLE_LABELS[str(p.oldRole)] ?? str(p.oldRole)} → ${ROLE_LABELS[str(p.newRole)] ?? str(p.newRole)}`
     default:
       return ''
   }

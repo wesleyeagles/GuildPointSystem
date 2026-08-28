@@ -20,6 +20,7 @@ export type AuditLogType =
   | 'MEMBER_APPROVED'
   | 'MEMBER_REJECTED'
   | 'MEMBER_REGISTERED'
+  | 'MEMBER_ROLE_CHANGED'
 
 export interface AuthResponse {
   token: string | null
