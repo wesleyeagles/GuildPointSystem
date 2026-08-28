@@ -1,12 +1,26 @@
 import { useQuery } from '@tanstack/react-query'
+
 import { apiClient } from '@/Shared/api/client'
-import type { EffectDefinition, GameAccessory, GameArmor, ItemSet } from '@/Domain/types/models'
+
+import type {
+  CatalogIconRef,
+  EffectDefinition,
+  GameAccessory,
+  GameArmor,
+  GameWeapon,
+  ItemSet,
+  Page,
+} from '@/Domain/types/models'
+
+export const CATALOG_PAGE_SIZE = 12
 
 export interface CatalogAccessoryFilters {
   subtype?: 'RING' | 'AMULET'
   grade?: number
   civilMask?: string
   search?: string
+  page?: number
+  size?: number
 }
 
 export interface CatalogArmorFilters {
@@ -15,14 +29,31 @@ export interface CatalogArmorFilters {
   civilMask?: string
   minLevel?: number
   search?: string
+  page?: number
+  size?: number
+}
+
+export interface CatalogWeaponFilters {
+  weaponType?: GameWeapon['weaponType']
+  grade?: number
+  civilMask?: string
+  minLevel?: number
+  search?: string
+  page?: number
+  size?: number
 }
 
 export const catalogKeys = {
   accessories: (filters: CatalogAccessoryFilters) =>
     ['catalog', 'accessories', filters] as const,
   accessory: (gameCode: string) => ['catalog', 'accessories', gameCode] as const,
+  accessoryIconIndex: ['catalog', 'accessories', 'icon-index'] as const,
   armor: (filters: CatalogArmorFilters) => ['catalog', 'armor', filters] as const,
   armorItem: (gameCode: string) => ['catalog', 'armor', gameCode] as const,
+  armorIconIndex: ['catalog', 'armor', 'icon-index'] as const,
+  weapons: (filters: CatalogWeaponFilters) => ['catalog', 'weapons', filters] as const,
+  weapon: (gameCode: string) => ['catalog', 'weapons', gameCode] as const,
+  weaponIconIndex: ['catalog', 'weapons', 'icon-index'] as const,
   effects: ['catalog', 'effects'] as const,
   sets: (gameCode: string) => ['catalog', 'sets', gameCode] as const,
   allSets: ['catalog', 'sets', 'all'] as const,
@@ -34,15 +65,18 @@ export function useCatalogAccessories(filters: CatalogAccessoryFilters) {
   if (filters.grade != null) params.set('grade', String(filters.grade))
   if (filters.civilMask) params.set('civilMask', filters.civilMask)
   if (filters.search) params.set('search', filters.search)
+  params.set('page', String(filters.page ?? 0))
+  params.set('size', String(filters.size ?? CATALOG_PAGE_SIZE))
 
   const query = params.toString()
 
   return useQuery({
     queryKey: catalogKeys.accessories(filters),
     queryFn: async () => {
-      const path = query ? `/catalog/accessories?${query}` : '/catalog/accessories'
-      return apiClient<GameAccessory[]>(path)
+      const path = `/catalog/accessories?${query}`
+      return apiClient<Page<GameAccessory>>(path)
     },
+    placeholderData: (prev) => prev,
   })
 }
 
@@ -51,6 +85,14 @@ export function useCatalogAccessory(gameCode: string | null) {
     queryKey: catalogKeys.accessory(gameCode ?? ''),
     queryFn: () => apiClient<GameAccessory>(`/catalog/accessories/${gameCode}`),
     enabled: Boolean(gameCode),
+  })
+}
+
+export function useCatalogAccessoryIconIndex() {
+  return useQuery({
+    queryKey: catalogKeys.accessoryIconIndex,
+    queryFn: () => apiClient<CatalogIconRef[]>('/catalog/accessories/icon-index'),
+    staleTime: 5 * 60 * 1000,
   })
 }
 
@@ -77,14 +119,6 @@ export function useAllCatalogSets() {
   })
 }
 
-export function useAllCatalogAccessories() {
-  return useQuery({
-    queryKey: ['catalog', 'accessories', 'all'] as const,
-    queryFn: () => apiClient<GameAccessory[]>('/catalog/accessories'),
-    staleTime: 5 * 60 * 1000,
-  })
-}
-
 export function useCatalogArmor(filters: CatalogArmorFilters) {
   const params = new URLSearchParams()
   if (filters.slot) params.set('slot', filters.slot)
@@ -92,22 +126,55 @@ export function useCatalogArmor(filters: CatalogArmorFilters) {
   if (filters.civilMask) params.set('civilMask', filters.civilMask)
   if (filters.minLevel != null) params.set('minLevel', String(filters.minLevel))
   if (filters.search) params.set('search', filters.search)
+  params.set('page', String(filters.page ?? 0))
+  params.set('size', String(filters.size ?? CATALOG_PAGE_SIZE))
 
   const query = params.toString()
 
   return useQuery({
     queryKey: catalogKeys.armor(filters),
     queryFn: async () => {
-      const path = query ? `/catalog/armor?${query}` : '/catalog/armor'
-      return apiClient<GameArmor[]>(path)
+      const path = `/catalog/armor?${query}`
+      return apiClient<Page<GameArmor>>(path)
     },
+    placeholderData: (prev) => prev,
   })
 }
 
-export function useAllCatalogArmor() {
+export function useCatalogArmorIconIndex() {
   return useQuery({
-    queryKey: ['catalog', 'armor', 'all'] as const,
-    queryFn: () => apiClient<GameArmor[]>('/catalog/armor'),
+    queryKey: catalogKeys.armorIconIndex,
+    queryFn: () => apiClient<CatalogIconRef[]>('/catalog/armor/icon-index'),
+    staleTime: 5 * 60 * 1000,
+  })
+}
+
+export function useCatalogWeapons(filters: CatalogWeaponFilters) {
+  const params = new URLSearchParams()
+  if (filters.weaponType) params.set('weaponType', filters.weaponType)
+  if (filters.grade != null) params.set('grade', String(filters.grade))
+  if (filters.civilMask) params.set('civilMask', filters.civilMask)
+  if (filters.minLevel != null) params.set('minLevel', String(filters.minLevel))
+  if (filters.search) params.set('search', filters.search)
+  params.set('page', String(filters.page ?? 0))
+  params.set('size', String(filters.size ?? CATALOG_PAGE_SIZE))
+
+  const query = params.toString()
+
+  return useQuery({
+    queryKey: catalogKeys.weapons(filters),
+    queryFn: async () => {
+      const path = `/catalog/weapons?${query}`
+      return apiClient<Page<GameWeapon>>(path)
+    },
+    placeholderData: (prev) => prev,
+  })
+}
+
+export function useCatalogWeaponIconIndex() {
+  return useQuery({
+    queryKey: catalogKeys.weaponIconIndex,
+    queryFn: () => apiClient<CatalogIconRef[]>('/catalog/weapons/icon-index'),
     staleTime: 5 * 60 * 1000,
   })
 }

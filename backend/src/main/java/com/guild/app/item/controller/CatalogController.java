@@ -3,6 +3,8 @@ package com.guild.app.item.controller;
 import com.guild.app.item.dto.*;
 import com.guild.app.item.service.CatalogService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -15,12 +17,18 @@ public class CatalogController {
     private final CatalogService catalogService;
 
     @GetMapping("/accessories")
-    public List<GameAccessoryResponse> listAccessories(
+    public Page<GameAccessoryResponse> listAccessories(
             @RequestParam(required = false) String subtype,
             @RequestParam(required = false) Integer grade,
             @RequestParam(required = false) String civilMask,
-            @RequestParam(required = false) String search) {
-        return catalogService.listAccessories(subtype, grade, civilMask, search);
+            @RequestParam(required = false) String search,
+            Pageable pageable) {
+        return catalogService.listAccessories(subtype, grade, civilMask, search, pageable);
+    }
+
+    @GetMapping("/accessories/icon-index")
+    public List<GameAccessoryIconResponse> listAccessoryIconIndex() {
+        return catalogService.listAccessoryIconRefs();
     }
 
     @GetMapping("/accessories/{gameCode}")
@@ -29,18 +37,45 @@ public class CatalogController {
     }
 
     @GetMapping("/armor")
-    public List<GameArmorResponse> listArmor(
+    public Page<GameArmorResponse> listArmor(
             @RequestParam(required = false) String slot,
             @RequestParam(required = false) Integer grade,
             @RequestParam(required = false) String civilMask,
             @RequestParam(required = false) Integer minLevel,
-            @RequestParam(required = false) String search) {
-        return catalogService.listArmor(slot, grade, civilMask, minLevel, search);
+            @RequestParam(required = false) String search,
+            Pageable pageable) {
+        return catalogService.listArmor(slot, grade, civilMask, minLevel, search, pageable);
+    }
+
+    @GetMapping("/armor/icon-index")
+    public List<GameArmorIconResponse> listArmorIconIndex() {
+        return catalogService.listArmorIconRefs();
     }
 
     @GetMapping("/armor/{gameCode}")
     public GameArmorResponse getArmor(@PathVariable String gameCode) {
         return catalogService.getArmor(gameCode);
+    }
+
+    @GetMapping("/weapons")
+    public Page<GameWeaponResponse> listWeapons(
+            @RequestParam(required = false) String weaponType,
+            @RequestParam(required = false) Integer grade,
+            @RequestParam(required = false) String civilMask,
+            @RequestParam(required = false) Integer minLevel,
+            @RequestParam(required = false) String search,
+            Pageable pageable) {
+        return catalogService.listWeapons(weaponType, grade, civilMask, minLevel, search, pageable);
+    }
+
+    @GetMapping("/weapons/icon-index")
+    public List<GameWeaponIconResponse> listWeaponIconIndex() {
+        return catalogService.listWeaponIconRefs();
+    }
+
+    @GetMapping("/weapons/{gameCode}")
+    public GameWeaponResponse getWeapon(@PathVariable String gameCode) {
+        return catalogService.getWeapon(gameCode);
     }
 
     @GetMapping("/effects")

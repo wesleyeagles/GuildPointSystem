@@ -6,6 +6,15 @@ function secDivisor(code: number | undefined, rawValue: number): number {
   return 1000
 }
 
+/** Weapon/set data stores codes 19, 28, 32 as whole percent points (e.g. 10 = 10%). */
+function formatPercentDisplay(rawValue: number, code?: number): string {
+  if ((code === 19 || code === 28 || code === 32) && Math.abs(rawValue) > 1) {
+    return `${trimTrailingZeros(Math.round(rawValue * 10) / 10)}%`
+  }
+  const pct = Math.round(rawValue * 1000) / 10
+  return `${pct}%`
+}
+
 export function formatEffectValue(
   displayType: EffectDisplayType,
   rawValue: number | null | undefined,
@@ -14,14 +23,15 @@ export function formatEffectValue(
   if (displayType === 'BOOLEAN') return 'true'
   if (rawValue == null) return ''
   if (displayType === 'PERCENT_100') {
-    const pct = rawValue * 100
-    const rounded = Math.round(pct * 10) / 10
-    return `${rounded}%`
+    return formatPercentDisplay(rawValue, code)
   }
   if (displayType === 'SEC_MILLIS') {
     const divisor = secDivisor(code, rawValue)
     const sec = Math.abs(rawValue) / divisor
     return trimTrailingZeros(sec)
+  }
+  if (displayType === 'FLAT') {
+    return trimTrailingZeros(Math.round(rawValue * 100) / 100)
   }
   return String(Math.round(rawValue))
 }
@@ -46,8 +56,16 @@ export function isTimedEffect(displayType: EffectDisplayType): boolean {
 }
 
 export const GRADE_COLORS: Record<number, string> = {
-  0: '#FFFFFF',
-  7: '#61ff39',
+  0: '#FFFFFF', // Normal
+  1: '#FFD700', // Intense
+  2: '#BF5FFF', // Purple
+  3: '#FF9900', // Orange
+  4: '#6EB5FF', // Relic
+  6: '#39FF14', // Green
+  7: '#61ff39', // Hero
+  8: '#39FF14', // DarkRay
+  9: '#FF4444', // PVP
+  10: '#39FF14', // Leon
 }
 
 export function gradeColor(grade: number): string {
@@ -57,18 +75,26 @@ export function gradeColor(grade: number): string {
 export const ARMOR_GRADE_NAMES = [
   'Normal',
   'Intense',
-  'Unknown',
+  'Purple',
   'Orange',
   'Relic',
   'Pink',
   'Green',
   'Hero',
   'DarkRay',
-  'Unknown',
+  'PVP',
   'Leon',
   'Pvp',
   'Red',
 ] as const
+
+/** Grades omitted from catalog filter (unused or duplicate labels). */
+const GRADE_FILTER_EXCLUDED = new Set([5, 11, 12])
+
+export const GRADE_FILTER_OPTIONS = ARMOR_GRADE_NAMES.map((label, grade) => ({
+  value: String(grade),
+  label,
+})).filter((opt) => !GRADE_FILTER_EXCLUDED.has(Number(opt.value)))
 
 export function armorGradeLabel(grade: number): string {
   return ARMOR_GRADE_NAMES[grade] ?? `Grade ${grade}`

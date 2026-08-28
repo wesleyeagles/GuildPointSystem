@@ -6,13 +6,18 @@ import com.guild.app.item.dto.*;
 import com.guild.app.item.entity.EffectDefinition;
 import com.guild.app.item.entity.GameAccessory;
 import com.guild.app.item.entity.GameArmor;
+import com.guild.app.item.entity.GameWeapon;
 import com.guild.app.item.entity.ItemSet;
 import com.guild.app.item.repository.EffectDefinitionRepository;
 import com.guild.app.item.repository.GameAccessoryRepository;
 import com.guild.app.item.repository.GameArmorRepository;
+import com.guild.app.item.repository.GameWeaponRepository;
 import com.guild.app.item.repository.ItemSetRepository;
+import com.guild.app.item.util.CivilMaskUtil;
 import com.guild.app.item.util.DefFacingUtil;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,17 +37,30 @@ public class CatalogService {
 
     private final GameAccessoryRepository gameAccessoryRepository;
     private final GameArmorRepository gameArmorRepository;
+    private final GameWeaponRepository gameWeaponRepository;
     private final EffectDefinitionRepository effectDefinitionRepository;
     private final ItemSetRepository itemSetRepository;
 
-    public List<GameAccessoryResponse> listAccessories(String subtype, Integer grade, String civilMask, String search) {
+    public Page<GameAccessoryResponse> listAccessories(
+            String subtype, Integer grade, String civilMask, String search, Pageable pageable) {
         var effectMap = effectMap();
         var normalizedSearch = blankToNull(search);
         var hasSearch = normalizedSearch != null;
         var searchPattern = hasSearch ? "%" + normalizedSearch.toLowerCase() + "%" : "%";
-        return gameAccessoryRepository.findFiltered(subtype, grade, civilMask, hasSearch, searchPattern).stream()
-                .map(a -> toAccessoryResponse(a, effectMap))
-                .toList();
+        return gameAccessoryRepository
+                .findFilteredPage(
+                        subtype,
+                        grade,
+                        hasCivilFilter(civilMask),
+                        CivilMaskUtil.storedMasksForFilter(civilMask),
+                        hasSearch,
+                        searchPattern,
+                        pageable)
+                .map(a -> toAccessoryResponse(a, effectMap));
+    }
+
+    public List<GameAccessoryIconResponse> listAccessoryIconRefs() {
+        return gameAccessoryRepository.findAllIconRefs();
     }
 
     public GameAccessoryResponse getAccessory(String gameCode) {
@@ -51,24 +69,64 @@ public class CatalogService {
         return toAccessoryResponse(accessory, effectMap());
     }
 
-    public List<GameArmorResponse> listArmor(
-            String slot, Integer grade, String civilMask, Integer minLevel, String search) {
+    public Page<GameArmorResponse> listArmor(
+            String slot, Integer grade, String civilMask, Integer minLevel, String search, Pageable pageable) {
         var effectMap = effectMap();
         var normalizedSearch = blankToNull(search);
         var hasSearch = normalizedSearch != null;
         var searchPattern = hasSearch ? "%" + normalizedSearch.toLowerCase() + "%" : "%";
         int levelFloor = minLevel != null ? minLevel : 35;
         return gameArmorRepository
-                .findFiltered(slot, grade, civilMask, levelFloor, hasSearch, searchPattern)
-                .stream()
-                .map(a -> toArmorResponse(a, effectMap))
-                .toList();
+                .findFilteredPage(
+                        slot,
+                        grade,
+                        hasCivilFilter(civilMask),
+                        CivilMaskUtil.storedMasksForFilter(civilMask),
+                        levelFloor,
+                        hasSearch,
+                        searchPattern,
+                        pageable)
+                .map(a -> toArmorResponse(a, effectMap));
+    }
+
+    public List<GameArmorIconResponse> listArmorIconRefs() {
+        return gameArmorRepository.findAllIconRefs();
     }
 
     public GameArmorResponse getArmor(String gameCode) {
         var armor = gameArmorRepository.findByGameCode(gameCode)
                 .orElseThrow(() -> new AppException("Armadura não encontrada no catálogo.", HttpStatus.NOT_FOUND));
         return toArmorResponse(armor, effectMap());
+    }
+
+    public Page<GameWeaponResponse> listWeapons(
+            String weaponType, Integer grade, String civilMask, Integer minLevel, String search, Pageable pageable) {
+        var effectMap = effectMap();
+        var normalizedSearch = blankToNull(search);
+        var hasSearch = normalizedSearch != null;
+        var searchPattern = hasSearch ? "%" + normalizedSearch.toLowerCase() + "%" : "%";
+        int levelFloor = minLevel != null ? minLevel : 35;
+        return gameWeaponRepository
+                .findFilteredPage(
+                        weaponType,
+                        grade,
+                        hasCivilFilter(civilMask),
+                        CivilMaskUtil.storedMasksForFilter(civilMask),
+                        levelFloor,
+                        hasSearch,
+                        searchPattern,
+                        pageable)
+                .map(w -> toWeaponResponse(w, effectMap));
+    }
+
+    public List<GameWeaponIconResponse> listWeaponIconRefs() {
+        return gameWeaponRepository.findAllIconRefs();
+    }
+
+    public GameWeaponResponse getWeapon(String gameCode) {
+        var weapon = gameWeaponRepository.findByGameCode(gameCode)
+                .orElseThrow(() -> new AppException("Arma não encontrada no catálogo.", HttpStatus.NOT_FOUND));
+        return toWeaponResponse(weapon, effectMap());
     }
 
     public List<EffectDefinitionResponse> listEffects() {
@@ -125,6 +183,20 @@ public class CatalogService {
                 effects);
     }
 
+    private GameWeaponResponse toWeaponResponse(GameWeapon w, Map<Integer, EffectDefinition> effectMap) {
+        var effects = new ArrayList<GameAccessoryEffectResponse>();
+        addAccessoryEffect(effects, effectMap, w.getEffCode1(), w.getEffUnit1());
+        addAccessoryEffect(effects, effectMap, w.getEffCode2(), w.getEffUnit2());
+        addAccessoryEffect(effects, effectMap, w.getEffCode3(), w.getEffUnit3());
+        addAccessoryEffect(effects, effectMap, w.getEffCode4(), w.getEffUnit4());
+
+        return new GameWeaponResponse(
+                w.getId(), w.getGameCode(), w.getName(), w.getWeaponType(),
+                w.getIconId(), w.getSpriteSheet(), w.getSpriteCols(), w.getGrade(), w.getCivilMask(),
+                w.getLevelRequired(), w.getGaMinAf(), w.getGaMaxAf(), w.getMaMinAf(), w.getMaMaxAf(),
+                effects);
+    }
+
     private void addAccessoryEffect(
             List<GameAccessoryEffectResponse> effects,
             Map<Integer, EffectDefinition> effectMap,
@@ -176,17 +248,27 @@ public class CatalogService {
         if (rawValue == null) return "";
         switch (displayType) {
             case PERCENT_100:
-                var pct = rawValue.multiply(BigDecimal.valueOf(100))
-                        .setScale(1, RoundingMode.HALF_UP)
-                        .stripTrailingZeros();
-                return pct.toPlainString() + "%";
+                return formatPercentDisplay(rawValue, code);
             case FLAT:
-                return rawValue.setScale(0, RoundingMode.HALF_UP).toPlainString();
+                return rawValue.setScale(2, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString();
             case SEC_MILLIS:
                 return formatSecDisplay(rawValue, code);
             default:
                 return rawValue.toPlainString();
         }
+    }
+
+    /** SetItemEff stores Shield Block (28) as whole percent points (e.g. 10 = 10%). */
+    static String formatPercentDisplay(BigDecimal rawValue, Integer code) {
+        BigDecimal pct;
+        if (code != null && (code == 19 || code == 28 || code == 32) && rawValue.abs().compareTo(BigDecimal.ONE) > 0) {
+            pct = rawValue.setScale(1, RoundingMode.HALF_UP).stripTrailingZeros();
+        } else {
+            pct = rawValue.multiply(BigDecimal.valueOf(100))
+                    .setScale(1, RoundingMode.HALF_UP)
+                    .stripTrailingZeros();
+        }
+        return pct.toPlainString() + "%";
     }
 
     /** RF stores time bonuses as millis-like units; launcher uses ÷2000 when |raw| ≥ 100. */
@@ -199,5 +281,9 @@ public class CatalogService {
 
     private static String blankToNull(String value) {
         return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    private static boolean hasCivilFilter(String civilMask) {
+        return civilMask != null && !civilMask.isBlank();
     }
 }

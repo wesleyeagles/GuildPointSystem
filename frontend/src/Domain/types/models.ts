@@ -144,6 +144,38 @@ export interface GameArmor {
   effects: GameAccessoryEffect[]
 }
 
+export type GameWeaponType =
+  | 'KNIFE'
+  | 'SWORD'
+  | 'AXE'
+  | 'HAMMER'
+  | 'SPEAR'
+  | 'BOW'
+  | 'FIREARM'
+  | 'LAUNCHER'
+  | 'THROWING_KNIFE'
+  | 'STAFF'
+  | 'MINING_TOOL'
+  | 'GRENADE_LAUNCHER'
+
+export interface GameWeapon {
+  id: number
+  gameCode: string
+  name: string
+  weaponType: GameWeaponType
+  iconId: number
+  spriteSheet: string
+  spriteCols: number
+  grade: number
+  civilMask: string
+  levelRequired: number
+  gaMinAf: number
+  gaMaxAf: number
+  maMinAf: number
+  maMaxAf: number
+  effects: GameAccessoryEffect[]
+}
+
 export interface CatalogIconRef {
   gameCode: string
   name: string

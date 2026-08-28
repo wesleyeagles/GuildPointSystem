@@ -1,16 +1,20 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
-  useAllCatalogAccessories,
-  useAllCatalogArmor,
+  CATALOG_PAGE_SIZE,
   useAllCatalogSets,
   useCatalogAccessories,
+  useCatalogAccessoryIconIndex,
   useCatalogArmor,
+  useCatalogArmorIconIndex,
+  useCatalogWeapons,
+  useCatalogWeaponIconIndex,
 } from '@/Domain/Catalog/hooks/useCatalog'
-import { civilMaskLabel, CIVIL_MASK_OPTIONS } from '@/Domain/Catalog/utils/civilMaskUtils'
+import { civilMaskToRaces, CIVIL_MASK_OPTIONS } from '@/Domain/Catalog/utils/civilMaskUtils'
 import {
   armorGradeLabel,
   formatEffectDirection,
   gradeColor,
+  GRADE_FILTER_OPTIONS,
   gradeLabel,
   isTimedEffect,
 } from '@/Domain/Catalog/utils/catalogUtils'
@@ -26,18 +30,36 @@ import type {
   GameAccessory,
   GameAccessoryEffect,
   GameArmor,
+  GameWeapon,
+  GameWeaponType,
   ItemSet,
   ItemSetEffect,
 } from '@/Domain/types/models'
 import { SpriteIcon } from '@/Shared/ui/components/SpriteIcon/SpriteIcon'
 import './AccessoryCatalog.styles.scss'
 
-type CatalogMode = 'accessories' | 'armor'
+type CatalogMode = 'accessories' | 'armor' | 'weapons'
 type SubtypeFilter = 'ALL' | 'RING' | 'AMULET'
 type SlotFilter = 'ALL' | GameArmor['slot']
+type WeaponTypeFilter = 'ALL' | GameWeaponType
 type GradeFilter = 'ALL' | string
 
 const ARMOR_SLOTS: GameArmor['slot'][] = ['HELMET', 'UPPER', 'LOWER', 'GAUNTLET', 'SHOES']
+
+const WEAPON_TYPES: GameWeaponType[] = [
+  'KNIFE',
+  'SWORD',
+  'AXE',
+  'HAMMER',
+  'SPEAR',
+  'BOW',
+  'FIREARM',
+  'LAUNCHER',
+  'THROWING_KNIFE',
+  'STAFF',
+  'MINING_TOOL',
+  'GRENADE_LAUNCHER',
+]
 
 const SLOT_LABELS: Record<GameArmor['slot'], string> = {
   HELMET: 'Helmet',
@@ -47,15 +69,34 @@ const SLOT_LABELS: Record<GameArmor['slot'], string> = {
   SHOES: 'Shoes',
 }
 
+const WEAPON_TYPE_LABELS: Record<GameWeaponType, string> = {
+  KNIFE: 'Knife',
+  SWORD: 'Sword',
+  AXE: 'Axe',
+  HAMMER: 'Hammer',
+  SPEAR: 'Spear',
+  BOW: 'Bow',
+  FIREARM: 'Firearm',
+  LAUNCHER: 'Launcher',
+  THROWING_KNIFE: 'Throwing Knife',
+  STAFF: 'Staff',
+  MINING_TOOL: 'Mining Tool',
+  GRENADE_LAUNCHER: 'Grenade Launcher',
+}
+
 export function ItemCatalog() {
   const [mode, setMode] = useState<CatalogMode>('accessories')
   const [subtype, setSubtype] = useState<SubtypeFilter>('ALL')
   const [slot, setSlot] = useState<SlotFilter>('ALL')
+  const [weaponType, setWeaponType] = useState<WeaponTypeFilter>('ALL')
   const [grade, setGrade] = useState<GradeFilter>('ALL')
   const [civilMask, setCivilMask] = useState('')
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [selectedCode, setSelectedCode] = useState<string | null>(null)
+  const [accessoryPage, setAccessoryPage] = useState(0)
+  const [armorPage, setArmorPage] = useState(0)
+  const [weaponPage, setWeaponPage] = useState(0)
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 300)
@@ -64,13 +105,18 @@ export function ItemCatalog() {
 
   useEffect(() => {
     setSelectedCode(null)
-  }, [mode, subtype, slot, grade, civilMask])
+    setAccessoryPage(0)
+    setArmorPage(0)
+    setWeaponPage(0)
+  }, [mode, subtype, slot, weaponType, grade, civilMask, debouncedSearch])
 
   const accessoryFilters = {
     subtype: subtype === 'ALL' ? undefined : subtype,
     grade: grade === 'ALL' ? undefined : Number(grade),
     civilMask: civilMask || undefined,
     search: debouncedSearch || undefined,
+    page: accessoryPage,
+    size: CATALOG_PAGE_SIZE,
   }
 
   const armorFilters = {
@@ -79,39 +125,60 @@ export function ItemCatalog() {
     civilMask: civilMask || undefined,
     minLevel: 35,
     search: debouncedSearch || undefined,
+    page: armorPage,
+    size: CATALOG_PAGE_SIZE,
   }
 
-  const { data: accessories = [], isLoading: loadingAccessories } = useCatalogAccessories(accessoryFilters)
-  const { data: armors = [], isLoading: loadingArmor } = useCatalogArmor(armorFilters)
+  const weaponFilters = {
+    weaponType: weaponType === 'ALL' ? undefined : weaponType,
+    grade: grade === 'ALL' ? undefined : Number(grade),
+    civilMask: civilMask || undefined,
+    minLevel: 35,
+    search: debouncedSearch || undefined,
+    page: weaponPage,
+    size: CATALOG_PAGE_SIZE,
+  }
+
+  const { data: accessoryPageData, isLoading: loadingAccessories, isFetching: fetchingAccessories } =
+    useCatalogAccessories(accessoryFilters)
+  const accessories = accessoryPageData?.content ?? []
+  const accessoryTotalPages = accessoryPageData?.totalPages ?? 0
+  const accessoryTotalElements = accessoryPageData?.totalElements ?? 0
+  const { data: armorPageData, isLoading: loadingArmor, isFetching: fetchingArmor } = useCatalogArmor(armorFilters)
+  const armors = armorPageData?.content ?? []
+  const armorTotalPages = armorPageData?.totalPages ?? 0
+  const armorTotalElements = armorPageData?.totalElements ?? 0
+  const { data: weaponPageData, isLoading: loadingWeapons, isFetching: fetchingWeapons } =
+    useCatalogWeapons(weaponFilters)
+  const weapons = weaponPageData?.content ?? []
+  const weaponTotalPages = weaponPageData?.totalPages ?? 0
+  const weaponTotalElements = weaponPageData?.totalElements ?? 0
   const { data: allSets = [] } = useAllCatalogSets()
-  const { data: allAccessories = [] } = useAllCatalogAccessories()
-  const { data: allArmor = [] } = useAllCatalogArmor()
+  const { data: accessoryIcons = [] } = useCatalogAccessoryIconIndex()
+  const { data: armorIcons = [] } = useCatalogArmorIconIndex()
+  const { data: weaponIcons = [] } = useCatalogWeaponIconIndex()
 
   const setIndex = useMemo(() => buildSetIndex(allSets), [allSets])
   const catalogByCode = useMemo(() => {
     const map = new Map<string, CatalogIconRef>()
-    for (const item of allAccessories) {
-      map.set(item.gameCode, {
-        gameCode: item.gameCode,
-        name: item.name,
-        iconId: item.iconId,
-        spriteSheet: item.spriteSheet,
-        spriteCols: 32,
-      })
+    for (const item of accessoryIcons) {
+      map.set(item.gameCode, item)
     }
-    for (const item of allArmor) {
-      map.set(item.gameCode, {
-        gameCode: item.gameCode,
-        name: item.name,
-        iconId: item.iconId,
-        spriteSheet: item.spriteSheet,
-        spriteCols: item.spriteCols,
-      })
+    for (const item of armorIcons) {
+      map.set(item.gameCode, item)
+    }
+    for (const item of weaponIcons) {
+      map.set(item.gameCode, item)
     }
     return map
-  }, [allAccessories, allArmor])
+  }, [accessoryIcons, armorIcons, weaponIcons])
 
-  const isLoading = mode === 'accessories' ? loadingAccessories : loadingArmor
+  const isLoading =
+    mode === 'accessories'
+      ? loadingAccessories && !accessoryPageData
+      : mode === 'armor'
+        ? loadingArmor && !armorPageData
+        : loadingWeapons && !weaponPageData
 
   return (
     <div className="accessory-catalog">
@@ -129,6 +196,13 @@ export function ItemCatalog() {
           onClick={() => setMode('armor')}
         >
           Armaduras
+        </button>
+        <button
+          type="button"
+          className={`accessory-catalog__mode-btn${mode === 'weapons' ? ' accessory-catalog__mode-btn--active' : ''}`}
+          onClick={() => setMode('weapons')}
+        >
+          Armas
         </button>
       </div>
 
@@ -151,7 +225,7 @@ export function ItemCatalog() {
             <option value="RING">Ring</option>
             <option value="AMULET">Amulet</option>
           </select>
-        ) : (
+        ) : mode === 'armor' ? (
           <select
             className="accessory-catalog__select"
             value={slot}
@@ -162,6 +236,17 @@ export function ItemCatalog() {
               <option key={s} value={s}>{SLOT_LABELS[s]}</option>
             ))}
           </select>
+        ) : (
+          <select
+            className="accessory-catalog__select"
+            value={weaponType}
+            onChange={(e) => setWeaponType(e.target.value as WeaponTypeFilter)}
+          >
+            <option value="ALL">Todos os tipos</option>
+            {WEAPON_TYPES.map((type) => (
+              <option key={type} value={type}>{WEAPON_TYPE_LABELS[type]}</option>
+            ))}
+          </select>
         )}
 
         <select
@@ -170,9 +255,9 @@ export function ItemCatalog() {
           onChange={(e) => setGrade(e.target.value as GradeFilter)}
         >
           <option value="ALL">Todas as qualidades</option>
-          <option value="0">Normal</option>
-          <option value="4">Relic</option>
-          <option value="7">Hero</option>
+          {GRADE_FILTER_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
         </select>
 
         <select
@@ -193,42 +278,147 @@ export function ItemCatalog() {
         accessories.length === 0 ? (
           <p className="accessory-catalog__status">Nenhum acessório encontrado.</p>
         ) : (
+          <>
+            <div className="accessory-catalog__grid">
+              {accessories.map((accessory) => (
+                <AccessoryCard
+                  key={accessory.gameCode}
+                  accessory={accessory}
+                  sets={setIndex.get(accessory.gameCode) ?? []}
+                  catalogByCode={catalogByCode}
+                  selected={selectedCode === accessory.gameCode}
+                  onSelect={() =>
+                    setSelectedCode(
+                      selectedCode === accessory.gameCode ? null : accessory.gameCode
+                    )
+                  }
+                />
+              ))}
+            </div>
+            {accessoryTotalPages > 1 && (
+              <div className="accessory-catalog__pagination">
+                <button
+                  type="button"
+                  className="accessory-catalog__page-btn"
+                  disabled={accessoryPage === 0 || fetchingAccessories}
+                  onClick={() => setAccessoryPage((p) => Math.max(0, p - 1))}
+                >
+                  Anterior
+                </button>
+                <span className="accessory-catalog__page-info">
+                  Página {accessoryPage + 1} de {accessoryTotalPages}
+                  <span className="accessory-catalog__page-count">
+                    ({accessoryTotalElements} itens)
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  className="accessory-catalog__page-btn"
+                  disabled={accessoryPage >= accessoryTotalPages - 1 || fetchingAccessories}
+                  onClick={() => setAccessoryPage((p) => p + 1)}
+                >
+                  Próxima
+                </button>
+              </div>
+            )}
+          </>
+        )
+      ) : mode === 'armor' ? (
+        armors.length === 0 ? (
+          <p className="accessory-catalog__status">Nenhuma armadura encontrada (Lv 35+).</p>
+        ) : (
+          <>
+            <div className="accessory-catalog__grid">
+              {armors.map((armor) => (
+                <ArmorCard
+                  key={armor.gameCode}
+                  armor={armor}
+                  sets={setIndex.get(armor.gameCode) ?? []}
+                  catalogByCode={catalogByCode}
+                  selected={selectedCode === armor.gameCode}
+                  onSelect={() =>
+                    setSelectedCode(
+                      selectedCode === armor.gameCode ? null : armor.gameCode
+                    )
+                  }
+                />
+              ))}
+            </div>
+            {armorTotalPages > 1 && (
+              <div className="accessory-catalog__pagination">
+                <button
+                  type="button"
+                  className="accessory-catalog__page-btn"
+                  disabled={armorPage === 0 || fetchingArmor}
+                  onClick={() => setArmorPage((p) => Math.max(0, p - 1))}
+                >
+                  Anterior
+                </button>
+                <span className="accessory-catalog__page-info">
+                  Página {armorPage + 1} de {armorTotalPages}
+                  <span className="accessory-catalog__page-count">
+                    ({armorTotalElements} itens)
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  className="accessory-catalog__page-btn"
+                  disabled={armorPage >= armorTotalPages - 1 || fetchingArmor}
+                  onClick={() => setArmorPage((p) => p + 1)}
+                >
+                  Próxima
+                </button>
+              </div>
+            )}
+          </>
+        )
+      ) : weapons.length === 0 ? (
+        <p className="accessory-catalog__status">Nenhuma arma encontrada (Lv 35+).</p>
+      ) : (
+        <>
           <div className="accessory-catalog__grid">
-            {accessories.map((accessory) => (
-              <AccessoryCard
-                key={accessory.gameCode}
-                accessory={accessory}
-                sets={setIndex.get(accessory.gameCode) ?? []}
+            {weapons.map((weapon) => (
+              <WeaponCard
+                key={weapon.gameCode}
+                weapon={weapon}
+                sets={setIndex.get(weapon.gameCode) ?? []}
                 catalogByCode={catalogByCode}
-                selected={selectedCode === accessory.gameCode}
+                selected={selectedCode === weapon.gameCode}
                 onSelect={() =>
                   setSelectedCode(
-                    selectedCode === accessory.gameCode ? null : accessory.gameCode
+                    selectedCode === weapon.gameCode ? null : weapon.gameCode
                   )
                 }
               />
             ))}
           </div>
-        )
-      ) : armors.length === 0 ? (
-        <p className="accessory-catalog__status">Nenhuma armadura encontrada (Lv 35+).</p>
-      ) : (
-        <div className="accessory-catalog__grid">
-          {armors.map((armor) => (
-            <ArmorCard
-              key={armor.gameCode}
-              armor={armor}
-              sets={setIndex.get(armor.gameCode) ?? []}
-              catalogByCode={catalogByCode}
-              selected={selectedCode === armor.gameCode}
-              onSelect={() =>
-                setSelectedCode(
-                  selectedCode === armor.gameCode ? null : armor.gameCode
-                )
-              }
-            />
-          ))}
-        </div>
+          {weaponTotalPages > 1 && (
+            <div className="accessory-catalog__pagination">
+              <button
+                type="button"
+                className="accessory-catalog__page-btn"
+                disabled={weaponPage === 0 || fetchingWeapons}
+                onClick={() => setWeaponPage((p) => Math.max(0, p - 1))}
+              >
+                Anterior
+              </button>
+              <span className="accessory-catalog__page-info">
+                Página {weaponPage + 1} de {weaponTotalPages}
+                <span className="accessory-catalog__page-count">
+                  ({weaponTotalElements} itens)
+                </span>
+              </span>
+              <button
+                type="button"
+                className="accessory-catalog__page-btn"
+                disabled={weaponPage >= weaponTotalPages - 1 || fetchingWeapons}
+                onClick={() => setWeaponPage((p) => p + 1)}
+              >
+                Próxima
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   )
@@ -259,6 +449,10 @@ function ElementBadges({ fire, water, soil, wind }: { fire: number; water: numbe
 }
 
 function EffectLine({ eff }: { eff: GameAccessoryEffect | ItemSetEffect }) {
+  if (eff.displayType === 'BOOLEAN') {
+    return <span className="accessory-card__effect">{eff.name}</span>
+  }
+
   const direction = formatEffectDirection(eff.displayType, eff.rawValue)
 
   if (isTimedEffect(eff.displayType) && direction) {
@@ -291,7 +485,7 @@ function EffectLine({ eff }: { eff: GameAccessoryEffect | ItemSetEffect }) {
           {direction}
         </span>
       )}{' '}
-      <strong>{eff.displayType === 'BOOLEAN' ? 'Yes' : eff.displayValue}</strong>
+      <strong>{eff.displayValue}</strong>
     </span>
   )
 }
@@ -308,12 +502,7 @@ function ComboMemberIcon({
   if (catalogItem) {
     return (
       <span className="accessory-card__combo-icon" title={catalogItem.name}>
-        <SpriteIcon
-          iconId={catalogItem.iconId}
-          spriteSheet={catalogItem.spriteSheet}
-          spriteCols={catalogItem.spriteCols}
-          size={24}
-        />
+        <SpriteIcon iconId={catalogItem.iconId} spriteSheet={catalogItem.spriteSheet} size={24} />
       </span>
     )
   }
@@ -360,6 +549,29 @@ function ComboSetBlock({
   )
 }
 
+function RaceTags({ civilMask }: { civilMask: string | null | undefined }) {
+  const races = civilMaskToRaces(civilMask)
+  if (races.length === 0) return null
+
+  if (races.length === 3) {
+    return (
+      <span className="accessory-card__tag accessory-card__tag--race">
+        All Races
+      </span>
+    )
+  }
+
+  return (
+    <>
+      {races.map((race) => (
+        <span key={race} className="accessory-card__tag accessory-card__tag--race">
+          {race}
+        </span>
+      ))}
+    </>
+  )
+}
+
 function AccessoryCard({
   accessory,
   sets,
@@ -395,13 +607,12 @@ function AccessoryCard({
               {gradeLabel(accessory.grade)}
             </span>
             <span className="accessory-card__tag">Lv {accessory.levelRequired}</span>
+            <RaceTags civilMask={accessory.civilMask} />
           </div>
         </div>
       </div>
 
       <div className="accessory-card__body">
-        <span className="accessory-card__race">{civilMaskLabel(accessory.civilMask)}</span>
-
         <ElementBadges
           fire={accessory.fire}
           water={accessory.water}
@@ -454,12 +665,7 @@ function ArmorCard({
     >
       <div className="accessory-card__header">
         <div className="accessory-card__icon">
-          <SpriteIcon
-            iconId={armor.iconId}
-            spriteSheet={armor.spriteSheet}
-            spriteCols={armor.spriteCols}
-            size={36}
-          />
+          <SpriteIcon iconId={armor.iconId} spriteSheet={armor.spriteSheet} size={36} />
         </div>
         <div className="accessory-card__title-group">
           <span className="accessory-card__name" style={{ color: gradeColor(armor.grade) }}>
@@ -471,20 +677,19 @@ function ArmorCard({
               {gradeName}
             </span>
             <span className="accessory-card__tag">Lv {armor.levelRequired}</span>
+            <RaceTags civilMask={armor.civilMask} />
           </div>
         </div>
       </div>
 
       <div className="accessory-card__body">
-        <span className="accessory-card__race">{civilMaskLabel(armor.civilMask)}</span>
-
         <div className="accessory-card__def-stats">
           <span className="accessory-card__def-stat">
-            DefFc <strong>{armor.defFc}</strong>
+            Avg. Def. Pwr. <strong>{armor.defFc}</strong>
           </span>
           {armor.defFacingDisplay != null && (
             <span className="accessory-card__def-stat">
-              DSR <strong>{armor.defFacingDisplay}</strong>
+              Defense Success Rate <strong>{armor.defFacingDisplay}</strong>
             </span>
           )}
         </div>
@@ -492,6 +697,91 @@ function ArmorCard({
         {armor.effects.length > 0 && (
           <div className="accessory-card__effects">
             {mergeEffects(armor.effects).map((eff) => (
+              <EffectLine key={`${eff.code}-${eff.displayType}`} eff={eff} />
+            ))}
+          </div>
+        )}
+
+        {comboSets.length > 0 && (
+          <div className="accessory-card__combo">
+            <span className="accessory-card__combo-label">Combo</span>
+            {comboSets.map((set) => (
+              <ComboSetBlock key={set.id} set={set} catalogByCode={catalogByCode} />
+            ))}
+          </div>
+        )}
+      </div>
+    </button>
+  )
+}
+
+function WeaponCard({
+  weapon,
+  sets,
+  catalogByCode,
+  selected,
+  onSelect,
+}: {
+  weapon: GameWeapon
+  sets: ItemSet[]
+  catalogByCode: Map<string, CatalogIconRef>
+  selected: boolean
+  onSelect: () => void
+}) {
+  const comboSets = deduplicateComboSets(sets.filter((set) => set.effects.length > 0))
+  const gradeName = armorGradeLabel(weapon.grade)
+  const hasGa = weapon.gaMaxAf > 0
+  const hasMa = weapon.maMaxAf > 0
+
+  return (
+    <button
+      type="button"
+      className={`accessory-card${selected ? ' accessory-card--selected' : ''}`}
+      onClick={onSelect}
+    >
+      <div className="accessory-card__header">
+        <div className="accessory-card__icon">
+          <SpriteIcon
+            iconId={weapon.iconId}
+            spriteSheet={weapon.spriteSheet}
+            spriteCols={weapon.spriteCols}
+            size={36}
+          />
+        </div>
+        <div className="accessory-card__title-group">
+          <span className="accessory-card__name" style={{ color: gradeColor(weapon.grade) }}>
+            {weapon.name}
+          </span>
+          <div className="accessory-card__tags">
+            <span className="accessory-card__tag">{WEAPON_TYPE_LABELS[weapon.weaponType]}</span>
+            <span className="accessory-card__tag accessory-card__tag--grade" style={{ color: gradeColor(weapon.grade) }}>
+              {gradeName}
+            </span>
+            <span className="accessory-card__tag">Lv {weapon.levelRequired}</span>
+            <RaceTags civilMask={weapon.civilMask} />
+          </div>
+        </div>
+      </div>
+
+      <div className="accessory-card__body">
+        {(hasGa || hasMa) && (
+          <div className="accessory-card__def-stats">
+            {hasGa && (
+              <span className="accessory-card__def-stat">
+                Attack <strong>{weapon.gaMinAf} – {weapon.gaMaxAf}</strong>
+              </span>
+            )}
+            {hasMa && (
+              <span className="accessory-card__def-stat">
+                Force Attack <strong>{weapon.maMinAf} – {weapon.maMaxAf}</strong>
+              </span>
+            )}
+          </div>
+        )}
+
+        {weapon.effects.length > 0 && (
+          <div className="accessory-card__effects">
+            {mergeEffects(weapon.effects).map((eff) => (
               <EffectLine key={`${eff.code}-${eff.displayType}`} eff={eff} />
             ))}
           </div>

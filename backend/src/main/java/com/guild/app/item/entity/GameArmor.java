@@ -32,7 +32,7 @@ public class GameArmor {
     private String spriteSheet;
 
     @Column(name = "sprite_cols", nullable = false)
-    private Integer spriteCols = 128;
+    private Integer spriteCols = 64;
 
     @Column(nullable = false)
     private Integer grade = 0;
