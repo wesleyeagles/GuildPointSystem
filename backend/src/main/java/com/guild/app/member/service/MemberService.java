@@ -214,6 +214,7 @@ public class MemberService {
                 member.getRace() != null ? member.getRace().getName() : null,
                 member.getCharacterClass() != null ? member.getCharacterClass().getId() : null,
                 member.getCharacterClass() != null ? member.getCharacterClass().getName() : null,
+                member.getCharacterClass() != null ? member.getCharacterClass().getImageUrl() : null,
                 member.getRole(),
                 member.getStatus(),
                 member.getPoints(),

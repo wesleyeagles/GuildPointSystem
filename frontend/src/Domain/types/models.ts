@@ -40,6 +40,7 @@ export interface Member {
   raceName: string
   classId: number
   className: string
+  classImageUrl: string | null
   role: Role
   status: MemberStatus
   points: number

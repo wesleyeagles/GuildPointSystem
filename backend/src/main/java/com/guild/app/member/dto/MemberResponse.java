@@ -12,6 +12,7 @@ public record MemberResponse(
         String raceName,
         Long classId,
         String className,
+        String classImageUrl,
         Role role,
         MemberStatus status,
         Long points,

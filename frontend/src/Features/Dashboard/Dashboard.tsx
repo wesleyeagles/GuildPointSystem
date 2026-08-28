@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useMemberRanking } from '@/Domain/Member/hooks/useMembers'
 import { useActiveEvents, useClaimEvent } from '@/Domain/Event/hooks/useEvents'
 import { Button } from '@/Shared/ui/components/Button/Button'
+import { MemberClassIcon } from '@/Shared/ui/components/MemberClassIcon/MemberClassIcon'
 import { useAppToast } from '@/Shared/ui/components/AppToast/AppToast'
 import './Dashboard.styles.scss'
 
@@ -109,6 +110,11 @@ export function DashboardPage() {
             return (
               <div key={member.id} className={`podium__slot podium__slot--${place}`}>
                 <span className="podium__place">{place}º</span>
+                <MemberClassIcon
+                  classImageUrl={member.classImageUrl}
+                  classLabel={member.className}
+                  size="md"
+                />
                 <Link to={`/profile/${member.id}`} className="podium__name podium__name--link">
                   {member.nickname}
                 </Link>
@@ -124,6 +130,10 @@ export function DashboardPage() {
               {pagedRest.map((m, i) => (
                 <li key={m.id}>
                   <span>{rankPage * RANK_PER_PAGE + i + 4}º</span>
+                  <MemberClassIcon
+                    classImageUrl={m.classImageUrl}
+                    classLabel={m.className}
+                  />
                   <Link to={`/profile/${m.id}`} className="ranking-list__name">
                     {m.nickname}
                   </Link>
