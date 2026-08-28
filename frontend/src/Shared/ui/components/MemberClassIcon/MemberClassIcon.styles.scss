@@ -21,6 +21,29 @@
     height: 40px;
   }
 
+  &__fallback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid theme.$color-border;
+    background: theme.$color-bg-elevated;
+    color: theme.$color-primary;
+    font-family: theme.$font-heading;
+    font-size: theme.$font-size-base;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  &--sm &__fallback {
+    width: 28px;
+    height: 28px;
+  }
+
+  &--md &__fallback {
+    width: 40px;
+    height: 40px;
+  }
+
   &__tooltip {
     position: absolute;
     left: 50%;

@@ -1,4 +1,5 @@
 import type { SeedOption } from '@/Domain/types/models'
+import { publicAssetUrl } from '@/Shared/utils/publicAssetUrl'
 import './SeedOptionPicker.styles.scss'
 
 interface SeedOptionPickerProps {
@@ -44,7 +45,11 @@ export function SeedOptionPicker({
                 required={required && options[0]?.id === option.id}
               />
               {option.imageUrl && (
-                <img src={option.imageUrl} alt="" className="seed-option-picker__image" />
+                <img
+                  src={publicAssetUrl(option.imageUrl)}
+                  alt=""
+                  className="seed-option-picker__image"
+                />
               )}
               <span>{option.name}</span>
             </label>
