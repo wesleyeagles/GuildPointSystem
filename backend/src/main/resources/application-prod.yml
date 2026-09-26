@@ -11,6 +11,9 @@ spring:
     connect-retries-interval: 5
 
 guild:
+  schedule:
+    test-alert:
+      enabled: false
   jwt:
     secret: ${JWT_SECRET}
   oauth:

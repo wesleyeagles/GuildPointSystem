@@ -9,8 +9,12 @@ interface Toast {
   type: ToastType
 }
 
+interface ShowToastOptions {
+  durationMs?: number
+}
+
 interface AppToastContextValue {
-  showToast: (message: string, type?: ToastType) => void
+  showToast: (message: string, type?: ToastType, options?: ShowToastOptions) => void
 }
 
 const AppToastContext = createContext<AppToastContextValue | null>(null)
@@ -31,10 +35,11 @@ export function AppToastProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const showToast = useCallback(
-    (message: string, type: ToastType = 'success') => {
+    (message: string, type: ToastType = 'success', options?: ShowToastOptions) => {
       const id = ++counter
       setToasts((prev) => [...prev, { id, message, type }])
-      const timer = setTimeout(() => dismiss(id), 3500)
+      const duration = options?.durationMs ?? 3500
+      const timer = setTimeout(() => dismiss(id), duration)
       timers.current.set(id, timer)
     },
     [dismiss],

@@ -23,6 +23,10 @@ server:
   port: 8080
 
 guild:
+  schedule:
+    test-alert:
+      enabled: ${SCHEDULE_TEST_ALERT:true}
+      lead-seconds: ${SCHEDULE_TEST_ALERT_LEAD:12}
   jwt:
     secret: ${JWT_SECRET:change-me-in-production-use-at-least-256-bits-secret-key-here}
     expiration-ms: 86400000

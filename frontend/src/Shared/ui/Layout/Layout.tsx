@@ -9,6 +9,7 @@ import { AppToastProvider } from '@/Shared/ui/components/AppToast/AppToast'
 import { MemberClassIcon } from '@/Shared/ui/components/MemberClassIcon/MemberClassIcon'
 import { getSocketState, type SocketState } from '@/Shared/websocket/socketClient'
 import { EventHeaderTimers } from '@/Shared/ui/Layout/EventHeaderTimers'
+import { ScheduleAlertListener } from '@/Features/Schedule/ScheduleAlertListener'
 import './Layout.styles.scss'
 
 const NAV_ITEMS = [
@@ -82,6 +83,7 @@ function LayoutShell() {
 
   return (
     <div className={`layout${drawerOpen ? ' layout--drawer-open' : ''}`}>
+      <ScheduleAlertListener />
       <aside className="layout__sidebar">
         <div className="layout__brand">
           <img src="/Logo-Blacklist.png" alt="" className="layout__logo" />

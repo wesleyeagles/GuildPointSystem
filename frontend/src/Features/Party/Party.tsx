@@ -220,7 +220,7 @@ export function PartyPage() {
 
       {myPartyOnOtherMap && (
         <p className="party-page__banner">
-          Sua PT está no mapa {my.partyMap}. Troque de aba para gerenciá-la.
+          Sua PT está no mapa <strong>{my.partyMap}</strong>. Troque de aba para gerenciá-la.
         </p>
       )}
 

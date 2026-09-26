@@ -253,7 +253,21 @@
 }
 
 .party-page__banner {
-  @include theme.hazard-stripe;
-  padding: theme.$spacing-md;
+  @include theme.chamfer(theme.$chamfer-sm);
+  margin: 0;
+  padding: theme.$spacing-md theme.$spacing-lg;
   font-size: theme.$font-size-base;
+  font-weight: 500;
+  line-height: 1.45;
+  color: theme.$color-text;
+  border: 1px solid rgba(theme.$color-amber, 0.45);
+  border-left: 4px solid theme.$color-amber;
+  background:
+    linear-gradient(180deg, rgba(theme.$color-amber, 0.12), rgba(0, 0, 0, 0.35)),
+    theme.$metal-800;
+
+  strong {
+    color: theme.$color-amber;
+    font-weight: 700;
+  }
 }

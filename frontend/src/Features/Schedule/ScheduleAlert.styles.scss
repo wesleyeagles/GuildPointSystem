@@ -1,0 +1,54 @@
+.schedule-alert-banner {
+  position: fixed;
+  top: theme.$spacing-md;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10001;
+  display: flex;
+  align-items: center;
+  gap: theme.$spacing-md;
+  max-width: min(520px, calc(100vw - 2 * theme.$spacing-md));
+  padding: theme.$spacing-md theme.$spacing-lg;
+  @include theme.chamfer(theme.$chamfer-md);
+  border: 1px solid theme.$color-amber;
+  background:
+    linear-gradient(180deg, rgba(theme.$color-amber, 0.18), rgba(0, 0, 0, 0.85)),
+    theme.$metal-900;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
+  animation: schedule-alert-in 0.25s ease;
+
+  @keyframes schedule-alert-in {
+    from {
+      opacity: 0;
+      transform: translateX(-50%) translateY(-12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+  }
+
+  &__icon {
+    @include theme.slot;
+    width: 40px;
+    height: 40px;
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    font-family: theme.$font-heading;
+    font-size: 22px;
+    font-weight: 800;
+    color: theme.$color-amber;
+  }
+
+  &__text {
+    margin: 0;
+    font-size: theme.$font-size-base;
+    color: theme.$color-text;
+    line-height: 1.4;
+
+    strong {
+      color: theme.$color-amber;
+    }
+  }
+}

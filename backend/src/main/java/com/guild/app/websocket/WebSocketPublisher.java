@@ -37,4 +37,8 @@ public class WebSocketPublisher {
     public void publishPartyBoard(PartyMap map) {
         messagingTemplate.convertAndSend("/topic/parties/" + map.name(), Map.of("type", "BOARD_UPDATED", "map", map.name()));
     }
+
+    public void publishScheduleAlert(Object payload) {
+        messagingTemplate.convertAndSend("/topic/schedule", payload);
+    }
 }
