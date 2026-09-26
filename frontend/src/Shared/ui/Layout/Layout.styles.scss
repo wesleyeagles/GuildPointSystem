@@ -321,12 +321,55 @@ $drawer-breakpoint: 960px;
 
   &__page-title {
     margin: 0;
+    flex-shrink: 0;
     font-family: theme.$font-heading;
     font-size: 24px;
     font-weight: 800;
     letter-spacing: 1px;
     text-transform: uppercase;
     color: theme.$color-text;
+  }
+
+  &__event-timers {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: theme.$spacing-xs;
+    min-width: 0;
+    padding: 0 theme.$spacing-sm;
+    overflow-x: auto;
+  }
+
+  &__event-timer {
+    @include theme.chamfer(4px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    padding: 3px 8px 4px;
+    border: 1px solid theme.$color-border;
+    background: rgba(0, 0, 0, 0.28);
+    flex-shrink: 0;
+  }
+
+  &__event-timer-label {
+    font-family: theme.$font-heading;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    color: theme.$color-amber;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  &__event-timer-value {
+    @include theme.readout(theme.$color-primary);
+    font-size: theme.$font-size-heading;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
   }
 
   &__status-right {
@@ -429,8 +472,24 @@ $drawer-breakpoint: 960px;
 
     &__status {
       padding: 0 theme.$spacing-md;
+      flex-wrap: wrap;
+      height: auto;
+      min-height: 52px;
+      padding-top: theme.$spacing-xs;
+      padding-bottom: theme.$spacing-xs;
 
       &::after { left: theme.$spacing-md; }
+    }
+
+    &__event-timers {
+      order: 3;
+      flex: 1 1 100%;
+      justify-content: flex-start;
+      padding: 0;
+    }
+
+    &__status-right {
+      margin-left: auto;
     }
 
     &__main {

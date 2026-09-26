@@ -8,6 +8,7 @@ import { EventToastProvider } from '@/Features/Events/components/EventToast/Even
 import { AppToastProvider } from '@/Shared/ui/components/AppToast/AppToast'
 import { MemberClassIcon } from '@/Shared/ui/components/MemberClassIcon/MemberClassIcon'
 import { getSocketState, type SocketState } from '@/Shared/websocket/socketClient'
+import { EventHeaderTimers } from '@/Shared/ui/Layout/EventHeaderTimers'
 import './Layout.styles.scss'
 
 const NAV_ITEMS = [
@@ -180,6 +181,7 @@ function LayoutShell() {
             <span />
           </button>
           <h1 className="layout__page-title">{currentLabel}</h1>
+          <EventHeaderTimers now={now} />
           <div className="layout__status-right">
             <span className={`layout__socket layout__socket--${socket}`}>
               {SOCKET_LABEL[socket]}
