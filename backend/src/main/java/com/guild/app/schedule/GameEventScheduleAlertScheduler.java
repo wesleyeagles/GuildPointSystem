@@ -19,6 +19,8 @@ import static com.guild.app.schedule.GameEventDefinitions.TEN_MINUTE_WARNING_MS;
 @RequiredArgsConstructor
 public class GameEventScheduleAlertScheduler {
 
+    private static final long TICK_MS = 5_000L;
+
     private final GameEventScheduleCalculator calculator;
     private final WebSocketPublisher webSocketPublisher;
     private final ScheduleTestAlertState testAlertState;
