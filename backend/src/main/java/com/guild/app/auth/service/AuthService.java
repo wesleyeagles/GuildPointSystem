@@ -57,6 +57,7 @@ public class AuthService {
         member.setCharacterClass(clazz);
         member.setAvatarUrl(request.avatarUrl());
         member.setStatus(MemberStatus.PENDENTE);
+        member.setLevel(1);
         member.setProfileComplete(true);
         member = memberRepository.save(member);
 
@@ -124,6 +125,7 @@ public class AuthService {
         member.setNickname(nickname);
         member.setAvatarUrl(avatarUrl);
         member.setStatus(MemberStatus.PENDENTE);
+        member.setLevel(1);
         member.setProfileComplete(false);
         member = memberRepository.save(member);
 
@@ -141,7 +143,12 @@ public class AuthService {
                 member.getNickname(),
                 member.getRole(),
                 member.getStatus(),
+                resolveLevel(member),
                 member.isProfileComplete());
+    }
+
+    private static int resolveLevel(Member member) {
+        return member.getLevel() != null ? member.getLevel() : 1;
     }
 
     private void validateClassForRace(CharacterClass clazz, GameRace race) {

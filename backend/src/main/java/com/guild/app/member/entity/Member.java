@@ -52,6 +52,9 @@ public class Member {
     @Column(nullable = false)
     private Long points = 0L;
 
+    @Column(name = "level", nullable = false)
+    private Integer level = 1;
+
     @Column(name = "profile_complete", nullable = false)
     private boolean profileComplete = false;
 
@@ -60,6 +63,13 @@ public class Member {
 
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt = Instant.now();
+
+    @PrePersist
+    void onCreate() {
+        if (level == null) {
+            level = 1;
+        }
+    }
 
     @PreUpdate
     void onUpdate() {

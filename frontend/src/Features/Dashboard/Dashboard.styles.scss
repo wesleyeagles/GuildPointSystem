@@ -72,6 +72,12 @@
     }
   }
 
+  &__level {
+    font-family: theme.$font-mono;
+    font-size: theme.$font-size-heading;
+    color: theme.$color-text-muted;
+  }
+
   &__points {
     @include theme.readout;
     font-size: 18px;
@@ -129,6 +135,7 @@
 
   span:first-child { width: 36px; }
   span:nth-child(2) { flex: 1; }
+  span:nth-child(3) { width: 40px; flex-shrink: 0; text-align: center; }
 }
 
 .ranking-list {
@@ -168,6 +175,15 @@
     text-overflow: ellipsis;
 
     &:hover { color: theme.$color-primary; }
+  }
+
+  &__level {
+    width: 40px;
+    flex-shrink: 0;
+    text-align: center;
+    font-family: theme.$font-mono;
+    font-size: theme.$font-size-heading;
+    color: theme.$color-text-muted;
   }
 
   &__pts {

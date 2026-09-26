@@ -39,6 +39,7 @@ export function ProfilePage() {
   const [nickname, setNickname] = useState('')
   const [raceId, setRaceId] = useState(0)
   const [classId, setClassId] = useState(0)
+  const [level, setLevel] = useState(1)
   const [pointsAmount, setPointsAmount] = useState(0)
   const [pointsReason, setPointsReason] = useState('')
   const [modality, setModality] = useState<PointsModality>('AJUSTE')
@@ -68,13 +69,14 @@ export function ProfilePage() {
     setNickname(profile.nickname)
     setRaceId(profile.raceId)
     setClassId(profile.classId)
+    setLevel(profile.level)
     setPointsAmount(0)
     setPointsReason('')
     setManualObjectiveId(0)
     setDenyingClaimId(null)
     setDenyReason('')
     setMemberRole(profile.role)
-  }, [profile?.id, profile?.nickname, profile?.raceId, profile?.classId, profile?.role])
+  }, [profile?.id, profile?.nickname, profile?.raceId, profile?.classId, profile?.level, profile?.role])
 
   if (!profile) return <p>Carregando perfil...</p>
 
@@ -85,6 +87,7 @@ export function ProfilePage() {
       nickname,
       raceId,
       classId,
+      level,
     })
   }
 
@@ -153,6 +156,10 @@ export function ProfilePage() {
                 <dd>{profile.className}</dd>
               </div>
               <div>
+                <dt>Level</dt>
+                <dd>{profile.level}</dd>
+              </div>
+              <div>
                 <dt>Papel</dt>
                 <dd>{profile.role}</dd>
               </div>
@@ -178,6 +185,17 @@ export function ProfilePage() {
             <label>
               Nickname
               <input value={nickname} onChange={(e) => setNickname(e.target.value)} required />
+            </label>
+            <label>
+              Level
+              <input
+                type="number"
+                min={1}
+                max={99}
+                value={level}
+                onChange={(e) => setLevel(Number(e.target.value))}
+                required
+              />
             </label>
             <label>
               Raça

@@ -9,5 +9,6 @@ public record AuthResponse(
         String nickname,
         Role role,
         MemberStatus status,
+        int level,
         boolean profileComplete
 ) {}

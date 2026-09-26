@@ -29,6 +29,7 @@ const PROFILE_FIELD_LABELS: Record<string, string> = {
   nickname: 'Nickname',
   classId: 'Classe',
   raceId: 'Raça',
+  level: 'Level',
 }
 
 function str(value: unknown): string {

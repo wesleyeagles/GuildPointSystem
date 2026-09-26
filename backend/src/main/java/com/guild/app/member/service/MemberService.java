@@ -77,10 +77,12 @@ public class MemberService {
         logProfileChange(member, actor, "race", member.getRace() != null ? member.getRace().getName() : null, race.getName());
         logProfileChange(member, actor, "class",
                 member.getCharacterClass() != null ? member.getCharacterClass().getName() : null, clazz.getName());
+        logProfileChange(member, actor, "level", String.valueOf(member.getLevel()), String.valueOf(request.level()));
 
         member.setNickname(request.nickname());
         member.setRace(race);
         member.setCharacterClass(clazz);
+        member.setLevel(request.level());
         if (request.avatarUrl() != null) {
             member.setAvatarUrl(request.avatarUrl());
         }
@@ -219,6 +221,7 @@ public class MemberService {
                 member.getStatus(),
                 member.getPoints(),
                 pointsService.getAvailablePoints(member.getId()),
+                member.getLevel() != null ? member.getLevel() : 1,
                 member.isProfileComplete());
     }
 }

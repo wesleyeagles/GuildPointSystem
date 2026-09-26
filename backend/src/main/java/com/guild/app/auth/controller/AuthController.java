@@ -44,6 +44,7 @@ public class AuthController {
                 member.getNickname(),
                 member.getRole(),
                 member.getStatus(),
+                member.getLevel() != null ? member.getLevel() : 1,
                 member.isProfileComplete());
     }
 }

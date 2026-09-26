@@ -17,5 +17,6 @@ public record MemberResponse(
         MemberStatus status,
         Long points,
         Long availablePoints,
+        int level,
         boolean profileComplete
 ) {}

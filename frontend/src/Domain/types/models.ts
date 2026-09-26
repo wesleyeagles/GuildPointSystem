@@ -28,6 +28,7 @@ export interface AuthResponse {
   nickname: string | null
   role: Role
   status: MemberStatus
+  level: number
   profileComplete: boolean
 }
 
@@ -45,6 +46,7 @@ export interface Member {
   status: MemberStatus
   points: number
   availablePoints: number
+  level: number
   profileComplete: boolean
 }
 

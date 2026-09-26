@@ -52,6 +52,7 @@ export function useUpdateProfile() {
       nickname: string
       raceId: number
       classId: number
+      level: number
       avatarUrl?: string
     }) => apiClient<Member>(`/members/${id}/profile`, { method: 'PUT', body }),
     onSuccess: () => {

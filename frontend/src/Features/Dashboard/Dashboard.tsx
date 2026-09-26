@@ -121,6 +121,7 @@ export function DashboardPage() {
                   <Link to={`/profile/${member.id}`} className="podium__name podium__name--link">
                     {member.nickname}
                   </Link>
+                  <span className="podium__level">Lv {member.level ?? 1}</span>
                   <span className="podium__points">{member.points}</span>
                 </div>
                 <div className="podium__pedestal">
@@ -136,6 +137,7 @@ export function DashboardPage() {
             <div className="ranking-list__head" aria-hidden="true">
               <span>#</span>
               <span>Membro</span>
+              <span>Lv</span>
               <span>Pontos</span>
             </div>
             <ul className="ranking-list">
@@ -151,6 +153,7 @@ export function DashboardPage() {
                   <Link to={`/profile/${m.id}`} className="ranking-list__name">
                     {m.nickname}
                   </Link>
+                  <span className="ranking-list__level">{m.level ?? 1}</span>
                   <span className="ranking-list__pts">{m.points}</span>
                 </li>
               ))}

@@ -1,5 +1,8 @@
-/** Quick index + untranslated bodies (dev fallback). Prefer translate-cerberus-topics.mjs */
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
+/**
+ * Cria JSON em public/server-info só para tópicos que faltam.
+ * NUNCA sobrescreve bodyHtml já traduzido — use --force-bodies só se quiser voltar ao inglês do scrape.
+ */
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -32,16 +35,45 @@ function titlePtFromEn(title) {
     .replace(/Class Balance Changes/i, 'Alterações de balanceamento de classes')
 }
 
+const FORCE_BODIES = process.argv.includes('--force-bodies')
+
 const raw = JSON.parse(readFileSync(RAW, 'utf8'))
 mkdirSync(OUT_DIR, { recursive: true })
 const index = []
+let created = 0
+let keptTranslation = 0
+let forced = 0
+
 for (const t of raw.topics) {
   const title = titlePtFromEn(t.title)
+  const outPath = join(OUT_DIR, `${t.slug}.json`)
+  let bodyHtml = t.bodyHtml
+
+  if (existsSync(outPath)) {
+    try {
+      const existing = JSON.parse(readFileSync(outPath, 'utf8'))
+      const translated = existing.bodyHtml && existing.bodyHtml !== t.bodyHtml
+      if (translated && !FORCE_BODIES) {
+        bodyHtml = existing.bodyHtml
+        keptTranslation++
+      } else if (FORCE_BODIES) {
+        forced++
+      }
+    } catch {
+      /* reescreve com raw */
+    }
+  } else {
+    created++
+  }
+
   writeFileSync(
-    join(OUT_DIR, `${t.slug}.json`),
-    JSON.stringify({ slug: t.slug, sourceUrl: t.sourceUrl, title, bodyHtml: t.bodyHtml }),
+    outPath,
+    JSON.stringify({ slug: t.slug, sourceUrl: t.sourceUrl, title, bodyHtml }),
   )
   index.push({ slug: t.slug, title, sourceUrl: t.sourceUrl })
 }
 writeFileSync(INDEX_OUT, JSON.stringify({ bootstrappedAt: new Date().toISOString(), topics: index }, null, 2))
-console.log('Bootstrap complete (English bodies, PT titles)')
+console.log(
+  `Bootstrap: ${created} novo(s), ${keptTranslation} corpo(s) traduzido(s) preservado(s)` +
+    (FORCE_BODIES ? `, ${forced} forçado(s) para inglês` : ''),
+)
