@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useAuthContext } from '@/Features/Auth/contexts/AuthContext'
 import { Panel } from '@/Shared/ui/components/Panel/Panel'
 import './ServerInfo.styles.scss'
 
@@ -10,6 +11,7 @@ interface TopicIndexItem {
 }
 
 export function ServerInfoListPage() {
+  const { isAuthenticated } = useAuthContext()
   const [topics, setTopics] = useState<TopicIndexItem[]>([])
   const [error, setError] = useState('')
 
@@ -33,7 +35,12 @@ export function ServerInfoListPage() {
             Tópicos do fórum Cerberus — títulos em português; texto e imagens da fonte oficial.
           </p>
         </div>
-        <Link to="/login" className="server-info-page__back">← Voltar ao login</Link>
+        <Link
+          to={isAuthenticated ? '/' : '/login'}
+          className="server-info-page__back"
+        >
+          {isAuthenticated ? '← Voltar ao painel' : '← Voltar ao login'}
+        </Link>
       </header>
 
       <Panel title="Tópicos do servidor" code={`${topics.length} DOC`} flush>

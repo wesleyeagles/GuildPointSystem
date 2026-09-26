@@ -191,6 +191,34 @@
   gap: theme.$spacing-md;
 }
 
+.party-pending__main {
+  display: flex;
+  flex-direction: column;
+  gap: theme.$spacing-xs;
+  flex: 1;
+  min-width: 0;
+}
+
+.party-pending__who {
+  display: flex;
+  align-items: center;
+  gap: theme.$spacing-md;
+}
+
+.party-pending__who-text {
+  min-width: 0;
+
+  strong {
+    display: block;
+    font-size: theme.$font-size-base;
+  }
+
+  span {
+    font-size: theme.$font-size-base;
+    color: theme.$color-text-muted;
+  }
+}
+
 .party-pending__label {
   font-size: theme.$font-size-base;
   color: theme.$color-text-muted;

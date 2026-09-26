@@ -21,8 +21,10 @@ public interface PartyPendingRepository extends JpaRepository<PartyPending, Long
     @Query("""
             SELECT pp FROM PartyPending pp
             JOIN FETCH pp.party
-            JOIN FETCH pp.initiator
-            JOIN FETCH pp.target
+            JOIN FETCH pp.initiator i
+            LEFT JOIN FETCH i.characterClass
+            JOIN FETCH pp.target t
+            LEFT JOIN FETCH t.characterClass
             WHERE pp.status = :status
             AND (pp.initiator.id = :memberId OR pp.target.id = :memberId)
             """)

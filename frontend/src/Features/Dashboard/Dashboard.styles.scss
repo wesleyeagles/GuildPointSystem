@@ -5,6 +5,33 @@
   gap: theme.$spacing-lg;
   align-items: start;
 
+  &__cerberus-link {
+    grid-column: 1 / -1;
+    @include theme.chamfer(theme.$chamfer-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 18px;
+    font-family: theme.$font-heading;
+    font-size: theme.$font-size-ui;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    text-decoration: none;
+    color: theme.$color-amber;
+    border: 1px solid rgba(theme.$color-amber, 0.45);
+    background:
+      linear-gradient(180deg, rgba(theme.$color-amber, 0.1), rgba(0, 0, 0, 0.35)),
+      theme.$metal-800;
+    transition: border-color 0.12s, color 0.12s;
+
+    &:hover {
+      color: theme.$color-text;
+      border-color: theme.$color-amber;
+      text-decoration: none;
+    }
+  }
+
   &__col {
     min-height: 0;
   }
@@ -122,7 +149,8 @@
 
 .ranking-list__head,
 .ranking-list li {
-  display: flex;
+  display: grid;
+  grid-template-columns: 36px 32px minmax(0, 1fr) 40px minmax(4.5rem, auto);
   align-items: center;
   gap: theme.$spacing-md;
   padding: 0 theme.$spacing-lg;
@@ -133,9 +161,17 @@
   height: 32px;
   border-top: 1px solid theme.$color-border-strong;
 
-  span:first-child { width: 36px; }
-  span:nth-child(2) { flex: 1; }
-  span:nth-child(3) { width: 40px; flex-shrink: 0; text-align: center; }
+  span:nth-child(4) {
+    text-align: center;
+  }
+
+  span:last-child {
+    text-align: right;
+  }
+}
+
+.ranking-list__head-icon {
+  display: block;
 }
 
 .ranking-list {
@@ -158,15 +194,12 @@
   }
 
   &__pos {
-    width: 36px;
-    flex-shrink: 0;
     font-family: theme.$font-mono;
     font-size: 18px;
     color: theme.$color-text-muted;
   }
 
   &__name {
-    flex: 1;
     min-width: 0;
     font-weight: 600;
     color: theme.$color-text;
@@ -178,8 +211,6 @@
   }
 
   &__level {
-    width: 40px;
-    flex-shrink: 0;
     text-align: center;
     font-family: theme.$font-mono;
     font-size: theme.$font-size-heading;
@@ -187,6 +218,7 @@
   }
 
   &__pts {
+    text-align: right;
     font-family: theme.$font-mono;
     font-size: 18px;
     color: theme.$color-primary;

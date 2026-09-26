@@ -99,6 +99,10 @@ export function DashboardPage() {
 
   return (
     <div className="dashboard">
+      <Link to="/server-info" className="dashboard__cerberus-link">
+        Informações do servidor Cerberus (tópicos traduzidos)
+      </Link>
+
       {/* ── Left: Ranking ─────────────────────────────────────────────────── */}
       <Panel
         title="Ranking"
@@ -136,6 +140,7 @@ export function DashboardPage() {
           <div className="ranking-rest">
             <div className="ranking-list__head" aria-hidden="true">
               <span>#</span>
+              <span className="ranking-list__head-icon" />
               <span>Membro</span>
               <span>Lv</span>
               <span>Pontos</span>

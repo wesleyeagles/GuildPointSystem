@@ -21,22 +21,47 @@ import {
   PARTY_MAX_MEMBERS,
   type MyPartyState,
   type PartyMap,
+  type PartyMemberSummary,
   type PartyPendingItem,
   type PartySummary,
 } from '@/Features/Party/Party.types'
 import './Party.styles.scss'
 
-function pendingDescription(p: PartyPendingItem, my: MyPartyState): string {
+function pendingActionLabel(p: PartyPendingItem, my: MyPartyState): string {
   if (p.kind === 'JOIN_REQUEST' && my.leader && my.partyId === p.partyId) {
-    return `${p.otherMember.nickname} pediu para entrar na sua PT`
+    return 'Pediu para entrar na sua PT'
   }
   if (p.kind === 'INVITE' && !my.partyId) {
-    return `Convite para PT (${p.partyMap}) de ${p.otherMember.nickname}`
+    return `Convite para PT (${p.partyMap})`
   }
   if (p.kind === 'JOIN_REQUEST') {
     return `Pedido enviado — aguardando ${p.otherMember.nickname}`
   }
   return `Convite enviado para ${p.otherMember.nickname}`
+}
+
+function PendingMemberPreview({ member }: { member: PartyMemberSummary }) {
+  return (
+    <div className="party-pending__who">
+      {member.classImageUrl ? (
+        <MemberClassIcon
+          classImageUrl={member.classImageUrl}
+          classLabel={member.className ?? member.nickname}
+          size="sm"
+        />
+      ) : (
+        <span className="party-card__roster-fallback" aria-hidden="true">
+          {member.nickname.slice(0, 1).toUpperCase()}
+        </span>
+      )}
+      <div className="party-pending__who-text">
+        <strong>{member.nickname}</strong>
+        <span>
+          {member.className ?? 'Classe'} · Lv {member.level}
+        </span>
+      </div>
+    </div>
+  )
 }
 
 function isIncomingPending(p: PartyPendingItem, my: MyPartyState): boolean {
@@ -204,7 +229,10 @@ export function PartyPage() {
           <div className="party-pending">
             {incoming.map((p) => (
               <div key={p.id} className="party-pending__item">
-                <span className="party-pending__label">{pendingDescription(p, my)}</span>
+                <div className="party-pending__main">
+                  <PendingMemberPreview member={p.otherMember} />
+                  <span className="party-pending__label">{pendingActionLabel(p, my)}</span>
+                </div>
                 <div className="party-pending__actions">
                   <Button
                     size="sm"
@@ -233,7 +261,10 @@ export function PartyPage() {
           <div className="party-pending">
             {outgoing.map((p) => (
               <div key={p.id} className="party-pending__item">
-                <span className="party-pending__label">{pendingDescription(p, my)}</span>
+                <div className="party-pending__main">
+                  <PendingMemberPreview member={p.otherMember} />
+                  <span className="party-pending__label">{pendingActionLabel(p, my)}</span>
+                </div>
                 <Button
                   size="sm"
                   variant="secondary"
@@ -358,7 +389,7 @@ export function PartyPage() {
                           inviteToParty.mutate({ partyId: leaderPartyId, memberId: entry.memberId })
                         }
                       >
-                        Convitar
+                        Convidar
                       </Button>
                     )}
                   </li>

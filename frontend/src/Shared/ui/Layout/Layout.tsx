@@ -19,6 +19,7 @@ const NAV_ITEMS = [
   { to: '/items', label: 'Itens' },
   { to: '/auctions', label: 'Leilões' },
   { to: '/profile', label: 'Perfil' },
+  { to: '/server-info', label: 'Cerberus' },
 ]
 
 const ADMIN_ITEM = { to: '/admin/approvals', label: 'Aprovações' }
