@@ -1,0 +1,78 @@
+.panel {
+  @include theme.panel;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  animation: window-open 0.25s ease-out both;
+
+  &__titlebar {
+    @include theme.panel-titlebar;
+    overflow: hidden;
+    padding-left: theme.$spacing-lg;
+
+    // One-shot light sweep when the window opens
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      width: 25%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.07), transparent);
+      transform: translateX(-100%);
+      animation: titlebar-sweep 0.9s ease-out 0.1s 1 both;
+      pointer-events: none;
+    }
+  }
+
+  &__title {
+    margin: 0;
+    font: inherit;
+    letter-spacing: inherit;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__code {
+    @include theme.tag(theme.$color-text-faint);
+  }
+
+  &__actions {
+    margin-left: auto;
+    margin-right: 48px;
+    display: flex;
+    align-items: center;
+    gap: theme.$spacing-sm;
+    text-transform: none;
+    letter-spacing: 0;
+    font-family: theme.$font-family;
+    font-weight: 500;
+  }
+
+  &__body {
+    padding: theme.$spacing-md theme.$spacing-lg theme.$spacing-lg;
+    flex: 1;
+    min-height: 0;
+  }
+
+  &--flush &__body {
+    padding: 0 0 theme.$spacing-md;
+  }
+
+  &--amber &__titlebar::before { background: theme.$color-amber; }
+
+  &--danger {
+    border-color: rgba(theme.$color-danger, 0.45);
+  }
+
+  &--danger &__titlebar {
+    border-bottom: 0;
+    padding-bottom: 6px;
+    background:
+      repeating-linear-gradient(-45deg, theme.$color-amber 0 6px, rgba(0, 0, 0, 0.85) 6px 12px) left bottom / 100% 5px no-repeat,
+      linear-gradient(180deg, theme.$metal-600 0%, theme.$metal-700 45%, theme.$metal-800 100%);
+
+    &::before { background: theme.$color-danger; }
+  }
+}

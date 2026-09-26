@@ -3,6 +3,7 @@ import { useActiveEvents, useCancelEvent, useCreateEvent } from '@/Domain/Event/
 import { useObjectives } from '@/Domain/Objective/hooks/useObjectives'
 import { useAuthContext } from '@/Features/Auth/contexts/AuthContext'
 import { Button } from '@/Shared/ui/components/Button/Button'
+import { Panel } from '@/Shared/ui/components/Panel/Panel'
 import './Events.styles.scss'
 
 const DURATIONS = [5, 15, 30, 60]
@@ -33,93 +34,98 @@ export function EventsPage() {
 
   return (
     <div className="events-page">
-      <h2>Eventos</h2>
-
       {isAdmin && (
-        <form className="events-form" onSubmit={handleCreate}>
-          <select
-            value={objectiveId}
-            onChange={(e) => setObjectiveId(Number(e.target.value))}
-            required
-          >
-            <option value={0}>Objetivo...</option>
-            {objectives.map((o) => (
-              <option key={o.id} value={o.id}>
-                {o.name} ({o.points} pts)
-              </option>
-            ))}
-          </select>
-          <select
-            value={durationMinutes}
-            onChange={(e) => setDurationMinutes(Number(e.target.value))}
-          >
-            {DURATIONS.map((d) => (
-              <option key={d} value={d}>
-                {d} min
-              </option>
-            ))}
-          </select>
-          <input
-            type="text"
-            maxLength={4}
-            minLength={4}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Senha"
-            required
-          />
-          <Button type="submit" loading={createEvent.isPending}>
-            Criar Evento
-          </Button>
-        </form>
+        <Panel title="Lançar evento" variant="amber" code="ADM">
+          <form className="events-form" onSubmit={handleCreate}>
+            <select
+              value={objectiveId}
+              onChange={(e) => setObjectiveId(Number(e.target.value))}
+              required
+            >
+              <option value={0}>Objetivo...</option>
+              {objectives.map((o) => (
+                <option key={o.id} value={o.id}>
+                  {o.name} ({o.points} pts)
+                </option>
+              ))}
+            </select>
+            <select
+              value={durationMinutes}
+              onChange={(e) => setDurationMinutes(Number(e.target.value))}
+            >
+              {DURATIONS.map((d) => (
+                <option key={d} value={d}>
+                  {d} min
+                </option>
+              ))}
+            </select>
+            <input
+              type="text"
+              maxLength={4}
+              minLength={4}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Senha"
+              className="events-form__password"
+              required
+            />
+            <Button type="submit" loading={createEvent.isPending}>
+              Criar Evento
+            </Button>
+          </form>
+        </Panel>
       )}
 
-      <ul className="events-list">
-        {events.map((event) => (
-          <li key={event.id} className="events-list__item">
-            <div className="events-list__content">
-              <strong>{event.objectiveName}</strong> — {event.points} pts
-              <br />
-              <small>
-                Expira: {new Date(event.expiresAt).toLocaleString()}
-                {event.claimedByMe ? ' (resgatado)' : ''}
-              </small>
-            </div>
-            {isAdmin && (
-              <Button
-                variant="danger"
-                size="sm"
-                onClick={() => setConfirmCancel(event.id)}
-                loading={cancelEvent.isPending && cancelEvent.variables === event.id}
-              >
-                Cancelar
-              </Button>
-            )}
-          </li>
-        ))}
-      </ul>
+      <Panel title="Eventos ativos" code={`${events.length} OPS`}>
+        {events.length === 0 && <p className="events-list__empty">Nenhum evento ativo.</p>}
+        <ul className="events-list">
+          {events.map((event) => (
+            <li
+              key={event.id}
+              className={`events-list__item${event.claimedByMe ? ' events-list__item--claimed' : ''}`}
+            >
+              <div className="events-list__content">
+                <strong>{event.objectiveName}</strong>
+                <div className="events-list__meta">
+                  <span className="events-list__pts">+{event.points} pts</span>
+                  <small>Expira {new Date(event.expiresAt).toLocaleString()}</small>
+                  {event.claimedByMe && <span className="events-list__claimed">Resgatado</span>}
+                </div>
+              </div>
+              {isAdmin && (
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={() => setConfirmCancel(event.id)}
+                  loading={cancelEvent.isPending && cancelEvent.variables === event.id}
+                >
+                  Cancelar
+                </Button>
+              )}
+            </li>
+          ))}
+        </ul>
+      </Panel>
 
       {confirmCancel !== null && (
         <div className="events-confirm-overlay" onClick={() => setConfirmCancel(null)}>
-          <div className="events-confirm" onClick={(e) => e.stopPropagation()}>
-            <p>Cancelar este evento? Membros não poderão mais resgatar.</p>
-            <div className="events-confirm__actions">
-              <button
-                type="button"
-                className="events-confirm__btn events-confirm__btn--cancel"
-                onClick={() => setConfirmCancel(null)}
-              >
-                Voltar
-              </button>
-              <button
-                type="button"
-                className="events-confirm__btn events-confirm__btn--confirm"
-                onClick={() => handleCancel(confirmCancel)}
-                disabled={cancelEvent.isPending}
-              >
-                {cancelEvent.isPending ? 'Cancelando...' : 'Cancelar evento'}
-              </button>
-            </div>
+          <div onClick={(e) => e.stopPropagation()}>
+            <Panel title="Confirmar cancelamento" variant="danger" className="events-confirm">
+              <p>Cancelar este evento? Membros não poderão mais resgatar.</p>
+              <div className="events-confirm__actions">
+                <Button variant="secondary" size="sm" onClick={() => setConfirmCancel(null)}>
+                  Voltar
+                </Button>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={() => handleCancel(confirmCancel)}
+                  disabled={cancelEvent.isPending}
+                >
+                  {cancelEvent.isPending ? 'Cancelando...' : 'Cancelar evento'}
+                </Button>
+              </div>
+            </Panel>
           </div>
         </div>
       )}

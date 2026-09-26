@@ -1,21 +1,29 @@
+@use 'sass:color';
+
 *,
 *::before,
 *::after {
   box-sizing: border-box;
 }
 
+html {
+  color-scheme: dark;
+}
+
 body {
   margin: 0;
-  // Void background + subtle full-page grid overlay (matches auth screen)
+  // Dark gunmetal: fine noise + vignette + faint hex plating behind the content
   background:
-    linear-gradient(rgba(63, 227, 214, 0.018) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(63, 227, 214, 0.018) 1px, transparent 1px),
-    theme.$color-bg;
-  background-size: 48px 48px, 48px 48px, auto;
+    radial-gradient(ellipse 120% 90% at 60% 0%, transparent 40%, rgba(0, 0, 0, 0.75) 100%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='97'%3E%3Cpath d='M28 0l28 16v32L28 64 0 48V16zM28 64v33' fill='none' stroke='%233fe3d6' stroke-opacity='.025'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .035 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+    linear-gradient(180deg, color.adjust(theme.$color-bg, $lightness: 2%), theme.$color-bg);
   background-attachment: fixed;
   color: theme.$color-text;
   font-family: theme.$font-family;
   font-size: theme.$font-size-base;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
 }
 
 #root {
@@ -27,10 +35,56 @@ a {
   text-decoration: none;
 
   &:hover {
-    text-decoration: underline;
+    color: theme.$color-primary-hover;
   }
 }
 
 p {
   margin: 0 0 theme.$spacing-sm;
+}
+
+::selection {
+  background: rgba(theme.$color-amber, 0.35);
+  color: theme.$color-text;
+}
+
+// Chunky metal scrollbars
+* {
+  scrollbar-width: thin;
+  scrollbar-color: theme.$metal-500 theme.$metal-950;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: theme.$metal-950;
+  border-left: 1px solid theme.$color-border;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(90deg, theme.$metal-600, theme.$metal-500);
+  border: 1px solid theme.$color-border-strong;
+}
+
+:focus-visible {
+  outline: 1px dashed theme.$color-amber;
+  outline-offset: 2px;
+}
+
+@keyframes titlebar-sweep {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(400%); }
+}
+
+@keyframes amber-pulse {
+  0%, 100% { color: theme.$color-amber; text-shadow: none; }
+  50%      { color: color.adjust(theme.$color-amber, $lightness: 12%); text-shadow: 0 0 10px rgba(theme.$color-amber, 0.6); }
+}
+
+@keyframes window-open {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
 }

@@ -139,9 +139,12 @@ function EventToastCard({
           </button>
         </div>
       </div>
-      <p>
-        {event.objectiveName} — {event.points} pts
-      </p>
+      <div className="event-toast__body">
+        <span className="event-toast__icon" aria-hidden="true">!</span>
+        <p>
+          {event.objectiveName} — {event.points} pts
+        </p>
+      </div>
       <form onSubmit={handleSubmit} className="event-toast__form">
         <input
           type="text"

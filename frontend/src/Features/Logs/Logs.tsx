@@ -17,6 +17,7 @@ import {
 import { useAuthContext } from '@/Features/Auth/contexts/AuthContext'
 import type { AuditLogEntry } from '@/Domain/types/models'
 import { Button } from '@/Shared/ui/components/Button/Button'
+import { Panel } from '@/Shared/ui/components/Panel/Panel'
 import './Logs.styles.scss'
 
 const PAGE_SIZE = 50
@@ -46,9 +47,12 @@ export function LogsPage() {
   if (isLoading) return <p>Carregando logs...</p>
 
   return (
-    <div className="logs-page">
-      <h2>Logs</h2>
-
+    <Panel
+      title="Registro de auditoria"
+      code={`PG ${String(page + 1).padStart(2, '0')}`}
+      className="logs-page"
+      flush
+    >
       {logs.length === 0 ? (
         <p className="logs-page__empty">Nenhum registro de auditoria.</p>
       ) : (
@@ -103,7 +107,7 @@ export function LogsPage() {
           )}
         </>
       )}
-    </div>
+    </Panel>
   )
 }
 
@@ -152,8 +156,8 @@ function LogListItem({
         .join(' ')}
     >
       <div className="logs-list__header">
-        <span className="logs-list__type">{getLogTypeLabel(log.type)}</span>
         <time className="logs-list__time">{new Date(log.createdAt).toLocaleString()}</time>
+        <span className="logs-list__type">{getLogTypeLabel(log.type)}</span>
       </div>
       <p className="logs-list__details">{formatLogDetails(log)}</p>
       <div className="logs-list__meta">

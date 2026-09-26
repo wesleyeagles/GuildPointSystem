@@ -7,58 +7,80 @@
   flex-direction: column;
   gap: theme.$spacing-sm;
   pointer-events: none;
+  filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.6));
 }
 
 .app-toast {
+  --toast-accent: #{theme.$color-primary};
+  @include theme.panel(theme.$chamfer-md);
   display: flex;
   align-items: center;
-  gap: theme.$spacing-sm;
-  padding: 10px theme.$spacing-md;
-  background: theme.$color-bg-elevated;
-  border: 1px solid theme.$color-border;
-  border-left-width: 3px;
-  min-width: 240px;
-  max-width: 380px;
+  gap: theme.$spacing-md;
+  padding: 10px theme.$spacing-md 14px 10px;
+  min-width: 260px;
+  max-width: 400px;
   pointer-events: all;
   animation: toast-in 0.2s ease;
+
+  // Lifetime bar
+  &::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 3px;
+    background: var(--toast-accent);
+    transform-origin: left;
+    animation: toast-life 3.5s linear forwards;
+  }
 
   @keyframes toast-in {
     from { opacity: 0; transform: translateX(24px); }
     to   { opacity: 1; transform: translateX(0); }
   }
 
-  &--success { border-left-color: theme.$color-success; }
-  &--error   { border-left-color: theme.$color-danger; }
-  &--info    { border-left-color: theme.$color-primary; }
+  @keyframes toast-life {
+    from { transform: scaleX(1); }
+    to   { transform: scaleX(0); }
+  }
+
+  &--success { --toast-accent: #{theme.$color-success}; }
+  &--error   { --toast-accent: #{theme.$color-danger}; }
+  &--info    { --toast-accent: #{theme.$color-primary}; }
 
   &__icon {
-    font-size: theme.$font-size-base;
-    font-weight: 700;
+    @include theme.slot;
+    width: 34px;
+    height: 34px;
+    display: grid;
+    place-items: center;
     flex-shrink: 0;
-
-    .app-toast--success & { color: theme.$color-success; }
-    .app-toast--error &   { color: theme.$color-danger; }
-    .app-toast--info &    { color: theme.$color-primary; }
+    font-family: theme.$font-mono;
+    font-size: 18px;
+    color: var(--toast-accent);
   }
 
   &__msg {
     flex: 1;
     font-family: theme.$font-family;
     font-size: theme.$font-size-base;
+    font-weight: 500;
     color: theme.$color-text;
-    line-height: 1.4;
+    line-height: 1.35;
   }
 
   &__close {
     background: transparent;
     border: none;
     color: theme.$color-text-muted;
-    font-size: 18px;
+    font-family: theme.$font-mono;
+    font-size: 20px;
     line-height: 1;
     cursor: pointer;
-    padding: 0;
+    padding: 0 0 0 4px;
     flex-shrink: 0;
 
-    &:hover { color: theme.$color-text; }
+    &:hover { color: theme.$color-danger; }
   }
 }

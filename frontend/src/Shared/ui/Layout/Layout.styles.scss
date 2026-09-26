@@ -1,125 +1,440 @@
+$drawer-breakpoint: 960px;
+
 .layout {
   min-height: 100vh;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: theme.$sidebar-width minmax(0, 1fr);
 
-  &__header {
-    display: flex;
-    align-items: stretch;
-    padding: 0 theme.$spacing-xl;
-    height: 64px;
-    background: theme.$color-bg-elevated;
-    border-bottom: 1px solid theme.$color-border;
-    border-top: 2px solid theme.$color-primary;
-    box-shadow: 0 0 28px rgba(63, 227, 214, 0.06);
+  // ── Sidebar ────────────────────────────────────────────────────────────────
+  &__sidebar {
     position: sticky;
     top: 0;
-    z-index: 100;
-    gap: 0;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    gap: theme.$spacing-md;
+    padding: theme.$spacing-md theme.$spacing-md theme.$spacing-md;
+    overflow-y: auto;
+    z-index: 200;
+    background:
+      repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.012) 0 1px, transparent 1px 3px),
+      linear-gradient(90deg, theme.$metal-900, theme.$metal-800 70%, theme.$metal-700);
+    border-right: 1px solid theme.$color-border-strong;
+    box-shadow: inset -1px 0 0 theme.$metal-highlight, 6px 0 24px rgba(0, 0, 0, 0.45);
+  }
+
+  &__brand {
+    display: flex;
+    align-items: center;
+    gap: theme.$spacing-sm;
+    padding-bottom: theme.$spacing-md;
+    border-bottom: 1px solid theme.$color-border;
+    position: relative;
+
+    &::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      bottom: -1px;
+      width: 48px;
+      height: 1px;
+      background: theme.$color-amber;
+    }
+  }
+
+  &__logo {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+  }
+
+  &__brand-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
   }
 
   &__title {
     font-family: theme.$font-heading;
-    font-size: theme.$font-size-heading;
-    font-weight: 700;
-    letter-spacing: 5px;
-    color: theme.$color-primary;
-    margin: 0;
-    white-space: nowrap;
+    font-size: theme.$font-size-lg;
+    font-weight: 800;
+    letter-spacing: 1px;
+    line-height: 1;
     text-transform: uppercase;
-    padding-right: theme.$spacing-lg;
-    margin-right: theme.$spacing-lg;
-    border-right: 1px solid theme.$color-border;
-    display: flex;
-    align-items: center;
-    text-shadow: 0 0 14px rgba(63, 227, 214, 0.45);
+    color: theme.$color-text;
   }
 
+  &__subtitle {
+    margin-top: 4px;
+    font-family: theme.$font-mono;
+    font-size: theme.$font-size-heading;
+    color: theme.$color-text-faint;
+    text-transform: uppercase;
+  }
+
+  // Member sheet
+  &__member {
+    @include theme.card;
+    display: flex;
+    flex-direction: column;
+    gap: theme.$spacing-sm;
+    padding: theme.$spacing-sm;
+  }
+
+  &__member-head {
+    display: flex;
+    align-items: center;
+    gap: theme.$spacing-sm;
+    min-width: 0;
+  }
+
+  &__member-slot {
+    @include theme.slot(4px);
+    width: 46px;
+    height: 46px;
+    flex-shrink: 0;
+  }
+
+  &__member-id {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  &__member-name {
+    font-family: theme.$font-heading;
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    color: theme.$color-text;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__member-role {
+    font-family: theme.$font-mono;
+    font-size: theme.$font-size-heading;
+    color: theme.$color-text-muted;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__gauge {
+    @include theme.readout;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 6px 8px 8px;
+  }
+
+  &__gauge-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+
+  &__gauge-label {
+    font-family: theme.$font-family;
+    font-size: theme.$font-size-base;
+    color: theme.$color-text-muted;
+  }
+
+  &__gauge-value {
+    font-size: 20px;
+    color: theme.$color-amber;
+
+    &--cyan { color: theme.$color-primary; }
+  }
+
+  &__gauge-bar {
+    margin-top: 4px;
+    height: 6px;
+    background: repeating-linear-gradient(90deg, theme.$metal-700 0 6px, transparent 6px 8px);
+
+    span {
+      display: block;
+      height: 100%;
+      background: repeating-linear-gradient(90deg, theme.$color-primary 0 6px, transparent 6px 8px);
+      transition: width 0.4s ease;
+    }
+  }
+
+  // Navigation slots
   &__nav {
     display: flex;
-    align-items: stretch;
+    flex-direction: column;
+    gap: 6px;
     flex: 1;
-    gap: 0;
   }
 
   &__nav-link {
+    @include theme.chamfer(theme.$chamfer-sm);
     display: flex;
     align-items: center;
-    height: 100%;
-    padding: 0 theme.$spacing-md;
-    font-family: theme.$font-heading;
-    font-size: theme.$font-size-heading;
-    letter-spacing: 2px;
-    color: theme.$color-text-muted;
-    text-decoration: none;
-    text-transform: uppercase;
+    gap: theme.$spacing-sm;
+    padding: 8px 10px;
     position: relative;
-    transition: color 0.15s;
-    white-space: nowrap;
+    font-family: theme.$font-heading;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: theme.$color-text-muted;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid theme.$color-border;
+    transition: color 0.12s, background 0.12s, border-color 0.12s;
 
     &:hover {
       color: theme.$color-text;
-      text-decoration: none;
+      border-color: theme.$color-border-strong;
+      background: linear-gradient(90deg, theme.$metal-700, rgba(0, 0, 0, 0.2));
     }
 
     &--active {
-      color: theme.$color-primary;
+      // Mirror the chamfer so the active slot reads as "pressed in"
+      clip-path: polygon(0 0, calc(100% - #{theme.$chamfer-sm}) 0, 100% theme.$chamfer-sm, 100% 100%, theme.$chamfer-sm 100%, 0 calc(100% - #{theme.$chamfer-sm}));
+      color: theme.$color-text;
+      border-color: theme.$color-border-strong;
+      background:
+        linear-gradient(90deg, rgba(theme.$color-primary, 0.14), transparent 70%),
+        theme.metal-surface(theme.$metal-600, theme.$metal-800);
+      @include theme.bevel;
 
-      &::after {
+      &::before {
         content: '';
         position: absolute;
-        bottom: 0;
         left: 0;
-        right: 0;
-        height: 2px;
+        top: 4px;
+        bottom: 4px;
+        width: 3px;
         background: theme.$color-primary;
-        box-shadow: 0 0 8px theme.$color-primary;
+      }
+
+      .layout__nav-key {
+        color: theme.$color-on-primary;
+        background: theme.$color-primary;
+        border-color: theme.$color-primary;
+      }
+    }
+
+    &:hover,
+    &:focus {
+      text-decoration: none;
+    }
+  }
+
+  &__nav-key {
+    @include theme.tag;
+    min-width: 40px;
+    justify-content: center;
+    letter-spacing: 0;
+  }
+
+  &__nav-label {
+    white-space: nowrap;
+  }
+
+  &__admin {
+    margin-top: theme.$spacing-sm;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  &__admin-strip {
+    @include theme.hazard-stripe(theme.$color-amber, 5px);
+    height: 6px;
+    opacity: 0.75;
+  }
+
+  &__nav-link--admin {
+    .layout__nav-key { color: theme.$color-amber; }
+
+    &.layout__nav-link--active {
+      &::before { background: theme.$color-amber; }
+
+      .layout__nav-key {
+        background: theme.$color-amber;
+        border-color: theme.$color-amber;
       }
     }
   }
 
-  &__user {
+  &__logout {
+    @include theme.chamfer(theme.$chamfer-sm);
     display: flex;
     align-items: center;
-    gap: theme.$spacing-md;
-    padding-left: theme.$spacing-lg;
-    border-left: 1px solid theme.$color-border;
-    font-family: theme.$font-family;
-    font-size: theme.$font-size-base;
-    font-weight: 600;
-    white-space: nowrap;
-  }
-
-  &__points {
+    gap: theme.$spacing-sm;
+    padding: 8px 10px;
     font-family: theme.$font-heading;
-    font-size: theme.$font-size-heading;
-    letter-spacing: 1.5px;
-    color: theme.$color-primary;
-    text-shadow: 0 0 8px rgba(63, 227, 214, 0.3);
-  }
-
-  &__logout {
-    background: transparent;
-    border: 1px solid theme.$color-border;
-    color: theme.$color-text-muted;
-    padding: 8px 18px;
-    font-family: theme.$font-heading;
-    font-size: theme.$font-size-heading;
-    letter-spacing: 2px;
-    cursor: pointer;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 1px;
     text-transform: uppercase;
-    transition: border-color 0.15s, color 0.15s;
-    border-radius: 0;
+    color: theme.$color-text-muted;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid theme.$color-border;
+    cursor: pointer;
+    transition: color 0.12s, border-color 0.12s;
 
     &:hover {
       color: theme.$color-danger;
-      border-color: theme.$color-danger;
+      border-color: rgba(theme.$color-danger, 0.6);
+
+      .layout__nav-key { color: theme.$color-danger; }
+    }
+  }
+
+  // ── Content ────────────────────────────────────────────────────────────────
+  &__content {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  &__status {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: theme.$spacing-md;
+    height: 52px;
+    padding: 0 theme.$spacing-xl;
+    background:
+      linear-gradient(180deg, rgba(theme.$color-bg, 0.96), rgba(theme.$color-bg, 0.88));
+    backdrop-filter: blur(4px);
+    border-bottom: 1px solid theme.$color-border;
+
+    &::after {
+      content: '';
+      position: absolute;
+      left: theme.$spacing-xl;
+      bottom: -1px;
+      width: 120px;
+      height: 1px;
+      background: theme.$color-primary;
+    }
+  }
+
+  &__page-title {
+    margin: 0;
+    font-family: theme.$font-heading;
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: theme.$color-text;
+  }
+
+  &__status-right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: theme.$spacing-md;
+  }
+
+  &__socket {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: theme.$font-mono;
+    font-size: theme.$font-size-heading;
+    text-transform: uppercase;
+    color: theme.$color-text-muted;
+
+    &::before {
+      content: '';
+      width: 8px;
+      height: 8px;
+      background: currentColor;
+      clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+    }
+
+    &--connected { color: theme.$color-success; }
+    &--connecting { color: theme.$color-amber; }
+    &--disconnected { color: theme.$color-danger; }
+  }
+
+  &__clock {
+    @include theme.readout(theme.$color-text);
+    font-size: theme.$font-size-base;
+  }
+
+  &__menu-toggle {
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    width: 38px;
+    height: 34px;
+    padding: 0 9px;
+    background: theme.$metal-700;
+    border: 1px solid theme.$color-border-strong;
+    cursor: pointer;
+    @include theme.chamfer(4px);
+
+    span {
+      display: block;
+      height: 2px;
+      background: theme.$color-text;
     }
   }
 
   &__main {
-    padding: theme.$spacing-xl;
+    padding: theme.$spacing-lg theme.$spacing-xl theme.$spacing-xl;
     flex: 1;
     min-height: 0;
+  }
+
+  &__scrim {
+    display: none;
+  }
+
+  // ── Drawer mode ────────────────────────────────────────────────────────────
+  @media (max-width: $drawer-breakpoint) {
+    grid-template-columns: minmax(0, 1fr);
+
+    &__sidebar {
+      position: fixed;
+      left: 0;
+      top: 0;
+      width: theme.$sidebar-width;
+      transform: translateX(-100%);
+      transition: transform 0.22s ease;
+    }
+
+    &--drawer-open &__sidebar {
+      transform: none;
+    }
+
+    &__scrim {
+      position: fixed;
+      inset: 0;
+      z-index: 150;
+      border: 0;
+      padding: 0;
+      background: rgba(0, 0, 0, 0.6);
+    }
+
+    &--drawer-open &__scrim {
+      display: block;
+    }
+
+    &__menu-toggle {
+      display: flex;
+    }
+
+    &__status {
+      padding: 0 theme.$spacing-md;
+
+      &::after { left: theme.$spacing-md; }
+    }
+
+    &__main {
+      padding: theme.$spacing-md;
+    }
   }
 }

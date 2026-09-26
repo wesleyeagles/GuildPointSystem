@@ -2,6 +2,12 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link, Outlet, useLocation } from 'react-router-dom'
 import './Auth.styles.scss'
 
+const FACTIONS = [
+  { key: 'accretia', glyph: 'A', name: 'Accretia', role: 'Império mecânico' },
+  { key: 'bellato', glyph: 'B', name: 'Bellato', role: 'União industrial' },
+  { key: 'cora', glyph: 'C', name: 'Cora', role: 'Ordem mística' },
+]
+
 /**
  * Layout route that wraps /login and /register.
  * Stays mounted during navigation between the two so CSS transitions
@@ -37,76 +43,73 @@ export function AuthShell() {
 
   return (
     <div className="auth-stage">
-      <div className="auth-frame-corner fc-tl" />
-      <div className="auth-frame-corner fc-br" />
+      <header className="auth-topbar">
+        <span className="auth-topbar__brand">Rising Force · Guild Network</span>
+        <span className="auth-topbar__hazard" aria-hidden="true" />
+        <span className="auth-topbar__tag">BUILD 2.0</span>
+      </header>
 
-      {/* ── Left lore panel ─────────────────────────────────────────────── */}
-      <div className="auth-lore">
-        <div className="auth-lore-logo">
+      <div className="auth-layout">
+        {/* ── Lore / launcher news panel ──────────────────────────────────── */}
+        <aside className="auth-lore">
           <img src="/Logo-Blacklist.png" alt="Blacklist" className="auth-logo" />
-        </div>
-        <div className="auth-lore-content">
-          <p className="lore-eyebrow">RISING FORCE · GUILD NETWORK V2</p>
-          <h1 className="lore-title">
-            Acesse o<br />
-            <span>terminal da guild</span>
-          </h1>
+          <p className="lore-eyebrow">Terminal da guild</p>
           <p className="lore-desc">
-            Reivindique seu posto na frente de batalha. Pontos, leilões e eventos
-            sincronizados em tempo real entre os membros.
+            Pontos, leilões e eventos sincronizados em tempo real entre os membros.
           </p>
           <div className="faction-strip">
-            <div className="faction-chip">
-              <div className="chip-name">ACCRETIA</div>
-              <div className="chip-role">Império mecânico</div>
-            </div>
-            <div className="faction-chip">
-              <div className="chip-name">BELLATO</div>
-              <div className="chip-role">União industrial</div>
-            </div>
-            <div className="faction-chip">
-              <div className="chip-name">CORA</div>
-              <div className="chip-role">Ordem mística</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Right auth panel (width animates via CSS transition + class) ── */}
-      <div className={`auth-panel${isRegister ? ' auth-panel--wide' : ''}`}>
-        <div className="auth-card">
-          {/*
-           * This div's height is driven by JS (ResizeObserver) so CSS can
-           * transition it. The inner div is what gets measured.
-           */}
-          <div
-            className="auth-card-body"
-            style={{
-              height: bodyHeight !== null ? `${bodyHeight}px` : 'auto',
-              overflow: 'hidden',
-              transition: bodyHeight !== null
-                ? 'height 0.42s cubic-bezier(0.4, 0, 0.2, 1)'
-                : 'none',
-            }}
-          >
-            <div ref={contentRef}>
-              <div className="auth-tabs">
-                <Link
-                  to="/login"
-                  className={`auth-tab${!isRegister ? ' active' : ''}`}
-                >
-                  Entrar
-                </Link>
-                <Link
-                  to="/register"
-                  className={`auth-tab${isRegister ? ' active' : ''}`}
-                >
-                  Cadastro
-                </Link>
+            {FACTIONS.map((f) => (
+              <div key={f.key} className={`faction-chip faction-chip--${f.key}`}>
+                <span className="chip-emblem" aria-hidden="true">{f.glyph}</span>
+                <div>
+                  <div className="chip-name">{f.name}</div>
+                  <div className="chip-role">{f.role}</div>
+                </div>
               </div>
+            ))}
+          </div>
+        </aside>
 
-              {/* Actual page content (LoginPage or RegisterPage) */}
-              <Outlet />
+        {/* ── Access window (width animates via CSS transition + class) ───── */}
+        <div className={`auth-panel${isRegister ? ' auth-panel--wide' : ''}`}>
+          <div className="auth-card">
+            <div className="auth-window-bar">
+              <span>{isRegister ? 'Novo registro' : 'Terminal de acesso'}</span>
+              <span className="auth-window-bar__code">SEC-{isRegister ? '02' : '01'}</span>
+            </div>
+            {/*
+             * This div's height is driven by JS (ResizeObserver) so CSS can
+             * transition it. The inner div is what gets measured.
+             */}
+            <div
+              className="auth-card-body"
+              style={{
+                height: bodyHeight !== null ? `${bodyHeight}px` : 'auto',
+                overflow: 'hidden',
+                transition: bodyHeight !== null
+                  ? 'height 0.42s cubic-bezier(0.4, 0, 0.2, 1)'
+                  : 'none',
+              }}
+            >
+              <div ref={contentRef} className="auth-card-content">
+                <div className="auth-tabs">
+                  <Link
+                    to="/login"
+                    className={`auth-tab${!isRegister ? ' active' : ''}`}
+                  >
+                    Entrar
+                  </Link>
+                  <Link
+                    to="/register"
+                    className={`auth-tab${isRegister ? ' active' : ''}`}
+                  >
+                    Cadastro
+                  </Link>
+                </div>
+
+                {/* Actual page content (LoginPage or RegisterPage) */}
+                <Outlet />
+              </div>
             </div>
           </div>
         </div>

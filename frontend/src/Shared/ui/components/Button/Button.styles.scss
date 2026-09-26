@@ -1,15 +1,24 @@
+@use 'sass:color';
+
 .btn {
+  @include theme.chamfer(theme.$chamfer-sm);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: theme.$spacing-sm;
+  position: relative;
   border-radius: 0;
   font-family: theme.$font-heading;
-  font-weight: 700;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 1.5px;
+  letter-spacing: 1px;
+  line-height: 1;
   cursor: pointer;
-  transition: filter 0.15s, background 0.15s, border-color 0.15s, color 0.15s;
+  transition: filter 0.12s, background 0.12s, border-color 0.12s, color 0.12s, transform 0.06s;
+
+  &:active:not(:disabled) {
+    transform: translateY(1px);
+  }
 
   &:disabled {
     opacity: 0.45;
@@ -17,59 +26,82 @@
   }
 
   &--sm {
-    padding: 8px 16px;
-    font-size: theme.$font-size-heading;
-    letter-spacing: 1.5px;
+    padding: 8px 14px;
+    font-size: theme.$font-size-ui;
   }
 
   &--md {
-    padding: 10px 22px;
-    font-size: theme.$font-size-heading;
-    letter-spacing: 2px;
+    padding: 11px 20px;
+    font-size: theme.$font-size-ui;
   }
 
   &--lg {
     padding: 14px 28px;
-    font-size: theme.$font-size-heading;
-    letter-spacing: 3px;
+    font-size: 18px;
+    letter-spacing: 1.5px;
   }
 
+  // Lit cyan plate
   &--primary {
-    background: linear-gradient(90deg, theme.$color-primary, #6fe9c8);
-    color: #06140f;
-    border: none;
+    color: theme.$color-on-primary;
+    border: 1px solid color.adjust(theme.$color-primary, $lightness: 12%);
+    background:
+      theme.chamfer-edges(theme.$chamfer-sm, color.adjust(theme.$color-primary, $lightness: 12%)),
+      linear-gradient(180deg, color.adjust(theme.$color-primary, $lightness: 8%) 0%, theme.$color-primary 45%, theme.$color-cyan-dim 100%);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.45),
+      inset 0 -2px 0 rgba(0, 0, 0, 0.25);
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.25);
 
-    &:hover:not(:disabled) { filter: brightness(1.08); }
+    &:hover:not(:disabled) { filter: brightness(1.1); }
   }
 
+  // Gunmetal plate
   &--secondary {
-    background: transparent;
     color: theme.$color-text;
-    border: 1px solid theme.$color-border;
+    border: 1px solid theme.$color-border-strong;
+    background:
+      theme.chamfer-edges(theme.$chamfer-sm, theme.$color-border-strong),
+      theme.metal-surface(theme.$metal-600, theme.$metal-800);
+    @include theme.bevel;
 
     &:hover:not(:disabled) {
-      border-color: theme.$color-cyan-dim;
       color: theme.$color-primary;
+      border-color: theme.$color-cyan-dim;
+      background:
+        theme.chamfer-edges(theme.$chamfer-sm, theme.$color-cyan-dim),
+        theme.metal-surface(theme.$metal-500, theme.$metal-700);
     }
   }
 
+  // Dark plate with hazard edge along the bottom
   &--danger {
-    background: transparent;
     color: theme.$color-danger;
-    border: 1px solid theme.$color-danger;
+    border: 1px solid rgba(theme.$color-danger, 0.6);
+    background:
+      theme.chamfer-edges(theme.$chamfer-sm, rgba(theme.$color-danger, 0.6)),
+      repeating-linear-gradient(-45deg, rgba(theme.$color-danger, 0.8) 0 5px, transparent 5px 10px) left bottom / 100% 3px no-repeat,
+      theme.metal-surface(theme.$metal-700, theme.$metal-900);
+    @include theme.bevel;
 
     &:hover:not(:disabled) {
-      background: rgba(255, 92, 92, 0.08);
+      color: theme.$color-text;
+      background:
+        theme.chamfer-edges(theme.$chamfer-sm, theme.$color-danger),
+        repeating-linear-gradient(-45deg, theme.$color-danger 0 5px, transparent 5px 10px) left bottom / 100% 3px no-repeat,
+        linear-gradient(180deg, rgba(theme.$color-danger, 0.35), rgba(theme.$color-danger, 0.15));
     }
   }
 
   &--ghost {
+    clip-path: none;
     background: transparent;
     color: theme.$color-text-muted;
-    border: none;
+    border: 1px solid transparent;
 
     &:hover:not(:disabled) {
       color: theme.$color-text;
+      border-color: theme.$color-border;
     }
   }
 }

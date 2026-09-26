@@ -4,6 +4,7 @@ import { useMemberRanking } from '@/Domain/Member/hooks/useMembers'
 import { useActiveEvents, useClaimEvent } from '@/Domain/Event/hooks/useEvents'
 import { Button } from '@/Shared/ui/components/Button/Button'
 import { MemberClassIcon } from '@/Shared/ui/components/MemberClassIcon/MemberClassIcon'
+import { Panel } from '@/Shared/ui/components/Panel/Panel'
 import { useAppToast } from '@/Shared/ui/components/AppToast/AppToast'
 import './Dashboard.styles.scss'
 
@@ -99,9 +100,11 @@ export function DashboardPage() {
   return (
     <div className="dashboard">
       {/* ── Left: Ranking ─────────────────────────────────────────────────── */}
-      <section className="dashboard__col dashboard__col--ranking">
-        <h2>Ranking</h2>
-
+      <Panel
+        title="Ranking"
+        code={`${ranking.length} MBR`}
+        className="dashboard__col dashboard__col--ranking"
+      >
         <div className="podium">
           {[1, 0, 2].map((rankIdx) => {
             const member = top3[rankIdx]
@@ -109,16 +112,20 @@ export function DashboardPage() {
             const place = rankIdx + 1
             return (
               <div key={member.id} className={`podium__slot podium__slot--${place}`}>
-                <span className="podium__place">{place}º</span>
-                <MemberClassIcon
-                  classImageUrl={member.classImageUrl}
-                  classLabel={member.className}
-                  size="md"
-                />
-                <Link to={`/profile/${member.id}`} className="podium__name podium__name--link">
-                  {member.nickname}
-                </Link>
-                <span className="podium__points">{member.points} pts</span>
+                <div className="podium__card">
+                  <MemberClassIcon
+                    classImageUrl={member.classImageUrl}
+                    classLabel={member.className}
+                    size="md"
+                  />
+                  <Link to={`/profile/${member.id}`} className="podium__name podium__name--link">
+                    {member.nickname}
+                  </Link>
+                  <span className="podium__points">{member.points}</span>
+                </div>
+                <div className="podium__pedestal">
+                  <span className="podium__place">{place}</span>
+                </div>
               </div>
             )
           })}
@@ -126,10 +133,17 @@ export function DashboardPage() {
 
         {rest.length > 0 && (
           <div className="ranking-rest">
+            <div className="ranking-list__head" aria-hidden="true">
+              <span>#</span>
+              <span>Membro</span>
+              <span>Pontos</span>
+            </div>
             <ul className="ranking-list">
               {pagedRest.map((m, i) => (
                 <li key={m.id}>
-                  <span>{rankPage * RANK_PER_PAGE + i + 4}º</span>
+                  <span className="ranking-list__pos">
+                    {String(rankPage * RANK_PER_PAGE + i + 4).padStart(2, '0')}
+                  </span>
                   <MemberClassIcon
                     classImageUrl={m.classImageUrl}
                     classLabel={m.className}
@@ -137,19 +151,22 @@ export function DashboardPage() {
                   <Link to={`/profile/${m.id}`} className="ranking-list__name">
                     {m.nickname}
                   </Link>
-                  <span>{m.points} pts</span>
+                  <span className="ranking-list__pts">{m.points}</span>
                 </li>
               ))}
             </ul>
             <Pagination page={rankPage} total={rankTotalPages} onChange={setRankPage} />
           </div>
         )}
-      </section>
+      </Panel>
 
       {/* ── Right: Active Events ──────────────────────────────────────────── */}
-      <section className="dashboard__col dashboard__col--events">
-        <h2>Eventos Ativos</h2>
-
+      <Panel
+        title="Eventos Ativos"
+        variant="amber"
+        code={`${unclaimedEvents.length} OPS`}
+        className="dashboard__col dashboard__col--events"
+      >
         {unclaimedEvents.length === 0 ? (
           <p className="dashboard__empty">Nenhum evento ativo no momento.</p>
         ) : (
@@ -159,8 +176,18 @@ export function DashboardPage() {
                 <li key={event.id} className="event-list__item">
                   <div className="event-list__info">
                     <strong>{event.objectiveName}</strong>
-                    <span className="event-list__pts">{event.points} pts</span>
-                    <small>Expira: {new Date(event.expiresAt).toLocaleString()}</small>
+                    <div className="event-list__meta">
+                      <span className="event-list__pts">+{event.points} pts</span>
+                      <small>
+                        Expira{' '}
+                        {new Date(event.expiresAt).toLocaleString('pt-BR', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </small>
+                    </div>
                   </div>
                   <div className="event-list__claim-wrap">
                     <div className="event-list__claim">
@@ -199,7 +226,7 @@ export function DashboardPage() {
             <Pagination page={eventPage} total={eventTotalPages} onChange={setEventPage} />
           </div>
         )}
-      </section>
+      </Panel>
     </div>
   )
 }

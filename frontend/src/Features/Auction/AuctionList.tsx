@@ -4,6 +4,7 @@ import { useAuctions, useCreateAuction } from '@/Domain/Auction/hooks/useAuction
 import { useItems } from '@/Domain/Item/hooks/useItems'
 import { useAuthContext } from '@/Features/Auth/contexts/AuthContext'
 import { Button } from '@/Shared/ui/components/Button/Button'
+import { Panel } from '@/Shared/ui/components/Panel/Panel'
 import type { Auction } from '@/Domain/types/models'
 import './Auction.styles.scss'
 
@@ -39,39 +40,49 @@ function AuctionListSection({
   auctions: Auction[]
   emptyText?: string
 }) {
-  if (auctions.length === 0) {
-    return emptyText ? <p className="auction-page__empty">{emptyText}</p> : null
-  }
+  if (auctions.length === 0 && !emptyText) return null
 
   return (
-    <section className="auction-page__section">
-      <h3 className="auction-page__section-title">{title}</h3>
-      <ul className="auction-list">
-        {auctions.map((auction) => (
-          <li
-            key={auction.id}
-            className={`auction-list__item${auction.status === 'CLOSED' ? ' auction-list__item--closed' : ''}`}
-          >
-            <div>
-              <strong>
-                {auction.items.map((i) => i.itemName).join(', ') || `Leilão #${auction.id}`}
-              </strong>
-              <br />
-              <small>
-                Lance: {auction.currentBid} pts · {STATUS_LABEL[auction.status] ?? auction.status}
-                {auction.winnerNickname ? ` · Vencedor: ${auction.winnerNickname}` : ''}
-                {auction.tiedCount > 1 ? ` · ${auction.tiedCount} empatados` : ''}
-              </small>
-            </div>
-            <Link to={`/auctions/${auction.id}`}>
-              <Button variant="secondary" size="sm">
-                Ver
-              </Button>
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </section>
+    <Panel title={title} code={`${auctions.length} LOT`} flush>
+      {auctions.length === 0 ? (
+        <p className="auction-page__empty">{emptyText}</p>
+      ) : (
+        <ul className="auction-list">
+          {auctions.map((auction) => (
+            <li
+              key={auction.id}
+              className={`auction-list__item${auction.status === 'CLOSED' ? ' auction-list__item--closed' : ''}`}
+            >
+              <span className="auction-list__lot">#{String(auction.id).padStart(3, '0')}</span>
+              <div className="auction-list__info">
+                <strong>
+                  {auction.items.map((i) => i.itemName).join(', ') || `Leilão #${auction.id}`}
+                </strong>
+                <small>
+                  {[
+                    auction.winnerNickname ? `Vencedor: ${auction.winnerNickname}` : '',
+                    auction.tiedCount > 1 ? `${auction.tiedCount} empatados` : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </small>
+              </div>
+              <span
+                className={`auction-list__status auction-list__status--${auction.status.toLowerCase()}`}
+              >
+                {STATUS_LABEL[auction.status] ?? auction.status}
+              </span>
+              <span className="auction-list__bid">{auction.currentBid}</span>
+              <Link to={`/auctions/${auction.id}`}>
+                <Button variant="secondary" size="sm">
+                  Ver
+                </Button>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Panel>
   )
 }
 
@@ -114,68 +125,66 @@ export function AuctionListPage() {
 
   return (
     <div className="auction-page">
-      <div className="auction-page__header">
-        <h2>Leilões</h2>
-      </div>
-
       {isAdmin && (
-        <form className="auction-form" onSubmit={handleCreate}>
-          <div className="auction-form__row">
-            <label className="auction-form__field">
-              <span>Duração</span>
-              <select
-                value={durationMinutes}
-                onChange={(e) => setDurationMinutes(Number(e.target.value))}
-              >
-                {DURATIONS.map((d) => (
-                  <option key={d.value} value={d.value}>
-                    {d.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-
-          <fieldset className="auction-form__items">
-            <legend>Itens do leilão</legend>
-            {entries.map((entry, index) => (
-              <div key={index} className="auction-form__item-row">
+        <Panel title="Abrir leilão" variant="amber" code="ADM">
+          <form className="auction-form" onSubmit={handleCreate}>
+            <div className="auction-form__row">
+              <label className="auction-form__field">
+                <span>Duração</span>
                 <select
-                  value={entry.itemId}
-                  onChange={(e) => updateEntry(index, { itemId: Number(e.target.value) })}
-                  required={index === 0}
+                  value={durationMinutes}
+                  onChange={(e) => setDurationMinutes(Number(e.target.value))}
                 >
-                  <option value={0}>Selecione um item...</option>
-                  {items.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.name}
+                  {DURATIONS.map((d) => (
+                    <option key={d.value} value={d.value}>
+                      {d.label}
                     </option>
                   ))}
                 </select>
-                <input
-                  type="number"
-                  min={1}
-                  value={entry.quantity}
-                  onChange={(e) => updateEntry(index, { quantity: Number(e.target.value) })}
-                  aria-label="Quantidade"
-                  required
-                />
-                {entries.length > 1 && (
-                  <Button type="button" variant="secondary" size="sm" onClick={() => removeEntry(index)}>
-                    Remover
-                  </Button>
-                )}
-              </div>
-            ))}
-            <Button type="button" variant="secondary" size="sm" onClick={addEntry}>
-              + Adicionar item
-            </Button>
-          </fieldset>
+              </label>
+            </div>
 
-          <Button type="submit" loading={createAuction.isPending} disabled={items.length === 0}>
-            Criar Leilão
-          </Button>
-        </form>
+            <fieldset className="auction-form__items">
+              <legend>Itens do leilão</legend>
+              {entries.map((entry, index) => (
+                <div key={index} className="auction-form__item-row">
+                  <select
+                    value={entry.itemId}
+                    onChange={(e) => updateEntry(index, { itemId: Number(e.target.value) })}
+                    required={index === 0}
+                  >
+                    <option value={0}>Selecione um item...</option>
+                    {items.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.name}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="number"
+                    min={1}
+                    value={entry.quantity}
+                    onChange={(e) => updateEntry(index, { quantity: Number(e.target.value) })}
+                    aria-label="Quantidade"
+                    required
+                  />
+                  {entries.length > 1 && (
+                    <Button type="button" variant="secondary" size="sm" onClick={() => removeEntry(index)}>
+                      Remover
+                    </Button>
+                  )}
+                </div>
+              ))}
+              <Button type="button" variant="secondary" size="sm" onClick={addEntry}>
+                + Adicionar item
+              </Button>
+            </fieldset>
+
+            <Button type="submit" loading={createAuction.isPending} disabled={items.length === 0}>
+              Criar Leilão
+            </Button>
+          </form>
+        </Panel>
       )}
 
       <AuctionListSection title="Em andamento" auctions={active} emptyText="Nenhum leilão aberto." />

@@ -7,6 +7,7 @@ import { useItemSeeds } from '@/Domain/Seed/hooks/useItemSeeds'
 import { useRaces } from '@/Domain/Seed/hooks/useSeeds'
 import { useUploadImage } from '@/Domain/Upload/hooks/useUpload'
 import { Button } from '@/Shared/ui/components/Button/Button'
+import { Panel } from '@/Shared/ui/components/Panel/Panel'
 import { CastPicker } from '@/Features/Items/components/CastPicker/CastPicker'
 import { useAppToast } from '@/Shared/ui/components/AppToast/AppToast'
 import './CreateItemForm.styles.scss'
@@ -631,8 +632,8 @@ export function CreateItemForm({ onSuccess }: { onSuccess?: () => void } = {}) {
   const isSubmitting = createItem.isPending || uploadImage.isPending
 
   return (
+    <Panel title="Criar item" variant="amber" code="NEW">
     <form key={formKey} className="create-item-form" onSubmit={handleSubmit}>
-      <h3>Criar item</h3>
 
       <div className="create-item-form__grid">
         <label>
@@ -862,5 +863,6 @@ export function CreateItemForm({ onSuccess }: { onSuccess?: () => void } = {}) {
         </Button>
       </div>
     </form>
+    </Panel>
   )
 }

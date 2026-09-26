@@ -1,71 +1,61 @@
+// ── List page (auction house) ────────────────────────────────────────────────
 .auction-page {
-  &__header {
-    margin-bottom: theme.$spacing-lg;
-
-    h2 {
-      @include theme.page-heading;
-      margin: 0;
-      border-bottom: none;
-      padding-bottom: 0;
-    }
-  }
+  display: flex;
+  flex-direction: column;
+  gap: theme.$spacing-lg;
 
   &__empty {
     color: theme.$color-text-muted;
     font-size: theme.$font-size-base;
-    padding: theme.$spacing-lg 0;
-  }
-
-  &__section {
-    margin-bottom: theme.$spacing-xl;
-  }
-
-  &__section-title {
-    font-family: theme.$font-heading;
-    font-size: theme.$font-size-heading;
-    letter-spacing: 2.5px;
-    text-transform: uppercase;
-    color: theme.$color-text-muted;
-    margin: 0 0 theme.$spacing-md;
+    padding: theme.$spacing-lg;
+    margin: 0;
   }
 }
 
 .auction-form {
-  @include theme.card;
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   gap: theme.$spacing-md;
-  margin-bottom: theme.$spacing-lg;
 
   &__row {
     display: flex;
     flex-wrap: wrap;
     gap: theme.$spacing-sm;
+    width: 100%;
   }
 
   &__field {
     display: flex;
     flex-direction: column;
     gap: 4px;
-    flex: 1;
-    min-width: 140px;
+    min-width: 180px;
 
     span {
-      @include theme.field-label-heading;
+      @include theme.field-label;
     }
   }
 
   &__items {
-    border: 1px solid theme.$color-border;
-    padding: theme.$spacing-md;
+    @include theme.card;
+    width: 100%;
     margin: 0;
+    padding: theme.$spacing-lg theme.$spacing-md theme.$spacing-md;
 
     legend {
+      float: left;
+      width: calc(100% + #{theme.$spacing-md * 2});
+      margin: calc(-1 * #{theme.$spacing-lg}) (-(theme.$spacing-md)) theme.$spacing-md;
+      padding: 6px theme.$spacing-md;
       font-family: theme.$font-heading;
-      font-size: theme.$font-size-heading;
-      letter-spacing: 2px;
+      font-size: theme.$font-size-ui;
+      font-weight: 800;
+      letter-spacing: 1px;
       text-transform: uppercase;
-      padding: 0 theme.$spacing-xs;
+      background: linear-gradient(180deg, theme.$metal-600, theme.$metal-700);
+      border-bottom: 1px solid theme.$color-border-strong;
+
+      + * { clear: both; }
     }
   }
 
@@ -78,17 +68,20 @@
 
     select {
       flex: 2;
-      min-width: 180px;
+      min-width: 200px;
     }
 
     input[type='number'] {
-      width: 80px;
+      width: 90px;
+      text-align: center;
+      font-family: theme.$font-mono;
     }
   }
 
   input,
   select {
     @include theme.field-input;
+    @include theme.field-control-height;
   }
 }
 
@@ -98,37 +91,21 @@
   margin: 0;
 
   &__item {
-    @include theme.card;
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    margin-bottom: theme.$spacing-sm;
-    transition: border-left-color 0.15s;
+    gap: theme.$spacing-md;
+    padding: 10px theme.$spacing-lg;
+    border-bottom: 1px solid theme.$color-border;
+    transition: background 0.1s;
+
+    &:nth-child(even) { background: rgba(255, 255, 255, 0.015); }
 
     &:hover {
-      border-left-color: theme.$color-primary;
+      background: linear-gradient(90deg, rgba(theme.$color-primary, 0.07), transparent 60%);
     }
 
     &--closed {
-      opacity: 0.85;
-
-      &:hover {
-        border-left-color: theme.$color-text-muted;
-      }
-    }
-
-    strong {
-      font-family: theme.$font-heading;
-      font-size: theme.$font-size-heading;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      display: block;
-      margin-bottom: 4px;
-    }
-
-    small {
-      font-size: theme.$font-size-base;
-      color: theme.$color-text-muted;
+      opacity: 0.7;
     }
 
     a {
@@ -136,35 +113,88 @@
       flex-shrink: 0;
     }
   }
+
+  &__lot {
+    font-family: theme.$font-mono;
+    font-size: theme.$font-size-base;
+    color: theme.$color-text-faint;
+    flex-shrink: 0;
+  }
+
+  &__info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+
+    strong {
+      font-family: theme.$font-heading;
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    small {
+      font-size: theme.$font-size-base;
+      color: theme.$color-text-muted;
+
+      &:empty { display: none; }
+    }
+  }
+
+  &__status {
+    @include theme.tag;
+    text-transform: uppercase;
+    flex-shrink: 0;
+
+    &--open      { color: theme.$color-primary; border-color: rgba(theme.$color-primary, 0.4); }
+    &--dole      { color: theme.$color-amber;   border-color: rgba(theme.$color-amber, 0.4); }
+    &--tie_break { color: theme.$color-danger;  border-color: rgba(theme.$color-danger, 0.4); }
+  }
+
+  &__bid {
+    @include theme.readout(theme.$color-amber);
+    min-width: 96px;
+    text-align: right;
+    font-size: 18px;
+    flex-shrink: 0;
+
+    &::after {
+      content: ' pts';
+      font-size: theme.$font-size-heading;
+      color: theme.$color-text-muted;
+    }
+  }
 }
 
-// ── Detail ────────────────────────────────────────────────────────────────────
+// ── Detail ───────────────────────────────────────────────────────────────────
 .auction-detail {
   display: grid;
-  grid-template-columns: 360px 1fr;
+  grid-template-columns: minmax(340px, 420px) minmax(0, 1fr);
   gap: theme.$spacing-lg;
   align-items: start;
-  min-height: calc(100vh - 120px);
 
-  @media (max-width: 860px) {
-    grid-template-columns: 1fr;
+  @media (max-width: 1000px) {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   &__loading {
     color: theme.$color-text-muted;
-    font-family: theme.$font-heading;
-    font-size: theme.$font-size-heading;
-    letter-spacing: 2px;
+    font-family: theme.$font-mono;
+    font-size: theme.$font-size-base;
     text-transform: uppercase;
     padding: theme.$spacing-lg 0;
   }
 
-  // ── Left column ─────────────────────────────────────────────────────────────
-
   &__left {
     display: flex;
     flex-direction: column;
-    gap: theme.$spacing-md;
+    gap: theme.$spacing-lg;
+    min-width: 0;
   }
 
   &__items {
@@ -173,147 +203,188 @@
     gap: theme.$spacing-sm;
   }
 
-  // ── Info panel ───────────────────────────────────────────────────────────────
-
-  &__info {
-    @include theme.card;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    padding: theme.$spacing-md;
-  }
-
-  &__info-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: theme.$font-size-base;
-  }
-
-  &__info-label {
-    color: theme.$color-text-muted;
-    font-family: theme.$font-heading;
-    font-size: theme.$font-size-heading;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-  }
-
-  &__info-value {
-    color: theme.$color-text;
-    font-weight: 600;
-  }
-
   &__badge {
-    font-family: theme.$font-heading;
-    font-size: theme.$font-size-heading;
-    letter-spacing: 1.5px;
+    @include theme.tag;
     text-transform: uppercase;
-    padding: 2px 8px;
-    border-radius: 2px;
 
-    &--open {
-      background: rgba(theme.$color-primary, 0.15);
-      color: theme.$color-primary;
-      border: 1px solid rgba(theme.$color-primary, 0.4);
-    }
-    &--dole {
-      background: rgba(theme.$color-amber, 0.15);
-      color: theme.$color-amber;
-      border: 1px solid rgba(theme.$color-amber, 0.4);
-    }
-    &--tie_break {
-      background: rgba(200, 80, 80, 0.15);
-      color: #e05858;
-      border: 1px solid rgba(200, 80, 80, 0.4);
-    }
-    &--closed {
-      background: rgba(theme.$color-text-muted, 0.1);
-      color: theme.$color-text-muted;
-      border: 1px solid theme.$color-border;
-    }
+    &--open      { color: theme.$color-primary; border-color: rgba(theme.$color-primary, 0.4); }
+    &--dole      { color: theme.$color-amber;   border-color: rgba(theme.$color-amber, 0.4); }
+    &--tie_break { color: theme.$color-danger;  border-color: rgba(theme.$color-danger, 0.4); }
+    &--closed    { color: theme.$color-text-muted; }
   }
 
-  &__timer {
-    font-family: theme.$font-heading;
-    font-size: 16px;
-    letter-spacing: 2px;
-    color: theme.$color-primary;
-    font-weight: 700;
-
-    &--urgent {
-      color: #e05858;
-      animation: timer-pulse 1s ease-in-out infinite;
-    }
-  }
-
-  &__winner-name {
-    color: theme.$color-amber;
-    font-family: theme.$font-heading;
-    font-size: theme.$font-size-heading;
-    letter-spacing: 1.5px;
-    font-weight: 700;
-    text-transform: uppercase;
-  }
-
+  &__winner-name,
   &__leader--me {
-    color: theme.$color-amber;
     font-family: theme.$font-heading;
-    font-size: theme.$font-size-heading;
-    letter-spacing: 1.5px;
-    font-weight: 700;
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
     text-transform: uppercase;
+    color: theme.$color-amber;
   }
 
   &__leading-banner {
-    background: rgba(theme.$color-amber, 0.1);
-    border: 1px solid rgba(theme.$color-amber, 0.35);
-    border-left: 3px solid theme.$color-amber;
-    color: theme.$color-amber;
+    @include theme.chamfer(theme.$chamfer-sm);
+    margin-top: theme.$spacing-md;
+    padding: theme.$spacing-sm theme.$spacing-md theme.$spacing-sm calc(#{theme.$spacing-md} + 4px);
     font-family: theme.$font-heading;
-    font-size: theme.$font-size-heading;
-    letter-spacing: 1.5px;
+    font-size: theme.$font-size-ui;
+    font-weight: 700;
+    letter-spacing: 1px;
     text-transform: uppercase;
-    padding: theme.$spacing-sm theme.$spacing-md;
+    color: theme.$color-amber;
+    background:
+      linear-gradient(90deg, theme.$color-amber 0 4px, transparent 4px),
+      rgba(theme.$color-amber, 0.1);
+    border: 1px solid rgba(theme.$color-amber, 0.35);
     animation: leading-pulse 2.5s ease-in-out infinite;
   }
 
-  // ── Bid input ────────────────────────────────────────────────────────────────
-
   &__bid {
-    @include theme.card;
     display: flex;
     flex-direction: column;
     gap: theme.$spacing-sm;
+    margin-top: theme.$spacing-md;
+    padding-top: theme.$spacing-md;
+    border-top: 1px solid theme.$color-border;
   }
 
   &__bid-input {
     @include theme.field-input;
     width: 100%;
+    font-family: theme.$font-mono;
+    font-size: 22px;
+    text-align: right;
+    color: theme.$color-amber;
   }
 
   &__bid-actions {
     display: flex;
     gap: theme.$spacing-sm;
     flex-wrap: wrap;
+
+    > .btn--primary {
+      flex: 1;
+      min-width: 120px;
+    }
+  }
+
+  &__right {
+    position: sticky;
+    top: 68px;
+    min-width: 0;
   }
 }
 
-// ── Auction item wrappers ─────────────────────────────────────────────────────
+// ── Bid console ──────────────────────────────────────────────────────────────
+.auction-console {
+  &__displays {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: theme.$spacing-sm;
+    margin-bottom: theme.$spacing-md;
+  }
 
+  &__display {
+    @include theme.readout(theme.$color-amber);
+    display: flex;
+    flex-direction: column;
+    padding: 8px 12px;
+    @include theme.chamfer(theme.$chamfer-sm);
+
+    &--timer { color: theme.$color-primary; }
+
+    &--urgent .auction-console__value {
+      animation: amber-pulse 1s ease-in-out infinite;
+    }
+  }
+
+  &__label {
+    font-family: theme.$font-family;
+    font-size: theme.$font-size-base;
+    color: theme.$color-text-muted;
+  }
+
+  &__value {
+    font-size: 40px;
+    line-height: 1.05;
+  }
+
+  &__rows {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+
+    > div {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: theme.$spacing-sm;
+      padding: 6px 0;
+      border-bottom: 1px dashed theme.$color-border;
+
+      &:last-child { border-bottom: 0; }
+    }
+
+    dt {
+      color: theme.$color-text-muted;
+      font-size: theme.$font-size-base;
+    }
+
+    dd {
+      margin: 0;
+      font-weight: 600;
+    }
+  }
+
+  &__mono {
+    font-family: theme.$font-mono;
+    color: theme.$color-primary;
+  }
+}
+
+// DOLE system alert
+.auction-dole {
+  margin-top: theme.$spacing-md;
+  display: flex;
+  align-items: stretch;
+  border: 1px solid rgba(theme.$color-amber, 0.5);
+  background: rgba(theme.$color-amber, 0.08);
+  @include theme.chamfer(theme.$chamfer-sm);
+
+  &__tag {
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    font-family: theme.$font-mono;
+    font-size: theme.$font-size-heading;
+    text-transform: uppercase;
+    color: theme.$color-bg;
+    background: repeating-linear-gradient(-45deg, theme.$color-amber 0 6px, color-mix(in srgb, #{theme.$color-amber} 70%, black) 6px 12px);
+  }
+
+  &__text {
+    flex: 1;
+    padding: 10px 12px;
+    font-family: theme.$font-heading;
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    animation: amber-pulse 1s ease-in-out infinite;
+  }
+}
+
+// ── Auction item wrappers ────────────────────────────────────────────────────
 .auction-item-wrap {
   position: relative;
 
   &__qty {
+    @include theme.tag(theme.$color-primary);
     position: absolute;
-    top: 8px;
+    bottom: 8px;
     right: 8px;
-    background: rgba(0, 0, 0, 0.75);
-    color: theme.$color-primary;
-    font-family: theme.$font-heading;
-    font-size: theme.$font-size-heading;
-    letter-spacing: 1px;
-    padding: 2px 6px;
-    border: 1px solid theme.$color-primary;
+    border-color: theme.$color-cyan-dim;
   }
 }
 
@@ -322,58 +393,42 @@
   display: flex;
   align-items: center;
   gap: theme.$spacing-sm;
-  padding: theme.$spacing-md;
   color: theme.$color-text-muted;
   font-size: theme.$font-size-base;
 
   &__img {
-    width: 40px;
-    height: 40px;
+    @include theme.slot;
+    width: 46px;
+    height: 46px;
+    padding: 3px;
     object-fit: contain;
     image-rendering: pixelated;
   }
 }
 
-// ── Right column: Chat ────────────────────────────────────────────────────────
-
-.auction-detail__right {
-  position: sticky;
-  top: 80px;
-}
-
+// ── Chat window ──────────────────────────────────────────────────────────────
 .auction-chat {
-  display: flex;
-  flex-direction: column;
-  height: calc(100vh - 140px);
+  height: calc(100vh - 120px);
   min-height: 480px;
-  background: theme.$color-bg-elevated;
-  border: 1px solid theme.$color-border;
-  border-left: 2px solid theme.$color-cyan-dim;
-  overflow: hidden;
 
-  &__header {
-    font-family: theme.$font-heading;
-    font-size: theme.$font-size-heading;
-    letter-spacing: 2.5px;
-    text-transform: uppercase;
-    color: theme.$color-text;
-    padding: theme.$spacing-sm theme.$spacing-md;
-    border-bottom: 1px solid theme.$color-border;
-    background: rgba(0, 0, 0, 0.2);
-    flex-shrink: 0;
+  &.panel .panel__body {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding: 0;
   }
 
   &__messages {
     flex: 1;
+    min-height: 0;
     overflow-y: auto;
     padding: theme.$spacing-md;
     display: flex;
     flex-direction: column;
     gap: 6px;
-
-    &::-webkit-scrollbar { width: 3px; }
-    &::-webkit-scrollbar-track { background: transparent; }
-    &::-webkit-scrollbar-thumb { background: theme.$color-border; }
+    background:
+      repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.012) 0 1px, transparent 1px 3px),
+      rgba(0, 0, 0, 0.3);
   }
 
   &__empty {
@@ -384,7 +439,6 @@
     margin: 0;
   }
 
-  // Chat bubble wrapper — controls alignment
   &__bubble-wrap {
     display: flex;
     justify-content: flex-start;
@@ -394,59 +448,69 @@
     }
   }
 
-  // Chat bubble
   &__bubble {
     display: flex;
     flex-direction: column;
     gap: 2px;
     max-width: 75%;
-    padding: 8px 12px;
-    border-radius: 12px;
-    font-size: 16px;
-    line-height: 1.4;
+    padding: 6px 12px;
+    font-size: theme.$font-size-base;
+    line-height: 1.35;
     word-break: break-word;
-    position: relative;
-
-    &--other {
-      background: #131c2e;
-      border: 1px solid theme.$color-border;
-      border-bottom-left-radius: 4px;
-      color: theme.$color-text;
-    }
+    color: theme.$color-text;
+    border: 1px solid theme.$color-border;
+    background: theme.$metal-700;
+    clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%);
 
     &--own {
-      background: rgba(theme.$color-primary, 0.18);
-      border: 1px solid rgba(theme.$color-primary, 0.3);
-      border-bottom-right-radius: 4px;
-      color: theme.$color-text;
+      clip-path: polygon(8px 0, 100% 0, 100% 100%, 0 100%, 0 8px);
+      background: rgba(theme.$color-primary, 0.14);
+      border-color: rgba(theme.$color-primary, 0.3);
+    }
+
+    &--bid,
+    &--bot {
+      max-width: 100%;
+      width: 100%;
+      clip-path: none;
+      flex-direction: row;
+      align-items: baseline;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 4px 10px;
+      font-family: theme.$font-mono;
+      background: transparent;
+      border: 0;
+      border-left: 2px solid theme.$color-primary;
     }
 
     &--bid {
-      background: rgba(theme.$color-primary, 0.1);
-      border: 1px solid rgba(theme.$color-primary, 0.25);
-      border-bottom-left-radius: 4px;
-      color: theme.$color-text;
+      color: theme.$color-primary;
     }
 
     &--bot {
-      background: rgba(theme.$color-amber, 0.08);
-      border: 1px solid rgba(theme.$color-amber, 0.2);
-      border-bottom-left-radius: 4px;
-      color: theme.$color-text;
+      color: theme.$color-amber;
+      border-left-color: theme.$color-amber;
+      background: rgba(theme.$color-amber, 0.06);
     }
   }
 
   &__nickname {
     font-family: theme.$font-heading;
-    font-size: theme.$font-size-heading;
-    letter-spacing: 1px;
+    font-size: theme.$font-size-ui;
+    font-weight: 800;
+    letter-spacing: 0.5px;
     text-transform: uppercase;
     color: theme.$color-primary;
-    display: block;
-    margin-bottom: 2px;
 
     &--system {
-      color: theme.$color-text-muted;
+      font-family: theme.$font-mono;
+      font-size: theme.$font-size-heading;
+      font-weight: 400;
+      color: theme.$color-text-faint;
+
+      &::before { content: '['; }
+      &::after { content: ']'; }
     }
   }
 
@@ -454,20 +518,24 @@
     display: block;
   }
 
+  &__bubble--bid &__text,
+  &__bubble--bot &__text {
+    flex: 1;
+  }
+
   &__time {
-    font-size: theme.$font-size-base;
-    color: theme.$color-text-muted;
     align-self: flex-end;
-    margin-top: 2px;
-    letter-spacing: 0.5px;
+    font-family: theme.$font-mono;
+    font-size: theme.$font-size-heading;
+    color: theme.$color-text-faint;
   }
 
   &__form {
     display: flex;
     gap: theme.$spacing-sm;
     padding: theme.$spacing-sm theme.$spacing-md;
-    border-top: 1px solid theme.$color-border;
-    background: rgba(0, 0, 0, 0.15);
+    border-top: 1px solid theme.$color-border-strong;
+    background: linear-gradient(180deg, theme.$metal-700, theme.$metal-800);
     flex-shrink: 0;
   }
 
@@ -477,14 +545,7 @@
   }
 }
 
-// ── Animations ────────────────────────────────────────────────────────────────
-
-@keyframes timer-pulse {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.55; }
-}
-
 @keyframes leading-pulse {
-  0%, 100% { border-left-color: theme.$color-amber; background: rgba(theme.$color-amber, 0.10); }
-  50%       { border-left-color: #f5c842;            background: rgba(theme.$color-amber, 0.18); }
+  0%, 100% { border-color: rgba(theme.$color-amber, 0.35); }
+  50%      { border-color: rgba(theme.$color-amber, 0.8); }
 }

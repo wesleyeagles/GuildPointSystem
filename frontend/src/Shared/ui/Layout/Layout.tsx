@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { Link, Outlet, useLocation } from 'react-router-dom'
 import { useAuthContext } from '@/Features/Auth/contexts/AuthContext'
 import { useCurrentMember } from '@/Domain/Member/hooks/useMembers'
@@ -5,6 +6,8 @@ import { usePointsSubscription } from '@/Domain/Auction/hooks/useAuction'
 import { useMemberLogNotifications } from '@/Domain/Log/hooks/useLogs'
 import { EventToastProvider } from '@/Features/Events/components/EventToast/EventToast'
 import { AppToastProvider } from '@/Shared/ui/components/AppToast/AppToast'
+import { MemberClassIcon } from '@/Shared/ui/components/MemberClassIcon/MemberClassIcon'
+import { getSocketState, type SocketState } from '@/Shared/websocket/socketClient'
 import './Layout.styles.scss'
 
 const NAV_ITEMS = [
@@ -16,6 +19,31 @@ const NAV_ITEMS = [
   { to: '/auctions', label: 'Leilões' },
   { to: '/profile', label: 'Perfil' },
 ]
+
+const ADMIN_ITEM = { to: '/admin/approvals', label: 'Aprovações' }
+
+const SOCKET_LABEL: Record<SocketState, string> = {
+  connected: 'Online',
+  connecting: 'Conectando',
+  disconnected: 'Offline',
+}
+
+function isActive(pathname: string, to: string) {
+  return pathname === to || (to !== '/' && pathname.startsWith(to))
+}
+
+function useClock() {
+  const [now, setNow] = useState(() => new Date())
+  const [socket, setSocket] = useState<SocketState>(getSocketState)
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      setNow(new Date())
+      setSocket(getSocketState())
+    }, 1000)
+    return () => window.clearInterval(id)
+  }, [])
+  return { now, socket }
+}
 
 export function Layout() {
   return (
@@ -31,48 +59,138 @@ function LayoutShell() {
   const { logout, hasRole, user } = useAuthContext()
   const { data: member } = useCurrentMember()
   const location = useLocation()
+  const { now, socket } = useClock()
+  // Drawer closes itself on navigation: it is only open for the path it was opened on.
+  const [drawerPath, setDrawerPath] = useState<string | null>(null)
+  const drawerOpen = drawerPath === location.pathname
+  const setDrawerOpen = (open: boolean) => setDrawerPath(open ? location.pathname : null)
 
   usePointsSubscription(user?.memberId)
   useMemberLogNotifications(user?.memberId)
 
+  const isModerator = hasRole('MODERADOR')
+  const currentLabel =
+    [...NAV_ITEMS, ADMIN_ITEM].find((item) => isActive(location.pathname, item.to))?.label ??
+    'Terminal'
+  const availableRatio =
+    member && member.points > 0
+      ? Math.max(0, Math.min(1, member.availablePoints / member.points))
+      : 0
+
   return (
-      <div className="layout">
-        <header className="layout__header">
-          <h1 className="layout__title">Guild System</h1>
-          <nav className="layout__nav">
-            {NAV_ITEMS.map((item) => (
-              <Link
-                key={item.to}
-                to={item.to}
-                className={`layout__nav-link ${location.pathname === item.to || (item.to !== '/' && location.pathname.startsWith(item.to)) ? 'layout__nav-link--active' : ''}`}
-              >
-                {item.label}
-              </Link>
-            ))}
-            {hasRole('MODERADOR') && (
-              <Link
-                to="/admin/approvals"
-                className={`layout__nav-link ${location.pathname.startsWith('/admin') ? 'layout__nav-link--active' : ''}`}
-              >
-                Aprovações
-              </Link>
-            )}
-          </nav>
-          <div className="layout__user">
-            {member && (
-              <span className="layout__points">
-                {member.points} pts ({member.availablePoints} disp.)
-              </span>
-            )}
-            <span>{user?.nickname ?? 'Membro'}</span>
-            <button type="button" className="layout__logout" onClick={logout}>
-              Sair
-            </button>
+    <div className={`layout${drawerOpen ? ' layout--drawer-open' : ''}`}>
+      <aside className="layout__sidebar">
+        <div className="layout__brand">
+          <img src="/Logo-Blacklist.png" alt="" className="layout__logo" />
+          <div className="layout__brand-text">
+            <span className="layout__title">Guild System</span>
+            <span className="layout__subtitle">RF Online · Network</span>
           </div>
-        </header>
+        </div>
+
+        <div className="layout__member">
+          <div className="layout__member-head">
+            {member?.classImageUrl ? (
+              <MemberClassIcon
+                classImageUrl={member.classImageUrl}
+                classLabel={member.className}
+                size="md"
+              />
+            ) : (
+              <span className="layout__member-slot" aria-hidden="true" />
+            )}
+            <div className="layout__member-id">
+              <span className="layout__member-name">{user?.nickname ?? 'Membro'}</span>
+              <span className="layout__member-role">
+                {member ? `${member.role} · ${member.className}` : '—'}
+              </span>
+            </div>
+          </div>
+
+          {member && (
+            <div className="layout__gauge">
+              <div className="layout__gauge-row">
+                <span className="layout__gauge-label">Total</span>
+                <span className="layout__gauge-value">{member.points}</span>
+              </div>
+              <div className="layout__gauge-row">
+                <span className="layout__gauge-label">Disponível</span>
+                <span className="layout__gauge-value layout__gauge-value--cyan">
+                  {member.availablePoints}
+                </span>
+              </div>
+              <div className="layout__gauge-bar" aria-hidden="true">
+                <span style={{ width: `${availableRatio * 100}%` }} />
+              </div>
+            </div>
+          )}
+        </div>
+
+        <nav className="layout__nav">
+          {NAV_ITEMS.map((item, index) => (
+            <Link
+              key={item.to}
+              to={item.to}
+              className={`layout__nav-link${isActive(location.pathname, item.to) ? ' layout__nav-link--active' : ''}`}
+            >
+              <span className="layout__nav-key">F{index + 1}</span>
+              <span className="layout__nav-label">{item.label}</span>
+            </Link>
+          ))}
+
+          {isModerator && (
+            <div className="layout__admin">
+              <span className="layout__admin-strip" aria-hidden="true" />
+              <Link
+                to={ADMIN_ITEM.to}
+                className={`layout__nav-link layout__nav-link--admin${isActive(location.pathname, ADMIN_ITEM.to) ? ' layout__nav-link--active' : ''}`}
+              >
+                <span className="layout__nav-key">ADM</span>
+                <span className="layout__nav-label">{ADMIN_ITEM.label}</span>
+              </Link>
+            </div>
+          )}
+        </nav>
+
+        <button type="button" className="layout__logout" onClick={logout}>
+          <span className="layout__nav-key">ESC</span>
+          Sair
+        </button>
+      </aside>
+
+      <button
+        type="button"
+        className="layout__scrim"
+        aria-label="Fechar menu"
+        onClick={() => setDrawerOpen(false)}
+      />
+
+      <div className="layout__content">
+        <div className="layout__status">
+          <button
+            type="button"
+            className="layout__menu-toggle"
+            aria-label="Abrir menu"
+            onClick={() => setDrawerOpen(!drawerOpen)}
+          >
+            <span />
+            <span />
+            <span />
+          </button>
+          <h1 className="layout__page-title">{currentLabel}</h1>
+          <div className="layout__status-right">
+            <span className={`layout__socket layout__socket--${socket}`}>
+              {SOCKET_LABEL[socket]}
+            </span>
+            <span className="layout__clock">
+              {now.toLocaleTimeString('pt-BR', { hour12: false })}
+            </span>
+          </div>
+        </div>
         <main className="layout__main">
           <Outlet />
         </main>
       </div>
+    </div>
   )
 }

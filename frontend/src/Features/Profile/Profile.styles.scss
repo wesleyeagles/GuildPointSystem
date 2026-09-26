@@ -1,95 +1,176 @@
 .profile-page {
+  display: flex;
+  flex-direction: column;
+  gap: theme.$spacing-lg;
+
   &__back {
-    display: inline-block;
-    margin-bottom: theme.$spacing-md;
+    @include theme.tag(theme.$color-text-muted);
+    align-self: flex-start;
+    font-family: theme.$font-family;
     font-size: theme.$font-size-base;
-    letter-spacing: 1px;
-    color: theme.$color-text-muted;
-    text-decoration: none;
-    transition: color 0.15s;
+    padding: 6px 12px;
+    transition: color 0.12s, border-color 0.12s;
 
     &:hover {
       color: theme.$color-primary;
-    }
-  }
-
-  h2 {
-    @include theme.page-heading;
-  }
-
-  &__stats {
-    display: flex;
-    flex-wrap: wrap;
-    gap: theme.$spacing-xl;
-    margin-bottom: theme.$spacing-lg;
-    padding: theme.$spacing-md;
-    background: theme.$color-bg-elevated;
-    border: 1px solid theme.$color-border;
-    border-left: 2px solid theme.$color-cyan-dim;
-
-    span {
-      font-size: theme.$font-size-base;
-      color: theme.$color-text-muted;
-      letter-spacing: 0.5px;
-      font-family: theme.$font-family;
-      font-weight: 600;
-
-      &:first-child,
-      &:nth-child(2) {
-        font-family: theme.$font-heading;
-        font-size: theme.$font-size-heading;
-        letter-spacing: 2px;
-        color: theme.$color-primary;
-      }
+      border-color: theme.$color-cyan-dim;
     }
   }
 
   &__grid {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: theme.$spacing-lg;
-    align-items: stretch;
+    align-items: start;
 
     &--staff {
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    @media (max-width: 900px) {
-      grid-template-columns: 1fr;
-    }
-
-    > .profile-form,
-    > .profile-claims {
-      min-width: 0;
+    @media (max-width: 1000px) {
+      grid-template-columns: minmax(0, 1fr);
     }
   }
 }
 
-.profile-form {
-  @include theme.card;
-  margin-bottom: 0;
-  display: flex;
-  flex-direction: column;
-
-  h3 {
-    font-family: theme.$font-heading;
-    font-size: theme.$font-size-heading;
-    letter-spacing: 3px;
-    color: theme.$color-text;
-    text-transform: uppercase;
-    margin: 0 0 theme.$spacing-lg;
-    padding-bottom: theme.$spacing-sm;
-    border-bottom: 1px solid theme.$color-border;
+// ── Character sheet ──────────────────────────────────────────────────────────
+.profile-sheet {
+  &__body {
+    display: flex;
+    align-items: stretch;
+    gap: theme.$spacing-lg;
+    flex-wrap: wrap;
   }
 
+  &__portrait {
+    @include theme.slot(theme.$chamfer-md);
+    width: 112px;
+    height: 112px;
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    padding: 10px;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    span {
+      font-family: theme.$font-heading;
+      font-size: 56px;
+      font-weight: 800;
+      color: theme.$color-primary;
+    }
+  }
+
+  &__identity {
+    flex: 1;
+    min-width: 220px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: theme.$spacing-sm;
+  }
+
+  &__name {
+    font-family: theme.$font-heading;
+    font-size: theme.$font-size-display;
+    font-weight: 800;
+    letter-spacing: 1px;
+    line-height: 1;
+    text-transform: uppercase;
+    color: theme.$color-text;
+  }
+
+  &__attrs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: theme.$spacing-sm;
+    margin: 0;
+
+    div {
+      display: flex;
+      align-items: stretch;
+      border: 1px solid theme.$color-border;
+      @include theme.chamfer(4px);
+    }
+
+    dt {
+      padding: 4px 8px;
+      font-family: theme.$font-mono;
+      font-size: theme.$font-size-heading;
+      text-transform: uppercase;
+      color: theme.$color-text-faint;
+      background: rgba(0, 0, 0, 0.4);
+      border-right: 1px solid theme.$color-border;
+      display: flex;
+      align-items: center;
+    }
+
+    dd {
+      margin: 0;
+      padding: 4px 10px;
+      font-weight: 600;
+      color: theme.$color-text;
+      background: theme.$metal-700;
+    }
+  }
+
+  &__stats {
+    display: flex;
+    gap: theme.$spacing-sm;
+    align-items: stretch;
+  }
+
+  &__stat {
+    @include theme.readout(theme.$color-amber);
+    min-width: 130px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 8px 14px;
+
+    span {
+      font-family: theme.$font-family;
+      font-size: theme.$font-size-base;
+      color: theme.$color-text-muted;
+    }
+
+    strong {
+      font-weight: 400;
+      font-size: theme.$font-size-display;
+      line-height: 1.1;
+    }
+
+    &--cyan { color: theme.$color-primary; }
+  }
+}
+
+// ── Staff windows (forms rendered as client windows) ─────────────────────────
+.profile-form,
+.profile-claims {
+  @include theme.panel;
+  display: flex;
+  flex-direction: column;
+  padding: 0 theme.$spacing-lg theme.$spacing-lg;
+  min-width: 0;
+
+  h3 {
+    @include theme.panel-titlebar;
+    margin: 0 (-(theme.$spacing-lg)) theme.$spacing-md;
+    padding-left: theme.$spacing-lg;
+  }
+}
+
+.profile-form {
   label {
     @include theme.field-label;
     display: flex;
     flex-direction: column;
     gap: theme.$spacing-xs;
     margin-bottom: theme.$spacing-md;
-    font-weight: 600;
-    font-family: theme.$font-family;
   }
 
   input,
@@ -101,33 +182,20 @@
   textarea {
     min-height: 80px;
     resize: vertical;
-    font-family: theme.$font-family;
+  }
+
+  > .btn {
+    align-self: flex-start;
   }
 
   &__hint {
     margin: 0 0 theme.$spacing-md;
     font-size: theme.$font-size-base;
-    color: theme.$color-text-muted;
+    color: theme.$color-amber;
   }
 }
 
 .profile-claims {
-  @include theme.card;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-
-  h3 {
-    font-family: theme.$font-heading;
-    font-size: theme.$font-size-heading;
-    letter-spacing: 3px;
-    color: theme.$color-text;
-    text-transform: uppercase;
-    margin: 0 0 theme.$spacing-lg;
-    padding-bottom: theme.$spacing-sm;
-    border-bottom: 1px solid theme.$color-border;
-  }
-
   &__empty {
     color: theme.$color-text-muted;
     font-size: theme.$font-size-base;
@@ -137,10 +205,11 @@
   &__list {
     list-style: none;
     padding: 0;
-    margin: 0;
+    margin: 0 (-(theme.$spacing-lg));
     display: flex;
     flex-direction: column;
-    gap: theme.$spacing-sm;
+    max-height: 420px;
+    overflow-y: auto;
   }
 
   &__item--denied {
@@ -152,8 +221,10 @@
     align-items: center;
     justify-content: space-between;
     gap: theme.$spacing-md;
-    padding: theme.$spacing-sm 0;
+    padding: 10px theme.$spacing-lg;
     border-bottom: 1px solid theme.$color-border;
+
+    &:nth-child(even) { background: rgba(255, 255, 255, 0.015); }
 
     div {
       display: flex;
@@ -163,39 +234,40 @@
 
     strong {
       font-family: theme.$font-heading;
-      font-size: theme.$font-size-heading;
-      letter-spacing: 2px;
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
       color: theme.$color-text;
       text-transform: uppercase;
     }
 
     span {
-      font-size: theme.$font-size-heading;
+      font-family: theme.$font-mono;
+      font-size: theme.$font-size-base;
       color: theme.$color-primary;
     }
 
     small {
-      font-size: theme.$font-size-base;
+      font-family: theme.$font-mono;
+      font-size: theme.$font-size-heading;
       color: theme.$color-text-muted;
     }
   }
 
   &__deny {
-    display: flex;
     flex-direction: column;
     gap: theme.$spacing-xs;
-    min-width: 200px;
+    min-width: 220px;
 
     textarea {
       @include theme.field-input;
       min-height: 50px;
       resize: vertical;
-      font-family: theme.$font-family;
     }
   }
 
   &__deny-actions {
-    display: flex;
+    flex-direction: row !important;
     gap: theme.$spacing-xs;
     justify-content: flex-end;
   }

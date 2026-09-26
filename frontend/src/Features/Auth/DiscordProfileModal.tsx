@@ -34,73 +34,68 @@ export function DiscordProfileModal() {
   return (
     <div className="modal-overlay">
       <form className="modal-card" onSubmit={handleSubmit}>
-        <h1
-          style={{
-            fontFamily: "'Orbitron', sans-serif",
-            fontSize: '20px',
-            letterSpacing: '2px',
-            color: '#eef3f8',
-            margin: '0 0 6px',
-          }}
-        >
-          Complete seu Perfil
-        </h1>
-        <p className="auth-muted">Informe raça e classe para continuar.</p>
-
-        <div className="auth-field">
-          <label htmlFor="dp-nickname">Nickname</label>
-          <input
-            id="dp-nickname"
-            placeholder="Seu nick no jogo"
-            value={nickname}
-            onChange={(e) => setNickname(e.target.value)}
-            required
-          />
+        <div className="auth-window-bar">
+          <span>Complete seu Perfil</span>
+          <span className="auth-window-bar__code">CHR-01</span>
         </div>
+        <div className="auth-card-content">
+          <p className="auth-muted">Informe raça e classe para continuar.</p>
 
-        <div className="auth-field">
-          <label htmlFor="dp-race">Raça</label>
-          <select
-            id="dp-race"
-            value={raceId}
-            onChange={(e) => handleRaceChange(Number(e.target.value))}
-            required
+          <div className="auth-field">
+            <label htmlFor="dp-nickname">Nickname</label>
+            <input
+              id="dp-nickname"
+              placeholder="Seu nick no jogo"
+              value={nickname}
+              onChange={(e) => setNickname(e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="auth-field">
+            <label htmlFor="dp-race">Raça</label>
+            <select
+              id="dp-race"
+              value={raceId}
+              onChange={(e) => handleRaceChange(Number(e.target.value))}
+              required
+            >
+              <option value={0}>Selecione...</option>
+              {races.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {raceId > 0 ? (
+            <SeedOptionPicker
+              label="Classe"
+              options={classes}
+              value={classId}
+              onChange={setClassId}
+              required
+              showImages
+            />
+          ) : (
+            <p className="auth-muted">Selecione uma raça para ver as classes (level 40).</p>
+          )}
+
+          {error && <p className="auth-error">{error}</p>}
+
+          <button
+            type="submit"
+            className="auth-btn-primary"
+            disabled={completeProfile.isPending}
           >
-            <option value={0}>Selecione...</option>
-            {races.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.name}
-              </option>
-            ))}
-          </select>
+            {completeProfile.isPending ? 'Salvando...' : 'Salvar e Continuar'}
+          </button>
+
+          <button type="button" className="auth-logout-btn" onClick={logout}>
+            Sair
+          </button>
         </div>
-
-        {raceId > 0 ? (
-          <SeedOptionPicker
-            label="Classe"
-            options={classes}
-            value={classId}
-            onChange={setClassId}
-            required
-            showImages
-          />
-        ) : (
-          <p className="auth-muted">Selecione uma raça para ver as classes (level 40).</p>
-        )}
-
-        {error && <p className="auth-error">{error}</p>}
-
-        <button
-          type="submit"
-          className="auth-btn-primary"
-          disabled={completeProfile.isPending}
-        >
-          {completeProfile.isPending ? 'Salvando...' : 'Salvar e Continuar'}
-        </button>
-
-        <button type="button" className="auth-logout-btn" onClick={logout}>
-          Sair
-        </button>
       </form>
     </div>
   )

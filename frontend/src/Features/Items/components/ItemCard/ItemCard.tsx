@@ -120,7 +120,7 @@ export function ItemCard({
   const favorPct    = item.type === 'ARMOR' ? getFavorPct(item.talics) : 0
 
   return (
-    <div className="item-tooltip">
+    <div className="item-tooltip" style={{ '--rarity': color } as React.CSSProperties}>
       <div className="item-tooltip__header">
         <div className="item-tooltip__icon-wrap">
           {!imgError && item.imageUrl ? (
@@ -136,6 +136,7 @@ export function ItemCard({
         </div>
         <div className="item-tooltip__title-wrap">
           <span className="item-tooltip__name" style={{ color }}>{item.name}</span>
+          <span className="item-tooltip__rarity">{item.rarity}</span>
         </div>
         {canAdmin && (
           <button

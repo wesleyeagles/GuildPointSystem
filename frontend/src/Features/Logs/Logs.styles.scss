@@ -1,67 +1,83 @@
 .logs-page {
-  h2 {
-    @include theme.page-heading;
-  }
-
   &__empty {
     color: theme.$color-text-muted;
-    font-size: 14px;
-    letter-spacing: 0.5px;
-    padding: theme.$spacing-lg 0;
+    font-size: theme.$font-size-base;
+    padding: theme.$spacing-lg;
+    margin: 0;
   }
 }
 
+// Console feed
 .logs-list {
   list-style: none;
   padding: 0;
   margin: 0;
+  background:
+    repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.012) 0 1px, transparent 1px 3px),
+    rgba(0, 0, 0, 0.35);
 
   &__item {
-    @include theme.card;
-    margin-bottom: theme.$spacing-sm;
-    transition: border-left-color 0.15s;
+    position: relative;
+    padding: 10px theme.$spacing-lg 10px calc(#{theme.$spacing-lg} + 6px);
+    border-bottom: 1px solid theme.$color-border;
+    transition: background 0.1s;
+
+    &::before {
+      content: '';
+      position: absolute;
+      left: theme.$spacing-sm;
+      top: 14px;
+      width: 6px;
+      height: 6px;
+      background: theme.$color-cyan-dim;
+      clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+    }
 
     &:hover {
-      border-left-color: theme.$color-primary;
+      background: linear-gradient(90deg, rgba(theme.$color-primary, 0.06), transparent 60%);
+
+      &::before { background: theme.$color-primary; }
     }
 
     &--denied {
-      border-left-color: theme.$color-danger;
+      background: linear-gradient(90deg, rgba(theme.$color-danger, 0.08), transparent 60%);
+
+      &::before { background: theme.$color-danger; }
 
       .logs-list__type {
         color: theme.$color-danger;
+        border-color: rgba(theme.$color-danger, 0.4);
       }
     }
   }
 
   &__header {
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    flex-wrap: wrap;
     gap: theme.$spacing-sm;
-    margin-bottom: theme.$spacing-xs;
-  }
-
-  &__type {
-    font-family: theme.$font-heading;
-    font-size: 11px;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: theme.$color-primary;
+    margin-bottom: 4px;
   }
 
   &__time {
-    font-size: 11px;
-    letter-spacing: 1px;
-    color: theme.$color-text-muted;
-    font-family: theme.$font-heading;
-    text-transform: uppercase;
+    font-family: theme.$font-mono;
+    font-size: theme.$font-size-heading;
+    color: theme.$color-text-faint;
     flex-shrink: 0;
+
+    &::before { content: '['; }
+    &::after { content: ']'; }
+  }
+
+  &__type {
+    @include theme.tag(theme.$color-primary);
+    border-color: rgba(theme.$color-primary, 0.3);
+    text-transform: uppercase;
   }
 
   &__details {
-    margin: 0 0 theme.$spacing-xs;
-    font-size: 14px;
+    margin: 0 0 4px;
+    font-size: theme.$font-size-base;
     color: theme.$color-text;
   }
 
@@ -69,17 +85,8 @@
     display: flex;
     flex-wrap: wrap;
     gap: theme.$spacing-md;
-    font-size: 12px;
+    font-size: theme.$font-size-base;
     color: theme.$color-text-muted;
-
-    a {
-      color: theme.$color-primary;
-      text-decoration: none;
-
-      &:hover {
-        text-decoration: underline;
-      }
-    }
   }
 
   &__actions {
@@ -91,12 +98,12 @@
     flex-direction: column;
     gap: theme.$spacing-xs;
     margin-top: theme.$spacing-sm;
+    max-width: 560px;
 
     textarea {
       @include theme.field-input;
-      min-height: 50px;
+      min-height: 56px;
       resize: vertical;
-      font-family: theme.$font-family;
     }
   }
 
@@ -115,20 +122,21 @@
   padding: theme.$spacing-md 0 0;
 
   &__btn {
-    background: transparent;
-    border: 1px solid theme.$color-border;
-    color: theme.$color-text-muted;
-    width: 30px;
+    @include theme.chamfer(4px);
+    width: 34px;
     height: 30px;
     display: flex;
     align-items: center;
     justify-content: center;
-    cursor: pointer;
+    padding: 0;
+    font-family: theme.$font-mono;
     font-size: 20px;
     line-height: 1;
-    transition: border-color 0.15s, color 0.15s;
-    border-radius: 0;
-    padding: 0;
+    color: theme.$color-text-muted;
+    background: theme.metal-surface(theme.$metal-600, theme.$metal-800);
+    border: 1px solid theme.$color-border-strong;
+    cursor: pointer;
+    transition: color 0.12s, border-color 0.12s;
 
     &:hover:not(:disabled) {
       border-color: theme.$color-primary;
@@ -136,20 +144,17 @@
     }
 
     &:disabled {
-      opacity: 0.35;
+      opacity: 0.3;
       cursor: not-allowed;
     }
   }
 
   &__info {
-    font-family: theme.$font-heading;
-    font-size: 11px;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: theme.$color-text-muted;
+    @include theme.readout(theme.$color-text);
+    font-size: theme.$font-size-base;
   }
 
   &__sep {
-    opacity: 0.5;
+    color: theme.$color-text-faint;
   }
 }

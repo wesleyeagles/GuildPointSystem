@@ -1,189 +1,192 @@
-// ── Two-column dashboard ──────────────────────────────────────────────────────
+// ── Two-window dashboard ─────────────────────────────────────────────────────
 .dashboard {
   display: grid;
-  grid-template-columns: 3fr 2fr;
-  gap: 0;
-  height: 100%;
-
-  h2 {
-    @include theme.page-heading;
-    flex-shrink: 0;
-  }
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: theme.$spacing-lg;
+  align-items: start;
 
   &__col {
-    display: flex;
-    flex-direction: column;
     min-height: 0;
-    padding: 0 theme.$spacing-xl 0 0;
-
-    &--events {
-      padding: 0 0 0 theme.$spacing-xl;
-      border-left: 1px solid theme.$color-border;
-    }
   }
 
   &__empty {
-    color: theme.$color-text-muted;
+    @include theme.readout(theme.$color-text-muted);
+    display: block;
+    text-align: center;
     font-size: theme.$font-size-base;
-    letter-spacing: 0.5px;
-    padding: theme.$spacing-lg 0;
+    padding: theme.$spacing-lg;
+    margin: 0;
   }
 }
 
-// ── Podium ────────────────────────────────────────────────────────────────────
+// ── Podium: three metal pedestals ────────────────────────────────────────────
 .podium {
+  --rank-color: #{theme.$color-silver};
   display: flex;
   align-items: flex-end;
   justify-content: center;
   gap: theme.$spacing-md;
-  margin-bottom: theme.$spacing-lg;
-  flex-shrink: 0;
+  margin: theme.$spacing-sm 0 theme.$spacing-lg;
 
   &__slot {
-    @include theme.card;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    flex: 1;
+    max-width: 190px;
+    text-align: center;
+
+    &--1 { order: 2; --rank-color: #{theme.$color-gold};   --pedestal: 76px; }
+    &--2 { order: 1; --rank-color: #{theme.$color-silver}; --pedestal: 52px; }
+    &--3 { order: 3; --rank-color: #{theme.$color-bronze}; --pedestal: 36px; }
+  }
+
+  &__card {
     display: flex;
     flex-direction: column;
     align-items: center;
-    flex: 1;
-    max-width: 180px;
-    text-align: center;
-    padding: theme.$spacing-lg theme.$spacing-md theme.$spacing-md;
-    border-left: none;
+    gap: 4px;
+    padding: 0 theme.$spacing-sm theme.$spacing-sm;
+    min-width: 0;
 
-    &--1 {
-      order: 2;
-      min-height: 148px;
-      border-top: 3px solid theme.$color-gold;
-    }
-
-    &--2 {
-      order: 1;
-      min-height: 112px;
-      border-top: 3px solid theme.$color-silver;
-    }
-
-    &--3 {
-      order: 3;
-      min-height: 96px;
-      border-top: 3px solid theme.$color-bronze;
-    }
-  }
-
-  &__place {
-    font-family: theme.$font-heading;
-    font-size: 22px;
-    font-weight: 900;
-    color: theme.$color-text-muted;
-    margin-bottom: theme.$spacing-xs;
-    line-height: 1;
-  }
-
-  .member-class-icon {
-    margin-bottom: theme.$spacing-sm;
+    .member-class-icon { margin-bottom: 4px; }
   }
 
   &__name {
+    max-width: 100%;
     font-family: theme.$font-heading;
-    font-size: theme.$font-size-heading;
-    letter-spacing: 2px;
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
     color: theme.$color-text;
-    margin: 0 0 6px;
     text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 
     &--link {
       text-decoration: none;
-      transition: color 0.15s;
+      transition: color 0.12s;
 
-      &:hover {
-        color: theme.$color-primary;
-      }
+      &:hover { color: theme.$color-primary; }
     }
   }
 
   &__points {
+    @include theme.readout;
+    font-size: 18px;
+
+    &::after {
+      content: ' pts';
+      color: theme.$color-text-muted;
+      font-size: theme.$font-size-heading;
+    }
+  }
+
+  &__pedestal {
+    height: var(--pedestal);
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 6px;
+    clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 100%, 0 100%);
+    background:
+      linear-gradient(180deg, var(--rank-color) 0 3px, transparent 3px),
+      repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.025) 0 1px, transparent 1px 6px),
+      theme.metal-surface(theme.$metal-600, theme.$metal-900);
+    box-shadow: inset 0 -12px 20px rgba(0, 0, 0, 0.5);
+  }
+
+  &__place {
     font-family: theme.$font-heading;
-    font-size: theme.$font-size-heading;
-    letter-spacing: 1px;
-    color: theme.$color-primary;
-    font-weight: 600;
+    font-size: 30px;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--rank-color);
   }
 }
 
-// ── Ranking rest (4th+) ───────────────────────────────────────────────────────
+// ── Ranking table (4th+) ─────────────────────────────────────────────────────
 .ranking-rest {
   display: flex;
   flex-direction: column;
-  flex: 1;
-  min-height: 0;
+  margin: 0 (-(theme.$spacing-lg));
+}
+
+.ranking-list__head,
+.ranking-list li {
+  display: flex;
+  align-items: center;
+  gap: theme.$spacing-md;
+  padding: 0 theme.$spacing-lg;
+}
+
+.ranking-list__head {
+  @include theme.table-head;
+  height: 32px;
+  border-top: 1px solid theme.$color-border-strong;
+
+  span:first-child { width: 36px; }
+  span:nth-child(2) { flex: 1; }
 }
 
 .ranking-list {
   list-style: none;
   padding: 0;
   margin: 0;
-  flex: 1;
 
   li {
-    display: flex;
-    align-items: center;
-    gap: theme.$spacing-md;
-    padding: 10px theme.$spacing-sm;
+    min-height: 46px;
     border-bottom: 1px solid theme.$color-border;
     font-size: theme.$font-size-base;
-    font-family: theme.$font-family;
     font-weight: 500;
-    transition: background 0.12s;
+    transition: background 0.1s;
+
+    &:nth-child(even) { background: rgba(255, 255, 255, 0.015); }
 
     &:hover {
-      background: rgba(63, 227, 214, 0.02);
+      background: linear-gradient(90deg, rgba(theme.$color-primary, 0.08), transparent 60%);
     }
+  }
 
-    span:first-child {
-      width: 2.5rem;
-      font-family: theme.$font-heading;
-      font-size: theme.$font-size-heading;
-      letter-spacing: 1px;
-      color: theme.$color-text-muted;
-      flex-shrink: 0;
-    }
-
-    span:last-child {
-      margin-left: auto;
-      color: theme.$color-primary;
-      font-family: theme.$font-heading;
-      font-size: theme.$font-size-heading;
-      letter-spacing: 1px;
-      flex-shrink: 0;
-    }
+  &__pos {
+    width: 36px;
+    flex-shrink: 0;
+    font-family: theme.$font-mono;
+    font-size: 18px;
+    color: theme.$color-text-muted;
   }
 
   &__name {
     flex: 1;
     min-width: 0;
+    font-weight: 600;
     color: theme.$color-text;
-    text-decoration: none;
-    transition: color 0.15s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 
-    &:hover {
-      color: theme.$color-primary;
-    }
+    &:hover { color: theme.$color-primary; }
+  }
+
+  &__pts {
+    font-family: theme.$font-mono;
+    font-size: 18px;
+    color: theme.$color-primary;
   }
 }
 
-// ── Events paginated container ────────────────────────────────────────────────
+// ── Mission cards ────────────────────────────────────────────────────────────
 .events-paged {
   display: flex;
   flex-direction: column;
-  flex: 1;
-  min-height: 0;
 }
 
-// ── Active events list ────────────────────────────────────────────────────────
 .event-list {
   list-style: none;
   padding: 0;
   margin: 0;
-  flex: 1;
   display: flex;
   flex-direction: column;
   gap: theme.$spacing-sm;
@@ -191,43 +194,49 @@
   &__item {
     @include theme.card;
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: theme.$spacing-md;
+    flex-direction: column;
+    gap: theme.$spacing-sm;
+    padding: theme.$spacing-sm theme.$spacing-md theme.$spacing-md;
+    border-left: 3px solid theme.$color-amber;
   }
 
   &__info {
     display: flex;
     flex-direction: column;
-    gap: 3px;
+    gap: 4px;
     min-width: 0;
-  }
-
-  &__pts {
-    color: theme.$color-primary;
-    font-family: theme.$font-heading;
-    font-size: theme.$font-size-heading;
-    letter-spacing: 1px;
   }
 
   strong {
     font-family: theme.$font-heading;
-    font-size: theme.$font-size-heading;
-    letter-spacing: 2px;
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
     color: theme.$color-text;
     text-transform: uppercase;
   }
 
+  &__meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: theme.$spacing-sm;
+  }
+
+  &__pts {
+    @include theme.readout;
+    font-size: theme.$font-size-base;
+  }
+
   small {
+    font-family: theme.$font-mono;
     font-size: theme.$font-size-heading;
-    color: theme.$color-text-muted;
+    color: theme.$color-amber;
   }
 
   &__claim-wrap {
     display: flex;
     flex-direction: column;
-    align-items: flex-end;
-    flex-shrink: 0;
     gap: theme.$spacing-xs;
   }
 
@@ -235,17 +244,17 @@
     display: flex;
     gap: theme.$spacing-sm;
     align-items: center;
-    flex-shrink: 0;
 
     input {
       @include theme.field-input;
       @include theme.field-control-height;
-      width: 100px;
-      padding-inline: 8px;
+      flex: 1;
+      min-width: 0;
       text-align: center;
-      font-family: theme.$font-heading;
-      letter-spacing: 4px;
-      font-size: theme.$font-size-heading;
+      font-family: theme.$font-mono;
+      letter-spacing: 6px;
+      font-size: 18px;
+      color: theme.$color-amber;
     }
 
     .btn {
@@ -258,38 +267,34 @@
   &__error {
     color: theme.$color-danger;
     font-size: theme.$font-size-base;
-    letter-spacing: 0.5px;
     margin: 0;
-    font-family: theme.$font-family;
-    text-align: right;
-    max-width: 220px;
   }
 }
 
-// ── Pagination ────────────────────────────────────────────────────────────────
+// ── Pagination ───────────────────────────────────────────────────────────────
 .dash-pagination {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: theme.$spacing-md;
   padding: theme.$spacing-md 0 0;
-  flex-shrink: 0;
 
   &__btn {
-    background: transparent;
-    border: 1px solid theme.$color-border;
-    color: theme.$color-text-muted;
-    width: 30px;
+    @include theme.chamfer(4px);
+    width: 34px;
     height: 30px;
     display: flex;
     align-items: center;
     justify-content: center;
-    cursor: pointer;
+    padding: 0;
+    font-family: theme.$font-mono;
     font-size: 20px;
     line-height: 1;
-    transition: border-color 0.15s, color 0.15s;
-    border-radius: 0;
-    padding: 0;
+    color: theme.$color-text-muted;
+    background: theme.metal-surface(theme.$metal-600, theme.$metal-800);
+    border: 1px solid theme.$color-border-strong;
+    cursor: pointer;
+    transition: color 0.12s, border-color 0.12s;
 
     &:hover:not(:disabled) {
       border-color: theme.$color-primary;
@@ -297,40 +302,27 @@
     }
 
     &:disabled {
-      opacity: 0.25;
+      opacity: 0.3;
       cursor: not-allowed;
     }
   }
 
   &__info {
-    font-family: theme.$font-heading;
-    font-size: theme.$font-size-heading;
-    letter-spacing: 2px;
-    color: theme.$color-text-muted;
+    @include theme.readout(theme.$color-text);
+    font-size: theme.$font-size-base;
     display: flex;
     align-items: center;
     gap: 6px;
   }
 
   &__sep {
-    color: theme.$color-border;
+    color: theme.$color-text-faint;
   }
 }
 
-// ── Responsive ────────────────────────────────────────────────────────────────
-@media (max-width: 900px) {
+// ── Responsive ───────────────────────────────────────────────────────────────
+@media (max-width: 1100px) {
   .dashboard {
-    grid-template-columns: 1fr;
-    height: auto;
-
-    &__col--events {
-      padding: theme.$spacing-lg 0 0;
-      border-left: none;
-      border-top: 1px solid theme.$color-border;
-    }
-
-    &__col--ranking {
-      padding-right: 0;
-    }
+    grid-template-columns: minmax(0, 1fr);
   }
 }

@@ -1,4 +1,6 @@
-// ─── RF Online sci-fi design tokens ─────────────────────────────────────────
+@use 'sass:color';
+
+// ─── RF Online client-window design tokens ──────────────────────────────────
 
 // Core palette
 $color-bg:          #06080d;   // void — page background
@@ -32,10 +34,26 @@ $color-bronze: #cd7f32;
 // Misc
 $color-accent: #e8a23f;
 
-// Shape — sharp, no rounded corners
+// Metal — derived from the panel surface, no new brand colors
+$metal-950: color.adjust($color-bg, $lightness: -1%);
+$metal-900: color.adjust($color-bg-elevated, $lightness: -2.5%);
+$metal-800: $color-bg-elevated;
+$metal-700: color.adjust($color-bg-elevated, $lightness: 4%);
+$metal-600: color.adjust($color-bg-elevated, $lightness: 9%);
+$metal-500: color.adjust($color-bg-elevated, $lightness: 16%);
+$metal-highlight: rgba(255, 255, 255, 0.07);
+$metal-shadow:    rgba(0, 0, 0, 0.6);
+$color-border-strong: color.adjust($color-border, $lightness: 9%);
+$color-text-faint: color.adjust($color-text-muted, $lightness: -18%);
+$color-on-primary: $color-bg;
+
+// Shape — chamfered corners instead of radius
 $radius-sm: 0;
 $radius-md: 0;
-$radius-lg: 2px;
+$radius-lg: 0;
+$chamfer-sm: 6px;
+$chamfer-md: 10px;
+$chamfer-lg: 16px;
 
 // Spacing
 $spacing-xs: 0.25rem;
@@ -45,48 +63,198 @@ $spacing-lg: 1.5rem;
 $spacing-xl: 2rem;
 
 // Typography
-$font-family: 'Rajdhani', 'Segoe UI', system-ui, sans-serif;
-$font-heading: 'Orbitron', sans-serif;
-$font-size-base:    16px;  // Rajdhani — body, inputs, labels
-$font-size-heading: 14px;  // Orbitron — nav, buttons, badges, UI chrome
-$font-size-section: 18px;  // prominent section titles (any font)
-$font-size-lg:      20px;
+$font-family:  'Barlow Semi Condensed', 'Segoe UI', system-ui, sans-serif;
+$font-heading: 'Big Shoulders Display', 'Barlow Semi Condensed', sans-serif;
+$font-mono:    'Share Tech Mono', ui-monospace, Consolas, monospace;
+$font-size-base:    16px;  // Barlow — body, inputs, labels
+$font-size-heading: 14px;  // minimum for heading/mono UI chrome
+$font-size-ui:      16px;  // Big Shoulders — nav, buttons, badges (reads small, so bump)
+$font-size-section: 20px;  // prominent section titles
+$font-size-lg:      22px;
+$font-size-display: 32px;
 
 // Single-line form controls (input, select, picker triggers)
 $field-control-height: 42px;
 
-// ─── Mixins ──────────────────────────────────────────────────────────────────
+$sidebar-width: 264px;
 
-// Base card — dark panel with left cyan accent
-@mixin card {
-  background: $color-bg-card;
-  border: 1px solid $color-border;
-  border-left: 2px solid $color-cyan-dim;
-  padding: $spacing-md;
-  position: relative;
+// ─── Shape mixins ────────────────────────────────────────────────────────────
+
+// Cut top-left and bottom-right corners.
+@mixin chamfer($size: $chamfer-md) {
+  clip-path: polygon(
+    $size 0, 100% 0,
+    100% calc(100% - #{$size}), calc(100% - #{$size}) 100%,
+    0 100%, 0 $size
+  );
 }
 
-// Form inputs / selects
-@mixin field-input {
-  background: rgba(255, 255, 255, 0.02);
+// Cut all four corners (used for small tags and slots).
+@mixin chamfer-all($size: $chamfer-sm) {
+  clip-path: polygon(
+    $size 0, calc(100% - #{$size}) 0, 100% $size,
+    100% calc(100% - #{$size}), calc(100% - #{$size}) 100%,
+    $size 100%, 0 calc(100% - #{$size}), 0 $size
+  );
+}
+
+@mixin bevel {
+  box-shadow: inset 1px 1px 0 $metal-highlight, inset -1px -1px 0 $metal-shadow;
+}
+
+// Diagonal edge lines for a chamfered element that also has a 1px border.
+// Must be combined with the element's own background layers.
+@function chamfer-edges($size: $chamfer-md, $color: $color-border-strong) {
+  @return (
+    linear-gradient(135deg, transparent calc(50% - 0.5px), $color calc(50% - 0.5px), $color calc(50% + 1px), transparent calc(50% + 1px))
+      left top / #{$size} #{$size} no-repeat,
+    linear-gradient(-45deg, transparent calc(50% - 0.5px), $color calc(50% - 0.5px), $color calc(50% + 1px), transparent calc(50% + 1px))
+      right bottom / #{$size} #{$size} no-repeat
+  );
+}
+
+@function rivets($color: $metal-500, $inset: 7px) {
+  $dot: radial-gradient(circle, $color 0 1.6px, rgba(0, 0, 0, 0.8) 2.2px, transparent 2.8px);
+  @return (
+    $dot right #{$inset} top #{$inset} / 6px 6px no-repeat,
+    $dot left #{$inset} bottom #{$inset} / 6px 6px no-repeat
+  );
+}
+
+@function metal-surface($from: $metal-700, $to: $metal-900) {
+  @return linear-gradient(180deg, $from 0%, $to 100%);
+}
+
+@mixin hazard-stripe($color: $color-amber, $width: 8px) {
+  background: repeating-linear-gradient(
+    -45deg,
+    $color 0 $width,
+    rgba(0, 0, 0, 0.85) $width ($width * 2)
+  );
+}
+
+// ─── Component mixins ────────────────────────────────────────────────────────
+
+// Client window: dark metal, chamfered, bevel and rivets.
+@mixin panel($size: $chamfer-lg, $edge: $color-border-strong) {
+  @include chamfer($size);
+  position: relative;
+  border: 1px solid $edge;
+  background:
+    chamfer-edges($size, $edge),
+    rivets(),
+    metal-surface($metal-800, $metal-900);
+  box-shadow:
+    inset 1px 1px 0 $metal-highlight,
+    inset -1px -1px 0 $metal-shadow,
+    inset 0 0 40px rgba(0, 0, 0, 0.35);
+}
+
+// Window title bar with metal gradient and grip lines on the right.
+@mixin panel-titlebar($accent: $color-primary) {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  min-height: 38px;
+  padding: 0 $spacing-md 0 calc(#{$spacing-md} + 6px);
+  background:
+    repeating-linear-gradient(90deg, $metal-500 0 1px, transparent 1px 4px) right 12px center / 36px 12px no-repeat,
+    linear-gradient(180deg, $metal-600 0%, $metal-700 45%, $metal-800 100%);
+  border-bottom: 1px solid $color-border-strong;
+  box-shadow: inset 0 1px 0 $metal-highlight;
+  font-family: $font-heading;
+  font-size: $font-size-ui;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: $color-text;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 6px;
+    bottom: 6px;
+    width: 3px;
+    background: $accent;
+  }
+}
+
+// Inventory slot for icons and items.
+@mixin slot($size: $chamfer-sm) {
+  @include chamfer-all($size);
+  background:
+    radial-gradient(ellipse at 50% 35%, rgba(255, 255, 255, 0.05), transparent 70%),
+    $metal-950;
+  border: 1px solid $color-border-strong;
+  box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.9), inset 0 0 0 1px rgba(0, 0, 0, 0.6);
+}
+
+// Numeric readout in a dark display window.
+@mixin readout($color: $color-primary) {
+  font-family: $font-mono;
+  font-variant-numeric: tabular-nums;
+  color: $color;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.3));
   border: 1px solid $color-border;
-  border-left: 2px solid $color-cyan-dim;
+  box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.8);
+  padding: 2px 8px;
+  letter-spacing: 0.5px;
+}
+
+// Small technical tag (e.g. "WND-04", "F1").
+@mixin tag($color: $color-text-muted) {
+  @include chamfer-all(4px);
+  display: inline-flex;
+  align-items: center;
+  font-family: $font-mono;
+  font-size: $font-size-heading;
+  line-height: 1;
+  padding: 3px 7px;
+  color: $color;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid $color-border;
+}
+
+// Base card — smaller chamfered sub-panel.
+@mixin card {
+  @include chamfer($chamfer-md);
+  position: relative;
+  padding: $spacing-md;
+  border: 1px solid $color-border;
+  background:
+    chamfer-edges($chamfer-md, $color-border),
+    metal-surface(color.adjust($metal-800, $lightness: 1.5%), $metal-900);
+  box-shadow: inset 1px 1px 0 $metal-highlight, inset -1px -1px 0 $metal-shadow;
+}
+
+// Form inputs / selects — recessed field.
+@mixin field-input {
+  @include chamfer($chamfer-sm);
+  background:
+    chamfer-edges($chamfer-sm, $color-border-strong),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.3));
+  border: 1px solid $color-border-strong;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.7);
   color: $color-text;
   font-family: $font-family;
   font-size: $font-size-base;
   font-weight: 500;
   padding: 10px 12px;
   outline: none;
-  transition: border-color 0.15s, background 0.15s;
+  transition: border-color 0.15s, box-shadow 0.15s;
   appearance: none;
   border-radius: 0;
 
-  &::placeholder { color: #3c4456; }
+  &::placeholder { color: $color-text-faint; }
 
   &:focus {
-    border-left-color: $color-primary;
-    background: rgba(63, 227, 214, 0.03);
     border-color: $color-cyan-dim;
+    background:
+      chamfer-edges($chamfer-sm, $color-cyan-dim),
+      linear-gradient(180deg, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.3));
+    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.7), inset 0 -2px 0 $color-primary;
   }
 
   option {
@@ -106,42 +274,70 @@ $field-control-height: 42px;
 }
 
 @mixin field-label {
+  font-family: $font-family;
   font-size: $font-size-base;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  color: $color-text-muted;
+}
+
+@mixin field-label-heading {
+  font-family: $font-heading;
+  font-size: $font-size-ui;
+  font-weight: 700;
   letter-spacing: 1px;
   text-transform: uppercase;
   color: $color-text-muted;
 }
 
-@mixin field-label-heading {
-  @include field-label;
-  font-family: $font-heading;
-  font-size: $font-size-heading;
-}
-
 @mixin heading-ui {
   font-family: $font-heading;
-  font-size: $font-size-heading;
+  font-size: $font-size-ui;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
 }
 
-// Section / page headings
+// Section / page headings — a title-bar strip.
 @mixin page-heading {
-  @include heading-ui;
-  font-weight: 700;
-  letter-spacing: 4px;
-  color: $color-text;
-  text-transform: uppercase;
-  margin: 0 0 $spacing-lg;
-  padding-bottom: $spacing-sm;
-  border-bottom: 1px solid $color-border;
+  @include chamfer($chamfer-sm);
   display: flex;
   align-items: center;
   gap: 10px;
+  margin: 0 0 $spacing-md;
+  padding: 8px $spacing-md 8px calc(#{$spacing-md} + 4px);
+  position: relative;
+  font-family: $font-heading;
+  font-size: $font-size-section;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: $color-text;
+  background:
+    repeating-linear-gradient(90deg, $metal-500 0 1px, transparent 1px 4px) right 12px center / 36px 12px no-repeat,
+    linear-gradient(180deg, $metal-600 0%, $metal-700 45%, $metal-800 100%);
+  border-bottom: 1px solid $color-border-strong;
+  box-shadow: inset 0 1px 0 $metal-highlight;
 
   &::before {
     content: '';
-    width: 18px;
-    height: 1px;
+    position: absolute;
+    left: 0;
+    top: 6px;
+    bottom: 6px;
+    width: 3px;
     background: $color-primary;
-    flex-shrink: 0;
   }
+}
+
+// Metal table header row.
+@mixin table-head {
+  font-family: $font-heading;
+  font-size: $font-size-ui;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: $color-text-muted;
+  background: linear-gradient(180deg, $metal-700, $metal-800);
+  border-bottom: 1px solid $color-border-strong;
 }

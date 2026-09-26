@@ -1,15 +1,13 @@
 .objectives-page {
-  h2 {
-    @include theme.page-heading;
-  }
+  display: flex;
+  flex-direction: column;
+  gap: theme.$spacing-lg;
 }
 
 .objectives-form {
-  @include theme.card;
   display: flex;
   flex-wrap: wrap;
-  gap: theme.$spacing-sm;
-  margin-bottom: theme.$spacing-lg;
+  gap: theme.$spacing-md;
   align-items: flex-end;
 
   &__field {
@@ -45,7 +43,7 @@
 
   > .btn {
     @include theme.field-control-height;
-    padding-inline: 22px;
+    padding-inline: 26px;
     flex-shrink: 0;
   }
 }
@@ -55,33 +53,63 @@
   padding: 0;
   margin: 0;
 
+  &__empty {
+    color: theme.$color-text-muted;
+    padding: theme.$spacing-lg;
+    margin: 0;
+  }
+
   &__item {
-    @include theme.card;
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    margin-bottom: theme.$spacing-sm;
-    transition: border-left-color 0.15s;
+    gap: theme.$spacing-md;
+    padding: 10px theme.$spacing-lg;
+    border-bottom: 1px solid theme.$color-border;
+    transition: background 0.1s;
+
+    &:nth-child(even) { background: rgba(255, 255, 255, 0.015); }
 
     &:hover {
-      border-left-color: theme.$color-primary;
+      background: linear-gradient(90deg, rgba(theme.$color-primary, 0.07), transparent 60%);
     }
+  }
+
+  &__pts {
+    @include theme.slot;
+    width: 64px;
+    height: 46px;
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    font-family: theme.$font-mono;
+    font-size: 20px;
+    color: theme.$color-primary;
+  }
+
+  &__info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
 
     strong {
       font-family: theme.$font-heading;
-      font-size: theme.$font-size-heading;
-      letter-spacing: 2px;
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
       text-transform: uppercase;
-      display: block;
-      margin-bottom: 4px;
+      color: theme.$color-text;
     }
+  }
 
-    small {
-      font-size: theme.$font-size-base;
-      letter-spacing: 1px;
-      color: theme.$color-text-muted;
-      text-transform: uppercase;
-      font-family: theme.$font-heading;
+  &__type {
+    @include theme.tag;
+
+    &--limitado {
+      color: theme.$color-amber;
+      border-color: rgba(theme.$color-amber, 0.4);
     }
   }
 

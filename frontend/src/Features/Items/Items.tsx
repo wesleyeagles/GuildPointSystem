@@ -3,6 +3,8 @@ import { useItems, useDeleteItem } from '@/Domain/Item/hooks/useItems'
 import { useItemSeeds } from '@/Domain/Seed/hooks/useItemSeeds'
 import { useAuthContext } from '@/Features/Auth/contexts/AuthContext'
 import { useAppToast } from '@/Shared/ui/components/AppToast/AppToast'
+import { Button } from '@/Shared/ui/components/Button/Button'
+import { Panel } from '@/Shared/ui/components/Panel/Panel'
 import { CreateItemForm } from '@/Features/Items/components/CreateItemForm/CreateItemForm'
 import { ItemCard } from '@/Features/Items/components/ItemCard/ItemCard'
 import { ItemCatalog } from '@/Features/Items/components/AccessoryCatalog/AccessoryCatalog'
@@ -35,9 +37,7 @@ export function ItemsPage() {
 
   return (
     <div className="items-page">
-      <h2>Itens</h2>
-
-      <div className="items-tabs">
+      <div className="items-tabs" role="tablist">
         <button
           type="button"
           className={`items-tabs__btn${tab === 'list' ? ' items-tabs__btn--active' : ''}`}
@@ -63,14 +63,18 @@ export function ItemsPage() {
         )}
       </div>
 
-      {tab === 'catalog' && <ItemCatalog />}
+      {tab === 'catalog' && (
+        <Panel title="Catálogo do jogo" code="DB">
+          <ItemCatalog />
+        </Panel>
+      )}
 
       {tab === 'create' && isAdmin && (
         <CreateItemForm onSuccess={() => setTab('list')} />
       )}
 
       {tab === 'list' && (
-        <>
+        <Panel title="Inventário da guild" code={`${items.length} ITM`}>
           {isLoading ? (
             <p className="items-page__loading">Carregando itens...</p>
           ) : items.length === 0 ? (
@@ -88,30 +92,28 @@ export function ItemsPage() {
               ))}
             </div>
           )}
-        </>
+        </Panel>
       )}
 
       {confirmDelete !== null && (
         <div className="items-confirm-overlay" onClick={() => setConfirmDelete(null)}>
-          <div className="items-confirm" onClick={(e) => e.stopPropagation()}>
-            <p>Confirmar exclusão do item?</p>
-            <div className="items-confirm__actions">
-              <button
-                type="button"
-                className="items-confirm__btn items-confirm__btn--cancel"
-                onClick={() => setConfirmDelete(null)}
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                className="items-confirm__btn items-confirm__btn--confirm"
-                onClick={() => handleDelete(confirmDelete)}
-                disabled={deleteItem.isPending}
-              >
-                {deleteItem.isPending ? 'Deletando...' : 'Deletar'}
-              </button>
-            </div>
+          <div onClick={(e) => e.stopPropagation()}>
+            <Panel title="Excluir item" variant="danger" className="items-confirm">
+              <p>Confirmar exclusão do item?</p>
+              <div className="items-confirm__actions">
+                <Button variant="secondary" size="sm" onClick={() => setConfirmDelete(null)}>
+                  Cancelar
+                </Button>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={() => handleDelete(confirmDelete)}
+                  disabled={deleteItem.isPending}
+                >
+                  {deleteItem.isPending ? 'Deletando...' : 'Deletar'}
+                </Button>
+              </div>
+            </Panel>
           </div>
         </div>
       )}

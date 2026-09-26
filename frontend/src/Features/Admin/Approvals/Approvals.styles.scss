@@ -1,13 +1,9 @@
 .approvals-page {
-  h2 {
-    @include theme.page-heading;
-  }
-
   &__empty {
     color: theme.$color-text-muted;
     font-size: theme.$font-size-base;
-    letter-spacing: 0.5px;
-    padding: theme.$spacing-lg 0;
+    padding: theme.$spacing-lg;
+    margin: 0;
   }
 }
 
@@ -17,24 +13,44 @@
   margin: 0;
 
   &__item {
-    @include theme.card;
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    margin-bottom: theme.$spacing-sm;
-    transition: border-left-color 0.15s;
+    gap: theme.$spacing-md;
+    padding: 12px theme.$spacing-lg;
+    border-bottom: 1px solid theme.$color-border;
+    transition: background 0.1s;
 
     &:hover {
-      border-left-color: theme.$color-primary;
+      background: linear-gradient(90deg, rgba(theme.$color-amber, 0.06), transparent 60%);
     }
+  }
+
+  &__slot {
+    @include theme.slot;
+    width: 46px;
+    height: 46px;
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    font-family: theme.$font-heading;
+    font-size: 24px;
+    font-weight: 800;
+    color: theme.$color-amber;
+  }
+
+  &__info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
 
     strong {
       font-family: theme.$font-heading;
-      font-size: theme.$font-size-heading;
-      letter-spacing: 2px;
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
       text-transform: uppercase;
-      display: block;
-      margin-bottom: 4px;
     }
 
     small {

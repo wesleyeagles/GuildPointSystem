@@ -1,28 +1,46 @@
+// In-game element / combo hues (game data, not guild palette)
+$element-fire:  #ff8a65;
+$element-water: #64b5f6;
+$element-soil:  #a1887f;
+$element-wind:  #81c784;
+$combo:         #c9a4ff;
+$stat-label:    #8fbcd8;
+$stat-value:    #b8dff5;
+$race:          #9ec8e8;
+
 .accessory-catalog {
   &__mode-tabs {
     display: flex;
-    gap: theme.$spacing-sm;
+    gap: 0;
     margin-bottom: theme.$spacing-md;
+    @include theme.chamfer(theme.$chamfer-sm);
+    align-self: flex-start;
+    width: fit-content;
+    border: 1px solid theme.$color-border-strong;
+    background: rgba(0, 0, 0, 0.4);
   }
 
   &__mode-btn {
-    @include theme.field-input;
-    @include theme.field-control-height;
-    padding: 0 theme.$spacing-md;
+    padding: 8px 20px;
     font-family: theme.$font-heading;
-    font-size: 12px;
-    letter-spacing: 0.5px;
+    font-size: theme.$font-size-ui;
+    font-weight: 700;
+    letter-spacing: 1px;
     text-transform: uppercase;
     color: theme.$color-text-muted;
     background: transparent;
-    border: 1px solid theme.$color-border;
+    border: 0;
+    border-right: 1px solid theme.$color-border;
     cursor: pointer;
-    transition: border-color 0.15s, color 0.15s, background 0.15s;
+    transition: color 0.12s, background 0.12s;
+
+    &:last-child { border-right: 0; }
+
+    &:hover { color: theme.$color-text; }
 
     &--active {
-      color: theme.$color-primary;
-      border-color: theme.$color-primary;
-      background: rgba(63, 227, 214, 0.06);
+      color: theme.$color-on-primary;
+      background: linear-gradient(180deg, theme.$color-primary, theme.$color-cyan-dim);
     }
   }
 
@@ -47,9 +65,8 @@
 
   &__status {
     color: theme.$color-text-muted;
-    font-family: theme.$font-heading;
-    font-size: theme.$font-size-heading;
-    letter-spacing: 1px;
+    font-family: theme.$font-mono;
+    font-size: theme.$font-size-base;
     text-transform: uppercase;
   }
 
@@ -71,18 +88,19 @@
   }
 
   &__page-btn {
-    @include theme.field-input;
-    @include theme.field-control-height;
+    @include theme.chamfer(theme.$chamfer-sm);
+    height: 36px;
     padding: 0 theme.$spacing-md;
     font-family: theme.$font-heading;
-    font-size: 12px;
-    letter-spacing: 0.5px;
+    font-size: theme.$font-size-ui;
+    font-weight: 700;
+    letter-spacing: 1px;
     text-transform: uppercase;
     color: theme.$color-text-muted;
-    background: transparent;
-    border: 1px solid theme.$color-border;
+    background: theme.metal-surface(theme.$metal-600, theme.$metal-800);
+    border: 1px solid theme.$color-border-strong;
     cursor: pointer;
-    transition: border-color 0.15s, color 0.15s;
+    transition: border-color 0.12s, color 0.12s;
 
     &:hover:not(:disabled) {
       color: theme.$color-primary;
@@ -96,61 +114,64 @@
   }
 
   &__page-info {
-    font-size: 13px;
-    color: theme.$color-text-muted;
-    letter-spacing: 0.3px;
+    @include theme.readout(theme.$color-text);
+    font-size: theme.$font-size-base;
   }
 
   &__page-count {
     margin-left: 6px;
-    font-size: 12px;
-    opacity: 0.75;
+    color: theme.$color-text-muted;
   }
 }
 
 .accessory-card {
+  @include theme.chamfer(theme.$chamfer-md);
   display: flex;
   flex-direction: column;
   align-items: stretch;
   text-align: left;
   width: 100%;
-  background: theme.$color-bg-card;
-  border: 1px solid theme.$color-border;
-  border-left: 2px solid theme.$color-cyan-dim;
-  padding: theme.$spacing-md;
+  padding: 0;
+  color: theme.$color-text;
+  font-family: theme.$font-family;
+  border: 1px solid theme.$color-border-strong;
+  background:
+    theme.chamfer-edges(theme.$chamfer-md, theme.$color-border-strong),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.75)),
+    theme.$metal-900;
   cursor: pointer;
-  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+  transition: border-color 0.12s;
 
   &:hover {
-    border-color: #2a4a6e;
-    background: #10161f;
+    border-color: theme.$color-cyan-dim;
   }
 
   &--selected {
     border-color: theme.$color-primary;
-    border-left-color: theme.$color-primary;
-    box-shadow: 0 0 8px rgba(63, 227, 214, 0.15);
+    background:
+      theme.chamfer-edges(theme.$chamfer-md, theme.$color-primary),
+      linear-gradient(180deg, rgba(theme.$color-primary, 0.08), rgba(0, 0, 0, 0.75)),
+      theme.$metal-900;
   }
 
   &__header {
     display: flex;
     gap: theme.$spacing-sm;
     align-items: center;
-    margin-bottom: theme.$spacing-sm;
-    padding-bottom: theme.$spacing-sm;
-    border-bottom: 1px solid rgba(28, 36, 51, 0.6);
+    padding: theme.$spacing-sm;
+    background: linear-gradient(180deg, theme.$metal-700, theme.$metal-800);
+    border-bottom: 1px solid theme.$color-border;
   }
 
   &__icon {
+    @include theme.slot(4px);
     flex-shrink: 0;
-    width: 40px;
-    height: 40px;
+    width: 46px;
+    height: 46px;
     display: flex;
     align-items: center;
     justify-content: center;
     overflow: hidden;
-    background: rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(63, 227, 214, 0.1);
   }
 
   &__title-group {
@@ -163,10 +184,10 @@
 
   &__name {
     font-family: theme.$font-heading;
-    font-size: 13px;
-    font-weight: 700;
+    font-size: 18px;
+    font-weight: 800;
     letter-spacing: 0.5px;
-    line-height: 1.3;
+    line-height: 1.15;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -174,31 +195,22 @@
 
   &__tags {
     display: flex;
-    gap: 6px;
+    gap: 4px;
     flex-wrap: wrap;
   }
 
   &__tag {
-    font-family: theme.$font-family;
-    font-size: 11px;
-    font-weight: 600;
-    color: theme.$color-text-muted;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(108, 118, 137, 0.25);
-    padding: 1px 6px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    @include theme.tag;
     white-space: nowrap;
+    text-transform: uppercase;
 
     &--grade {
       border-color: currentColor;
-      opacity: 0.85;
     }
 
     &--race {
-      color: #9ec8e8;
-      border-color: rgba(158, 200, 232, 0.35);
-      background: rgba(158, 200, 232, 0.06);
+      color: $race;
+      border-color: rgba($race, 0.35);
     }
   }
 
@@ -208,22 +220,23 @@
     gap: 6px;
     flex: 1;
     min-width: 0;
+    padding: theme.$spacing-sm theme.$spacing-sm theme.$spacing-md;
   }
 
   &__def-stats {
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    margin-top: 2px;
+    gap: 2px;
   }
 
   &__def-stat {
-    font-size: 12px;
-    color: #8fbcd8;
+    font-size: theme.$font-size-base;
+    color: $stat-label;
 
     strong {
-      color: #b8dff5;
-      font-weight: 600;
+      font-family: theme.$font-mono;
+      font-weight: 400;
+      color: $stat-value;
     }
   }
 
@@ -234,87 +247,55 @@
   }
 
   &__element {
-    font-size: 11px;
-    font-weight: 600;
-    padding: 2px 8px;
-    letter-spacing: 0.3px;
-    border: 1px solid;
+    @include theme.tag;
 
-    &--fire {
-      color: #ff8a65;
-      border-color: rgba(255, 138, 101, 0.3);
-      background: rgba(255, 138, 101, 0.06);
-    }
-
-    &--water {
-      color: #64b5f6;
-      border-color: rgba(100, 181, 246, 0.3);
-      background: rgba(100, 181, 246, 0.06);
-    }
-
-    &--soil {
-      color: #a1887f;
-      border-color: rgba(161, 136, 127, 0.3);
-      background: rgba(161, 136, 127, 0.06);
-    }
-
-    &--wind {
-      color: #81c784;
-      border-color: rgba(129, 199, 132, 0.3);
-      background: rgba(129, 199, 132, 0.06);
-    }
+    &--fire  { color: $element-fire;  border-color: rgba($element-fire, 0.35); }
+    &--water { color: $element-water; border-color: rgba($element-water, 0.35); }
+    &--soil  { color: $element-soil;  border-color: rgba($element-soil, 0.35); }
+    &--wind  { color: $element-wind;  border-color: rgba($element-wind, 0.35); }
   }
 
   &__effects {
     display: flex;
     flex-direction: column;
-    gap: 3px;
-    margin-top: 4px;
+    gap: 2px;
     padding-top: 6px;
-    border-top: 1px solid rgba(28, 36, 51, 0.5);
+    border-top: 1px solid theme.$color-border;
   }
 
   &__effect {
-    font-size: 12px;
-    color: #8fbcd8;
-    line-height: 1.4;
+    font-size: theme.$font-size-base;
+    color: $stat-label;
+    line-height: 1.35;
 
     strong {
-      color: #b8dff5;
-      font-weight: 600;
+      font-family: theme.$font-mono;
+      font-weight: 400;
+      color: $stat-value;
     }
   }
 
   &__effect-dir {
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.3px;
+    font-family: theme.$font-mono;
+    font-size: theme.$font-size-heading;
 
-    &--increase {
-      color: theme.$color-success;
-    }
-
-    &--decrease {
-      color: theme.$color-danger;
-    }
+    &--increase { color: theme.$color-success; }
+    &--decrease { color: theme.$color-danger; }
   }
 
   &__combo {
     display: flex;
     flex-direction: column;
     gap: 4px;
-    margin-top: 4px;
     padding-top: 6px;
-    border-top: 1px solid rgba(180, 140, 255, 0.2);
+    border-top: 1px solid rgba($combo, 0.25);
   }
 
   &__combo-label {
-    font-family: theme.$font-heading;
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 1px;
+    @include theme.tag($combo);
+    align-self: flex-start;
+    border-color: rgba($combo, 0.4);
     text-transform: uppercase;
-    color: #c9a4ff;
   }
 
   &__combo-set {
@@ -331,16 +312,16 @@
   }
 
   &__combo-icon {
-    width: 28px;
-    height: 28px;
-    min-width: 28px;
+    @include theme.slot(3px);
+    width: 30px;
+    height: 30px;
+    min-width: 30px;
     display: flex;
     align-items: center;
     justify-content: center;
     overflow: hidden;
-    background: rgba(0, 0, 0, 0.35);
-    border: 1px solid rgba(180, 140, 255, 0.25);
     flex-shrink: 0;
+    border-color: rgba($combo, 0.35);
 
     &--placeholder {
       padding: 1px;
@@ -348,21 +329,15 @@
   }
 
   &__combo-icon-label {
-    font-size: 7px;
-    font-weight: 700;
-    line-height: 1.05;
-    text-align: center;
-    color: #a89bc4;
-    text-transform: uppercase;
-    letter-spacing: 0;
-    word-break: break-word;
+    font-family: theme.$font-mono;
+    font-size: theme.$font-size-heading;
+    line-height: 1;
+    color: $combo;
   }
 
   &__combo .accessory-card__effect {
-    color: #c9b8e8;
+    color: color-mix(in srgb, #{$combo} 70%, #{theme.$color-text});
 
-    strong {
-      color: #e0d0ff;
-    }
+    strong { color: color-mix(in srgb, #{$combo} 40%, white); }
   }
 }

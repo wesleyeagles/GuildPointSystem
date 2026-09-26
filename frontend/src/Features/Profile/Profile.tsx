@@ -16,6 +16,8 @@ import { useAuthContext } from '@/Features/Auth/contexts/AuthContext'
 import type { PointsModality, Role } from '@/Domain/types/models'
 import { Button } from '@/Shared/ui/components/Button/Button'
 import { SeedOptionPicker } from '@/Shared/ui/components/SeedOptionPicker/SeedOptionPicker'
+import { Panel } from '@/Shared/ui/components/Panel/Panel'
+import { publicAssetUrl } from '@/Shared/utils/publicAssetUrl'
 import './Profile.styles.scss'
 
 const ROLE_OPTIONS: { value: Role; label: string }[] = [
@@ -126,15 +128,48 @@ export function ProfilePage() {
         </Link>
       )}
 
-      <h2>{isOwn ? 'Meu Perfil' : `Perfil: ${profile.nickname}`}</h2>
-      <div className="profile-page__stats">
-        <span>Pontos: {profile.points}</span>
-        <span>Disponível: {profile.availablePoints}</span>
-        <span>
-          {profile.raceName} / {profile.className}
-        </span>
-        {!isOwn && <span>Papel: {profile.role}</span>}
-      </div>
+      <Panel
+        title={isOwn ? 'Ficha do personagem' : `Ficha: ${profile.nickname}`}
+        code={`ID ${String(profile.id).padStart(4, '0')}`}
+        className="profile-sheet"
+      >
+        <div className="profile-sheet__body">
+          <div className="profile-sheet__portrait">
+            {profile.classImageUrl ? (
+              <img src={publicAssetUrl(profile.classImageUrl)} alt={profile.className} />
+            ) : (
+              <span>{profile.nickname.slice(0, 1).toUpperCase()}</span>
+            )}
+          </div>
+          <div className="profile-sheet__identity">
+            <span className="profile-sheet__name">{profile.nickname}</span>
+            <dl className="profile-sheet__attrs">
+              <div>
+                <dt>Raça</dt>
+                <dd>{profile.raceName}</dd>
+              </div>
+              <div>
+                <dt>Classe</dt>
+                <dd>{profile.className}</dd>
+              </div>
+              <div>
+                <dt>Papel</dt>
+                <dd>{profile.role}</dd>
+              </div>
+            </dl>
+          </div>
+          <div className="profile-sheet__stats">
+            <div className="profile-sheet__stat">
+              <span>Pontos</span>
+              <strong>{profile.points}</strong>
+            </div>
+            <div className="profile-sheet__stat profile-sheet__stat--cyan">
+              <span>Disponível</span>
+              <strong>{profile.availablePoints}</strong>
+            </div>
+          </div>
+        </div>
+      </Panel>
 
       {(isOwn || isStaff) && (
         <div className={`profile-page__grid${isStaff && !isOwn ? ' profile-page__grid--staff' : ''}`}>

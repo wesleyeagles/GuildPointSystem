@@ -1,5 +1,6 @@
 import { useApproveMember, usePendingMembers } from '@/Domain/Member/hooks/useMembers'
 import { Button } from '@/Shared/ui/components/Button/Button'
+import { Panel } from '@/Shared/ui/components/Panel/Panel'
 import './Approvals.styles.scss'
 
 export function ApprovalsPage() {
@@ -9,17 +10,24 @@ export function ApprovalsPage() {
   if (isLoading) return <p>Carregando pendentes...</p>
 
   return (
-    <div className="approvals-page">
-      <h2>Aprovações Pendentes</h2>
+    <Panel
+      title="Aprovações pendentes"
+      variant="danger"
+      code={`${pending.length} PND`}
+      className="approvals-page"
+      flush
+    >
       {pending.length === 0 ? (
         <p className="approvals-page__empty">Nenhum cadastro pendente.</p>
       ) : (
         <ul className="approvals-list">
           {pending.map((member) => (
             <li key={member.id} className="approvals-list__item">
-              <div>
+              <span className="approvals-list__slot" aria-hidden="true">
+                {member.nickname.slice(0, 1).toUpperCase()}
+              </span>
+              <div className="approvals-list__info">
                 <strong>{member.nickname}</strong>
-                <br />
                 <small>
                   {member.email} · {member.raceName} / {member.className}
                 </small>
@@ -45,6 +53,6 @@ export function ApprovalsPage() {
           ))}
         </ul>
       )}
-    </div>
+    </Panel>
   )
 }

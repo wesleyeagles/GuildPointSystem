@@ -4,20 +4,18 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: theme.$color-bg;
-  color: theme.$color-text-muted;
-  font-family: theme.$font-heading;
-  font-size: theme.$font-size-heading;
-  letter-spacing: 4px;
-  text-transform: uppercase;
   gap: theme.$spacing-md;
+  color: theme.$color-text-muted;
+  font-family: theme.$font-mono;
+  font-size: theme.$font-size-base;
+  letter-spacing: 1px;
+  text-transform: uppercase;
 
   &::before {
-    content: '//';
-    color: theme.$color-primary;
-    font-size: 22px;
-    letter-spacing: 0;
-    font-family: 'Courier New', monospace;
-    text-shadow: 0 0 12px theme.$color-primary;
+    content: '';
+    width: 180px;
+    height: 10px;
+    @include theme.hazard-stripe(theme.$color-amber, 6px);
+    @include theme.chamfer-all(4px);
   }
 }

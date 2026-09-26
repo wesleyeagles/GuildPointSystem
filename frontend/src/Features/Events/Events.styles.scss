@@ -1,23 +1,34 @@
 .events-page {
-  h2 {
-    @include theme.page-heading;
-  }
+  display: flex;
+  flex-direction: column;
+  gap: theme.$spacing-lg;
 }
 
 .events-form {
-  @include theme.card;
   display: flex;
   flex-wrap: wrap;
   gap: theme.$spacing-sm;
-  margin-bottom: theme.$spacing-lg;
   align-items: center;
 
   input,
   select {
     @include theme.field-input;
+    @include theme.field-control-height;
     width: auto;
     flex: 1;
-    min-width: 120px;
+    min-width: 140px;
+  }
+
+  &__password {
+    font-family: theme.$font-mono !important;
+    letter-spacing: 6px;
+    text-align: center;
+    color: theme.$color-amber !important;
+  }
+
+  > .btn {
+    @include theme.field-control-height;
+    flex-shrink: 0;
   }
 }
 
@@ -25,6 +36,14 @@
   list-style: none;
   padding: 0;
   margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: theme.$spacing-sm;
+
+  &__empty {
+    color: theme.$color-text-muted;
+    margin: 0;
+  }
 
   &__item {
     @include theme.card;
@@ -32,11 +51,11 @@
     align-items: center;
     justify-content: space-between;
     gap: theme.$spacing-sm;
-    margin-bottom: theme.$spacing-sm;
-    transition: border-left-color 0.15s;
+    border-left: 3px solid theme.$color-amber;
 
-    &:hover {
-      border-left-color: theme.$color-primary;
+    &--claimed {
+      border-left-color: theme.$color-success;
+      opacity: 0.75;
     }
   }
 
@@ -45,38 +64,57 @@
     min-width: 0;
 
     strong {
-      font-family: theme.$font-heading;
-      font-size: theme.$font-size-heading;
-      letter-spacing: 2px;
-      text-transform: uppercase;
       display: block;
-      margin-bottom: 4px;
+      margin-bottom: 6px;
+      font-family: theme.$font-heading;
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
     }
+  }
+
+  &__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: theme.$spacing-sm;
 
     small {
-      font-size: theme.$font-size-base;
-      color: theme.$color-text-muted;
+      font-family: theme.$font-mono;
+      font-size: theme.$font-size-heading;
+      color: theme.$color-amber;
     }
+  }
+
+  &__pts {
+    @include theme.readout;
+    font-size: theme.$font-size-base;
+  }
+
+  &__claimed {
+    @include theme.tag(theme.$color-success);
+    border-color: rgba(theme.$color-success, 0.4);
   }
 }
 
 .events-confirm-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
   z-index: 9000;
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: theme.$spacing-md;
+  background:
+    repeating-linear-gradient(180deg, rgba(0, 0, 0, 0.25) 0 1px, transparent 1px 3px),
+    rgba(0, 0, 0, 0.7);
 }
 
 .events-confirm {
-  @include theme.card;
-  min-width: 280px;
-  padding: theme.$spacing-lg;
+  width: min(420px, 100%);
 
   p {
-    font-family: theme.$font-family;
     font-size: theme.$font-size-base;
     color: theme.$color-text;
     margin: 0 0 theme.$spacing-md;
@@ -86,29 +124,5 @@
     display: flex;
     gap: theme.$spacing-sm;
     justify-content: flex-end;
-  }
-
-  &__btn {
-    background: transparent;
-    border: 1px solid theme.$color-border;
-    font-family: theme.$font-heading;
-    font-size: theme.$font-size-heading;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    padding: 8px theme.$spacing-md;
-    cursor: pointer;
-    transition: border-color 0.15s, color 0.15s;
-
-    &--cancel {
-      color: theme.$color-text-muted;
-      &:hover { color: theme.$color-text; border-color: theme.$color-text-muted; }
-    }
-
-    &--confirm {
-      color: theme.$color-danger;
-      border-color: theme.$color-danger;
-      &:hover { background: rgba(255, 92, 92, 0.1); }
-      &:disabled { opacity: 0.5; cursor: not-allowed; }
-    }
   }
 }

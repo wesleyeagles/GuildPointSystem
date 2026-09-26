@@ -5,74 +5,61 @@
   justify-content: center;
   flex-shrink: 0;
 
-  &__image {
+  &__image,
+  &__fallback {
+    @include theme.slot(4px);
     display: block;
-    object-fit: contain;
-    filter: drop-shadow(0 0 4px rgba(63, 227, 214, 0.2));
+    box-sizing: border-box;
   }
 
-  &--sm &__image {
-    width: 28px;
-    height: 28px;
+  &__image {
+    object-fit: contain;
+    padding: 3px;
+  }
+
+  &--sm &__image,
+  &--sm &__fallback {
+    width: 32px;
+    height: 32px;
+  }
+
+  &--md &__image,
+  &--md &__fallback {
+    width: 46px;
+    height: 46px;
   }
 
   &--md &__image {
-    width: 40px;
-    height: 40px;
+    padding: 4px;
   }
 
   &__fallback {
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 1px solid theme.$color-border;
-    background: theme.$color-bg-elevated;
     color: theme.$color-primary;
-    font-family: theme.$font-heading;
+    font-family: theme.$font-mono;
     font-size: theme.$font-size-base;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-  }
-
-  &--sm &__fallback {
-    width: 28px;
-    height: 28px;
-  }
-
-  &--md &__fallback {
-    width: 40px;
-    height: 40px;
   }
 
   &__tooltip {
+    @include theme.tag(theme.$color-text);
     position: absolute;
     left: 50%;
     bottom: calc(100% + 6px);
     transform: translateX(-50%);
-    padding: 4px 8px;
-    background: theme.$color-bg-elevated;
-    border: 1px solid theme.$color-border;
-    color: theme.$color-text;
-    font-family: theme.$font-heading;
+    padding: 5px 9px;
+    background: theme.$metal-700;
+    border-color: theme.$color-border-strong;
+    font-family: theme.$font-family;
     font-size: theme.$font-size-base;
-    letter-spacing: 1px;
-    text-transform: uppercase;
+    font-weight: 600;
     white-space: nowrap;
     pointer-events: none;
     opacity: 0;
     visibility: hidden;
     transition: opacity 0.15s ease, visibility 0.15s ease;
     z-index: 2;
-
-    &::after {
-      content: '';
-      position: absolute;
-      top: 100%;
-      left: 50%;
-      transform: translateX(-50%);
-      border: 5px solid transparent;
-      border-top-color: theme.$color-border;
-    }
   }
 
   &:hover &__tooltip,

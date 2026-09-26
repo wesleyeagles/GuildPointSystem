@@ -11,6 +11,7 @@ import { useItem } from '@/Domain/Item/hooks/useItems'
 import { useItemSeeds } from '@/Domain/Seed/hooks/useItemSeeds'
 import { Roulette } from '@/Features/Auction/components/Roulette/Roulette'
 import { Button } from '@/Shared/ui/components/Button/Button'
+import { Panel } from '@/Shared/ui/components/Panel/Panel'
 import { ItemCard } from '@/Features/Items/components/ItemCard/ItemCard'
 import type { AuctionItem, SeedOption } from '@/Domain/types/models'
 import './Auction.styles.scss'
@@ -149,119 +150,148 @@ export function AuctionDetailPage() {
       : auction.leaderId !== null && auction.leaderId === member.id
   ))
 
+  const lastBotMessage =
+    auction.status === 'DOLE'
+      ? [...messages].reverse().find((msg) => msg.type === 'BOT')
+      : undefined
+
   return (
     <div className="auction-detail">
       {/* ── LEFT ────────────────────────────────────────────────────────────── */}
       <div className="auction-detail__left">
-        {/* Item cards */}
-        <div className="auction-detail__items">
-          {auction.items.map((ai) => (
-            <AuctionItemCard key={ai.itemId} auctionItem={ai} weaponCasts={weaponCasts} />
-          ))}
-        </div>
-
-        {/* Info panel */}
-        <div className="auction-detail__info">
-          <div className="auction-detail__info-row">
-            <span className="auction-detail__info-label">Status</span>
-            <span className={`auction-detail__badge auction-detail__badge--${auction.status.toLowerCase()}`}>
-              {STATUS_LABEL[auction.status] ?? auction.status}
-            </span>
+        <Panel
+          title={`Lote #${String(auction.id).padStart(3, '0')}`}
+          code={`${auction.items.length} ITM`}
+          className="auction-detail__lot"
+        >
+          <div className="auction-detail__items">
+            {auction.items.map((ai) => (
+              <AuctionItemCard key={ai.itemId} auctionItem={ai} weaponCasts={weaponCasts} />
+            ))}
           </div>
+        </Panel>
 
-          <div className="auction-detail__info-row">
-            <span className="auction-detail__info-label">Lance atual</span>
-            <span className="auction-detail__info-value">{auction.currentBid} pts</span>
-          </div>
-
-          <div className="auction-detail__info-row">
-            <span className="auction-detail__info-label">Tempo</span>
-            <span className={`auction-detail__timer${isUrgent ? ' auction-detail__timer--urgent' : ''}`}>
-              {auction.status === 'CLOSED' ? 'Encerrado' : formatTime(remaining)}
-            </span>
-          </div>
-
-          {member && (
-            <div className="auction-detail__info-row">
-              <span className="auction-detail__info-label">Disponível</span>
-              <span className="auction-detail__info-value">{member.availablePoints} pts</span>
+        {/* Bid console */}
+        <Panel
+          title="Console de lance"
+          variant={auction.status === 'DOLE' ? 'amber' : 'default'}
+          code={STATUS_LABEL[auction.status] ?? auction.status}
+          className="auction-console"
+        >
+          <div className="auction-console__displays">
+            <div className="auction-console__display auction-console__display--bid">
+              <span className="auction-console__label">Lance atual</span>
+              <span className="auction-console__value">{auction.currentBid}</span>
             </div>
-          )}
+            <div
+              className={`auction-console__display auction-console__display--timer${isUrgent ? ' auction-console__display--urgent' : ''}`}
+            >
+              <span className="auction-console__label">Tempo</span>
+              <span className="auction-console__value">
+                {isClosed ? '--:--' : formatTime(remaining)}
+              </span>
+            </div>
+          </div>
 
-          {/* Leader during open auction */}
-          {!isClosed && (auction.leaderNickname || auction.tied) && (
-            <div className="auction-detail__info-row">
-              <span className="auction-detail__info-label">Vencendo</span>
-              {auction.tied ? (
-                <span className="auction-detail__winner-name">
-                  Empatado entre {auction.tiedCount}
+          <dl className="auction-console__rows">
+            <div>
+              <dt>Status</dt>
+              <dd>
+                <span className={`auction-detail__badge auction-detail__badge--${auction.status.toLowerCase()}`}>
+                  {STATUS_LABEL[auction.status] ?? auction.status}
                 </span>
-              ) : (
-                <span className={iAmLeading ? 'auction-detail__leader--me' : 'auction-detail__winner-name'}>
-                  {iAmLeading ? 'Você' : auction.leaderNickname}
-                </span>
-              )}
+              </dd>
+            </div>
+            {member && (
+              <div>
+                <dt>Seu saldo disponível</dt>
+                <dd className="auction-console__mono">{member.availablePoints} pts</dd>
+              </div>
+            )}
+            {!isClosed && (auction.leaderNickname || auction.tied) && (
+              <div>
+                <dt>Vencendo</dt>
+                <dd>
+                  {auction.tied ? (
+                    <span className="auction-detail__winner-name">
+                      Empatado entre {auction.tiedCount}
+                    </span>
+                  ) : (
+                    <span className={iAmLeading ? 'auction-detail__leader--me' : 'auction-detail__winner-name'}>
+                      {iAmLeading ? 'Você' : auction.leaderNickname}
+                    </span>
+                  )}
+                </dd>
+              </div>
+            )}
+            {isClosed && auction.winnerNickname && (
+              <div>
+                <dt>Vencedor</dt>
+                <dd>
+                  <span className="auction-detail__winner-name">{auction.winnerNickname}</span>
+                </dd>
+              </div>
+            )}
+          </dl>
+
+          {/* DOLE system alert */}
+          {auction.status === 'DOLE' && (
+            <div className="auction-dole" role="alert">
+              <span className="auction-dole__tag">Sistema</span>
+              <span className="auction-dole__text">{lastBotMessage?.content ?? 'DOLE'}</span>
             </div>
           )}
 
-          {/* Final winner after close */}
-          {isClosed && auction.winnerNickname && (
-            <div className="auction-detail__info-row">
-              <span className="auction-detail__info-label">Vencedor</span>
-              <span className="auction-detail__winner-name">{auction.winnerNickname}</span>
+          {/* "You're winning / tied" banner */}
+          {isOpen && iAmLeading && (
+            <div className="auction-detail__leading-banner">
+              {auction.tied
+                ? `Você está empatado entre ${auction.tiedCount} pessoas`
+                : 'Seu lance é o atual vencedor — você está ganhando!'}
             </div>
           )}
-        </div>
 
-        {/* "You're winning / tied" banner */}
-        {isOpen && iAmLeading && (
-          <div className="auction-detail__leading-banner">
-            {auction.tied
-              ? `Você está empatado entre ${auction.tiedCount} pessoas`
-              : 'Seu lance é o atual vencedor — você está ganhando!'}
-          </div>
-        )}
+          {/* Bid input — hidden if I'm already leading */}
+          {isOpen && !iAmLeading && (
+            <div className="auction-detail__bid">
+              <input
+                type="number"
+                value={bidAmount}
+                onChange={(e) => setBidAmount(e.target.value)}
+                placeholder="Valor do lance"
+                className="auction-detail__bid-input"
+                onKeyDown={(e) => e.key === 'Enter' && handleBid()}
+              />
+              <div className="auction-detail__bid-actions">
+                {[100, 250, 500].map((inc) => (
+                  <Button key={inc} variant="secondary" size="sm" onClick={() => quickBid(inc)}>
+                    +{inc}
+                  </Button>
+                ))}
+                <Button onClick={handleBid} loading={placeBid.isPending}>
+                  Lance
+                </Button>
+              </div>
+            </div>
+          )}
+        </Panel>
 
         {/* Tie-break roulette */}
         {auction.status === 'TIE_BREAK' && tieSegments.length > 0 && !rouletteDone && (
-          <Roulette
-            segments={tieSegments}
-            winnerIndex={winnerIndex}
-            seed={auction.tieBreakSeed ?? undefined}
-            onComplete={() => setRouletteDone(true)}
-          />
-        )}
-
-        {/* Bid input — hidden if I'm already leading */}
-        {isOpen && !iAmLeading && (
-          <div className="auction-detail__bid">
-            <input
-              type="number"
-              value={bidAmount}
-              onChange={(e) => setBidAmount(e.target.value)}
-              placeholder="Valor do lance"
-              className="auction-detail__bid-input"
-              onKeyDown={(e) => e.key === 'Enter' && handleBid()}
+          <Panel title="Desempate" variant="danger" code="RNG">
+            <Roulette
+              segments={tieSegments}
+              winnerIndex={winnerIndex}
+              seed={auction.tieBreakSeed ?? undefined}
+              onComplete={() => setRouletteDone(true)}
             />
-            <div className="auction-detail__bid-actions">
-              <Button onClick={handleBid} loading={placeBid.isPending}>
-                Lance
-              </Button>
-              {[100, 250, 500].map((inc) => (
-                <Button key={inc} variant="secondary" size="sm" onClick={() => quickBid(inc)}>
-                  +{inc}
-                </Button>
-              ))}
-            </div>
-          </div>
+          </Panel>
         )}
       </div>
 
       {/* ── RIGHT ───────────────────────────────────────────────────────────── */}
       <div className="auction-detail__right">
-        <div className="auction-chat">
-          <div className="auction-chat__header">Chat / Lances</div>
-
+        <Panel title="Canal do leilão" code="COM" className="auction-chat" flush>
           <div className="auction-chat__messages">
             {messages.length === 0 && (
               <p className="auction-chat__empty">Nenhuma mensagem ainda.</p>
@@ -317,7 +347,7 @@ export function AuctionDetailPage() {
               Enviar
             </Button>
           </form>
-        </div>
+        </Panel>
       </div>
     </div>
   )
