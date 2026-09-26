@@ -11,6 +11,8 @@ dist
 dist-ssr
 *.local
 
+src/Features/ServerInfo/data/translate-cache.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

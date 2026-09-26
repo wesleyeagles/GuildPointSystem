@@ -1,12 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link, Outlet, useLocation } from 'react-router-dom'
+import { CerberusCountdown } from '@/Features/ServerInfo/components/CerberusCountdown'
 import './Auth.styles.scss'
-
-const FACTIONS = [
-  { key: 'accretia', glyph: 'A', name: 'Accretia', role: 'Império mecânico' },
-  { key: 'bellato', glyph: 'B', name: 'Bellato', role: 'União industrial' },
-  { key: 'cora', glyph: 'C', name: 'Cora', role: 'Ordem mística' },
-]
 
 /**
  * Layout route that wraps /login and /register.
@@ -49,6 +44,13 @@ export function AuthShell() {
         <span className="auth-topbar__tag">BUILD 2.0</span>
       </header>
 
+      <section className="auth-cerberus">
+        <CerberusCountdown />
+        <Link to="/server-info" className="auth-cerberus__topics-link">
+          Informações do servidor Cerberus (tópicos traduzidos)
+        </Link>
+      </section>
+
       <div className="auth-layout">
         {/* ── Lore / launcher news panel ──────────────────────────────────── */}
         <aside className="auth-lore">
@@ -57,17 +59,6 @@ export function AuthShell() {
           <p className="lore-desc">
             Pontos, leilões e eventos sincronizados em tempo real entre os membros.
           </p>
-          <div className="faction-strip">
-            {FACTIONS.map((f) => (
-              <div key={f.key} className={`faction-chip faction-chip--${f.key}`}>
-                <span className="chip-emblem" aria-hidden="true">{f.glyph}</span>
-                <div>
-                  <div className="chip-name">{f.name}</div>
-                  <div className="chip-role">{f.role}</div>
-                </div>
-              </div>
-            ))}
-          </div>
         </aside>
 
         {/* ── Access window (width animates via CSS transition + class) ───── */}

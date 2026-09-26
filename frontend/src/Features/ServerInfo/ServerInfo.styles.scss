@@ -1,0 +1,175 @@
+.server-info-page {
+  min-height: 100vh;
+  padding: theme.$spacing-lg theme.$spacing-xl theme.$spacing-xl;
+  max-width: 1100px;
+  margin: 0 auto;
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 0%, rgba(theme.$color-amber, 0.06), transparent 70%);
+
+  &__hero {
+    display: flex;
+    align-items: center;
+    gap: theme.$spacing-lg;
+    flex-wrap: wrap;
+    margin-bottom: theme.$spacing-lg;
+
+    h1 {
+      margin: 0;
+      font-family: theme.$font-heading;
+      font-size: theme.$font-size-display;
+      font-weight: 800;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: theme.$color-amber;
+    }
+
+    p {
+      margin: 4px 0 0;
+      color: theme.$color-text-muted;
+      font-size: theme.$font-size-base;
+    }
+
+    &--compact {
+      margin-bottom: theme.$spacing-md;
+    }
+  }
+
+  &__logo {
+    width: 72px;
+    height: auto;
+    object-fit: contain;
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.6));
+  }
+
+  &__back {
+    @include theme.tag(theme.$color-primary);
+    margin-left: auto;
+    font-size: theme.$font-size-base;
+    text-decoration: none;
+  }
+
+  &__error,
+  &__loading {
+    color: theme.$color-text-muted;
+    padding: theme.$spacing-md 0;
+    margin: 0;
+  }
+
+  &__source {
+    margin-top: theme.$spacing-lg;
+    font-size: theme.$font-size-base;
+    color: theme.$color-text-faint;
+  }
+}
+
+.server-info-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+
+  li {
+    border-bottom: 1px solid theme.$color-border;
+  }
+
+  &__link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: theme.$spacing-md;
+    padding: 12px theme.$spacing-lg;
+    text-decoration: none;
+    transition: background 0.1s;
+
+    &:hover {
+      background: linear-gradient(90deg, rgba(theme.$color-amber, 0.08), transparent 70%);
+      text-decoration: none;
+    }
+  }
+
+  &__title {
+    font-family: theme.$font-heading;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: theme.$color-text;
+    line-height: 1.25;
+  }
+
+  &__arrow {
+    font-family: theme.$font-mono;
+    font-size: 22px;
+    color: theme.$color-amber;
+    flex-shrink: 0;
+  }
+}
+
+.server-info-topic {
+  &__body {
+    padding: theme.$spacing-md theme.$spacing-lg;
+  }
+
+  &__footer {
+    padding: theme.$spacing-sm theme.$spacing-lg theme.$spacing-md;
+    border-top: 1px solid theme.$color-border;
+    font-size: theme.$font-size-base;
+
+    a {
+      color: theme.$color-text-muted;
+    }
+  }
+}
+
+// XenForo / Cerberus forum HTML inside our panels
+.forum-content {
+  font-size: theme.$font-size-base;
+  line-height: 1.55;
+  color: theme.$color-text;
+  word-break: break-word;
+
+  img.bbImage,
+  .bbImageWrapper img {
+    max-width: 100%;
+    height: auto;
+    image-rendering: auto;
+  }
+
+  .bbImageWrapper {
+    margin: theme.$spacing-sm 0;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: theme.$spacing-sm 0;
+    font-size: theme.$font-size-base;
+  }
+
+  td,
+  th {
+    border: 1px solid theme.$color-border;
+    padding: 6px 8px;
+    vertical-align: top;
+  }
+
+  ul,
+  ol {
+    padding-left: 1.25rem;
+  }
+
+  a {
+    color: theme.$color-primary;
+  }
+
+  .rf-stage-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: theme.$spacing-md 0;
+  }
+
+  .rf-stage-jump {
+    @include theme.tag(theme.$color-primary);
+    text-decoration: none;
+    font-size: theme.$font-size-heading;
+  }
+}

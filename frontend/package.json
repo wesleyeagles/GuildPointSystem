@@ -8,7 +8,10 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "scrape:cerberus": "node scripts/scrape-cerberus-forum.mjs",
+    "translate:cerberus": "node scripts/translate-cerberus-topics.mjs",
+    "bootstrap:server-info": "node scripts/bootstrap-server-info.mjs"
   },
   "dependencies": {
     "@stomp/stompjs": "^7.3.0",
@@ -28,10 +31,12 @@
     "@types/react-dom": "^19.2.3",
     "@types/sockjs-client": "^1.5.4",
     "@vitejs/plugin-react": "^6.0.1",
+    "cheerio": "^1.2.0",
     "eslint": "^10.3.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.6.0",
+    "google-translate-api-x": "^10.7.3",
     "jsdom": "^29.1.1",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.59.2",
