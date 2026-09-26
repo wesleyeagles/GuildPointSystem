@@ -1,5 +1,6 @@
 package com.guild.app.websocket;
 
+import com.guild.app.common.enums.PartyMap;
 import com.guild.app.log.dto.AuditLogResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -31,5 +32,9 @@ public class WebSocketPublisher {
 
     public void publishPointsUpdate(Long memberId, Map<String, Object> payload) {
         messagingTemplate.convertAndSend("/topic/points/" + memberId, payload);
+    }
+
+    public void publishPartyBoard(PartyMap map) {
+        messagingTemplate.convertAndSend("/topic/parties/" + map.name(), Map.of("type", "BOARD_UPDATED", "map", map.name()));
     }
 }

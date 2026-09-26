@@ -1,0 +1,231 @@
+.party-page {
+  display: flex;
+  flex-direction: column;
+  gap: theme.$spacing-lg;
+}
+
+.party-page__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: theme.$spacing-sm;
+}
+
+.party-page__tab {
+  @include theme.tag;
+  cursor: pointer;
+  border: 1px solid theme.$color-border;
+  background: theme.$color-bg-card;
+  color: theme.$color-text-muted;
+  padding: theme.$spacing-sm theme.$spacing-md;
+  font-family: theme.$font-heading;
+  font-size: theme.$font-size-ui;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+
+  &--active {
+    color: theme.$color-text;
+    border-color: theme.$color-accent;
+    background: rgba(theme.$color-accent, 0.12);
+  }
+}
+
+.party-page__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: theme.$spacing-lg;
+
+  @media (min-width: 960px) {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.party-page__empty {
+  color: theme.$color-text-muted;
+  font-size: theme.$font-size-base;
+  margin: 0;
+  padding: theme.$spacing-md;
+}
+
+.party-card {
+  @include theme.card;
+  padding: theme.$spacing-md;
+  display: flex;
+  flex-direction: column;
+  gap: theme.$spacing-md;
+}
+
+.party-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: theme.$spacing-md;
+}
+
+.party-card__title {
+  font-family: theme.$font-heading;
+  font-size: theme.$font-size-section;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.party-card__count {
+  font-family: theme.$font-mono;
+  font-size: theme.$font-size-heading;
+  color: theme.$color-accent;
+}
+
+.party-card__roster {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: theme.$spacing-xs;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+
+  @media (min-width: 520px) {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.party-card__roster-row {
+  @include theme.slot;
+  display: flex;
+  align-items: center;
+  gap: theme.$spacing-sm;
+  padding: theme.$spacing-xs theme.$spacing-sm;
+  min-height: 40px;
+  font-size: theme.$font-size-base;
+
+  &--empty {
+    justify-content: center;
+    opacity: 0.35;
+  }
+}
+
+.party-card__roster-fallback {
+  @include theme.slot;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: theme.$font-heading;
+  font-size: theme.$font-size-ui;
+
+  &--muted {
+    opacity: 0.35;
+  }
+}
+
+.party-card__roster-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.party-card__roster-meta {
+  flex-shrink: 0;
+  font-family: theme.$font-mono;
+  font-size: 14px;
+  color: theme.$color-text-muted;
+  text-align: right;
+}
+
+.party-card__roster-vago {
+  font-size: theme.$font-size-base;
+  color: theme.$color-text-muted;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.party-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: theme.$spacing-sm;
+}
+
+.party-lfg-item {
+  display: flex;
+  align-items: center;
+  gap: theme.$spacing-md;
+  padding: theme.$spacing-sm theme.$spacing-md;
+  border-bottom: 1px solid theme.$color-border;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.party-lfg-item__info {
+  flex: 1;
+  min-width: 0;
+
+  strong {
+    display: block;
+    font-size: theme.$font-size-base;
+  }
+
+  span {
+    font-size: theme.$font-size-base;
+    color: theme.$color-text-muted;
+  }
+}
+
+.party-pending {
+  display: flex;
+  flex-direction: column;
+  gap: theme.$spacing-sm;
+}
+
+.party-pending__item {
+  @include theme.card;
+  padding: theme.$spacing-md;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: theme.$spacing-md;
+}
+
+.party-pending__label {
+  font-size: theme.$font-size-base;
+  color: theme.$color-text-muted;
+}
+
+.party-pending__actions {
+  display: flex;
+  gap: theme.$spacing-sm;
+}
+
+.party-my {
+  @include theme.card;
+  padding: theme.$spacing-md;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: theme.$spacing-md;
+}
+
+.party-lfg-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: theme.$spacing-sm;
+  align-items: flex-end;
+
+  input {
+    @include theme.field-input;
+    flex: 1;
+    min-width: 160px;
+  }
+}
+
+.party-page__banner {
+  @include theme.hazard-stripe;
+  padding: theme.$spacing-md;
+  font-size: theme.$font-size-base;
+}

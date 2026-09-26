@@ -18,6 +18,7 @@ import { ProfilePage } from '@/Features/Profile/Profile'
 import { GuildLeagueRagPage } from '@/Features/GuildLeagueRag/GuildLeagueRagPage'
 import { ServerInfoListPage } from '@/Features/ServerInfo/ServerInfoListPage'
 import { ServerInfoTopicPage } from '@/Features/ServerInfo/ServerInfoTopicPage'
+import { PartyPage } from '@/Features/Party/Party'
 import './App.styles.scss'
 
 function App() {
@@ -42,6 +43,7 @@ function App() {
               <Route path="objectives" element={<ObjectivesPage />} />
               <Route path="events" element={<EventsPage />} />
               <Route path="items" element={<ItemsPage />} />
+              <Route path="party" element={<PartyPage />} />
               <Route path="auctions" element={<AuctionListPage />} />
               <Route path="auctions/:id" element={<AuctionDetailPage />} />
               <Route path="profile" element={<ProfilePage />} />

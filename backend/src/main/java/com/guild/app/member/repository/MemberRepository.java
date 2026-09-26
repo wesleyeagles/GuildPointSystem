@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 
 import jakarta.persistence.LockModeType;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -27,4 +28,7 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
     Optional<Member> findByIdForUpdate(Long id);
 
     List<Member> findByStatusOrderByPointsDesc(com.guild.app.common.enums.MemberStatus status);
+
+    @Query("SELECT m FROM Member m LEFT JOIN FETCH m.characterClass WHERE m.id IN :ids")
+    List<Member> findAllByIdInWithClass(Collection<Long> ids);
 }

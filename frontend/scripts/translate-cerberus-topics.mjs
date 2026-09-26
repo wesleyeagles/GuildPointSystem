@@ -123,22 +123,58 @@ if (existsSync(CACHE)) {
   }
 }
 
-async function translatePlain(text) {
+/** Batch API costuma levar a 429; uma string por requisição é mais lento mas estável. */
+const TRANSLATE_OPTS = { from: 'en', to: 'pt', client: 'gtx', forceBatch: false }
+const REQUEST_PAUSE_MS = 900
+
+function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms))
+}
+
+async function callTranslate(input) {
+  for (let attempt = 0; attempt < 12; attempt++) {
+    try {
+      return await translate(input, TRANSLATE_OPTS)
+    } catch (e) {
+      const msg = String(e?.message ?? e)
+      const rate =
+        msg.includes('429') || msg.includes('Too Many') || msg.includes('sorry/index')
+      if (!rate || attempt === 11) throw e
+      const wait = Math.min(300_000, 15_000 * 2 ** attempt)
+      console.warn(`  rate limit — pausa ${Math.round(wait / 1000)}s (tentativa ${attempt + 1}/12)`)
+      await sleep(wait)
+    }
+  }
+  throw new Error('callTranslate: unreachable')
+}
+
+function applyCachedText(text) {
   const trimmed = text.trim()
   if (!trimmed) return text
-  if (cache[trimmed]) {
-    const leading = text.match(/^\s*/)?.[0] ?? ''
-    const trailing = text.match(/\s*$/)?.[0] ?? ''
-    return leading + cache[trimmed] + trailing
-  }
-
-  const { text: protectedText, tokens } = protectText(trimmed)
-  const res = await translate(protectedText, { from: 'en', to: 'pt' })
-  const translated = restoreText(res.text, tokens)
-  cache[trimmed] = translated
+  const hit = cache[trimmed]
+  if (!hit) return text
   const leading = text.match(/^\s*/)?.[0] ?? ''
   const trailing = text.match(/\s*$/)?.[0] ?? ''
-  return leading + translated + trailing
+  return leading + hit + trailing
+}
+
+async function ensureCacheForStrings(uniqueTrimmed, onProgress) {
+  const pending = uniqueTrimmed.filter((s) => !cache[s])
+  if (pending.length === 0) return
+
+  for (let i = 0; i < pending.length; i++) {
+    const trimmed = pending[i]
+    const { text: protectedText, tokens } = protectText(trimmed)
+    const res = await callTranslate(protectedText)
+    cache[trimmed] = restoreText(res.text, tokens)
+    if (i % 15 === 0 || i + 1 === pending.length) {
+      writeFileSync(CACHE, JSON.stringify(cache), 'utf8')
+    }
+    if (onProgress && (i === 0 || (i + 1) % 25 === 0 || i + 1 === pending.length)) {
+      onProgress(i + 1, pending.length, 'strings')
+    }
+    await sleep(REQUEST_PAUSE_MS)
+  }
 }
 
 async function translateHtml(html, onProgress) {
@@ -149,20 +185,18 @@ async function translateHtml(html, onProgress) {
     const $el = $(el)
     if ($el.closest('.bbImageWrapper, img, script, style, nav.rf-stage-nav').length) continue
     if ($el.find('img, table, ul, ol, .bbImageWrapper').length) continue
-    if (!$el.text().trim()) continue
-    work.push(el)
+    const text = $el.text()
+    if (!text.trim()) continue
+    work.push({ el, text })
   }
 
-  for (let i = 0; i < work.length; i++) {
-    const el = work[i]
-    const $el = $(el)
-    const text = $el.text()
-    const translated = await translatePlain(text)
-    $el.text(translated)
-    if (onProgress && (i === 0 || (i + 1) % 25 === 0 || i + 1 === work.length)) {
-      onProgress(i + 1, work.length)
-    }
-    await new Promise((r) => setTimeout(r, 35))
+  const unique = [...new Set(work.map((w) => w.text.trim()))]
+  await ensureCacheForStrings(unique, (done, total) => {
+    if (onProgress) onProgress(done, total, 'strings')
+  })
+
+  for (const { el, text } of work) {
+    $(el).text(applyCachedText(text))
   }
 
   return $('#wrap').html() ?? ''
@@ -185,6 +219,7 @@ async function main() {
   for (let i = 0; i < topics.length; i++) {
     const t = topics[i]
     console.log(`[${i + 1}/${topics.length}] ${t.slug}`)
+    try {
     const titlePt = titlePtFromEn(t.title)
     const outPath = join(OUT_DIR, `${t.slug}.json`)
     let existingBody = null
@@ -198,8 +233,8 @@ async function main() {
     const alreadyTranslated = existingBody != null && existingBody !== t.bodyHtml
     const bodyHtmlPt = alreadyTranslated && !FORCE
       ? existingBody
-      : await translateHtml(t.bodyHtml, (done, total) => {
-          console.log(`  … ${done}/${total} blocos de texto`)
+      : await translateHtml(t.bodyHtml, (done, total, kind = 'blocos') => {
+          console.log(`  … ${done}/${total} ${kind}`)
         })
     if (alreadyTranslated && !FORCE) {
       console.log(`  (corpo já traduzido — pulando)`)
@@ -211,6 +246,11 @@ async function main() {
     )
     index.push({ slug: t.slug, title: titlePt, sourceUrl: t.sourceUrl })
     writeFileSync(CACHE, JSON.stringify(cache), 'utf8')
+    } catch (e) {
+      console.error(`  ERRO em ${t.slug}:`, e?.message ?? e)
+      console.error('  Tópicos já gravados foram preservados. Rode de novo para continuar.')
+      process.exit(1)
+    }
   }
 
   if (!ONLY_SLUGS) {

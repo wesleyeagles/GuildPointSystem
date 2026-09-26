@@ -15,6 +15,7 @@ Sistema web para gestão de pontos de guild do jogo **RF Online (Rising Force On
 - Dashboard com ranking (pódio)
 - Sistema de itens (Weapon, Armor, Accessories, Misc) com upgrades via Talics
 - Sistema de Leilões em tempo real, com chat, lances rápidos, regra de reserva de pontos entre leilões simultâneos, e desempate via roleta
+- Sistema de Party (PT) e lista de espera (LFG) por mapa, para organização de grupo no servidor
 
 ### 1.1 Stack
 
@@ -306,6 +307,31 @@ Quando o leilão termina empatado:
 
 ---
 
+## Party e lista de espera (LFG)
+
+Facilitador para montar PT no RF Online (limite de **8 membros** no jogo). Não altera pontos; coordenação social entre membros **APROVADO** com perfil completo.
+
+### Mapas (abas)
+- `GERAL`, `CAULDRON`, `ELAN` (extensível no backend via enum/migration).
+- PTs listadas **por mapa**; cada mapa tem sua **própria lista de espera**.
+
+### PT (party)
+- Membro sem PT pode **criar** uma PT no mapa da aba ativa (torna-se líder).
+- Máximo **8** membros por PT; um membro só pode estar em **uma** PT por vez.
+- **Pedido de entrada:** membro solicita; o **líder aceita ou recusa**.
+- **Convite:** líder convida (ex.: da lista de espera); o **convidado aceita ou recusa**.
+- Líder pode **dissolver** a PT; qualquer membro pode **sair**. Se o líder sair e restarem membros, a liderança passa ao membro que entrou **primeiro** (`joined_at`).
+
+### Lista de espera (LFG)
+- Membro **sem PT** pode entrar na lista de espera de um mapa (nota opcional, até 200 caracteres).
+- **Uma entrada por membro** no sistema; ao mudar de mapa na LFG, a entrada é atualizada (não acumula em vários mapas).
+- Ao entrar em uma PT (aceite de pedido ou convite), sai automaticamente da LFG.
+
+### Tempo real
+- Tópico STOMP `/topic/parties/{MAP}` com evento `BOARD_UPDATED` após mutações no mapa.
+
+---
+
 ## 10. Arquitetura Frontend (React)
 
 Estrutura de pastas obrigatória — sempre seguir este padrão para novas features:
@@ -366,6 +392,7 @@ com.guild.app
 ├── points/           (ajustes manuais, histórico de pontos)
 ├── item/             (Weapon, Armor, Accessories, Misc, Talics)
 ├── auction/          (leilões, lances, chat, roleta de desempate)
+├── party/            (PT, LFG, convites e pedidos de entrada)
 ├── log/              (log genérico de auditoria)
 ├── websocket/        (configuração STOMP, canais/tópicos)
 └── common/           (exceptions, configs, security, seeds)
@@ -378,6 +405,7 @@ com.guild.app
 | `/topic/auctions/{id}` | Lances, chat, tempo restante de um leilão específico |
 | `/topic/logs` | Novo log gerado, refletido em tempo real na página de logs |
 | `/topic/points/{memberId}` | Atualização de saldo disponível (regra de reserva entre leilões) |
+| `/topic/parties/{MAP}` | Quadro de PTs e LFG do mapa (`GERAL`, `CAULDRON`, `ELAN`) |
 
 ### 11.3 Segurança
 - Toda mutação de Objetivo, Evento, Leilão, Item e ajuste de pontos deve validar role no backend (Líder/Administrador), nunca confiando em validação apenas no frontend.

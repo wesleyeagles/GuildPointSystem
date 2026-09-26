@@ -15,6 +15,7 @@ const NAV_ITEMS = [
   { to: '/logs', label: 'Logs' },
   { to: '/objectives', label: 'Objetivos' },
   { to: '/events', label: 'Eventos' },
+  { to: '/party', label: 'Party' },
   { to: '/items', label: 'Itens' },
   { to: '/auctions', label: 'Leilões' },
   { to: '/profile', label: 'Perfil' },
