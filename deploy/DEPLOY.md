@@ -46,6 +46,10 @@ Wait for propagation (often 5–30 min). SSL is automatic on Vercel and Coolify 
 
 ## 3. Coolify — Backend + PostgreSQL
 
+### Party (LFG / PT)
+
+Se Party falhar só em produção, veja [party-prod-flyway.md](party-prod-flyway.md) (conflito Flyway `V23` + migration `V24`).
+
 ### Troubleshooting healthcheck
 
 If deploy builds but healthcheck fails (`Could not connect to localhost:8080`):
