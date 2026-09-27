@@ -44,6 +44,15 @@
   font-size: theme.$font-size-base;
   margin: 0;
   padding: theme.$spacing-md;
+
+  &--panel {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    min-height: 140px;
+    padding: theme.$spacing-xl theme.$spacing-md;
+  }
 }
 
 .party-card {
@@ -90,6 +99,7 @@
 .party-card__roster-row {
   @include theme.slot;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: theme.$spacing-sm;
   padding: theme.$spacing-xs theme.$spacing-sm;
@@ -100,6 +110,52 @@
     justify-content: center;
     opacity: 0.35;
   }
+
+  &--drop-target {
+    opacity: 1;
+    border-color: theme.$color-accent;
+    background: rgba(theme.$color-accent, 0.12);
+    box-shadow: inset 0 0 0 1px rgba(theme.$color-accent, 0.35);
+  }
+
+  &--draggable {
+    cursor: grab;
+
+    &:active {
+      cursor: grabbing;
+    }
+  }
+}
+
+.party-icon-btn {
+  @include theme.slot;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  cursor: pointer;
+  color: theme.$color-text-muted;
+  background: theme.$color-bg-card;
+  border: 1px solid theme.$color-border;
+
+  &:hover:not(:disabled) {
+    color: theme.$color-text;
+    border-color: theme.$color-accent;
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}
+
+.party-card__roster-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: theme.$spacing-xs;
+  margin-left: auto;
 }
 
 .party-card__roster-fallback {
@@ -148,15 +204,62 @@
   gap: theme.$spacing-sm;
 }
 
-.party-lfg-item {
-  display: flex;
-  align-items: center;
-  gap: theme.$spacing-md;
-  padding: theme.$spacing-sm theme.$spacing-md;
-  border-bottom: 1px solid theme.$color-border;
+.party-lfg-grid {
+  list-style: none;
+  margin: 0;
+  padding: theme.$spacing-md;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: theme.$spacing-sm;
 
-  &:last-child {
-    border-bottom: none;
+  @media (max-width: 720px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.party-lfg-item {
+  @include theme.slot;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: theme.$spacing-xs;
+  padding: theme.$spacing-sm;
+  min-width: 0;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+
+  @media (hover: hover) {
+    &:hover {
+      background: rgba(theme.$color-accent, 0.08);
+      border-color: rgba(theme.$color-accent, 0.35);
+    }
+  }
+
+  &--draggable {
+    cursor: grab;
+
+    @media (hover: hover) {
+      &:hover {
+        background: rgba(theme.$color-accent, 0.14);
+        border-color: theme.$color-accent;
+        box-shadow: inset 0 0 0 1px rgba(theme.$color-accent, 0.3);
+      }
+    }
+
+    &:active {
+      cursor: grabbing;
+      background: rgba(theme.$color-accent, 0.2);
+      border-color: theme.$color-accent;
+    }
+  }
+
+  &__main {
+    display: flex;
+    align-items: center;
+    gap: theme.$spacing-sm;
+    min-width: 0;
   }
 }
 
@@ -166,12 +269,20 @@
 
   strong {
     display: block;
-    font-size: theme.$font-size-base;
+    font-size: theme.$font-size-heading;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   span {
-    font-size: theme.$font-size-base;
+    display: block;
+    font-family: theme.$font-mono;
+    font-size: 14px;
     color: theme.$color-text-muted;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }
 
@@ -244,6 +355,21 @@
   flex-wrap: wrap;
   gap: theme.$spacing-sm;
   align-items: flex-end;
+
+  &__field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: theme.$font-size-heading;
+    color: theme.$color-text-muted;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+
+    select {
+      @include theme.field-input;
+      min-width: 120px;
+    }
+  }
 
   input {
     @include theme.field-input;

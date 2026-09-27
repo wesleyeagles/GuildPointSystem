@@ -320,7 +320,8 @@ Facilitador para montar PT no RF Online (limite de **8 membros** no jogo). Não 
 - Máximo **8** membros por PT; um membro só pode estar em **uma** PT por vez.
 - **Pedido de entrada:** membro solicita; o **líder aceita ou recusa**.
 - **Convite:** líder convida (ex.: da lista de espera); o **convidado aceita ou recusa**.
-- Líder pode **dissolver** a PT; qualquer membro pode **sair**. Se o líder sair e restarem membros, a liderança passa ao membro que entrou **primeiro** (`joined_at`).
+- Líder pode **dissolver** a PT, **remover** membros (kick) e **transferir liderança**; qualquer membro pode **sair**. Se o líder sair e restarem membros, a liderança passa ao membro que entrou **primeiro** (`joined_at`). Membro **removido** entra automaticamente na **lista de espera** do mapa da PT e recebe aviso em tempo real (`/topic/parties/member/{id}`).
+- **Líder da guilda** e **Administradores** podem gerenciar **qualquer** PT no mapa (sem precisar estar na PT): dissolver, convidar, aceitar pedidos, adicionar da LFG, remover, transferir líder, **criar PT** com outro membro como líder e **montar PT** selecionando vários da lista de espera (`POST /api/parties/assemble`).
 
 ### Lista de espera (LFG)
 - Membro **sem PT** pode entrar na lista de espera de um mapa (nota opcional, até 200 caracteres).
@@ -329,6 +330,7 @@ Facilitador para montar PT no RF Online (limite de **8 membros** no jogo). Não 
 
 ### Tempo real
 - Tópico STOMP `/topic/parties/{MAP}` com evento `BOARD_UPDATED` após mutações no mapa.
+- Tópico `/topic/parties/member/{memberId}` para avisos pessoais (ex.: `KICKED_FROM_PARTY`).
 
 ---
 

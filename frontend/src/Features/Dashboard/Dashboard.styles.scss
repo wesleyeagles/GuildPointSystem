@@ -150,7 +150,7 @@
 .ranking-list__head,
 .ranking-list li {
   display: grid;
-  grid-template-columns: 36px 32px minmax(0, 1fr) 40px minmax(4.5rem, auto);
+  grid-template-columns: 36px 32px minmax(0, 1fr) 40px minmax(6.5rem, 1.1fr) minmax(4.5rem, auto);
   align-items: center;
   gap: theme.$spacing-md;
   padding: 0 theme.$spacing-lg;
@@ -161,7 +161,8 @@
   height: 32px;
   border-top: 1px solid theme.$color-border-strong;
 
-  span:nth-child(4) {
+  span:nth-child(4),
+  span:nth-child(5) {
     text-align: center;
   }
 
@@ -215,6 +216,16 @@
     font-family: theme.$font-mono;
     font-size: theme.$font-size-heading;
     color: theme.$color-text-muted;
+  }
+
+  &__login {
+    text-align: center;
+    font-family: theme.$font-mono;
+    font-size: theme.$font-size-heading;
+    color: theme.$color-text-muted;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   &__pts {

@@ -48,6 +48,7 @@ export interface Member {
   availablePoints: number
   level: number
   profileComplete: boolean
+  lastLoginAt: string | null
 }
 
 export interface SeedOption {

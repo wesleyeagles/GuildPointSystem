@@ -1,7 +1,10 @@
 package com.guild.app.common.enums;
 
 public enum PartyMap {
-    GERAL,
+    ETHER,
     CAULDRON,
-    ELAN
+    ELAN,
+    MB,
+    OC,
+    SEM_MAPA
 }

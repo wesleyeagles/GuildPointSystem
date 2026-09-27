@@ -1,0 +1,1 @@
+ALTER TABLE party ALTER COLUMN leader_id DROP NOT NULL;

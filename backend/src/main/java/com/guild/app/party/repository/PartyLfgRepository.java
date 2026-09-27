@@ -1,6 +1,5 @@
 package com.guild.app.party.repository;
 
-import com.guild.app.common.enums.PartyMap;
 import com.guild.app.party.entity.PartyLfg;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -10,7 +9,7 @@ import java.util.Optional;
 
 public interface PartyLfgRepository extends JpaRepository<PartyLfg, Long> {
 
-    List<PartyLfg> findByMapOrderByCreatedAtAsc(PartyMap map);
+    List<PartyLfg> findAllByOrderByCreatedAtAsc();
 
     Optional<PartyLfg> findByMemberId(Long memberId);
 
@@ -18,8 +17,7 @@ public interface PartyLfgRepository extends JpaRepository<PartyLfg, Long> {
             SELECT l FROM PartyLfg l
             JOIN FETCH l.member m
             LEFT JOIN FETCH m.characterClass
-            WHERE l.map = :map
             ORDER BY l.createdAt ASC
             """)
-    List<PartyLfg> findByMapWithMember(PartyMap map);
+    List<PartyLfg> findAllWithMemberOrderByCreatedAtAsc();
 }

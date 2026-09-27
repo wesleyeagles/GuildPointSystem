@@ -222,6 +222,7 @@ public class MemberService {
                 member.getPoints(),
                 pointsService.getAvailablePoints(member.getId()),
                 member.getLevel() != null ? member.getLevel() : 1,
-                member.isProfileComplete());
+                member.isProfileComplete(),
+                member.getLastLoginAt());
     }
 }

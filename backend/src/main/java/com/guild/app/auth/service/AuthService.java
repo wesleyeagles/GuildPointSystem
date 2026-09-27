@@ -24,6 +24,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.Map;
 
 @Service
@@ -60,6 +61,7 @@ public class AuthService {
         member.setLevel(1);
         member.setProfileComplete(true);
         member = memberRepository.save(member);
+        touchLastLogin(member);
 
         auditLogService.log(AuditLogType.MEMBER_REGISTERED, member, member,
                 Map.of("email", request.email(), "nickname", request.nickname()));
@@ -67,11 +69,13 @@ public class AuthService {
         return buildAuthResponse(member);
     }
 
+    @Transactional
     public AuthResponse login(LoginRequest request) {
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.email(), request.password()));
         var member = memberRepository.findByEmail(request.email())
                 .orElseThrow(() -> new AppException("Email ou senha incorretos.", HttpStatus.UNAUTHORIZED));
+        touchLastLogin(member);
         return buildAuthResponse(member);
     }
 
@@ -109,7 +113,7 @@ public class AuthService {
             if (email != null && !email.isBlank()) {
                 member.setEmail(email);
             }
-            memberRepository.save(member);
+            touchLastLogin(member);
             return buildAuthResponse(member);
         }
 
@@ -128,11 +132,17 @@ public class AuthService {
         member.setLevel(1);
         member.setProfileComplete(false);
         member = memberRepository.save(member);
+        touchLastLogin(member);
 
         auditLogService.log(AuditLogType.MEMBER_REGISTERED, member, member,
                 Map.of("discordId", discordId, "nickname", nickname));
 
         return buildAuthResponse(member);
+    }
+
+    private void touchLastLogin(Member member) {
+        member.setLastLoginAt(Instant.now());
+        memberRepository.save(member);
     }
 
     private AuthResponse buildAuthResponse(Member member) {

@@ -1,7 +1,5 @@
 package com.guild.app.party.dto;
 
-import com.guild.app.common.enums.PartyMap;
-
 import java.time.Instant;
 
 public record PartyLfgEntry(
@@ -10,7 +8,6 @@ public record PartyLfgEntry(
         String className,
         String classImageUrl,
         int level,
-        PartyMap map,
         String note,
         Instant createdAt
 ) {}

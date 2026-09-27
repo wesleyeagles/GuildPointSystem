@@ -6,6 +6,16 @@ alwaysApply: false
 
 # Spring Backend
 
+## Dev workflow (agent)
+
+After **any** change under `backend/` (Java, `application*.yml`, Flyway migrations, etc.), **restart the local Spring Boot server** so the user can test immediately:
+
+1. Stop the process listening on port **8080** (if any).
+2. From `backend/`: `$env:SPRING_FLYWAY_OUT_OF_ORDER = "true"; .\mvnw.cmd spring-boot:run` (run in background).
+3. Confirm startup (`Started GuildAppApplication` / Tomcat on 8080) before finishing the task.
+
+Do not skip the restart unless the user explicitly says they will run the backend themselves.
+
 ## Package-by-feature layout
 
 Base: `com.guild.app.{feature}/` — e.g. `auth`, `member`, `objective`, `event`, `points`, `item`, `auction`, `log`, `websocket`, `common`.

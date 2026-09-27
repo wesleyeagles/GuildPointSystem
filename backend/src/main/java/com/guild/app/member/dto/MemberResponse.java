@@ -3,6 +3,8 @@ package com.guild.app.member.dto;
 import com.guild.app.common.enums.MemberStatus;
 import com.guild.app.common.enums.Role;
 
+import java.time.Instant;
+
 public record MemberResponse(
         Long id,
         String email,
@@ -18,5 +20,6 @@ public record MemberResponse(
         Long points,
         Long availablePoints,
         int level,
-        boolean profileComplete
+        boolean profileComplete,
+        Instant lastLoginAt
 ) {}

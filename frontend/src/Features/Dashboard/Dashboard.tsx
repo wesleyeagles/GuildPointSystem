@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useMemberRanking } from '@/Domain/Member/hooks/useMembers'
+import { formatLastLogin } from '@/Shared/utils/memberLastLogin'
 import { useActiveEvents, useClaimEvent } from '@/Domain/Event/hooks/useEvents'
 import { Button } from '@/Shared/ui/components/Button/Button'
 import { MemberClassIcon } from '@/Shared/ui/components/MemberClassIcon/MemberClassIcon'
@@ -143,6 +144,7 @@ export function DashboardPage() {
               <span className="ranking-list__head-icon" />
               <span>Membro</span>
               <span>Lv</span>
+              <span>Último login</span>
               <span>Pontos</span>
             </div>
             <ul className="ranking-list">
@@ -159,6 +161,9 @@ export function DashboardPage() {
                     {m.nickname}
                   </Link>
                   <span className="ranking-list__level">{m.level ?? 1}</span>
+                  <span className="ranking-list__login" title={formatLastLogin(m.lastLoginAt)}>
+                    {formatLastLogin(m.lastLoginAt)}
+                  </span>
                   <span className="ranking-list__pts">{m.points}</span>
                 </li>
               ))}

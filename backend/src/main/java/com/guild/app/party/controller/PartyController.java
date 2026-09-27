@@ -17,14 +17,38 @@ public class PartyController {
     private final PartyService partyService;
 
     @GetMapping("/board")
-    public PartyBoardResponse board(@RequestParam PartyMap map) {
-        return partyService.getBoard(map, SecurityUtils.currentMember());
+    public PartyBoardResponse board() {
+        return partyService.getBoard(SecurityUtils.currentMember());
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public PartyBoardResponse create(@Valid @RequestBody CreatePartyRequest request) {
         return partyService.createParty(request, SecurityUtils.currentMember());
+    }
+
+    @PostMapping("/for-member")
+    @ResponseStatus(HttpStatus.CREATED)
+    public PartyBoardResponse createForMember(@Valid @RequestBody CreatePartyForMemberRequest request) {
+        return partyService.createPartyForMember(request, SecurityUtils.currentMember());
+    }
+
+    @PostMapping("/assemble")
+    @ResponseStatus(HttpStatus.CREATED)
+    public PartyBoardResponse assemble(@Valid @RequestBody AssemblePartyRequest request) {
+        return partyService.assembleParty(request, SecurityUtils.currentMember());
+    }
+
+    @PostMapping("/empty")
+    @ResponseStatus(HttpStatus.CREATED)
+    public PartyBoardResponse createEmpty(@Valid @RequestBody CreatePartyRequest request) {
+        return partyService.createEmptyParty(request, SecurityUtils.currentMember());
+    }
+
+    @PostMapping("/{id}/move")
+    public PartyBoardResponse moveMember(
+            @PathVariable Long id, @Valid @RequestBody MovePartyMemberRequest request) {
+        return partyService.moveMember(id, request, SecurityUtils.currentMember());
     }
 
     @DeleteMapping("/{id}")
@@ -35,6 +59,22 @@ public class PartyController {
     @PostMapping("/{id}/leave")
     public PartyBoardResponse leave(@PathVariable Long id) {
         return partyService.leave(id, SecurityUtils.currentMember());
+    }
+
+    @PostMapping("/{id}/kick")
+    public PartyBoardResponse kick(@PathVariable Long id, @Valid @RequestBody KickMemberRequest request) {
+        return partyService.kickMember(id, request, SecurityUtils.currentMember());
+    }
+
+    @PostMapping("/{id}/leader")
+    public PartyBoardResponse transferLeader(
+            @PathVariable Long id, @Valid @RequestBody TransferPartyLeaderRequest request) {
+        return partyService.transferLeader(id, request, SecurityUtils.currentMember());
+    }
+
+    @PostMapping("/{id}/members")
+    public PartyBoardResponse addMember(@PathVariable Long id, @Valid @RequestBody AddPartyMemberRequest request) {
+        return partyService.addMemberDirect(id, request, SecurityUtils.currentMember());
     }
 
     @PostMapping("/{id}/requests")
@@ -68,7 +108,7 @@ public class PartyController {
     }
 
     @DeleteMapping("/lfg")
-    public PartyBoardResponse leaveLfg(@RequestParam(defaultValue = "GERAL") PartyMap map) {
-        return partyService.leaveLfg(SecurityUtils.currentMember(), map);
+    public PartyBoardResponse leaveLfg() {
+        return partyService.leaveLfg(SecurityUtils.currentMember());
     }
 }

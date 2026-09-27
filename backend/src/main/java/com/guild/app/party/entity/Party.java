@@ -25,8 +25,11 @@ public class Party {
     private PartyMap map;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "leader_id", nullable = false)
+    @JoinColumn(name = "leader_id")
     private Member leader;
+
+    @Column(length = 200)
+    private String spot;
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt = Instant.now();

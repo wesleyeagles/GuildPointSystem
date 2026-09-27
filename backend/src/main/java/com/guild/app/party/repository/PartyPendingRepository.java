@@ -1,5 +1,6 @@
 package com.guild.app.party.repository;
 
+import com.guild.app.common.enums.PartyMap;
 import com.guild.app.common.enums.PartyPendingKind;
 import com.guild.app.common.enums.PartyPendingStatus;
 import com.guild.app.party.entity.PartyPending;
@@ -35,4 +36,17 @@ public interface PartyPendingRepository extends JpaRepository<PartyPending, Long
             WHERE pp.status = :status AND pp.target.id = :targetId
             """)
     List<PartyPending> findByTargetIdAndStatus(Long targetId, PartyPendingStatus status);
+
+    @Query("""
+            SELECT pp FROM PartyPending pp
+            JOIN FETCH pp.party p
+            JOIN FETCH pp.initiator i
+            LEFT JOIN FETCH i.characterClass
+            JOIN FETCH pp.target t
+            LEFT JOIN FETCH t.characterClass
+            WHERE pp.status = :status
+            AND pp.kind = com.guild.app.common.enums.PartyPendingKind.JOIN_REQUEST
+            AND p.map = :map
+            """)
+    List<PartyPending> findJoinRequestsByMap(PartyMap map, PartyPendingStatus status);
 }

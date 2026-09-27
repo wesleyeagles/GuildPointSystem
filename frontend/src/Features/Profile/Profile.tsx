@@ -17,6 +17,7 @@ import type { PointsModality, Role } from '@/Domain/types/models'
 import { Button } from '@/Shared/ui/components/Button/Button'
 import { SeedOptionPicker } from '@/Shared/ui/components/SeedOptionPicker/SeedOptionPicker'
 import { Panel } from '@/Shared/ui/components/Panel/Panel'
+import { formatLastLogin } from '@/Shared/utils/memberLastLogin'
 import { publicAssetUrl } from '@/Shared/utils/publicAssetUrl'
 import './Profile.styles.scss'
 
@@ -162,6 +163,10 @@ export function ProfilePage() {
               <div>
                 <dt>Papel</dt>
                 <dd>{profile.role}</dd>
+              </div>
+              <div>
+                <dt>Último login</dt>
+                <dd>{formatLastLogin(profile.lastLoginAt)}</dd>
               </div>
             </dl>
           </div>

@@ -14,6 +14,8 @@ public interface PartyRepository extends JpaRepository<Party, Long> {
 
     List<Party> findByMapOrderByCreatedAtAsc(PartyMap map);
 
+    List<Party> findAllByOrderByMapAscCreatedAtAsc();
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT p FROM Party p WHERE p.id = :id")
     Optional<Party> findByIdForUpdate(Long id);

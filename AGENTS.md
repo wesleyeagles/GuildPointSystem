@@ -37,6 +37,8 @@ cd frontend && npm install && npm run dev
 cd backend && mvn spring-boot:run
 ```
 
+**Agent:** after editing `backend/`, always restart the local server on port 8080 (see `spring-backend.mdc`).
+
 ## Suggested build order
 
 1. Auth + PENDENTE approval + Discord profile modal

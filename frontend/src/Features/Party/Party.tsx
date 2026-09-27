@@ -1,24 +1,37 @@
-import { useState } from 'react'
+import { useCallback, useState, type DragEvent, type ReactNode } from 'react'
 import { useAuthContext } from '@/Features/Auth/contexts/AuthContext'
 import {
   useAcceptPartyPending,
   useCancelPartyPending,
+  useCreateEmptyParty,
   useCreateParty,
   useDisbandParty,
-  useInviteToParty,
+  useKickPartyMember,
   useLeaveParty,
   useLeavePartyLfg,
+  useMovePartyMember,
   usePartyBoard,
+  usePartyMemberNotices,
   useRejectPartyPending,
   useRequestJoinParty,
+  useTransferPartyLeader,
   useUpsertPartyLfg,
 } from '@/Domain/Party/hooks/useParty'
+import {
+  readPartyDragData,
+  setPartyDragData,
+  type PartyDragPayload,
+} from '@/Features/Party/utils/partyDrag'
 import { Button } from '@/Shared/ui/components/Button/Button'
 import { Panel } from '@/Shared/ui/components/Panel/Panel'
 import { MemberClassIcon } from '@/Shared/ui/components/MemberClassIcon/MemberClassIcon'
+import { useAppToast } from '@/Shared/ui/components/AppToast/AppToast'
+import { playScheduleAlertSound } from '@/Shared/utils/notificationSound'
+import { PartyCreateModal, type PartyCreateMode } from '@/Features/Party/components/PartyCreateModal'
 import {
-  PARTY_MAP_TABS,
+  formatPartyLabel,
   PARTY_MAX_MEMBERS,
+  partyMapLabel,
   type MyPartyState,
   type PartyMap,
   type PartyMemberSummary,
@@ -28,11 +41,14 @@ import {
 import './Party.styles.scss'
 
 function pendingActionLabel(p: PartyPendingItem, my: MyPartyState): string {
+  if (p.kind === 'JOIN_REQUEST' && my.canOrganizeParties && my.partyId !== p.partyId) {
+    return `Pedido de entrada — ${partyMapLabel(p.partyMap)}`
+  }
   if (p.kind === 'JOIN_REQUEST' && my.leader && my.partyId === p.partyId) {
     return 'Pediu para entrar na sua PT'
   }
   if (p.kind === 'INVITE' && !my.partyId) {
-    return `Convite para PT (${p.partyMap})`
+    return `Convite para PT (${partyMapLabel(p.partyMap)})`
   }
   if (p.kind === 'JOIN_REQUEST') {
     return `Pedido enviado — aguardando ${p.otherMember.nickname}`
@@ -65,7 +81,10 @@ function PendingMemberPreview({ member }: { member: PartyMemberSummary }) {
 }
 
 function isIncomingPending(p: PartyPendingItem, my: MyPartyState): boolean {
-  if (p.kind === 'JOIN_REQUEST') return my.leader && my.partyId === p.partyId
+  if (p.kind === 'JOIN_REQUEST') {
+    if (my.canOrganizeParties) return true
+    return my.leader && my.partyId === p.partyId
+  }
   if (p.kind === 'INVITE') return !my.partyId
   return false
 }
@@ -80,14 +99,120 @@ function hasPendingJoinToParty(partyId: number, pending: PartyPendingItem[]): bo
   return pending.some((p) => p.kind === 'JOIN_REQUEST' && p.partyId === partyId)
 }
 
-function PartyRoster({ party }: { party: PartySummary }) {
+function PartyIconButton({
+  label,
+  onClick,
+  loading,
+  children,
+}: {
+  label: string
+  onClick: () => void
+  loading?: boolean
+  children: ReactNode
+}) {
+  return (
+    <button
+      type="button"
+      className="party-icon-btn"
+      aria-label={label}
+      title={label}
+      disabled={loading}
+      onClick={onClick}
+    >
+      {children}
+    </button>
+  )
+}
+
+function IconLeader() {
+  return (
+    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="currentColor">
+      <path d="M12 2l2.4 7.4H22l-6 4.6 2.3 7-6.3-4.6L5.7 21l2.3-7-6-4.6h7.6L12 2z" />
+    </svg>
+  )
+}
+
+function IconRemove() {
+  return (
+    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M6 6l12 12M18 6L6 18" />
+    </svg>
+  )
+}
+
+function PartyRoster({
+  party,
+  canManage,
+  viewerId,
+  onKick,
+  onMakeLeader,
+  kickLoadingId,
+  leaderLoadingId,
+  canDragMembers,
+  onDropMember,
+  dropHighlightSlot,
+  onDragHighlight,
+  movePending,
+}: {
+  party: PartySummary
+  canManage: boolean
+  viewerId?: number
+  onKick: (memberId: number) => void
+  onMakeLeader: (memberId: number) => void
+  kickLoadingId: number | null
+  leaderLoadingId: number | null
+  canDragMembers: boolean
+  onDropMember: (payload: PartyDragPayload) => void
+  dropHighlightSlot: number | null
+  onDragHighlight: (slot: number | null) => void
+  movePending: boolean
+}) {
   const slots = Array.from({ length: PARTY_MAX_MEMBERS }, (_, i) => party.members[i] ?? null)
+  const canAcceptDrop = canManage && party.memberCount < PARTY_MAX_MEMBERS && !movePending
+
+  const handleDragOverEmpty = (e: DragEvent, index: number) => {
+    if (!canAcceptDrop || slots[index]) return
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    onDragHighlight(index)
+  }
+
+  const handleDrop = (e: DragEvent) => {
+    e.preventDefault()
+    onDragHighlight(null)
+    const payload = readPartyDragData(e)
+    if (!payload || !canAcceptDrop) return
+    if (payload.fromPartyId === party.id) return
+    onDropMember(payload)
+  }
+
   return (
     <ul className="party-card__roster">
       {slots.map((member, index) => (
         <li
           key={member?.id ?? `empty-${index}`}
-          className={`party-card__roster-row${member ? '' : ' party-card__roster-row--empty'}`}
+          className={[
+            'party-card__roster-row',
+            member ? '' : 'party-card__roster-row--empty',
+            member && canDragMembers ? 'party-card__roster-row--draggable' : '',
+            !member && dropHighlightSlot === index ? 'party-card__roster-row--drop-target' : '',
+          ]
+            .filter(Boolean)
+            .join(' ')}
+          draggable={Boolean(member && canDragMembers)}
+          onDragStart={(e) => {
+            if (!member || !canDragMembers) return
+            setPartyDragData(e, {
+              memberId: member.id,
+              fromPartyId: party.id,
+              nickname: member.nickname,
+            })
+          }}
+          onDragOver={(e) => handleDragOverEmpty(e, index)}
+          onDragLeave={() => {
+            if (dropHighlightSlot === index) onDragHighlight(null)
+          }}
+          onDrop={handleDrop}
         >
           {member ? (
             <>
@@ -110,6 +235,28 @@ function PartyRoster({ party }: { party: PartySummary }) {
                 {member.className ? `${member.className} · ` : ''}
                 Lv {member.level}
               </span>
+              {canManage && !member.leader && member.id !== viewerId && (
+                <div
+                  className="party-card__roster-actions"
+                  draggable={false}
+                  onDragStart={(e) => e.stopPropagation()}
+                >
+                  <PartyIconButton
+                    label="Definir como líder"
+                    loading={leaderLoadingId === member.id}
+                    onClick={() => onMakeLeader(member.id)}
+                  >
+                    <IconLeader />
+                  </PartyIconButton>
+                  <PartyIconButton
+                    label="Remover da PT"
+                    loading={kickLoadingId === member.id}
+                    onClick={() => onKick(member.id)}
+                  >
+                    <IconRemove />
+                  </PartyIconButton>
+                </div>
+              )}
             </>
           ) : (
             <span className="party-card__roster-vago">Vago</span>
@@ -123,27 +270,71 @@ function PartyRoster({ party }: { party: PartySummary }) {
 function PartyCard({
   party,
   my,
+  viewerId,
   onRequestJoin,
   requestLoading,
+  onDisband,
+  disbandLoading,
+  onKick,
+  onMakeLeader,
+  kickLoadingId,
+  leaderLoadingId,
+  canDragMembers,
+  onDropMember,
+  dropHighlightSlot,
+  onDragHighlight,
+  movePending,
 }: {
   party: PartySummary
   my: MyPartyState
+  viewerId?: number
   onRequestJoin: (partyId: number) => void
   requestLoading: boolean
+  onDisband: (partyId: number) => void
+  disbandLoading: boolean
+  onKick: (partyId: number, memberId: number) => void
+  onMakeLeader: (partyId: number, memberId: number) => void
+  kickLoadingId: number | null
+  leaderLoadingId: number | null
+  canDragMembers: boolean
+  onDropMember: (partyId: number, payload: PartyDragPayload) => void
+  dropHighlightSlot: number | null
+  onDragHighlight: (slot: number | null) => void
+  movePending: boolean
 }) {
   const inThisParty = my.partyId === party.id
   const isLeaderHere = inThisParty && my.leader
+  const canManage = (my.leader && my.partyId === party.id) || my.canOrganizeParties
   const full = party.memberCount >= PARTY_MAX_MEMBERS
   const canRequest =
-    !my.partyId && !full && !hasPendingJoinToParty(party.id, my.pending)
+    !my.partyId &&
+    !full &&
+    party.leaderId != null &&
+    !hasPendingJoinToParty(party.id, my.pending)
 
   return (
     <li className="party-card">
       <div className="party-card__head">
-        <h3 className="party-card__title">PT #{party.id}</h3>
+        <h3 className="party-card__title">
+          {formatPartyLabel(party)}
+          {party.memberCount === 0 ? ' · vazia' : ''}
+        </h3>
         <span className="party-card__count">{party.memberCount}/{PARTY_MAX_MEMBERS}</span>
       </div>
-      <PartyRoster party={party} />
+      <PartyRoster
+        party={party}
+        canManage={canManage}
+        viewerId={viewerId}
+        onKick={(memberId) => onKick(party.id, memberId)}
+        onMakeLeader={(memberId) => onMakeLeader(party.id, memberId)}
+        kickLoadingId={kickLoadingId}
+        leaderLoadingId={leaderLoadingId}
+        canDragMembers={canDragMembers}
+        onDropMember={(payload) => onDropMember(party.id, payload)}
+        dropHighlightSlot={dropHighlightSlot}
+        onDragHighlight={onDragHighlight}
+        movePending={movePending}
+      />
       <div className="party-card__actions">
         {canRequest && (
           <Button size="sm" loading={requestLoading} onClick={() => onRequestJoin(party.id)}>
@@ -153,6 +344,19 @@ function PartyCard({
         {isLeaderHere && (
           <span className="party-pending__label">Você é o líder desta PT</span>
         )}
+        {canManage && !isLeaderHere && my.canOrganizeParties && (
+          <span className="party-pending__label">Gestão (liderança)</span>
+        )}
+        {canManage && (
+          <Button
+            size="sm"
+            variant="secondary"
+            loading={disbandLoading}
+            onClick={() => onDisband(party.id)}
+          >
+            Dissolver PT
+          </Button>
+        )}
       </div>
     </li>
   )
@@ -160,68 +364,110 @@ function PartyCard({
 
 export function PartyPage() {
   const { user } = useAuthContext()
-  const [map, setMap] = useState<PartyMap>('GERAL')
-  const [lfgNote, setLfgNote] = useState('')
+  const { showToast } = useAppToast()
+  const [kickLoadingId, setKickLoadingId] = useState<number | null>(null)
+  const [leaderLoadingId, setLeaderLoadingId] = useState<number | null>(null)
+  const [dropHighlight, setDropHighlight] = useState<{ partyId: number; slot: number } | null>(null)
+  const [createModal, setCreateModal] = useState<PartyCreateMode | null>(null)
 
-  const { data: board, isLoading } = usePartyBoard(map)
+  const { data: board, isLoading } = usePartyBoard()
   const createParty = useCreateParty()
+  const createEmptyParty = useCreateEmptyParty()
+  const movePartyMember = useMovePartyMember()
   const disbandParty = useDisbandParty()
   const leaveParty = useLeaveParty()
   const requestJoin = useRequestJoinParty()
-  const inviteToParty = useInviteToParty()
+  const kickMember = useKickPartyMember()
+  const transferLeader = useTransferPartyLeader()
   const acceptPending = useAcceptPartyPending()
   const rejectPending = useRejectPartyPending()
   const cancelPending = useCancelPartyPending()
   const upsertLfg = useUpsertPartyLfg()
-  const leaveLfg = useLeavePartyLfg(map)
+  const leaveLfg = useLeavePartyLfg()
+
+  const onPartyNotice = useCallback(
+    (notice: { message: string }) => {
+      playScheduleAlertSound()
+      showToast(notice.message, 'error', { durationMs: 10_000 })
+    },
+    [showToast],
+  )
+  usePartyMemberNotices(user?.memberId, onPartyNotice)
 
   const my = board?.my ?? {
     partyId: null,
+    partyNumber: null,
     partyMap: null,
+    partySpot: null,
     leader: false,
+    canOrganizeParties: false,
     lfg: null,
     pending: [],
   }
 
-  const myPartyOnOtherMap = my.partyId != null && my.partyMap != null && my.partyMap !== map
   const inParty = my.partyId != null
-  const onLfgThisMap = my.lfg?.map === map
-  const onLfgAny = my.lfg != null
+  const onLfg = my.lfg != null
 
   const incoming = my.pending.filter((p) => isIncomingPending(p, my))
   const outgoing = my.pending.filter((p) => isOutgoingPending(p, my))
 
-  const handleCreateParty = () => {
-    createParty.mutate({ map })
+  const handleCreateModalSubmit = (payload: { map: PartyMap; spot?: string }) => {
+    const onDone = {
+      onSuccess: () => {
+        setCreateModal(null)
+        showToast('PT criada com sucesso.', 'success')
+      },
+    }
+    if (createModal === 'empty') {
+      createEmptyParty.mutate(payload, onDone)
+    } else {
+      createParty.mutate(payload, onDone)
+    }
   }
 
-  const handleLfgJoin = () => {
-    upsertLfg.mutate({ map, note: lfgNote.trim() || undefined })
-  }
+  const canDragFromLfg = my.canOrganizeParties || my.leader
 
-  const leaderPartyId = my.leader ? my.partyId : null
+  const handleMoveMember = useCallback(
+    (partyId: number, payload: PartyDragPayload) => {
+      const target = board?.parties.find((p) => p.id === partyId)
+      movePartyMember.mutate(
+        { partyId, memberId: payload.memberId, fromPartyId: payload.fromPartyId },
+        {
+          onSuccess: () => {
+            setDropHighlight(null)
+            const label = target ? formatPartyLabel(target) : `PT #${partyId}`
+            showToast(`${payload.nickname} adicionado à ${label}.`, 'success')
+          },
+          onError: (err) => {
+            const message = err instanceof Error ? err.message : 'Não foi possível mover o membro.'
+            showToast(message, 'error')
+          },
+        },
+      )
+    },
+    [movePartyMember, showToast, board?.parties],
+  )
+
+  const myPartyLabel =
+    my.partyNumber != null && my.partyMap
+      ? formatPartyLabel({
+          number: my.partyNumber,
+          map: my.partyMap,
+          spot: my.partySpot,
+        })
+      : my.partyId != null
+        ? `PT #${my.partyId}`
+        : ''
 
   return (
     <div className="party-page">
-      <div className="party-page__tabs" role="tablist" aria-label="Mapa">
-        {PARTY_MAP_TABS.map((tab) => (
-          <button
-            key={tab.value}
-            type="button"
-            role="tab"
-            aria-selected={map === tab.value}
-            className={`party-page__tab${map === tab.value ? ' party-page__tab--active' : ''}`}
-            onClick={() => setMap(tab.value)}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {myPartyOnOtherMap && (
-        <p className="party-page__banner">
-          Sua PT está no mapa <strong>{my.partyMap}</strong>. Troque de aba para gerenciá-la.
-        </p>
+      {createModal && (
+        <PartyCreateModal
+          mode={createModal}
+          loading={createParty.isPending || createEmptyParty.isPending}
+          onClose={() => setCreateModal(null)}
+          onSubmit={handleCreateModalSubmit}
+        />
       )}
 
       {incoming.length > 0 && (
@@ -279,13 +525,18 @@ export function PartyPage() {
         </Panel>
       )}
 
-      {inParty && my.partyMap === map && (
+      {inParty && (
         <div className="party-my">
           <span>
-            Você está na PT #{my.partyId}
+            Você está na {myPartyLabel}
             {my.leader ? ' (líder)' : ''}
           </span>
           <div className="party-card__actions">
+            {my.canOrganizeParties && (
+              <Button size="sm" variant="secondary" onClick={() => setCreateModal('empty')}>
+                Criar PT vazia
+              </Button>
+            )}
             {my.leader && (
               <Button
                 size="sm"
@@ -309,27 +560,21 @@ export function PartyPage() {
       )}
 
       {!inParty && (
-        <Panel title="Ações rápidas" code={map}>
+        <Panel title="Ações rápidas" code="PT">
           <div className="party-card__actions">
-            <Button loading={createParty.isPending} onClick={handleCreateParty}>
-              Criar PT
-            </Button>
-          </div>
-          <div className="party-lfg-form" style={{ marginTop: '1rem' }}>
-            <input
-              type="text"
-              maxLength={200}
-              placeholder="Nota opcional (ex.: tank, heal)"
-              value={lfgNote}
-              onChange={(e) => setLfgNote(e.target.value)}
-            />
-            {onLfgThisMap ? (
+            <Button onClick={() => setCreateModal('member')}>Criar PT</Button>
+            {my.canOrganizeParties && (
+              <Button variant="secondary" onClick={() => setCreateModal('empty')}>
+                Criar PT vazia
+              </Button>
+            )}
+            {onLfg ? (
               <Button variant="secondary" loading={leaveLfg.isPending} onClick={() => leaveLfg.mutate()}>
                 Sair da lista de espera
               </Button>
             ) : (
-              <Button loading={upsertLfg.isPending} onClick={handleLfgJoin}>
-                {onLfgAny ? 'Mover para este mapa' : 'Entrar na lista de espera'}
+              <Button variant="secondary" loading={upsertLfg.isPending} onClick={() => upsertLfg.mutate({})}>
+                Entrar na lista de espera
               </Button>
             )}
           </div>
@@ -342,56 +587,86 @@ export function PartyPage() {
         <div className="party-page__grid">
           <Panel title="PTs abertas" code={`${board.parties.length} PT`} flush>
             {board.parties.length === 0 ? (
-              <p className="party-page__empty">Nenhuma PT neste mapa.</p>
+              <p className="party-page__empty party-page__empty--panel">Nenhuma PT aberta.</p>
             ) : (
               <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 {board.parties.map((party) => (
-                  <PartyCard
-                    key={party.id}
-                    party={party}
-                    my={my}
-                    onRequestJoin={(id) => requestJoin.mutate(id)}
-                    requestLoading={requestJoin.isPending}
-                  />
+                    <PartyCard
+                      key={party.id}
+                      party={party}
+                      my={my}
+                      viewerId={user?.memberId}
+                      onRequestJoin={(id) => requestJoin.mutate(id)}
+                      requestLoading={requestJoin.isPending}
+                      onDisband={(id) => disbandParty.mutate(id)}
+                      disbandLoading={disbandParty.isPending}
+                      onKick={(partyId, memberId) => {
+                        setKickLoadingId(memberId)
+                        kickMember.mutate(
+                          { partyId, memberId },
+                          { onSettled: () => setKickLoadingId(null) },
+                        )
+                      }}
+                      onMakeLeader={(partyId, memberId) => {
+                        setLeaderLoadingId(memberId)
+                        transferLeader.mutate(
+                          { partyId, memberId },
+                          { onSettled: () => setLeaderLoadingId(null) },
+                        )
+                      }}
+                      kickLoadingId={kickLoadingId}
+                      leaderLoadingId={leaderLoadingId}
+                      canDragMembers={my.canOrganizeParties}
+                      onDropMember={handleMoveMember}
+                      dropHighlightSlot={
+                        dropHighlight?.partyId === party.id ? dropHighlight.slot : null
+                      }
+                      onDragHighlight={(slot) => {
+                        setDropHighlight(slot == null ? null : { partyId: party.id, slot })
+                      }}
+                      movePending={movePartyMember.isPending}
+                    />
                 ))}
               </ul>
             )}
           </Panel>
 
-          <Panel title="Lista de espera" code={`${board.lfg.length} LFG`} flush>
+          <Panel title="Lista de espera" code={`${board.lfg.length} LFP`} flush>
             {board.lfg.length === 0 ? (
-              <p className="party-page__empty">Ninguém procurando PT neste mapa.</p>
+              <p className="party-page__empty party-page__empty--panel">Ninguém na lista de espera.</p>
             ) : (
-              <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+              <ul className="party-lfg-grid">
                 {board.lfg.map((entry) => (
-                  <li key={entry.memberId} className="party-lfg-item">
-                    {entry.classImageUrl ? (
-                      <MemberClassIcon
-                        classImageUrl={entry.classImageUrl}
-                        classLabel={entry.className ?? ''}
-                        size="sm"
-                      />
-                    ) : (
-                      <span className="party-card__roster-fallback party-card__roster-fallback--muted">?</span>
-                    )}
-                    <div className="party-lfg-item__info">
-                      <strong>{entry.nickname}</strong>
-                      <span>
-                        {entry.className ?? 'Classe'} · Lv {entry.level}
-                        {entry.note ? ` · ${entry.note}` : ''}
-                      </span>
+                  <li
+                    key={entry.memberId}
+                    className={`party-lfg-item${canDragFromLfg && entry.memberId !== user?.memberId ? ' party-lfg-item--draggable' : ''}`}
+                    draggable={canDragFromLfg && entry.memberId !== user?.memberId}
+                    onDragStart={(e) => {
+                      if (!canDragFromLfg || entry.memberId === user?.memberId) return
+                      setPartyDragData(e, {
+                        memberId: entry.memberId,
+                        fromPartyId: null,
+                        nickname: entry.nickname,
+                      })
+                    }}
+                  >
+                    <div className="party-lfg-item__main">
+                      {entry.classImageUrl ? (
+                        <MemberClassIcon
+                          classImageUrl={entry.classImageUrl}
+                          classLabel={entry.className ?? ''}
+                          size="sm"
+                        />
+                      ) : (
+                        <span className="party-card__roster-fallback party-card__roster-fallback--muted">?</span>
+                      )}
+                      <div className="party-lfg-item__info">
+                        <strong title={entry.nickname}>{entry.nickname}</strong>
+                        <span>
+                          {entry.className ?? 'Classe'} · Lv {entry.level}
+                        </span>
+                      </div>
                     </div>
-                    {leaderPartyId != null && entry.memberId !== user?.memberId && (
-                      <Button
-                        size="sm"
-                        loading={inviteToParty.isPending}
-                        onClick={() =>
-                          inviteToParty.mutate({ partyId: leaderPartyId, memberId: entry.memberId })
-                        }
-                      >
-                        Convidar
-                      </Button>
-                    )}
                   </li>
                 ))}
               </ul>

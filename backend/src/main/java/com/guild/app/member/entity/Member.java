@@ -64,6 +64,9 @@ public class Member {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt = Instant.now();
 
+    @Column(name = "last_login_at")
+    private Instant lastLoginAt;
+
     @PrePersist
     void onCreate() {
         if (level == null) {
