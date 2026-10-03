@@ -13,6 +13,7 @@ import com.guild.app.log.service.AuditLogService;
 import com.guild.app.member.entity.Member;
 import com.guild.app.member.entity.CharacterClass;
 import com.guild.app.member.entity.GameRace;
+import com.guild.app.member.policy.GuildRacePolicy;
 import com.guild.app.member.repository.CharacterClassRepository;
 import com.guild.app.member.repository.GameRaceRepository;
 import com.guild.app.member.repository.MemberRepository;
@@ -46,6 +47,7 @@ public class AuthService {
         }
         var race = gameRaceRepository.findById(request.raceId())
                 .orElseThrow(() -> new AppException("Raça inválida.", HttpStatus.BAD_REQUEST));
+        GuildRacePolicy.requireCoraRaceForRegistration(race);
         var clazz = characterClassRepository.findById(request.classId())
                 .orElseThrow(() -> new AppException("Classe inválida.", HttpStatus.BAD_REQUEST));
         validateClassForRace(clazz, race);
@@ -88,6 +90,7 @@ public class AuthService {
         }
         var race = gameRaceRepository.findById(request.raceId())
                 .orElseThrow(() -> new AppException("Raça inválida.", HttpStatus.BAD_REQUEST));
+        GuildRacePolicy.requireCoraRaceForRegistration(race);
         var clazz = characterClassRepository.findById(request.classId())
                 .orElseThrow(() -> new AppException("Classe inválida.", HttpStatus.BAD_REQUEST));
         validateClassForRace(clazz, race);

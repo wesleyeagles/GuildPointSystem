@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { useRegister } from '@/Domain/Auth/hooks/useAuth'
+import { findCoraRaceId } from '@/Domain/Seed/constants/guildRace'
 import { useRaces, useClasses } from '@/Domain/Seed/hooks/useSeeds'
 import { useAuthContext } from '@/Features/Auth/contexts/AuthContext'
 import { SeedOptionPicker } from '@/Shared/ui/components/SeedOptionPicker/SeedOptionPicker'
@@ -11,25 +12,24 @@ export function RegisterPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [nickname, setNickname] = useState('')
-  const [raceId, setRaceId] = useState<number>(0)
   const [classId, setClassId] = useState<number>(0)
   const [error, setError] = useState('')
 
   const { data: races = [] } = useRaces()
-  const { data: classes = [] } = useClasses(raceId)
-
-  const handleRaceChange = (id: number) => {
-    setRaceId(id)
-    setClassId(0)
-  }
+  const coraRaceId = findCoraRaceId(races)
+  const { data: classes = [] } = useClasses(coraRaceId)
 
   if (isAuthenticated) return <Navigate to="/" replace />
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    if (coraRaceId <= 0) {
+      setError('Raça Cora indisponível no momento. Tente novamente.')
+      return
+    }
     try {
-      await register.mutateAsync({ email, password, nickname, raceId, classId })
+      await register.mutateAsync({ email, password, nickname, raceId: coraRaceId, classId })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao cadastrar')
     }
@@ -73,24 +73,7 @@ export function RegisterPage() {
         />
       </div>
 
-      <div className="auth-field">
-        <label htmlFor="reg-race">Raça</label>
-        <select
-          id="reg-race"
-          value={raceId}
-          onChange={(e) => handleRaceChange(Number(e.target.value))}
-          required
-        >
-          <option value={0}>Selecione...</option>
-          {races.map((r) => (
-            <option key={r.id} value={r.id}>
-              {r.name}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {raceId > 0 ? (
+      {coraRaceId > 0 ? (
         <SeedOptionPicker
           label="Classe"
           options={classes}
@@ -100,7 +83,7 @@ export function RegisterPage() {
           showImages
         />
       ) : (
-        <p className="auth-muted">Selecione uma raça para ver as classes.</p>
+        <p className="auth-muted">Carregando classes...</p>
       )}
 
       {error && <p className="auth-error">{error}</p>}
@@ -108,7 +91,7 @@ export function RegisterPage() {
       <button
         type="submit"
         className="auth-btn-primary"
-        disabled={register.isPending}
+        disabled={register.isPending || coraRaceId <= 0 || classId <= 0}
       >
         {register.isPending ? 'Cadastrando...' : 'Criar conta'}
       </button>

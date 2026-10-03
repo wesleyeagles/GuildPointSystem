@@ -14,6 +14,7 @@ import com.guild.app.member.dto.UpdateRoleRequest;
 import com.guild.app.member.entity.Member;
 import com.guild.app.member.entity.CharacterClass;
 import com.guild.app.member.entity.GameRace;
+import com.guild.app.member.policy.GuildRacePolicy;
 import com.guild.app.member.repository.CharacterClassRepository;
 import com.guild.app.member.repository.GameRaceRepository;
 import com.guild.app.member.repository.MemberRepository;
@@ -67,6 +68,7 @@ public class MemberService {
             throw new AppException("Você não tem permissão para esta ação.", HttpStatus.FORBIDDEN);
         }
 
+        GuildRacePolicy.requireRaceUnchanged(member, request.raceId());
         var race = gameRaceRepository.findById(request.raceId())
                 .orElseThrow(() -> new AppException("Raça inválida.", HttpStatus.BAD_REQUEST));
         var clazz = characterClassRepository.findById(request.classId())

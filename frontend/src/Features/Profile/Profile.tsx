@@ -11,6 +11,7 @@ import {
 } from '@/Domain/Member/hooks/useMembers'
 import { useDenyEventClaim } from '@/Domain/Event/hooks/useEvents'
 import { useObjectives } from '@/Domain/Objective/hooks/useObjectives'
+import { findCoraRaceId } from '@/Domain/Seed/constants/guildRace'
 import { useRaces, useClasses } from '@/Domain/Seed/hooks/useSeeds'
 import { useAuthContext } from '@/Features/Auth/contexts/AuthContext'
 import type { PointsModality, Role } from '@/Domain/types/models'
@@ -38,7 +39,6 @@ export function ProfilePage() {
   const { data: claims = [] } = useMemberClaims(id ? Number(id) : 0)
   const { data: objectives = [] } = useObjectives()
   const [nickname, setNickname] = useState('')
-  const [raceId, setRaceId] = useState(0)
   const [classId, setClassId] = useState(0)
   const [level, setLevel] = useState(1)
   const [pointsAmount, setPointsAmount] = useState(0)
@@ -50,7 +50,8 @@ export function ProfilePage() {
   const [memberRole, setMemberRole] = useState<Role>('MEMBRO')
 
   const { data: races = [] } = useRaces()
-  const { data: classes = [] } = useClasses(raceId)
+  const coraRaceId = findCoraRaceId(races)
+  const { data: classes = [] } = useClasses(coraRaceId)
   const updateProfile = useUpdateProfile()
   const adjustPoints = useAdjustPoints()
   const updateMemberRole = useUpdateMemberRole()
@@ -60,15 +61,9 @@ export function ProfilePage() {
   const isLeader = hasRole('LIDER')
   const isOwn = !id || Number(id) === user?.memberId
 
-  const handleRaceChange = (nextRaceId: number) => {
-    setRaceId(nextRaceId)
-    setClassId(0)
-  }
-
   useEffect(() => {
     if (!profile) return
     setNickname(profile.nickname)
-    setRaceId(profile.raceId)
     setClassId(profile.classId)
     setLevel(profile.level)
     setPointsAmount(0)
@@ -86,7 +81,7 @@ export function ProfilePage() {
     await updateProfile.mutateAsync({
       id: profile.id,
       nickname,
-      raceId,
+      raceId: profile.raceId,
       classId,
       level,
     })
@@ -202,17 +197,7 @@ export function ProfilePage() {
                 required
               />
             </label>
-            <label>
-              Raça
-              <select value={raceId} onChange={(e) => handleRaceChange(Number(e.target.value))}>
-                {races.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {raceId > 0 && (
+            {coraRaceId > 0 && (
               <SeedOptionPicker
                 label="Classe"
                 options={classes}
