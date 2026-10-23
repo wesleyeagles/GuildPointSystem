@@ -20,6 +20,9 @@ public class DiscordBotProperties {
     /** Role names shown in the list, in display order (a member goes under the first one they have). */
     private List<String> roles = List.of("Leader", "Cerberus");
 
+    /** Members left out of the list, matched by Discord user ID, username or display name (case-insensitive). */
+    private List<String> hiddenMembers = List.of("Druzbek", "Makenna");
+
     public boolean isEnabled() {
         return token != null && !token.isBlank();
     }

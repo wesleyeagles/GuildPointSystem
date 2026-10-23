@@ -59,6 +59,8 @@ guild:
       guild-id: ${DISCORD_GUILD_ID:}
       # Role names shown in the list, in display order.
       roles: ${DISCORD_MEMBER_ROLES:Leader,Cerberus}
+      # Members left out of the list (Discord user ID, username or display name).
+      hidden-members: ${DISCORD_HIDDEN_MEMBERS:Druzbek,Makenna}
   cors:
     allowed-origins: ${CORS_ORIGINS:http://localhost:5173,http://localhost:5174,http://127.0.0.1:5173}
 

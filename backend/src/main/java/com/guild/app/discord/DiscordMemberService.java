@@ -137,8 +137,12 @@ public class DiscordMemberService {
         Map<Role, List<net.dv8tion.jda.api.entities.Member>> byRole = new LinkedHashMap<>();
         roles.forEach(role -> byRole.put(role, new ArrayList<>()));
         Set<String> discordIds = new HashSet<>();
+        Set<String> hidden = properties.getHiddenMembers().stream()
+                .map(name -> name.trim().toLowerCase())
+                .filter(name -> !name.isEmpty())
+                .collect(Collectors.toSet());
         for (net.dv8tion.jda.api.entities.Member member : guild.getMemberCache()) {
-            if (member.getUser().isBot()) continue;
+            if (member.getUser().isBot() || isHidden(member, hidden)) continue;
             roles.stream()
                     .filter(member.getRoles()::contains)
                     .findFirst()
@@ -158,6 +162,12 @@ public class DiscordMemberService {
                 .map(entry -> toGroup(entry.getKey(), entry.getValue(), siteMemberIds))
                 .toList();
         return new DiscordMembersResponse(true, guild.getName(), groups);
+    }
+
+    private static boolean isHidden(net.dv8tion.jda.api.entities.Member member, Set<String> hidden) {
+        return hidden.contains(member.getId())
+                || hidden.contains(member.getUser().getName().toLowerCase())
+                || hidden.contains(member.getEffectiveName().trim().toLowerCase());
     }
 
     private Guild resolveGuild() {
