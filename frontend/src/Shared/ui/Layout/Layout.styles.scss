@@ -389,6 +389,14 @@ $drawer-breakpoint: 960px;
     gap: theme.$spacing-md;
   }
 
+  &__dll-outdated {
+    @include theme.tag(theme.$color-warning);
+    cursor: pointer;
+    border-color: theme.$color-warning;
+
+    &:hover { filter: brightness(1.2); }
+  }
+
   &__socket {
     display: inline-flex;
     align-items: center;

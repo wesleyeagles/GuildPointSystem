@@ -17,6 +17,7 @@ import { AuctionsPage } from '@/Features/Auction/AuctionsPage'
 import { AuctionDetailPage } from '@/Features/Auction/AuctionDetail'
 import { ApprovalsPage } from '@/Features/Admin/Approvals/Approvals'
 import { OnlinePage } from '@/Features/Admin/Online/Online'
+import { DllAdminPage } from '@/Features/Admin/Dll/DllAdmin'
 import { ProfilePage } from '@/Features/Profile/Profile'
 import { GuildLeagueRagPage } from '@/Features/GuildLeagueRag/GuildLeagueRagPage'
 import { ServerInfoListPage } from '@/Features/ServerInfo/ServerInfoListPage'
@@ -67,6 +68,7 @@ function App() {
               </Route>
               <Route element={<AdminRoute />}>
                 <Route path="admin/online" element={<OnlinePage />} />
+                <Route path="admin/dll" element={<DllAdminPage />} />
               </Route>
             </Route>
           </Route>

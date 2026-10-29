@@ -33,7 +33,7 @@ public class CharacterStatusService {
     // para uma guilda de confianca; o dado e apenas exibicao, nunca pontos/recompensa.
 
     @Transactional
-    public void ingest(CharacterStatusIngestRequest request) {
+    public void ingest(CharacterStatusIngestRequest request, String dllVersion) {
         List<Member> members = memberRepository.findByGameCharacter(request.character());
         if (members.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Nenhum membro com esse nome de personagem");
@@ -45,10 +45,10 @@ public class CharacterStatusService {
         }
 
         Instant now = Instant.now();
-        for (Member member : members) save(member, request, now);
+        for (Member member : members) save(member, request, dllVersion, now);
     }
 
-    private void save(Member member, CharacterStatusIngestRequest request, Instant now) {
+    private void save(Member member, CharacterStatusIngestRequest request, String dllVersion, Instant now) {
         CharacterStatus status = statusRepository
                 .findByMemberIdAndGid(member.getId(), request.gid())
                 .orElseGet(() -> {
@@ -59,6 +59,7 @@ public class CharacterStatusService {
                 });
 
         status.setCharacterName(request.character());
+        status.setDllVersion(dllVersion);
         status.setLevel(request.level());
         status.setExpPercent(request.expPercent());
         status.setHp(request.hp());

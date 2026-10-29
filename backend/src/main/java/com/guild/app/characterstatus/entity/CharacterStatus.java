@@ -56,6 +56,10 @@ public class CharacterStatus {
     @Column(name = "sp_max", nullable = false)
     private Integer spMax;
 
+    /** Versao da DLL no ultimo envio (User-Agent "CerberusBags/x.y.z"); null = cliente sem versao. */
+    @Column(name = "dll_version", length = 32)
+    private String dllVersion;
+
     /** Quando o cliente observou (recebido) e quando o servidor gravou. */
     @Column(name = "observed_at", nullable = false)
     private Instant observedAt = Instant.now();

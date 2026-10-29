@@ -4,14 +4,16 @@ import { useLocation } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAuthContext } from '@/Features/Auth/contexts/AuthContext'
 import { syncAccessKeys, useSyncAccess, type SyncAccessView } from '@/Domain/CharacterStatus/hooks/useSyncAccess'
+import { dllDownloadUrl, useDllReleaseSubscription, useLatestDll, type DllRelease } from '@/Domain/Dll/hooks/useDll'
 import { Button } from '@/Shared/ui/components/Button/Button'
+import { DllNoticeContext, type DllNotice } from './dllNotice'
 import { serverNow } from '@/Shared/utils/serverClock'
 import '@/Shared/ui/components/Button/Button.styles.scss'
 import '@/Features/Auth/Auth.styles.scss'
 import './SyncAccessGate.styles.scss'
 
-/** Arquivo em frontend/public; troque o ?v= ao atualizar a DLL para o navegador não servir a versão em cache. */
-const DLL_URL = '/version.rar?v=2026-10-29'
+/** Última versão da DLL cujo aviso de "nova versão" o membro já viu (as seguintes dizem "desatualizada"). */
+const SEEN_RELEASE_KEY = 'dll-release-seen'
 
 /** O aviso fechado volta depois de tantas trocas de página (login e recarga sempre abrem). */
 const NAVIGATIONS_BETWEEN_WARNINGS = 3
@@ -84,12 +86,14 @@ function SyncWindow({
   code,
   children,
   footer,
+  downloadUrl,
   onClose,
 }: {
   title: string
   code: string
   children: ReactNode
   footer: ReactNode
+  downloadUrl: string
   onClose?: () => void
 }) {
   useEffect(() => {
@@ -118,7 +122,7 @@ function SyncWindow({
           {children}
           <div className="sync-gate__actions">
             {/* Link com o visual do Button: download de arquivo estático precisa de <a download>. */}
-            <a href={DLL_URL} download="version.rar" className="btn btn--primary btn--md sync-gate__download">
+            <a href={downloadUrl} download className="btn btn--primary btn--md sync-gate__download">
               Download DLL
             </a>
             {footer}
@@ -140,12 +144,23 @@ function SyncStatusLine({ sync }: { sync: SyncAccessView }) {
 }
 
 /** Aviso que dá para fechar: reabre no login, na recarga e a cada poucas trocas de página enquanto não sincronizar. */
-function SyncWarningDialog({ sync, now, onClose }: { sync: SyncAccessView; now: number; onClose: () => void }) {
+function SyncWarningDialog({
+  sync,
+  now,
+  downloadUrl,
+  onClose,
+}: {
+  sync: SyncAccessView
+  now: number
+  downloadUrl: string
+  onClose: () => void
+}) {
   const deadlineLabel = formatDeadline(sync.deadline)
   return (
     <SyncWindow
       title={sync.newAccount ? 'Conta nova · sincronize seu personagem' : 'Conta dessincronizada'}
       code="DLL"
+      downloadUrl={downloadUrl}
       onClose={onClose}
       footer={
         <Button type="button" variant="primary" onClick={onClose}>
@@ -173,11 +188,20 @@ function SyncWarningDialog({ sync, now, onClose }: { sync: SyncAccessView; now: 
 }
 
 /** Depois do prazo: sem fechar, sem o site por trás. Libera sozinho quando o jogo sincronizar. */
-function SyncBlockedScreen({ sync, onLogout }: { sync: SyncAccessView; onLogout: () => void }) {
+function SyncBlockedScreen({
+  sync,
+  downloadUrl,
+  onLogout,
+}: {
+  sync: SyncAccessView
+  downloadUrl: string
+  onLogout: () => void
+}) {
   return (
     <SyncWindow
       title="Acesso bloqueado · conta não sincronizada"
       code="DLL"
+      downloadUrl={downloadUrl}
       footer={
         <Button type="button" variant="secondary" onClick={onLogout}>
           Sair
@@ -195,6 +219,67 @@ function SyncBlockedScreen({ sync, onLogout }: { sync: SyncAccessView; onLogout:
   )
 }
 
+function formatVersion(version: string | null) {
+  return version ? `v${version}` : 'sem versão (DLL antiga)'
+}
+
+function readSeenRelease() {
+  try {
+    return localStorage.getItem(SEEN_RELEASE_KEY)
+  } catch {
+    return null
+  }
+}
+
+/** Nova versão publicada / DLL desatualizada: só aviso, nunca bloqueia. */
+function DllUpdateDialog({
+  sync,
+  latest,
+  firstNotice,
+  onClose,
+}: {
+  sync: SyncAccessView
+  latest: DllRelease
+  firstNotice: boolean
+  onClose: () => void
+}) {
+  return (
+    <SyncWindow
+      title={firstNotice ? `Nova versão da DLL · v${latest.version}` : 'Sua DLL está desatualizada'}
+      code="DLL"
+      downloadUrl={dllDownloadUrl(latest)}
+      onClose={onClose}
+      footer={
+        <Button type="button" variant="secondary" onClick={onClose}>
+          Depois
+        </Button>
+      }
+    >
+      <p className="sync-gate__lead">
+        {firstNotice ? 'Saiu uma nova versão da DLL de sincronização. ' : ''}
+        Você está usando <strong>{formatVersion(sync.dllVersion)}</strong> e a versão atual é{' '}
+        <strong>v{latest.version}</strong>, publicada em {new Date(latest.publishedAt).toLocaleString('pt-BR', DATE_FORMAT)}.
+        Sua conta continua sincronizada, mas atualize para receber as correções e novidades.
+      </p>
+      {latest.notes && (
+        <div className="sync-gate__notes">
+          <strong>O que mudou</strong>
+          <p>{latest.notes}</p>
+        </div>
+      )}
+      <ol className="sync-gate__steps">
+        <li>
+          Feche o jogo e baixe a nova versão (botão <strong>Download DLL</strong> abaixo).
+        </li>
+        <li>
+          Extraia o <strong>version.dll</strong> e substitua o antigo na pasta do cliente do RF Online.
+        </li>
+        <li>Abra o jogo de novo: este aviso some sozinho quando a nova versão sincronizar.</li>
+      </ol>
+    </SyncWindow>
+  )
+}
+
 /**
  * Exige a DLL de sincronização. Antes do prazo mostra um aviso (fechável) com contador regressivo;
  * depois, troca o site inteiro por uma tela de bloqueio até o personagem sincronizar.
@@ -202,6 +287,12 @@ function SyncBlockedScreen({ sync, onLogout }: { sync: SyncAccessView; onLogout:
 export function SyncAccessGate({ children }: { children: ReactNode }) {
   const { user, logout } = useAuthContext()
   const { data: sync } = useSyncAccess(user?.memberId)
+  const { data: latestDll } = useLatestDll(!!user)
+  useDllReleaseSubscription()
+  // Aviso de DLL desatualizada fechado para esta versão (login/recarga abrem de novo).
+  const [dismissedDllVersion, setDismissedDllVersion] = useState<string | null>(null)
+  const [seenRelease, setSeenRelease] = useState(readSeenRelease)
+  const downloadUrl = dllDownloadUrl(latestDll)
   const queryClient = useQueryClient()
   const location = useLocation()
   const now = useNow()
@@ -222,17 +313,50 @@ export function SyncAccessGate({ children }: { children: ReactNode }) {
     }
   }, [sync, deadlinePassed, queryClient])
 
-  if (blocked) return <SyncBlockedScreen sync={sync} onLogout={logout} />
+  if (blocked) return <SyncBlockedScreen sync={sync} downloadUrl={downloadUrl} onLogout={logout} />
 
   const showWarning =
     !!sync &&
     !sync.synced &&
     (dismissedAt === null || navigation.count - dismissedAt >= NAVIGATIONS_BETWEEN_WARNINGS)
 
+  const outdated = !!sync?.synced && sync.dllOutdated && !!latestDll
+  const showDllUpdate = outdated && !showWarning && dismissedDllVersion !== latestDll.version
+  const closeDllUpdate = () => {
+    if (!latestDll) return
+    setDismissedDllVersion(latestDll.version)
+    setSeenRelease(latestDll.version)
+    try {
+      localStorage.setItem(SEEN_RELEASE_KEY, latestDll.version)
+    } catch {
+      /* ignore */
+    }
+  }
+  const notice: DllNotice = {
+    outdated,
+    latestVersion: latestDll?.version ?? null,
+    open: () => setDismissedDllVersion(null),
+  }
+
   return (
-    <>
+    <DllNoticeContext.Provider value={notice}>
       {children}
-      {showWarning && <SyncWarningDialog sync={sync} now={now} onClose={() => setDismissedAt(navigation.count)} />}
-    </>
+      {showWarning && (
+        <SyncWarningDialog
+          sync={sync}
+          now={now}
+          downloadUrl={downloadUrl}
+          onClose={() => setDismissedAt(navigation.count)}
+        />
+      )}
+      {showDllUpdate && (
+        <DllUpdateDialog
+          sync={sync}
+          latest={latestDll}
+          firstNotice={seenRelease !== latestDll.version}
+          onClose={closeDllUpdate}
+        />
+      )}
+    </DllNoticeContext.Provider>
   )
 }

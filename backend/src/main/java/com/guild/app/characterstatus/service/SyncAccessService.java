@@ -1,7 +1,10 @@
 package com.guild.app.characterstatus.service;
 
 import com.guild.app.characterstatus.dto.SyncAccessView;
+import com.guild.app.characterstatus.entity.CharacterStatus;
 import com.guild.app.characterstatus.repository.CharacterStatusRepository;
+import com.guild.app.dll.dto.DllReleaseView;
+import com.guild.app.dll.service.DllReleaseService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -28,6 +31,7 @@ public class SyncAccessService {
     private record Entry(Optional<Instant> lastSyncAt, long expiresAt) {}
 
     private final CharacterStatusRepository statusRepository;
+    private final DllReleaseService dllReleaseService;
     private final Instant enforceFrom;
     private final Duration window;
     private final Duration newAccountGrace;
@@ -35,10 +39,12 @@ public class SyncAccessService {
 
     public SyncAccessService(
             CharacterStatusRepository statusRepository,
+            DllReleaseService dllReleaseService,
             @Value("${guild.sync.enforce-from}") String enforceFrom,
             @Value("${guild.sync.window:3d}") Duration window,
             @Value("${guild.sync.new-account-grace:1d}") Duration newAccountGrace) {
         this.statusRepository = statusRepository;
+        this.dllReleaseService = dllReleaseService;
         this.enforceFrom = OffsetDateTime.parse(enforceFrom).toInstant();
         this.window = window;
         this.newAccountGrace = newAccountGrace;
@@ -49,13 +55,19 @@ public class SyncAccessService {
         Instant lastSyncAt = lastSyncAt(memberId).orElse(null);
         boolean synced = lastSyncAt != null && lastSyncAt.isAfter(now.minus(window));
         Instant deadline = deadline(createdAt);
+        String dllVersion = statusRepository.findFirstByMemberIdOrderByUpdatedAtDesc(memberId)
+                .map(CharacterStatus::getDllVersion).orElse(null);
+        String latestDllVersion = dllReleaseService.latest().map(DllReleaseView::version).orElse(null);
         return new SyncAccessView(
                 synced,
                 lastSyncAt,
                 deadline,
                 deadline.isAfter(enforceFrom),
                 !synced && !now.isBefore(deadline),
-                window.toDays());
+                window.toDays(),
+                dllVersion,
+                latestDllVersion,
+                lastSyncAt != null && DllReleaseService.isOutdated(dllVersion, latestDllVersion));
     }
 
     /** Usado pelo filtro: antes do prazo responde sem tocar no banco. */

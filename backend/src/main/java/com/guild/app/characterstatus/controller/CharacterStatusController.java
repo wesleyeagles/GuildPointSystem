@@ -6,6 +6,7 @@ import com.guild.app.characterstatus.dto.CharacterStatusView;
 import com.guild.app.characterstatus.dto.SyncAccessView;
 import com.guild.app.characterstatus.service.CharacterStatusService;
 import com.guild.app.characterstatus.service.SyncAccessService;
+import com.guild.app.dll.DllVersion;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -28,8 +29,9 @@ public class CharacterStatusController {
      */
     @PostMapping("/ingest")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void ingest(@Valid @RequestBody CharacterStatusIngestRequest request) {
-        service.ingest(request);
+    public void ingest(@Valid @RequestBody CharacterStatusIngestRequest request,
+                       @RequestHeader(value = "User-Agent", required = false) String userAgent) {
+        service.ingest(request, DllVersion.fromUserAgent(userAgent));
     }
 
     /** Ranking da guilda: todos os personagens que ativaram o envio. */

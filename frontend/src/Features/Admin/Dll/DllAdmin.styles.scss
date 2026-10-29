@@ -1,0 +1,101 @@
+.dll-admin {
+  display: flex;
+  flex-direction: column;
+  gap: theme.$spacing-lg;
+
+  &__current p { margin: 0 0 theme.$spacing-sm; }
+
+  &__download { text-decoration: none; }
+
+  &__notes {
+    margin: theme.$spacing-xs 0 0;
+    padding-left: theme.$spacing-sm;
+    border-left: 2px solid theme.$color-border-strong;
+    color: theme.$color-text-muted;
+    white-space: pre-line;
+  }
+
+  &__muted {
+    margin: 0;
+    color: theme.$color-text-muted;
+  }
+
+  &__form {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: theme.$spacing-md;
+
+    label {
+      display: flex;
+      flex-direction: column;
+      gap: theme.$spacing-xs;
+      @include theme.field-label;
+    }
+
+    input:not([type='file']),
+    textarea {
+      @include theme.field-input;
+    }
+
+    small {
+      color: theme.$color-text-faint;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+  }
+
+  &__form-notes { grid-column: 1 / -1; }
+
+  &__actions {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  &__filter {
+    display: inline-flex;
+    align-items: center;
+    gap: theme.$spacing-xs;
+    font-size: theme.$font-size-base;
+    cursor: pointer;
+  }
+
+  &__table {
+    width: 100%;
+    border-collapse: collapse;
+
+    th {
+      @include theme.table-head;
+      text-align: left;
+      padding: theme.$spacing-sm;
+    }
+
+    td {
+      padding: theme.$spacing-sm;
+      border-top: 1px solid theme.$color-border;
+      font-size: theme.$font-size-base;
+    }
+  }
+
+  &__state {
+    @include theme.tag;
+
+    &--ok { color: theme.$color-success; }
+    &--outdated { color: theme.$color-warning; }
+    &--never { color: theme.$color-text-faint; }
+  }
+
+  &__releases {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: theme.$spacing-sm;
+
+    li {
+      padding-bottom: theme.$spacing-sm;
+      border-bottom: 1px solid theme.$color-border;
+    }
+  }
+}

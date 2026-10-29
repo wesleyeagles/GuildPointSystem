@@ -59,6 +59,17 @@
     a { color: theme.$color-cyan; }
   }
 
+  &__notes {
+    padding: theme.$spacing-sm theme.$spacing-md;
+    border-left: 2px solid theme.$color-cyan;
+    background: rgba(255, 255, 255, 0.02);
+    font-size: theme.$font-size-base;
+    color: theme.$color-text;
+
+    strong { color: theme.$color-cyan; }
+    p { margin: theme.$spacing-xs 0 0; white-space: pre-line; line-height: 1.5; }
+  }
+
   &__status {
     margin: 0;
     padding: theme.$spacing-sm theme.$spacing-md;

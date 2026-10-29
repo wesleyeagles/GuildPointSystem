@@ -2,6 +2,7 @@ package com.guild.app.characterstatus;
 
 import com.guild.app.characterstatus.repository.CharacterStatusRepository;
 import com.guild.app.characterstatus.service.SyncAccessService;
+import com.guild.app.dll.service.DllReleaseService;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
@@ -18,7 +19,7 @@ class SyncAccessServiceTest {
     private final Instant now = Instant.now();
 
     private SyncAccessService service(Instant enforceFrom) {
-        return new SyncAccessService(repository, enforceFrom.toString().replace("Z", "+00:00"),
+        return new SyncAccessService(repository, mock(DllReleaseService.class), enforceFrom.toString().replace("Z", "+00:00"),
                 Duration.ofDays(3), Duration.ofDays(1));
     }
 

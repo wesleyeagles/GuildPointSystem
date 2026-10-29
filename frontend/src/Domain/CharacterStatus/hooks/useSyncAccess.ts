@@ -13,6 +13,12 @@ export interface SyncAccessView {
   newAccount: boolean
   blocked: boolean
   windowDays: number
+  /** Versão da DLL no último envio (null = nunca ou cliente sem versão). */
+  dllVersion: string | null
+  /** Versão mais recente publicada no site (null = nenhuma). */
+  latestDllVersion: string | null
+  /** Sincroniza, mas com uma versão anterior à mais recente: só aviso. */
+  dllOutdated: boolean
 }
 
 export const syncAccessKeys = {

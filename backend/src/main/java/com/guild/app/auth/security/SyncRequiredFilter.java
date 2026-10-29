@@ -30,6 +30,7 @@ public class SyncRequiredFilter extends OncePerRequestFilter {
     private static final List<String> ALLOWED_PREFIXES = List.of(
             "/api/auth/",
             "/api/character-status/sync-access",
+            "/api/dll/",
             "/api/seeds/",
             "/api/catalog/");
 

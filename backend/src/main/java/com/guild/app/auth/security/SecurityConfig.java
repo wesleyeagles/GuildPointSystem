@@ -82,6 +82,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/quests/ingest").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/quests/live/ingest").permitAll()
                         .requestMatchers("/ws/**").permitAll()
+                        // Download da DLL: link aberto direto no navegador (sem o token).
+                        .requestMatchers(HttpMethod.GET, "/api/dll/download").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/seeds/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/catalog/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()

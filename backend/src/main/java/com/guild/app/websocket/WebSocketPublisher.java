@@ -24,6 +24,11 @@ public class WebSocketPublisher {
         send("/topic/logs", log);
     }
 
+    /** Nova versao da DLL publicada: o site avisa todo mundo. */
+    public void publishDllRelease(Object payload) {
+        send("/topic/dll-release", payload);
+    }
+
     public void publishEquipmentChanged() {
         send("/topic/equipment", Map.of("changed", true));
     }

@@ -32,7 +32,7 @@ class CharacterStatusSharedNickTest {
             Long.class, nickname, status);
     }
     void send(String character) {
-        service.ingest(new CharacterStatusIngestRequest(77L, character, 50, 12.5f, 100, 100, 50, 50, 30, 30));
+        service.ingest(new CharacterStatusIngestRequest(77L, character, 50, 12.5f, 100, 100, 50, 50, 30, 30), "1.1.0");
     }
     @BeforeEach void setup() { nick = "Shr" + UUID.randomUUID().toString().replace("-", "").substring(0, 8); }
 

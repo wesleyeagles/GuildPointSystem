@@ -23,6 +23,7 @@ import { ApprovalsNavBadge } from '@/Features/Admin/Approvals/components/Approva
 import type { Role } from '@/Domain/types/models'
 import { useEquipmentSubscription } from '@/Domain/Equipment/hooks/useEquipment'
 import { SyncAccessGate } from '@/Features/SyncAccess/SyncAccessGate'
+import { useDllNotice } from '@/Features/SyncAccess/dllNotice'
 import './Layout.styles.scss'
 
 const NAV_ITEMS = [
@@ -44,6 +45,7 @@ const HIDDEN_ITEMS = [{ to: '/logs', label: 'Logs' }]
 
 const ADMIN_ITEMS: { to: string; label: string; minRole: Role }[] = [
   { to: '/admin/approvals', label: 'Aprovações', minRole: 'MODERADOR' },
+  { to: '/admin/dll', label: 'DLL', minRole: 'ADMINISTRADOR' },
 ]
 
 const SOCKET_LABEL: Record<SocketState, string> = {
@@ -97,6 +99,7 @@ function LayoutShell() {
     return () => window.removeEventListener('keydown', openEquipment)
   }, [navigate])
   const { now, socket } = useClock()
+  const dllNotice = useDllNotice()
   // Drawer closes itself on navigation: it is only open for the path it was opened on.
   const [drawerPath, setDrawerPath] = useState<string | null>(null)
   const drawerOpen = drawerPath === location.pathname
@@ -243,6 +246,16 @@ function LayoutShell() {
           <h1 className="layout__page-title">{currentLabel}</h1>
           <EventHeaderTimers now={now} />
           <div className="layout__status-right">
+            {dllNotice.outdated && (
+              <button
+                type="button"
+                className="layout__dll-outdated"
+                title={`Atualize para a v${dllNotice.latestVersion}`}
+                onClick={dllNotice.open}
+              >
+                DLL desatualizada
+              </button>
+            )}
             <span className={`layout__socket layout__socket--${socket}`} title={SOCKET_LABEL[socket]}>
               <span className="layout__socket-text">{SOCKET_LABEL[socket]}</span>
             </span>
