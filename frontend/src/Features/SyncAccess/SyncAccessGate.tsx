@@ -10,9 +10,8 @@ import '@/Shared/ui/components/Button/Button.styles.scss'
 import '@/Features/Auth/Auth.styles.scss'
 import './SyncAccessGate.styles.scss'
 
-/** Arquivos em frontend/public. */
-const DLL_URL = '/version.rar'
-const TUTORIAL_URL = '/tutorial.png'
+/** Arquivo em frontend/public; troque o ?v= ao atualizar a DLL para o navegador não servir a versão em cache. */
+const DLL_URL = '/version.rar?v=2026-10-29'
 
 /** O aviso fechado volta depois de tantas trocas de página (login e recarga sempre abrem). */
 const NAVIGATIONS_BETWEEN_WARNINGS = 3
@@ -74,10 +73,6 @@ function SyncSteps() {
         <strong>version.dll</strong> do .rar e coloque na pasta do cliente do RF Online.
       </li>
       <li>
-        No <strong>launcher</strong>, abra as <strong>Settings</strong> e marque <strong>RFOnline 4gb</strong>{' '}
-        (veja a imagem).
-      </li>
-      <li>
         Entre no jogo com o seu personagem: a sincronização é automática e este aviso some sozinho.
       </li>
     </ol>
@@ -120,15 +115,10 @@ function SyncWindow({
           <span className="auth-window-bar__code">{code}</span>
         </div>
         <div className="auth-card-content sync-gate__body">
-          <div className="sync-gate__columns">
-            <div className="sync-gate__main">{children}</div>
-            <a href={TUTORIAL_URL} target="_blank" rel="noreferrer" className="sync-gate__tutorial">
-              <img src={TUTORIAL_URL} alt="Settings do launcher com a opção RFOnline 4gb marcada" />
-            </a>
-          </div>
+          {children}
           <div className="sync-gate__actions">
             {/* Link com o visual do Button: download de arquivo estático precisa de <a download>. */}
-            <a href={DLL_URL} download className="btn btn--primary btn--md sync-gate__download">
+            <a href={DLL_URL} download="version.rar" className="btn btn--primary btn--md sync-gate__download">
               Download DLL
             </a>
             {footer}
