@@ -1,0 +1,31 @@
+.event-create-modal {
+  max-width: 420px;
+  width: 100%;
+
+  &__body {
+    display: flex;
+    flex-direction: column;
+    gap: theme.$spacing-md;
+  }
+
+  &__password {
+    font-family: theme.$font-mono !important;
+    letter-spacing: 6px;
+    text-align: center;
+    color: theme.$color-amber !important;
+  }
+
+  &__error {
+    margin: 0;
+    color: theme.$color-danger;
+    font-size: theme.$font-size-base;
+  }
+
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: theme.$spacing-sm;
+    margin-top: theme.$spacing-sm;
+  }
+}

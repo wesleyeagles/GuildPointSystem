@@ -6,6 +6,7 @@ import { usePointsSubscription } from '@/Domain/Auction/hooks/useAuction'
 import { useMemberLogNotifications } from '@/Domain/Log/hooks/useLogs'
 import { useGuildEmojisSubscription } from '@/Domain/Emoji/hooks/useGuildEmojis'
 import { EventToastProvider } from '@/Features/Events/components/EventToast/EventToast'
+import { EventCreateModal } from '@/Features/Events/components/EventCreateModal/EventCreateModal'
 import { AppToastProvider } from '@/Shared/ui/components/AppToast/AppToast'
 import { MemberClassIcon } from '@/Shared/ui/components/MemberClassIcon/MemberClassIcon'
 import { getSocketState, type SocketState } from '@/Shared/websocket/socketClient'
@@ -26,11 +27,8 @@ import './Layout.styles.scss'
 const NAV_ITEMS = [
   { to: '/', label: 'Dashboard' },
   { to: '/donate', label: 'Doar Disena' },
-  { to: '/logs', label: 'Logs' },
-  { to: '/objectives', label: 'Objetivos' },
   { to: '/events', label: 'Eventos' },
   { to: '/party', label: 'Party' },
-  { to: '/items', label: 'Itens' },
   { to: '/equipment', label: 'Equipamentos' },
   { to: '/quests', label: 'Quests' },
   { to: '/rotation', label: 'Rotação' },
@@ -39,6 +37,9 @@ const NAV_ITEMS = [
 
 /** Reached from the member card at the top of the sidebar, not from the nav list. */
 const PROFILE_ITEM = { to: '/profile', label: 'Perfil' }
+
+/** Reachable only by URL; listed so the header still shows the page title. */
+const HIDDEN_ITEMS = [{ to: '/logs', label: 'Logs' }]
 
 const ADMIN_ITEMS: { to: string; label: string; minRole: Role }[] = [
   { to: '/admin/approvals', label: 'Aprovações', minRole: 'MODERADOR' },
@@ -98,6 +99,7 @@ function LayoutShell() {
   const [drawerPath, setDrawerPath] = useState<string | null>(null)
   const drawerOpen = drawerPath === location.pathname
   const setDrawerOpen = (open: boolean) => setDrawerPath(open ? location.pathname : null)
+  const [eventModalOpen, setEventModalOpen] = useState(false)
 
   usePointsSubscription(user?.memberId)
   useMemberLogNotifications(user?.memberId)
@@ -106,7 +108,7 @@ function LayoutShell() {
 
   const adminItems = ADMIN_ITEMS.filter((item) => hasRole(item.minRole))
   const currentLabel =
-    [...NAV_ITEMS, PROFILE_ITEM, ...ADMIN_ITEMS].find((item) => isActive(location.pathname, item.to))?.label ??
+    [...NAV_ITEMS, PROFILE_ITEM, ...HIDDEN_ITEMS, ...ADMIN_ITEMS].find((item) => isActive(location.pathname, item.to))?.label ??
     'Terminal'
   const availableRatio =
     member && member.points > 0
@@ -120,6 +122,7 @@ function LayoutShell() {
       <AccountDeletedListener />
       <PartyGameInviteListener />
       {hasRole('MODERADOR') && <ApprovalsListener />}
+      {eventModalOpen && <EventCreateModal onClose={() => setEventModalOpen(false)} />}
       <aside className="layout__sidebar">
         <div className="layout__brand">
           <img src="/Logo-Blacklist.png" alt="" className="layout__logo" />
@@ -170,6 +173,19 @@ function LayoutShell() {
         </div>
 
         <nav className="layout__nav">
+          {hasRole('ADMINISTRADOR') && (
+            <button
+              type="button"
+              className="layout__nav-link layout__quick-event"
+              onClick={() => {
+                setDrawerOpen(false)
+                setEventModalOpen(true)
+              }}
+            >
+              <span className="layout__nav-label">+ Criar evento</span>
+            </button>
+          )}
+
           {NAV_ITEMS.map((item) => (
             <Link
               key={item.to}

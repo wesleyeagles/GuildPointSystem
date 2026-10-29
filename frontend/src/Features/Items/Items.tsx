@@ -12,9 +12,16 @@ import './Items.styles.scss'
 
 export { ItemCard } from '@/Features/Items/components/ItemCard/ItemCard'
 
-type Tab = 'list' | 'create' | 'edit'
+export type ItemsView = 'list' | 'create'
 
-export function ItemsPage() {
+interface ItemsPageProps {
+  view: ItemsView
+  /** Leaves the create form (after saving) and returns to the inventory list. */
+  onShowList: () => void
+}
+
+/** Guild inventory and item admin; rendered as tabs of the auctions page. */
+export function ItemsPage({ view, onShowList }: ItemsPageProps) {
   const { data: inventorySummary } = useGuildInventory({ page: 0, size: 1 })
   const totalInventory = inventorySummary?.totalElements ?? 0
   const { data: weaponCasts = [] } = useItemSeeds('WEAPON_CAST')
@@ -23,7 +30,6 @@ export function ItemsPage() {
   const deleteItem = useDeleteItem()
   const isAdmin = hasRole('ADMINISTRADOR')
 
-  const [tab, setTab] = useState<Tab>('list')
   const [editItemId, setEditItemId] = useState<number | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null)
 
@@ -39,57 +45,24 @@ export function ItemsPage() {
 
   return (
     <div className="items-page">
-      <div className="items-tabs" role="tablist">
-        <button
-          type="button"
-          className={`items-tabs__btn${tab === 'list' || tab === 'edit' ? ' items-tabs__btn--active' : ''}`}
-          onClick={() => {
-            setEditItemId(null)
-            setTab('list')
-          }}
-        >
-          Listagem
-        </button>
-        {isAdmin && (
-          <button
-            type="button"
-            className={`items-tabs__btn${tab === 'create' ? ' items-tabs__btn--active' : ''}`}
-            onClick={() => setTab('create')}
-          >
-            + Criar item
-          </button>
-        )}
-      </div>
+      {view === 'create' && isAdmin && <CreateItemForm onSuccess={onShowList} />}
 
-      {tab === 'create' && isAdmin && (
-        <CreateItemForm onSuccess={() => setTab('list')} />
-      )}
-
-      {tab === 'edit' && isAdmin && editItemId != null && (
+      {view === 'list' && isAdmin && editItemId != null && (
         <CreateItemForm
           itemId={editItemId}
-          onCancel={() => {
-            setEditItemId(null)
-            setTab('list')
-          }}
-          onSuccess={() => {
-            setEditItemId(null)
-            setTab('list')
-          }}
+          onCancel={() => setEditItemId(null)}
+          onSuccess={() => setEditItemId(null)}
         />
       )}
 
-      {tab === 'list' && (
+      {view === 'list' && editItemId == null && (
         <Panel title="Inventário da guild" code={`${totalInventory.toLocaleString('pt-BR')} ITM`}>
           <GuildInventoryList
             canAdmin={isAdmin}
             weaponCasts={weaponCasts}
             onEdit={
               isAdmin
-                ? (id) => {
-                    setEditItemId(id)
-                    setTab('edit')
-                  }
+                ? (id) => setEditItemId(id)
                 : undefined
             }
             onDelete={(id) => setConfirmDelete(id)}

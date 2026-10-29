@@ -9,13 +9,11 @@ import { DiscordCallbackPage } from '@/Features/Auth/DiscordCallbackPage'
 import { DashboardPage } from '@/Features/Dashboard/Dashboard'
 import { DonationPage } from '@/Features/Donation/Donation'
 import { LogsPage } from '@/Features/Logs/Logs'
-import { ObjectivesPage } from '@/Features/Objectives/Objectives'
 import { EventsPage } from '@/Features/Events/Events'
-import { ItemsPage } from '@/Features/Items/Items'
 import { EquipmentPage } from '@/Features/Equipment/Equipment'
 import { QuestsPage } from '@/Features/Quests/Quests'
 import { RotationPage } from '@/Features/Rotation/Rotation'
-import { AuctionListPage } from '@/Features/Auction/AuctionList'
+import { AuctionsPage } from '@/Features/Auction/AuctionsPage'
 import { AuctionDetailPage } from '@/Features/Auction/AuctionDetail'
 import { ApprovalsPage } from '@/Features/Admin/Approvals/Approvals'
 import { OnlinePage } from '@/Features/Admin/Online/Online'
@@ -53,14 +51,14 @@ function App() {
               <Route index element={<DashboardPage />} />
               <Route path="donate" element={<DonationPage />} />
               <Route path="logs" element={<LogsPage />} />
-              <Route path="objectives" element={<ObjectivesPage />} />
+              <Route path="objectives" element={<Navigate to="/events?tab=objectives" replace />} />
               <Route path="events" element={<EventsPage />} />
-              <Route path="items" element={<ItemsPage />} />
+              <Route path="items" element={<Navigate to="/auctions?tab=items" replace />} />
               <Route path="equipment" element={<EquipmentRoute />} />
               <Route path="quests" element={<QuestsPage />} />
               <Route path="rotation" element={<RotationPage />} />
               <Route path="party" element={<PartyPage />} />
-              <Route path="auctions" element={<AuctionListPage />} />
+              <Route path="auctions" element={<AuctionsPage />} />
               <Route path="auctions/:id" element={<AuctionDetailPage />} />
               <Route path="profile" element={<ProfilePage />} />
               <Route path="profile/:id" element={<ProfilePage />} />

@@ -33,10 +33,10 @@ export const PRESENCE_PAGE_LABELS: Record<PresencePage, string> = {
 const SECTIONS: Record<string, PresencePage> = {
   donate: 'donate',
   logs: 'logs',
-  objectives: 'objectives',
+  objectives: 'events',
   events: 'events',
   party: 'party',
-  items: 'items',
+  items: 'auctions',
   admin: 'admin',
   'server-info': 'server-info',
 }
