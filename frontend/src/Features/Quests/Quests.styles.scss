@@ -1,10 +1,11 @@
 @use '@/Shared/styles/theme' as *;
 .quests {
-  display: grid; gap: 12px; max-width: 1440px; margin-inline: auto; width: 100%;
+  display: grid; gap: 12px; width: 100%;
   p { margin-block: $spacing-sm; }
   label { display: grid; gap: $spacing-xs; }
   input:not([type='checkbox']), select { @include field-input; }
   summary { cursor: pointer; }
+  &__panel { display: grid; gap: 12px; min-width: 0; }
   summary:focus-visible, a:focus-visible { outline: 2px solid $color-primary; outline-offset: 3px; }
   &__character.panel, &__checklist.panel { background: $color-bg-elevated; box-shadow: none; }
   &__character .panel__body { display: flex; align-items: center; flex-wrap: wrap; gap: $spacing-lg; padding: 12px 18px; }

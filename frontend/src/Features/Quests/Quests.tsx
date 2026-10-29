@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { useQuests, useQuestPairing, useQuestRevoke, useLiveQuestPairing } from '@/Domain/Quest/hooks/useQuests'
 import { QuestDailyList, QuestPlayerPanel } from './QuestLivePanels'
+import { QuestRewards } from './rewards/QuestRewards'
 import type { QuestObservation, QuestState } from '@/Domain/Quest/types'
 import { Panel } from '@/Shared/ui/components/Panel/Panel'
 import { Button } from '@/Shared/ui/components/Button/Button'
+import '@/Features/Items/Items.styles.scss'
 import './Quests.styles.scss'
 
 const labels: Record<QuestState, string> = {
@@ -15,7 +17,28 @@ function category(o: QuestObservation) {
   if (e.group === 1 && e.type === 1) return ['Q071356', 'Q071396'].includes(e.code) ? 'NPC · caso validado' : 'NPC candidata · mapeamento não validado'
   return e.group === 0 && e.type === 0 ? 'Comum candidata' : 'Origem indeterminada'
 }
+type QuestTab = 'checklist' | 'rewards'
+const tabs: { id: QuestTab; label: string }[] = [{ id: 'checklist', label: 'Checklist' }, { id: 'rewards', label: 'Recompensas' }]
+
 export function QuestsPage() {
+  const [tab, setTab] = useState<QuestTab>('checklist')
+  return <div className="quests">
+    <div className="items-tabs" role="tablist" aria-label="Área de quests" onKeyDown={e => {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return
+      const next = tabs[(tabs.findIndex(t => t.id === tab) + 1) % tabs.length].id
+      setTab(next); document.getElementById(`quests-${next}-tab`)?.focus()
+    }}>
+      {tabs.map(t => <button key={t.id} id={`quests-${t.id}-tab`} type="button" role="tab" tabIndex={tab === t.id ? 0 : -1} aria-selected={tab === t.id}
+        className={`items-tabs__btn${tab === t.id ? ' items-tabs__btn--active' : ''}`}
+        aria-controls={`quests-${t.id}-panel`} onClick={() => setTab(t.id)}>{t.label}</button>)}
+    </div>
+    <div id={`quests-${tab}-panel`} role="tabpanel" aria-labelledby={`quests-${tab}-tab`} className="quests__panel">
+      {tab === 'checklist' ? <QuestChecklist /> : <QuestRewards />}
+    </div>
+  </div>
+}
+
+function QuestChecklist() {
   const [day, setDay] = useState(() => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(Date.now() - 3 * 3600_000)))
   const [resetPeriod, setResetPeriod] = useState(true)
   const history = useQuests(day, resetPeriod)
@@ -36,7 +59,7 @@ export function QuestsPage() {
   }
   const format = (value: string) => new Date(value).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
   const error = history.error ?? pairing.error ?? revoke.error ?? livePairing.error
-  return <div className="quests">
+  return <>
     <QuestPlayerPanel data={data} />
     {error && <p role="alert">{error.message}</p>}
     {history.isLoading && <p role="status">Carregando checklist…</p>}
@@ -96,5 +119,5 @@ export function QuestsPage() {
       </li>)}</ul>
     </Panel>
     </details>
-  </div>
+  </>
 }
