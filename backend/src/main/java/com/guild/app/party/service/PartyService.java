@@ -1037,7 +1037,8 @@ public class PartyService {
                 gameLevel(m, gs),
                 gs != null ? gs.getExpPercent() : null,
                 leader,
-                afkUntil
+                afkUntil,
+                m.isBlockedForSellAccount() ? m.getBlockedForSellUntil() : null
         );
     }
 
@@ -1072,7 +1073,8 @@ public class PartyService {
                 m.getPartyPriorityPoints(),
                 lfg.getQueueOrder(),
                 lfg.getLastUnansweredAt(),
-                lfg.getAfkSince()
+                lfg.getAfkSince(),
+                m.isBlockedForSellAccount() ? m.getBlockedForSellUntil() : null
         );
     }
 

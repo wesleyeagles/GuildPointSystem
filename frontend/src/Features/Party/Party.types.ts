@@ -64,6 +64,9 @@ export interface PartyMemberSummary {
 
   afkUntil?: string | null
 
+  /** Account blocked for sale through this day (yyyy-mm-dd), or null. */
+  blockedForSellUntil?: string | null
+
 }
 
 
@@ -109,6 +112,8 @@ export interface PartyLfgEntry {
   queueOrder?: number
   lastUnansweredAt?: string | null
   afkSince?: string | null
+  /** Account blocked for sale through this day (yyyy-mm-dd), or null. */
+  blockedForSellUntil?: string | null
 
   /** When the member joined the waiting list. */
   createdAt: string

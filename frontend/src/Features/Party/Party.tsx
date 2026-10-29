@@ -35,6 +35,8 @@ import { PartyAfkControl } from '@/Features/Party/components/PartyAfkControl'
 import { PartyQueueControls } from '@/Features/Party/components/PartyQueueControls'
 import { PartyLfgAddModal } from '@/Features/Party/components/PartyLfgAddModal'
 import { sortByWaiting } from '@/Features/Party/utils/partyWait'
+import { SellLock } from '@/Features/Dashboard/components/MemberContextMenu'
+import { sellBlockedUntil } from '@/Features/Dashboard/utils/sellBlock'
 import { ConfirmDialog } from '@/Shared/ui/components/ConfirmDialog/ConfirmDialog'
 import {
   formatPartyLabel,
@@ -243,6 +245,7 @@ function PartyRoster({
                 {member.leader ? '★ ' : ''}
                 {member.nickname}
               </span>
+              {sellBlockedUntil(member) && <SellLock className="party-card__roster-lock" until={sellBlockedUntil(member)!} />}
               <span className="party-card__roster-meta">
                 Lv {member.level}
                 {member.expPercent != null ? ` · ${member.expPercent.toFixed(2)}%` : ''}

@@ -67,8 +67,9 @@
   grid-template-columns: 1fr;
   gap: theme.$spacing-lg;
 
+  // PTs abertas and the waiting list share the width.
   @media (min-width: 960px) {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   }
 }
 
@@ -266,8 +267,8 @@
   margin: 0;
   padding: theme.$spacing-md;
   display: grid;
-  // Cards never get narrower than the nickname needs: as many columns as fit (one on phones).
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  // At most 3 columns; fewer when a card would get narrower than 220px (one on phones).
+  grid-template-columns: repeat(auto-fill, minmax(max(220px, calc((100% - 2 * #{theme.$spacing-sm}) / 3 - 1px)), 1fr));
   gap: theme.$spacing-sm;
 }
 
@@ -317,9 +318,26 @@
   }
 }
 
-// Each line stays on one line: nickname above; class · level and waiting time below.
-.party-lfg-item__name {
+// Top row: icon · nick over level/EXP · remove. Bottom row: queue buttons · badges + wait clock.
+// Same size as the md class icon.
+.party-lfg-item__fallback { width: 46px; height: 46px; }
+
+.party-lfg-item__who {
   flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.party-lfg-item__nick {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.party-lfg-item__name {
   min-width: 0;
   font-size: theme.$font-size-heading;
   white-space: nowrap;
@@ -327,34 +345,47 @@
   text-overflow: ellipsis;
 }
 
-.party-lfg-item__meta {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+.party-lfg-item__level {
   min-width: 0;
   font-family: theme.$font-mono;
   font-size: 14px;
   color: theme.$color-text-muted;
   white-space: nowrap;
-}
-
-.party-lfg-item__class {
-  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.party-lfg-item__level {
-  flex: 1 1 0;
+.party-lfg-item__footer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
-.party-lfg-item__meta > div { flex-shrink: 0; }
+
+.party-lfg-item__badges {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
 
 .party-lfg-item__actions {
   flex-shrink: 0;
+  align-self: flex-start; // level with the nickname, at the top of the card
   display: flex;
+}
+
+.party-lfg-item__tools {
+  flex-shrink: 0;
+  display: flex;
+}
+
+.party-lfg-item__lock,
+.party-card__roster-lock {
+  flex-shrink: 0;
+  display: inline-flex;
+  font-size: 14px;
+  color: theme.$color-warning;
 }
 
 .party-pending {
@@ -470,20 +501,8 @@
 }
 
 // Position and priority do not change the original waiting timer.
-.party-lfg-item__rank {
-  flex-shrink: 0;
-  min-width: 22px;
-  text-align: center;
-  font-family: theme.$font-mono;
-  font-size: theme.$font-size-base;
-  color: theme.$color-text-faint;
-
-  &::before { content: '#'; }
-}
-
 .party-lfg-item__wait {
   flex-shrink: 0;
-  margin-left: auto;
   font-family: theme.$font-mono;
   font-size: theme.$font-size-base;
   color: theme.$color-amber;
@@ -507,9 +526,7 @@
   color: theme.$color-text-muted;
 }
 
-.party-lfg-item__points { flex-shrink: 0; color: theme.$color-text-muted; font: 14px theme.$font-mono;
-  &.is-positive { color: theme.$color-primary; }
-}
+.party-lfg-item__points { flex-shrink: 0; color: theme.$color-primary; font: 12px theme.$font-mono; }
 .party-queue-controls { display: flex; gap: 4px;
   .btn { width: 28px; height: 28px; padding: 0; font: 16px theme.$font-mono; letter-spacing: 0; }
   @media (pointer: coarse) { .btn { width: 34px; height: 34px; } }
@@ -518,9 +535,17 @@
 
 .party-afk { display: inline-flex; align-items: center; flex-wrap: wrap; gap: theme.$spacing-xs; }
 .party-afk__button.btn { min-width: 42px; padding: 6px 10px; letter-spacing: .5px; }
+// Mouse: AFK / Voltei only on hover of the PT row or waiting-list card (the AFK timer/tag stays visible).
+@media (hover: hover) {
+  .party-card__roster-row:not(:hover):not(:focus-within),
+  .party-lfg-item:not(:hover):not(:focus-within) {
+    .party-afk__button { display: none; }
+  }
+}
 .party-afk__timer { color: theme.$color-warning; font-family: theme.$font-mono; white-space: nowrap; }
 .party-afk__tag { color: theme.$color-danger; border: 1px solid theme.$color-danger; padding: 0 theme.$spacing-xs; }
-.party-afk-policy { margin: theme.$spacing-md 0 0; padding: theme.$spacing-md; border: 1px solid rgba(theme.$color-danger, .45);
+.party-afk-policy { margin: 0 theme.$spacing-md theme.$spacing-md; // flush panel: line up with the waiting-list grid
+  padding: theme.$spacing-md; border: 1px solid rgba(theme.$color-danger, .45);
   background: rgba(theme.$color-danger, .06); font-size: theme.$font-size-base; line-height: 1.5;
   strong { color: theme.$color-danger; }
 }
