@@ -15,6 +15,8 @@ import { useAppToast } from '@/Shared/ui/components/AppToast/AppToast'
 import { EquipmentIcon, EmptyEquipmentSlot } from './EquipmentIcon'
 import { EquipmentRelics } from './EquipmentRelics'
 import { formatEquipmentEffect } from '@/Domain/Equipment/utils/equipmentEffects'
+import { SCHEDULE_TIME_ZONE } from '@/Shared/utils/scheduleTimeZone'
+import { serverNow } from '@/Shared/utils/serverClock'
 import './Equipment.styles.scss'
 
 function effectLabel(effect: EquipmentEffect) {
@@ -35,7 +37,7 @@ const SLOT_COUNT = EQUIPMENT_GROUPS.reduce((total, group) => total + group.slots
 function itemLabel(item: Pick<EquipmentItem, 'name' | 'level' | 'grade'>) {
   return `Lv. ${item.level} · ${item.name} · ${gradeLabel(item.grade)}`
 }
-function today() { return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }) }
+function today() { return new Date(serverNow()).toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }) }
 const STATUS_LABELS = { ACTIVE: 'Válido', CANCELLED: 'Cancelado', CORRECTED: 'Corrigido', TRANSFERRED: 'Repassado' }
 const ACTION_LABELS = { CREATE: 'Registrar equipamento', EQUIP: 'Equipar do histórico', CORRECT: 'Corrigir registro', CANCEL: 'Cancelar registro', TRANSFER: 'Enviar equipamento' }
 interface Editor { memberId: number; nickname: string; position: CurrentSlot; action: EquipmentOperation['action']; original?: EquipmentAssignment; delivery?: boolean }
@@ -245,7 +247,7 @@ export function EquipmentPage() {
     </div>
     {(reviewAction.error || reviewLoadError) && <p role="alert">{reviewAction.error?.message ?? reviewLoadError?.message}</p>}
     {!managing && <div className="equipment-actions">
-      {ownReview && <span>{ownReview.status === 'CONFIRMED' ? 'Revisão confirmada' : ownReview.overdue ? 'Revisão em atraso' : 'Revisão pendente'} · Prazo: {new Date(ownReview.dueAt).toLocaleString('pt-BR')}</span>}
+      {ownReview && <span>{ownReview.status === 'CONFIRMED' ? 'Revisão confirmada' : ownReview.overdue ? 'Revisão em atraso' : 'Revisão pendente'} · Prazo: {new Date(ownReview.dueAt).toLocaleString('pt-BR', { timeZone: SCHEDULE_TIME_ZONE })}</span>}
       {ownReview && ownReview.status !== 'CONFIRMED' && <Button disabled={reviewAction.isPending} onClick={() => reviewAction.mutate({ confirmId: ownReview.id })}>Revisei meus equipamentos</Button>}
       <Button size="sm" variant="secondary" disabled={!undoStack.length || slotMutation.isPending || !!failedEdit} onClick={() => { const entry = undoStack.at(-1); if (entry) reverseEdit(entry, 'undo') }}>Desfazer</Button>
       <Button size="sm" variant="secondary" disabled={!redoStack.length || slotMutation.isPending || !!failedEdit} onClick={() => { const entry = redoStack.at(-1); if (entry) reverseEdit(entry, 'redo') }}>Refazer</Button>
@@ -334,7 +336,7 @@ export function EquipmentPage() {
         <Button size="sm" onClick={() => registerDelivery(inspected)}>Registrar entrega</Button>
         {managing && <Button size="sm" variant="danger" aria-label={`Limpar todos os equipamentos de ${inspected.nickname}`} disabled={!inspected.slots.some(s => s.assignment) || slotMutation.isPending || !!failedEdit} onClick={() => removeItems(inspected)}>Limpar</Button>}
         <Button size="sm" variant="secondary" disabled={reviewAction.isPending || (!!inspectedReview && inspectedReview.status !== 'CONFIRMED')} onClick={() => reviewAction.mutate({ memberId: inspected.memberId, operationId: crypto.randomUUID() })}>Solicitar revisão · 72h</Button>
-        {inspectedReview && <small>{inspectedReview.status === 'OVERDUE' ? 'Revisão em atraso' : inspectedReview.status === 'PENDING' ? 'Revisão pendente' : 'Revisado'} · {new Date(inspectedReview.dueAt).toLocaleString('pt-BR')}</small>}
+        {inspectedReview && <small>{inspectedReview.status === 'OVERDUE' ? 'Revisão em atraso' : inspectedReview.status === 'PENDING' ? 'Revisão pendente' : 'Revisado'} · {new Date(inspectedReview.dueAt).toLocaleString('pt-BR', { timeZone: SCHEDULE_TIME_ZONE })}</small>}
       </div>}
       {admin && <div className="equipment-tabs" role="tablist" aria-label="Consulta do personagem" onKeyDown={e => {
         if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return
@@ -394,10 +396,10 @@ export function EquipmentPage() {
             <small>{record.gameCode} · #{record.id}{record.correctsId ? ` · Corrige #${record.correctsId}` : ''}</small>
             <p>{effectLabel(record.effect)}</p>
             <p>{originLabel(record.origin)} · {record.occurredOn.split('-').reverse().join('/')} · {record.actorName}</p>
-            <small>Registrado em {new Date(record.createdAt).toLocaleString('pt-BR')}</small>
+            <small>Registrado em {new Date(record.createdAt).toLocaleString('pt-BR', { timeZone: SCHEDULE_TIME_ZONE })}</small>
             {record.reason && <p>Motivo: {record.reason}</p>}
             {record.statusReason && <p>Motivo da alteração: {record.statusReason}</p>}
-            {record.statusActorName && <small>Por {record.statusActorName}{record.statusChangedAt ? ` · ${new Date(record.statusChangedAt).toLocaleString('pt-BR')}` : ''}</small>}
+            {record.statusActorName && <small>Por {record.statusActorName}{record.statusChangedAt ? ` · ${new Date(record.statusChangedAt).toLocaleString('pt-BR', { timeZone: SCHEDULE_TIME_ZONE })}` : ''}</small>}
             {admin && record.status === 'ACTIVE' && <div className="equipment-actions">{!current && <Button size="sm" variant="secondary" onClick={() => openEditor(record.slot, 'EQUIP', record)}>Equipar</Button>}<Button size="sm" variant="secondary" onClick={() => openEditor(record.slot, 'CORRECT', record)}>Corrigir</Button><Button size="sm" variant="danger" onClick={() => openEditor(record.slot, 'CANCEL', record)}>Cancelar</Button></div>}
           </li>
         })}</ul>
@@ -435,7 +437,7 @@ function PreviousEquipment({ member, items, members, busy, onDragStart, onDragEn
         </button>
         <Button size="sm" variant="danger" disabled={busy} aria-label={`Descartar ${record.name} · registro ${record.id}`} onClick={() => onDiscard(record)}>×</Button>
       </div>
-      <small>{slotDescription(record.slot)} · Registrado em {new Date(record.createdAt).toLocaleString('pt-BR')}</small>
+      <small>{slotDescription(record.slot)} · Registrado em {new Date(record.createdAt).toLocaleString('pt-BR', { timeZone: SCHEDULE_TIME_ZONE })}</small>
       {sendingId === record.id && <form className="equipment-previous__send" aria-label={`Repassar ${record.name}`} onSubmit={e => {
         e.preventDefault(); const recipient = members.find(m => String(m.memberId) === recipientId)
         if (recipient) onTransfer(sourceFor(record), recipient, targetSlot || record.slot)

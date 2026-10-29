@@ -1,6 +1,9 @@
+import { SCHEDULE_TIME_ZONE } from '@/Shared/utils/scheduleTimeZone'
+
 export function formatLastLogin(lastLoginAt: string | null | undefined): string {
   if (!lastLoginAt) return 'Nunca'
   return new Date(lastLoginAt).toLocaleString('pt-BR', {
+    timeZone: SCHEDULE_TIME_ZONE,
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',

@@ -5,6 +5,7 @@ import { setPartyDragData } from '@/Features/Party/utils/partyDrag'
 import { MemberClassIcon } from '@/Shared/ui/components/MemberClassIcon/MemberClassIcon'
 import { PartyAfkControl } from './PartyAfkControl'
 import { useServerNow } from '@/Shared/utils/useServerNow'
+import { SCHEDULE_TIME_ZONE } from '@/Shared/utils/scheduleTimeZone'
 
 // Timers tick here (server clock, once a second) so only the waiting list re-renders, not the page.
 
@@ -80,7 +81,7 @@ export function PartyLfgList({
               </strong>
               {entry.lastUnansweredAt && <span className="party-lfg-item__unanswered" role="img"
                 aria-label="Chamado, não respondeu"
-                title={`Chamado, não respondeu · ${new Date(entry.lastUnansweredAt).toLocaleString('pt-BR')}`} />}
+                title={`Chamado, não respondeu · ${new Date(entry.lastUnansweredAt).toLocaleString('pt-BR', { timeZone: SCHEDULE_TIME_ZONE })}`} />}
               {actions && (
                 <div className="party-lfg-item__actions" draggable={false} onDragStart={(e) => e.stopPropagation()}>
                   {actions(entry)}
@@ -95,7 +96,7 @@ export function PartyLfgList({
               </span>
               <span
                 className="party-lfg-item__wait"
-                title={`Na lista desde ${new Date(entry.createdAt).toLocaleTimeString('pt-BR')}`}
+                title={`Na lista desde ${new Date(entry.createdAt).toLocaleTimeString('pt-BR', { timeZone: SCHEDULE_TIME_ZONE })}`}
               >
                 {formatWaiting(now - new Date(entry.createdAt).getTime())}
               </span>

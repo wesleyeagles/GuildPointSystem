@@ -25,6 +25,7 @@ import { SeedOptionPicker } from '@/Shared/ui/components/SeedOptionPicker/SeedOp
 import { Panel } from '@/Shared/ui/components/Panel/Panel'
 import { formatLastLogin } from '@/Shared/utils/memberLastLogin'
 import { publicAssetUrl } from '@/Shared/utils/publicAssetUrl'
+import { SCHEDULE_TIME_ZONE } from '@/Shared/utils/scheduleTimeZone'
 import './Profile.styles.scss'
 
 const ROLE_OPTIONS: { value: Role; label: string }[] = [
@@ -335,7 +336,7 @@ export function ProfilePage() {
                           <strong>{claim.objectiveName}</strong>
                           <span>+{claim.points} pts</span>
                           <small>
-                            {new Date(claim.claimedAt).toLocaleString()}
+                            {new Date(claim.claimedAt).toLocaleString('pt-BR', { timeZone: SCHEDULE_TIME_ZONE })}
                             {claim.manual ? ' · manual' : ''}
                             {claim.denied ? ' · negado' : ''}
                           </small>

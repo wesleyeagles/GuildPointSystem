@@ -1,7 +1,8 @@
 import type { Member } from '@/Domain/types/models'
+import { serverNow } from '@/Shared/utils/serverClock'
 
 /** Today in Brasília as yyyy-mm-dd (same calendar the sale block uses). */
-export const todayBrt = () => new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+export const todayBrt = () => new Date(serverNow()).toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
 
 /** yyyy-mm-dd → dd/mm/yyyy. */
 export const formatDay = (day: string) => day.split('-').reverse().join('/')

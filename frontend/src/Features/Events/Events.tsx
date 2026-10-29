@@ -6,6 +6,7 @@ import { useAuthContext } from '@/Features/Auth/contexts/AuthContext'
 import { Button } from '@/Shared/ui/components/Button/Button'
 import { Panel } from '@/Shared/ui/components/Panel/Panel'
 import { ObjectivesPage } from '@/Features/Objectives/Objectives'
+import { SCHEDULE_TIME_ZONE } from '@/Shared/utils/scheduleTimeZone'
 import '@/Features/Items/Items.styles.scss'
 import './Events.styles.scss'
 
@@ -118,7 +119,7 @@ export function EventsPage() {
                     <strong>{event.objectiveName}</strong>
                     <div className="events-list__meta">
                       <span className="events-list__pts">+{event.points} pts</span>
-                      <small>Expira {new Date(event.expiresAt).toLocaleString()}</small>
+                      <small>Expira {new Date(event.expiresAt).toLocaleString('pt-BR', { timeZone: SCHEDULE_TIME_ZONE })}</small>
                       {event.claimedByMe && <span className="events-list__claimed">Resgatado</span>}
                     </div>
                   </div>

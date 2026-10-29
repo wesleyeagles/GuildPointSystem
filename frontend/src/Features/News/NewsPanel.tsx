@@ -11,10 +11,12 @@ import { useAppToast } from '@/Shared/ui/components/AppToast/AppToast'
 import { Button } from '@/Shared/ui/components/Button/Button'
 import { ConfirmDialog } from '@/Shared/ui/components/ConfirmDialog/ConfirmDialog'
 import { Panel } from '@/Shared/ui/components/Panel/Panel'
+import { SCHEDULE_TIME_ZONE } from '@/Shared/utils/scheduleTimeZone'
 import './News.styles.scss'
 
 const formatStamp = (iso: string) =>
   new Date(iso).toLocaleString('pt-BR', {
+    timeZone: SCHEDULE_TIME_ZONE,
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',

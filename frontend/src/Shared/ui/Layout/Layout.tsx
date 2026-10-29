@@ -12,7 +12,7 @@ import { MemberClassIcon } from '@/Shared/ui/components/MemberClassIcon/MemberCl
 import { getSocketState, type SocketState } from '@/Shared/websocket/socketClient'
 import { serverNow } from '@/Shared/utils/serverClock'
 import { EventHeaderTimers } from '@/Shared/ui/Layout/EventHeaderTimers'
-import { SERVER_TIME_ZONE } from '@/Shared/utils/scheduleTimeZone'
+import { SCHEDULE_TIME_ZONE, SERVER_TIME_ZONE } from '@/Shared/utils/scheduleTimeZone'
 import { ScheduleAlertListener } from '@/Features/Schedule/ScheduleAlertListener'
 import { AuctionCreatedListener } from '@/Features/Auction/AuctionCreatedListener'
 import { AuctionNavBadge } from '@/Features/Auction/components/AuctionNavBadge/AuctionNavBadge'
@@ -57,7 +57,7 @@ function isActive(pathname: string, to: string) {
 }
 
 function useClock() {
-  // Server time drives the countdowns and the server clock; "Local" shows the PC clock as-is.
+  // Server time drives every clock: the whole guild sees Brasília time, whatever the PC says.
   const [now, setNow] = useState(() => new Date(serverNow()))
   const [socket, setSocket] = useState<SocketState>(getSocketState)
   useEffect(() => {
@@ -250,9 +250,9 @@ function LayoutShell() {
               <span className="layout__clock-label">Server</span>
               {now.toLocaleTimeString('pt-BR', { timeZone: SERVER_TIME_ZONE, hour12: false })}
             </span>
-            <span className="layout__clock layout__clock--local" title="Seu horário local">
-              <span className="layout__clock-label">Local</span>
-              {new Date().toLocaleTimeString('pt-BR', { hour12: false })}
+            <span className="layout__clock layout__clock--local" title="Horário de Brasília (UTC-3), usado em todo o site">
+              <span className="layout__clock-label">Brasília</span>
+              {now.toLocaleTimeString('pt-BR', { timeZone: SCHEDULE_TIME_ZONE, hour12: false })}
             </span>
           </div>
         </div>

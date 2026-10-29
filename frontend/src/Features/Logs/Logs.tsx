@@ -18,6 +18,7 @@ import { useAuthContext } from '@/Features/Auth/contexts/AuthContext'
 import type { AuditLogEntry } from '@/Domain/types/models'
 import { Button } from '@/Shared/ui/components/Button/Button'
 import { Panel } from '@/Shared/ui/components/Panel/Panel'
+import { SCHEDULE_TIME_ZONE } from '@/Shared/utils/scheduleTimeZone'
 import './Logs.styles.scss'
 
 const PAGE_SIZE = 50
@@ -156,7 +157,7 @@ function LogListItem({
         .join(' ')}
     >
       <div className="logs-list__header">
-        <time className="logs-list__time">{new Date(log.createdAt).toLocaleString()}</time>
+        <time className="logs-list__time">{new Date(log.createdAt).toLocaleString('pt-BR', { timeZone: SCHEDULE_TIME_ZONE })}</time>
         <span className="logs-list__type">{getLogTypeLabel(log.type)}</span>
       </div>
       <p className="logs-list__details">{formatLogDetails(log)}</p>

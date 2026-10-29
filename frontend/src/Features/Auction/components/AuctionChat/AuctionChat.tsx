@@ -16,6 +16,7 @@ import { guildEmojiName } from '@/Shared/ui/components/Emoji/twemoji'
 import { EmojiPicker } from '@/Shared/ui/components/EmojiPicker/EmojiPicker'
 import { useFrequentEmojis } from '@/Shared/ui/components/EmojiPicker/emojiData'
 import { Panel } from '@/Shared/ui/components/Panel/Panel'
+import { SCHEDULE_TIME_ZONE } from '@/Shared/utils/scheduleTimeZone'
 import './AuctionChat.styles.scss'
 
 /** Consecutive messages from the same member within this window share one header, as on Discord. */
@@ -25,9 +26,9 @@ const AVATAR_COLORS = ['#5865f2', '#3ba55c', '#faa61a', '#ed4245', '#eb459e', '#
 type Me = { id: number; nickname: string }
 
 const timeOf = (iso: string) =>
-  new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+  new Date(iso).toLocaleTimeString('pt-BR', { timeZone: SCHEDULE_TIME_ZONE, hour: '2-digit', minute: '2-digit' })
 const dayOf = (iso: string) =>
-  new Date(iso).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })
+  new Date(iso).toLocaleDateString('pt-BR', { timeZone: SCHEDULE_TIME_ZONE, day: 'numeric', month: 'long', year: 'numeric' })
 
 /** Discord avatar for linked accounts; otherwise a colored circle with the initial. */
 function Avatar({ id, nickname, discord, size }: { id: number; nickname: string; discord?: DiscordMember; size: number }) {

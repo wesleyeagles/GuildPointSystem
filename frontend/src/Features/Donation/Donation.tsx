@@ -13,6 +13,7 @@ import type { Donation, DonationStatus } from '@/Domain/types/models'
 import { useAppToast } from '@/Shared/ui/components/AppToast/AppToast'
 import { Button } from '@/Shared/ui/components/Button/Button'
 import { Panel } from '@/Shared/ui/components/Panel/Panel'
+import { SCHEDULE_TIME_ZONE } from '@/Shared/utils/scheduleTimeZone'
 import './Donation.styles.scss'
 
 const MIN_KK = 1
@@ -26,6 +27,7 @@ const STATUS_LABELS: Record<DonationStatus, string> = {
 
 const formatDateTime = (iso: string) =>
   new Date(iso).toLocaleString('pt-BR', {
+    timeZone: SCHEDULE_TIME_ZONE,
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',

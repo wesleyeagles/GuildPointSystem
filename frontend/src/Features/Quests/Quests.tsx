@@ -5,6 +5,7 @@ import { QuestRewards } from './rewards/QuestRewards'
 import type { QuestObservation, QuestState } from '@/Domain/Quest/types'
 import { Panel } from '@/Shared/ui/components/Panel/Panel'
 import { Button } from '@/Shared/ui/components/Button/Button'
+import { serverNow } from '@/Shared/utils/serverClock'
 import '@/Features/Items/Items.styles.scss'
 import './Quests.styles.scss'
 
@@ -39,7 +40,7 @@ export function QuestsPage() {
 }
 
 function QuestChecklist() {
-  const [day, setDay] = useState(() => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(Date.now() - 3 * 3600_000)))
+  const [day, setDay] = useState(() => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(serverNow() - 3 * 3600_000)))
   const [resetPeriod, setResetPeriod] = useState(true)
   const history = useQuests(day, resetPeriod)
   const pairing = useQuestPairing()
