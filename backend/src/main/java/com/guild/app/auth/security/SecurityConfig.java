@@ -106,7 +106,8 @@ public class SecurityConfig {
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         // X-Request-Id: shown on server errors so a member can report the exact request.
-        config.setExposedHeaders(List.of("Authorization", RequestLogContext.REQUEST_ID_HEADER));
+        // Date: the frontend runs its countdowns on the server clock (a PC can be an hour off).
+        config.setExposedHeaders(List.of("Authorization", RequestLogContext.REQUEST_ID_HEADER, "Date"));
         config.setAllowCredentials(true);
         config.setMaxAge(3600L);
         var source = new UrlBasedCorsConfigurationSource();

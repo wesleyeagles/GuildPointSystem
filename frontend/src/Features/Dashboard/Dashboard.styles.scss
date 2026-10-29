@@ -13,7 +13,7 @@
     min-height: 0;
   }
 
-  // Right column: events on top, news below, each taking half of the viewport-filling height.
+  // Right column: next PBs on top, news below, each taking half of the viewport-filling height.
   &__side {
     display: flex;
     flex-direction: column;
@@ -31,8 +31,8 @@
       min-height: 0;
     }
 
-    // Events overflow scroll inside their half instead of growing the page.
-    > .dashboard__col--events > .panel__body {
+    // Next PBs overflow scroll inside their half instead of growing the page.
+    > .dashboard__col--bosses > .panel__body {
       overflow-y: auto;
     }
   }
@@ -369,97 +369,105 @@
   }
 }
 
-// ── Mission cards ────────────────────────────────────────────────────────────
-.events-paged {
-  display: flex;
-  flex-direction: column;
-}
-
-.event-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
+// ── Next PBs (rotation) ──────────────────────────────────────────────────────
+.next-bosses {
   display: flex;
   flex-direction: column;
   gap: theme.$spacing-sm;
 
-  &__item {
+  &__next {
     @include theme.card;
     display: flex;
     flex-direction: column;
     gap: theme.$spacing-sm;
     padding: theme.$spacing-sm theme.$spacing-md theme.$spacing-md;
     border-left: 3px solid theme.$color-amber;
+
+    &--live {
+      border-left-color: theme.$color-success;
+    }
   }
 
-  &__info {
+  &__head {
     display: flex;
-    flex-direction: column;
-    gap: 4px;
-    min-width: 0;
-  }
-
-  strong {
-    font-family: theme.$font-heading;
-    font-size: 20px;
-    font-weight: 800;
-    letter-spacing: 0.5px;
-    color: theme.$color-text;
-    text-transform: uppercase;
-  }
-
-  &__meta {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+    align-items: baseline;
+    flex-wrap: wrap;
     gap: theme.$spacing-sm;
   }
 
-  &__pts {
-    @include theme.readout;
-    font-size: theme.$font-size-base;
+  &__time {
+    font-family: theme.$font-mono;
+    font-size: 28px;
+    color: theme.$color-text;
   }
 
-  small {
+  &__server {
     font-family: theme.$font-mono;
+    font-size: theme.$font-size-base;
+    color: theme.$color-text-muted;
+  }
+
+  &__countdown {
+    @include theme.readout;
+    margin-left: auto;
     font-size: theme.$font-size-heading;
     color: theme.$color-amber;
   }
 
-  &__claim-wrap {
-    display: flex;
-    flex-direction: column;
-    gap: theme.$spacing-xs;
+  &__next--live &__countdown {
+    color: theme.$color-success;
   }
 
-  &__claim {
+  &__area {
     display: flex;
     gap: theme.$spacing-sm;
-    align-items: center;
+    font-size: theme.$font-size-base;
+    color: theme.$color-text;
+  }
 
-    input {
-      @include theme.field-input;
-      @include theme.field-control-height;
-      flex: 1;
-      min-width: 0;
-      text-align: center;
-      font-family: theme.$font-mono;
-      letter-spacing: 6px;
-      font-size: 18px;
-      color: theme.$color-amber;
-    }
+  &__area-label {
+    flex-shrink: 0;
+    min-width: 64px;
+    font-family: theme.$font-heading;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: theme.$color-amber;
+  }
 
-    .btn {
-      @include theme.field-control-height;
-      padding-inline: 18px;
-      flex-shrink: 0;
+  &__later {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    li {
+      display: flex;
+      gap: theme.$spacing-sm;
+      padding: 6px theme.$spacing-md;
+      border: 1px solid theme.$color-border;
+      background: rgba(0, 0, 0, 0.25);
+      font-size: theme.$font-size-base;
     }
   }
 
-  &__error {
-    color: theme.$color-danger;
-    font-size: theme.$font-size-base;
+  &__later-time {
+    flex-shrink: 0;
+    font-family: theme.$font-mono;
+    color: theme.$color-text;
+  }
+
+  &__later-bosses {
+    color: theme.$color-text-muted;
+    min-width: 0;
+  }
+
+  &__note {
     margin: 0;
+    font-size: theme.$font-size-ui;
+    color: theme.$color-text-muted;
   }
 }
 
@@ -529,7 +537,7 @@
     flex: none;
   }
 
-  .dashboard__side > .dashboard__col--events > .panel__body {
+  .dashboard__side > .dashboard__col--bosses > .panel__body {
     max-height: 480px;
   }
 }

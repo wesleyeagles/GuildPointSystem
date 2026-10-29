@@ -10,6 +10,7 @@ import { EventCreateModal } from '@/Features/Events/components/EventCreateModal/
 import { AppToastProvider } from '@/Shared/ui/components/AppToast/AppToast'
 import { MemberClassIcon } from '@/Shared/ui/components/MemberClassIcon/MemberClassIcon'
 import { getSocketState, type SocketState } from '@/Shared/websocket/socketClient'
+import { serverNow } from '@/Shared/utils/serverClock'
 import { EventHeaderTimers } from '@/Shared/ui/Layout/EventHeaderTimers'
 import { SERVER_TIME_ZONE } from '@/Shared/utils/scheduleTimeZone'
 import { ScheduleAlertListener } from '@/Features/Schedule/ScheduleAlertListener'
@@ -56,11 +57,12 @@ function isActive(pathname: string, to: string) {
 }
 
 function useClock() {
-  const [now, setNow] = useState(() => new Date())
+  // Server time drives the countdowns and the server clock; "Local" shows the PC clock as-is.
+  const [now, setNow] = useState(() => new Date(serverNow()))
   const [socket, setSocket] = useState<SocketState>(getSocketState)
   useEffect(() => {
     const id = window.setInterval(() => {
-      setNow(new Date())
+      setNow(new Date(serverNow()))
       setSocket(getSocketState())
     }, 1000)
     return () => window.clearInterval(id)
@@ -250,7 +252,7 @@ function LayoutShell() {
             </span>
             <span className="layout__clock layout__clock--local" title="Seu horário local">
               <span className="layout__clock-label">Local</span>
-              {now.toLocaleTimeString('pt-BR', { hour12: false })}
+              {new Date().toLocaleTimeString('pt-BR', { hour12: false })}
             </span>
           </div>
         </div>

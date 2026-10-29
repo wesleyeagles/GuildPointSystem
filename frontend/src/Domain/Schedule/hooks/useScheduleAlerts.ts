@@ -5,6 +5,7 @@ import {
   getScheduledOccurrenceStart,
 } from '@/Shared/utils/dailyEventSchedule'
 import { subscribeTopic } from '@/Shared/websocket/socketClient'
+import { serverNow } from '@/Shared/utils/serverClock'
 
 export interface ScheduleTenMinuteAlert {
   type: 'SCHEDULE_TEN_MINUTE'
@@ -73,7 +74,7 @@ export function useScheduleAlertSubscription(onAlert: (alert: ScheduleTenMinuteA
 export function useLocalScheduleAlertPolling(onAlert: (alert: ScheduleTenMinuteAlert) => void) {
   useEffect(() => {
     const tick = () => {
-      const now = new Date()
+      const now = new Date(serverNow())
       for (const event of HEADER_SCHEDULED_EVENTS) {
         const start = getScheduledOccurrenceStart(event, now)
         const msUntil = start.getTime() - now.getTime()

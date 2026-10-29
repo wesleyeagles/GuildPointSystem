@@ -5,6 +5,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useAuthContext } from '@/Features/Auth/contexts/AuthContext'
 import { syncAccessKeys, useSyncAccess, type SyncAccessView } from '@/Domain/CharacterStatus/hooks/useSyncAccess'
 import { Button } from '@/Shared/ui/components/Button/Button'
+import { serverNow } from '@/Shared/utils/serverClock'
 import '@/Shared/ui/components/Button/Button.styles.scss'
 import '@/Features/Auth/Auth.styles.scss'
 import './SyncAccessGate.styles.scss'
@@ -36,9 +37,9 @@ function formatLastSync(lastSyncAt: string | null) {
 }
 
 function useNow() {
-  const [now, setNow] = useState(() => Date.now())
+  const [now, setNow] = useState(serverNow)
   useEffect(() => {
-    const id = window.setInterval(() => setNow(Date.now()), 1000)
+    const id = window.setInterval(() => setNow(serverNow()), 1000)
     return () => window.clearInterval(id)
   }, [])
   return now

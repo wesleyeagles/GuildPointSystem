@@ -11,6 +11,7 @@ import { useActiveEvents, useClaimEvent } from '@/Domain/Event/hooks/useEvents'
 import type { GuildEvent } from '@/Domain/types/models'
 import { Button } from '@/Shared/ui/components/Button/Button'
 import { useAppToast } from '@/Shared/ui/components/AppToast/AppToast'
+import { serverNow } from '@/Shared/utils/serverClock'
 import './EventToast.styles.scss'
 
 interface EventToastContextValue {
@@ -96,14 +97,14 @@ function EventToastCard({
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [remainingSeconds, setRemainingSeconds] = useState(() =>
-    Math.max(0, Math.floor((new Date(event.expiresAt).getTime() - Date.now()) / 1000)),
+    Math.max(0, Math.floor((new Date(event.expiresAt).getTime() - serverNow()) / 1000)),
   )
 
   useEffect(() => {
     const tick = () => {
       const secs = Math.max(
         0,
-        Math.floor((new Date(event.expiresAt).getTime() - Date.now()) / 1000),
+        Math.floor((new Date(event.expiresAt).getTime() - serverNow()) / 1000),
       )
       setRemainingSeconds(secs)
       if (secs <= 0) onDismiss()

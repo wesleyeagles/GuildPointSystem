@@ -1,6 +1,7 @@
 import { formatApiError } from '@/Shared/utils/formatApiError'
 import { getApiBaseUrl } from '@/Shared/utils/env'
 import { notifySessionExpired, RENEW_RETRY_MS, shouldRenew } from '@/Shared/api/session'
+import { trackServerDateHeader } from '@/Shared/utils/serverClock'
 
 const API_BASE = getApiBaseUrl()
 const TOKEN_KEY = 'guild_points_token'
@@ -81,6 +82,7 @@ export async function apiClient<T>(path: string, options: RequestOptions = {}): 
     },
     body: payload !== undefined ? JSON.stringify(payload) : undefined,
   })
+  trackServerDateHeader(response.headers.get('Date'))
 
   if (response.status === 401 && token && getToken() === token && !CREDENTIAL_PATHS.some((p) => path.startsWith(p))) {
     // The stored login is no longer accepted: drop it and send the member to the login screen.

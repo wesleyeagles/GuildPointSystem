@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useFitRows } from '@/Shared/utils/useFitRows'
 import { useMatchBottom } from '@/Shared/utils/useMatchBottom'
 import { NewsPanel } from '@/Features/News/NewsPanel'
+import { NextBossesPanel } from '@/Features/Dashboard/components/NextBossesPanel'
 import {
   MemberContextMenu,
   SellLock,
@@ -21,14 +22,10 @@ import {
 import { useEquipment } from '@/Domain/Equipment/hooks/useEquipment'
 import { useDiscordMembers, type DiscordMember } from '@/Domain/Discord/hooks/useDiscordMembers'
 import { discordProfileUrl, openInDiscordApp } from '@/Shared/utils/discordLink'
-import { useActiveEvents, useClaimEvent } from '@/Domain/Event/hooks/useEvents'
-import { Button } from '@/Shared/ui/components/Button/Button'
 import { MemberClassIcon } from '@/Shared/ui/components/MemberClassIcon/MemberClassIcon'
 import { Panel } from '@/Shared/ui/components/Panel/Panel'
-import { useAppToast } from '@/Shared/ui/components/AppToast/AppToast'
 import './Dashboard.styles.scss'
 
-const EVENT_PER_PAGE = 4
 type SortKey = 'points' | 'gameLevel' | 'gameExp' | 'gearScore'
 /** Natural ranking row (46px + 1px border; stretched to fill the viewport) and pagination block. */
 const RANK_ROW_HEIGHT = 47
@@ -107,9 +104,6 @@ export function DashboardPage() {
   discord?.groups.forEach((g) =>
     g.members.forEach((m) => m.siteMemberId && discordBySiteId.set(m.siteMemberId, m)),
   )
-  const { data: events = [] } = useActiveEvents()
-  const claimEvent = useClaimEvent()
-  const { showToast } = useAppToast()
   const { hasRole } = useAuthContext()
   const canManageMembers = hasRole('ADMINISTRADOR') // Líder ranks above Administrador
   // Right-click on a member: Discord shortcuts for everyone; Discord link and sale block for staff.
@@ -119,10 +113,7 @@ export function DashboardPage() {
     setMemberMenu({ member, x: e.clientX, y: e.clientY })
   }
   const closeMemberMenu = useCallback(() => setMemberMenu(null), [])
-  const [passwords, setPasswords] = useState<Record<number, string>>({})
-  const [claimErrors, setClaimErrors] = useState<Record<number, string>>({})
   const [rankPage, setRankPage] = useState(0)
-  const [eventPage, setEventPage] = useState(0)
   // Ordenação do ranking: por pontos (padrão), level, EXP do jogo ou GearScore.
   const [sortKey, setSortKey] = useState<SortKey>('points')
   const [sortDir, setSortDir] = useState<'desc' | 'asc'>('desc')
@@ -147,7 +138,7 @@ export function DashboardPage() {
   const sortArrow = (key: SortKey) =>
     sortKey === key ? (sortDir === 'desc' ? ' ▼' : ' ▲') : ''
 
-  // Side columns end exactly where the ranking panel ends; events and news split theirs in half.
+  // Side columns end exactly where the ranking panel ends; next PBs and news split theirs in half.
   const sideRef = useRef<HTMLDivElement>(null)
   const rankingRef = useRef<HTMLDivElement>(null)
   const sideHeight = useMatchBottom(sideRef, rankingRef, !isLoading)
@@ -195,44 +186,6 @@ export function DashboardPage() {
   // Last page of several: pad with blank rows so the table keeps its height and the
   // pagination stays put.
   const emptyRankRows = rankTotalPages > 1 ? Math.max(0, rankPerPage - pagedRest.length) : 0
-
-  const unclaimedEvents = events.filter((e) => !e.claimedByMe)
-  const eventTotalPages = Math.ceil(unclaimedEvents.length / EVENT_PER_PAGE)
-  const pagedEvents = unclaimedEvents.slice(
-    eventPage * EVENT_PER_PAGE,
-    (eventPage + 1) * EVENT_PER_PAGE,
-  )
-
-  const handleClaim = async (eventId: number) => {
-    const password = passwords[eventId] ?? ''
-    if (password.length !== 4) {
-      setClaimErrors((prev) => ({
-        ...prev,
-        [eventId]: 'A senha deve ter exatamente 4 caracteres.',
-      }))
-      return
-    }
-    const event = events.find((e) => e.id === eventId)
-    setClaimErrors((prev) => {
-      const next = { ...prev }
-      delete next[eventId]
-      return next
-    })
-
-    try {
-      await claimEvent.mutateAsync({ id: eventId, password })
-      setPasswords((p) => ({ ...p, [eventId]: '' }))
-      showToast(
-        event
-          ? `Evento "${event.objectiveName}" resgatado! +${event.points} pts`
-          : 'Evento resgatado com sucesso!',
-        'success',
-      )
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erro ao resgatar evento'
-      setClaimErrors((prev) => ({ ...prev, [eventId]: message }))
-    }
-  }
 
   if (isLoading) return <p>Carregando ranking...</p>
 
@@ -409,74 +362,9 @@ export function DashboardPage() {
       </Panel>
       </div>
 
-      {/* ── Right: Active Events (top half) + News (bottom half) ───────────── */}
+      {/* ── Right: Next PBs (top half) + News (bottom half) ───────────── */}
       <div className="dashboard__side" ref={sideRef} style={sideHeight ? { height: sideHeight } : undefined}>
-      <Panel
-        title="Eventos Ativos"
-        variant="amber"
-        code={`${unclaimedEvents.length} OPS`}
-        className="dashboard__col dashboard__col--events"
-      >
-        {unclaimedEvents.length === 0 ? (
-          <p className="dashboard__empty">Nenhum evento ativo no momento.</p>
-        ) : (
-          <div className="events-paged">
-            <ul className="event-list">
-              {pagedEvents.map((event) => (
-                <li key={event.id} className="event-list__item">
-                  <div className="event-list__info">
-                    <strong>{event.objectiveName}</strong>
-                    <div className="event-list__meta">
-                      <span className="event-list__pts">+{event.points} pts</span>
-                      <small>
-                        Expira{' '}
-                        {new Date(event.expiresAt).toLocaleString('pt-BR', {
-                          day: '2-digit',
-                          month: '2-digit',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </small>
-                    </div>
-                  </div>
-                  <div className="event-list__claim-wrap">
-                    <div className="event-list__claim">
-                      <input
-                        type="password"
-                        maxLength={4}
-                        placeholder="Senha"
-                        value={passwords[event.id] ?? ''}
-                        onChange={(e) => {
-                          const value = e.target.value
-                          setPasswords((p) => ({ ...p, [event.id]: value }))
-                          if (claimErrors[event.id]) {
-                            setClaimErrors((prev) => {
-                              const next = { ...prev }
-                              delete next[event.id]
-                              return next
-                            })
-                          }
-                        }}
-                      />
-                      <Button
-                        size="sm"
-                        onClick={() => handleClaim(event.id)}
-                        loading={claimEvent.isPending && claimEvent.variables?.id === event.id}
-                      >
-                        Resgatar
-                      </Button>
-                    </div>
-                    {claimErrors[event.id] && (
-                      <p className="event-list__error">{claimErrors[event.id]}</p>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ul>
-            <Pagination page={eventPage} total={eventTotalPages} onChange={setEventPage} />
-          </div>
-        )}
-      </Panel>
+      <NextBossesPanel className="dashboard__col dashboard__col--bosses" />
 
       <NewsPanel className="dashboard__col dashboard__col--news" />
       </div>
