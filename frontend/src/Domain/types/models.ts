@@ -31,6 +31,7 @@ export type AuditLogType =
   | 'MEMBER_DELETED'
   | 'MEMBER_SUSPENDED'
   | 'MEMBER_UNSUSPENDED'
+  | 'MEMBER_SELL_BLOCK_CHANGED'
   | 'NEWS_CREATED'
   | 'NEWS_UPDATED'
   | 'NEWS_DELETED'
@@ -74,6 +75,9 @@ export interface Member {
   lastLoginAt: string | null
   suspendedAt: string | null
   suspensionReason: string | null
+  blockedForSellAccount: boolean
+  /** Last day (inclusive, Brasília, yyyy-mm-dd) the account is blocked for sale. */
+  blockedForSellUntil: string | null
 }
 
 export interface SeedOption {

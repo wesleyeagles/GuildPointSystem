@@ -1,12 +1,19 @@
-import { useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useFitRows } from '@/Shared/utils/useFitRows'
 import { useMatchBottom } from '@/Shared/utils/useMatchBottom'
 import { NewsPanel } from '@/Features/News/NewsPanel'
-import { DiscordMembersPanel } from '@/Features/Dashboard/components/DiscordMembersPanel'
+import {
+  MemberContextMenu,
+  SellLock,
+  type MemberMenuState,
+} from '@/Features/Dashboard/components/MemberContextMenu'
+import { sellBlockedUntil } from '@/Features/Dashboard/utils/sellBlock'
 import { CerberusCountdown } from '@/Features/ServerInfo/components/CerberusCountdown'
 import { useCerberusLaunched } from '@/Features/ServerInfo/hooks/useCerberusLaunched'
 import { useMemberRanking } from '@/Domain/Member/hooks/useMembers'
+import type { Member } from '@/Domain/types/models'
+import { useAuthContext } from '@/Features/Auth/contexts/AuthContext'
 import {
   useCharacterRanking,
   useCharacterStatusSubscription,
@@ -77,6 +84,8 @@ function DiscordTag({ member, className }: { member?: DiscordMember; className: 
   )
 }
 
+type SellBlockFilter = 'all' | 'blocked' | 'unblocked'
+
 export function DashboardPage() {
   const { data: ranking = [], isLoading } = useMemberRanking()
   const { data: characterStatus = [] } = useCharacterRanking()
@@ -101,6 +110,15 @@ export function DashboardPage() {
   const { data: events = [] } = useActiveEvents()
   const claimEvent = useClaimEvent()
   const { showToast } = useAppToast()
+  const { hasRole } = useAuthContext()
+  const canManageMembers = hasRole('ADMINISTRADOR') // Líder ranks above Administrador
+  // Right-click on a member: Discord shortcuts for everyone; Discord link and sale block for staff.
+  const [memberMenu, setMemberMenu] = useState<MemberMenuState | null>(null)
+  const openMemberMenu = (e: React.MouseEvent, member: Member) => {
+    e.preventDefault()
+    setMemberMenu({ member, x: e.clientX, y: e.clientY })
+  }
+  const closeMemberMenu = useCallback(() => setMemberMenu(null), [])
   const [passwords, setPasswords] = useState<Record<number, string>>({})
   const [claimErrors, setClaimErrors] = useState<Record<number, string>>({})
   const [rankPage, setRankPage] = useState(0)
@@ -109,6 +127,7 @@ export function DashboardPage() {
   const [sortKey, setSortKey] = useState<SortKey>('points')
   const [sortDir, setSortDir] = useState<'desc' | 'asc'>('desc')
   const [rankSearch, setRankSearch] = useState('')
+  const [sellFilter, setSellFilter] = useState<SellBlockFilter>('all')
 
   const sortValue = (memberId: number, points: number): number | null => {
     if (sortKey === 'points') return points
@@ -143,14 +162,19 @@ export function DashboardPage() {
     return sortDir === 'desc' ? diff : -diff
   })
   const top3 = sortedRanking.slice(0, 3)
-  // Busca por nick (ou nome no Discord): mostra só quem bate, na posição real do ranking, sem pódio.
+  // Busca por nick (ou nome no Discord) e filtro de bloqueio de venda: mostram só quem bate, na
+  // ordem do ranking, sem pódio.
   const searchTerm = rankSearch.trim().toLocaleLowerCase('pt-BR')
-  const ranked = sortedRanking.map((member, idx) => ({ member, pos: idx + 1 }))
-  const rest = searchTerm
-    ? ranked.filter(({ member }) =>
-        [member.nickname, discordBySiteId.get(member.id)?.name].some((name) =>
-          name?.toLocaleLowerCase('pt-BR').includes(searchTerm),
-        ),
+  const filtering = !!searchTerm || sellFilter !== 'all'
+  const ranked = sortedRanking.map((member) => ({ member }))
+  const rest = filtering
+    ? ranked.filter(
+        ({ member }) =>
+          (sellFilter === 'all' || (sellFilter === 'blocked') === !!sellBlockedUntil(member)) &&
+          (!searchTerm ||
+            [member.nickname, discordBySiteId.get(member.id)?.name].some((name) =>
+              name?.toLocaleLowerCase('pt-BR').includes(searchTerm),
+            )),
       )
     : ranked.slice(3)
 
@@ -168,7 +192,7 @@ export function DashboardPage() {
   // A taller window can leave the current page past the end — clamp instead of showing nothing.
   const currentRankPage = Math.min(rankPage, rankTotalPages - 1)
   const pagedRest = rest.slice(currentRankPage * rankPerPage, (currentRankPage + 1) * rankPerPage)
-  // Last page of several: pad with numbered blank rows so the table keeps its height and the
+  // Last page of several: pad with blank rows so the table keeps its height and the
   // pagination stays put.
   const emptyRankRows = rankTotalPages > 1 ? Math.max(0, rankPerPage - pagedRest.length) : 0
 
@@ -227,20 +251,35 @@ export function DashboardPage() {
         title="Ranking"
         code={`${ranking.length} MBR`}
         actions={
-          <input
-            type="search"
-            className="ranking-search"
-            placeholder="Buscar membro"
-            aria-label="Buscar membro no ranking"
-            value={rankSearch}
-            onChange={(e) => {
-              setRankSearch(e.target.value)
-              setRankPage(0)
-            }}
-          />
+          <div className="ranking-filters">
+            <select
+              className="ranking-filter"
+              aria-label="Filtrar por bloqueio de venda"
+              value={sellFilter}
+              onChange={(e) => {
+                setSellFilter(e.target.value as SellBlockFilter)
+                setRankPage(0)
+              }}
+            >
+              <option value="all">Todas as contas</option>
+              <option value="blocked">Bloqueadas p/ venda</option>
+              <option value="unblocked">Não bloqueadas</option>
+            </select>
+            <input
+              type="search"
+              className="ranking-search"
+              placeholder="Buscar membro"
+              aria-label="Buscar membro no ranking"
+              value={rankSearch}
+              onChange={(e) => {
+                setRankSearch(e.target.value)
+                setRankPage(0)
+              }}
+            />
+          </div>
         }
       >
-        {!searchTerm && (
+        {!filtering && (
           <div className="podium">
             {[1, 0, 2].map((rankIdx) => {
               const member = top3[rankIdx]
@@ -248,12 +287,15 @@ export function DashboardPage() {
               const place = rankIdx + 1
               return (
                 <div key={member.id} className={`podium__slot podium__slot--${place}`}>
-                  <div className="podium__card">
-                    <MemberClassIcon
-                      classImageUrl={member.classImageUrl}
-                      classLabel={member.className}
-                      size="md"
-                    />
+                  <div className="podium__card" onContextMenu={(e) => openMemberMenu(e, member)}>
+                    <span className="podium__class">
+                      <MemberClassIcon
+                        classImageUrl={member.classImageUrl}
+                        classLabel={member.className}
+                        size="md"
+                      />
+                      {sellBlockedUntil(member) && <SellLock className="podium__lock" until={sellBlockedUntil(member)!} />}
+                    </span>
                     <Link to={`/profile/${member.id}`} className="podium__name podium__name--link">
                       {member.nickname}
                     </Link>
@@ -279,14 +321,13 @@ export function DashboardPage() {
           </div>
         )}
 
-        {searchTerm && rest.length === 0 && (
+        {filtering && rest.length === 0 && (
           <p className="dashboard__empty">Nenhum membro encontrado.</p>
         )}
 
         {rest.length > 0 && (
           <div className="ranking-rest">
             <div className="ranking-list__head">
-              <span>#</span>
               <span className="ranking-list__head-icon" />
               <span>Membro</span>
               <span
@@ -323,9 +364,8 @@ export function DashboardPage() {
               ref={rankListRef}
               style={rankRowHeight ? ({ '--rank-row-h': `${rankRowHeight}px` } as React.CSSProperties) : undefined}
             >
-              {pagedRest.map(({ member: m, pos }) => (
-                <li key={m.id}>
-                  <span className="ranking-list__pos">{String(pos).padStart(2, '0')}</span>
+              {pagedRest.map(({ member: m }) => (
+                <li key={m.id} onContextMenu={(e) => openMemberMenu(e, m)}>
                   {m.classImageUrl && m.className ? (
                     <MemberClassIcon classImageUrl={m.classImageUrl} classLabel={m.className} />
                   ) : (
@@ -336,6 +376,7 @@ export function DashboardPage() {
                     <Link to={`/profile/${m.id}`} className="ranking-list__name">
                       {m.nickname}
                     </Link>
+                    {sellBlockedUntil(m) && <SellLock className="ranking-list__lock" until={sellBlockedUntil(m)!} />}
                     <DiscordTag member={discordBySiteId.get(m.id)} className="ranking-list__discord" />
                   </span>
                   <span className="ranking-list__game-lv">
@@ -352,11 +393,6 @@ export function DashboardPage() {
               ))}
               {Array.from({ length: emptyRankRows }, (_, i) => (
                 <li key={`empty-${i}`} className="ranking-list__row--empty" aria-hidden="true">
-                  <span className="ranking-list__pos">
-                    {searchTerm
-                      ? ''
-                      : String(currentRankPage * rankPerPage + pagedRest.length + i + 4).padStart(2, '0')}
-                  </span>
                   <span className="ranking-list__empty-icon" />
                   <span className="ranking-list__empty-name">—</span>
                 </li>
@@ -445,13 +481,16 @@ export function DashboardPage() {
       <NewsPanel className="dashboard__col dashboard__col--news" />
       </div>
 
-      {/* ── Far right: Discord members (same height as the ranking) ─────────── */}
-      <div
-        className="dashboard__discord"
-        style={sideHeight ? ({ '--side-height': `${sideHeight}px` } as React.CSSProperties) : undefined}
-      >
-        <DiscordMembersPanel />
-      </div>
+      {memberMenu && (
+        <MemberContextMenu
+          key={memberMenu.member.id}
+          menu={memberMenu}
+          discordMember={discordBySiteId.get(memberMenu.member.id)}
+          discordMembers={discord?.groups.flatMap((g) => g.members) ?? []}
+          canManage={canManageMembers}
+          onClose={closeMemberMenu}
+        />
+      )}
     </div>
   )
 }

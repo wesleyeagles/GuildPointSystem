@@ -8,6 +8,8 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 
 @Entity
 @Table(name = "member")
@@ -77,6 +79,16 @@ public class Member {
 
     @Column(name = "suspension_reason", length = 500)
     private String suspensionReason;
+
+    /** Last day (inclusive, Brasília) the game account is blocked for sale; null = not blocked. */
+    @Column(name = "blocked_for_sell_until")
+    private LocalDate blockedForSellUntil;
+
+    /** The block lifts by itself once its last day has passed. */
+    public boolean isBlockedForSellAccount() {
+        return blockedForSellUntil != null
+                && !blockedForSellUntil.isBefore(LocalDate.now(ZoneId.of("America/Sao_Paulo")));
+    }
 
     @PrePersist
     void onCreate() {

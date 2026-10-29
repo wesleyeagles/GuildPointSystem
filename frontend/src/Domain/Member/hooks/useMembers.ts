@@ -136,6 +136,19 @@ export function useUnsuspendMember() {
   })
 }
 
+/** Líder/Administrador: blocks a member's account for sale through `until` (yyyy-mm-dd), or lifts it (null). */
+export function useSetSellBlock() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, until }: { id: number; until: string | null }) =>
+      apiClient<Member>(`/members/${id}/sell-block`, { method: 'PUT', body: { until } }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: memberKeys.all })
+      queryClient.invalidateQueries({ queryKey: ['logs'] })
+    },
+  })
+}
+
 export function useMemberClaims(id: number) {
   return useQuery({
     queryKey: memberKeys.claims(id),

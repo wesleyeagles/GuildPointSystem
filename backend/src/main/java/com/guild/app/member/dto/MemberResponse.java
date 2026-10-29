@@ -4,6 +4,7 @@ import com.guild.app.common.enums.MemberStatus;
 import com.guild.app.common.enums.Role;
 
 import java.time.Instant;
+import java.time.LocalDate;
 
 public record MemberResponse(
         Long id,
@@ -23,5 +24,7 @@ public record MemberResponse(
         boolean profileComplete,
         Instant lastLoginAt,
         Instant suspendedAt,
-        String suspensionReason
+        String suspensionReason,
+        boolean blockedForSellAccount,
+        LocalDate blockedForSellUntil
 ) {}
