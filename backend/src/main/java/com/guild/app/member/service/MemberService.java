@@ -31,6 +31,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -349,6 +351,30 @@ public class MemberService {
         return toResponse(member);
     }
 
+    /**
+     * Líder/Administrador: blocks the member's game account for sale through {@code until} (inclusive,
+     * Brasília) — the block lifts by itself after that day — or removes it when {@code until} is null.
+     */
+    @Transactional
+    public MemberResponse setSellBlock(Long memberId, LocalDate until, MemberPrincipal actor) {
+        SecurityUtils.requireRole(Role.ADMINISTRADOR);
+        if (until != null && until.isBefore(LocalDate.now(ZoneId.of("America/Sao_Paulo")))) {
+            throw new AppException("A data do bloqueio não pode estar no passado.", HttpStatus.BAD_REQUEST);
+        }
+        var member = memberRepository.findByIdForUpdate(memberId)
+                .orElseThrow(() -> new AppException("Membro não encontrado.", HttpStatus.NOT_FOUND));
+        requireNotDeleted(member);
+        LocalDate current = member.isBlockedForSellAccount() ? member.getBlockedForSellUntil() : null;
+        if (Objects.equals(current, until)) {
+            return toResponse(member);
+        }
+        member.setBlockedForSellUntil(until);
+        memberRepository.save(member);
+        auditLogService.log(AuditLogType.MEMBER_SELL_BLOCK_CHANGED, memberRepository.getReferenceById(actor.getId()),
+                member, until != null ? Map.of("blocked", true, "until", until.toString()) : Map.of("blocked", false));
+        return toResponse(member);
+    }
+
     /** Shared by delete and suspend: who may lock a member out, and not while they lead an auction. */
     private void requireCanLockOut(Member member, MemberPrincipal actor, String verb) {
         if (member.getRole() == Role.LIDER) {
@@ -424,6 +450,8 @@ public class MemberService {
                 member.isProfileComplete(),
                 member.getLastLoginAt(),
                 member.getSuspendedAt(),
-                member.getSuspensionReason());
+                member.getSuspensionReason(),
+                member.isBlockedForSellAccount(),
+                member.isBlockedForSellAccount() ? member.getBlockedForSellUntil() : null);
     }
 }

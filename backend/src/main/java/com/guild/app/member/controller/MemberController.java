@@ -7,6 +7,7 @@ import com.guild.app.event.service.EventService;
 import com.guild.app.member.dto.ApprovalRequest;
 import com.guild.app.member.dto.LinkDiscordRequest;
 import com.guild.app.member.dto.MemberResponse;
+import com.guild.app.member.dto.SellBlockRequest;
 import com.guild.app.member.dto.SuspendMemberRequest;
 import com.guild.app.member.dto.UpdateProfileRequest;
 import com.guild.app.member.dto.UpdateRoleRequest;
@@ -99,6 +100,12 @@ public class MemberController {
     @PostMapping("/{id}/unsuspend")
     public MemberResponse unsuspend(@PathVariable Long id) {
         return memberService.unsuspend(id, SecurityUtils.currentMember());
+    }
+
+    /** Líder/Administrador: block the member's game account for sale until a date, or lift it (null). */
+    @PutMapping("/{id}/sell-block")
+    public MemberResponse setSellBlock(@PathVariable Long id, @Valid @RequestBody SellBlockRequest request) {
+        return memberService.setSellBlock(id, request.until(), SecurityUtils.currentMember());
     }
 
     /** Líder/Administrador: link or unlink (blank id) the member's Discord account. */
