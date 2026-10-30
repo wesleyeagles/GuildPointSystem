@@ -19,3 +19,17 @@ export const GAME_MAPS: { value: string; label: string }[] = [
 export function mapLabel(value: string | null) {
   return GAME_MAPS.find((m) => m.value === value)?.label ?? value ?? ''
 }
+
+/** Local some depois disso sem envio novo (a DLL reenvia a cada 60 s com o jogo aberto). */
+export const LOCATION_FRESH_MS = 3 * 60_000
+
+/** "Mapa · Região" do último envio, ou null se não há local ou ele é antigo. */
+export function currentLocation(
+  status: { mapName: string | null; regionName: string | null; locationAt: string | null } | undefined,
+  now: number,
+) {
+  if (!status?.mapName || !status.locationAt) return null
+  if (now - Date.parse(status.locationAt) > LOCATION_FRESH_MS) return null
+  const map = mapLabel(status.mapName)
+  return status.regionName && status.regionName !== status.mapName ? `${map} · ${status.regionName}` : map
+}

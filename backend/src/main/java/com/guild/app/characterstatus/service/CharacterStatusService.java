@@ -123,6 +123,6 @@ public class CharacterStatusService {
                 s.getMember().getId(), s.getMember().getNickname(),
                 s.getGid(), s.getCharacterName(), s.getLevel(), s.getExpPercent(),
                 s.getHp(), s.getHpMax(), s.getFp(), s.getFpMax(), s.getSp(), s.getSpMax(),
-                s.getUpdatedAt());
+                s.getUpdatedAt(), s.getMapName(), s.getRegionName(), s.getLocationAt());
     }
 }

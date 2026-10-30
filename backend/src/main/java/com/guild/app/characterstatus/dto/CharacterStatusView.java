@@ -16,5 +16,9 @@ public record CharacterStatusView(
         Integer fpMax,
         Integer sp,
         Integer spMax,
-        Instant updatedAt
+        Instant updatedAt,
+        /** Local no ultimo envio (mapa, regiao do mini-mapa); null = DLL sem leitura de local. */
+        String mapName,
+        String regionName,
+        Instant locationAt
 ) {}

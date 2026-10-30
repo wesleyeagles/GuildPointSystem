@@ -18,6 +18,10 @@ export interface CharacterStatusView {
   sp: number
   spMax: number
   updatedAt: string
+  /** Local no último envio (mapa e região do mini-mapa); null = DLL sem leitura de local. */
+  mapName: string | null
+  regionName: string | null
+  locationAt: string | null
 }
 
 export const characterStatusKeys = {
