@@ -95,7 +95,7 @@ public class EquipmentRepository {
                 new CurrentSlot(Slot.valueOf(r.getString("slot")),r.getLong("version"),id==null?null:byId.get(id)));
         });
         return jdbc.query("""
-            SELECT m.id,m.nickname,COALESCE(cs.level,m.level) AS level,cs.exp_percent,m.class_id,c.name AS class_name,c.image_url AS class_image_url
+            SELECT m.id,m.nickname,COALESCE(cs.level,m.level) AS level,cs.exp_percent,m.class_id,c.name AS class_name,c.image_url AS class_image_url,m.blocked_for_sell_until
             FROM member m LEFT JOIN character_class c ON c.id=m.class_id
             LEFT JOIN LATERAL (SELECT level,exp_percent FROM character_status WHERE member_id=m.id
                 ORDER BY updated_at DESC,id DESC LIMIT 1) cs ON true
@@ -104,7 +104,8 @@ public class EquipmentRepository {
             long id=r.getLong("id");
             return new MemberEquipment(id,r.getString("nickname"),r.getInt("level"),r.getObject("exp_percent",Float.class),
                 r.getObject("class_id",Long.class),r.getString("class_name"),r.getString("class_image_url"), Arrays.stream(Slot.values())
-                .map(s->slots.getOrDefault(id,Map.of()).getOrDefault(s.name(),new CurrentSlot(s,0,null))).toList());
+                .map(s->slots.getOrDefault(id,Map.of()).getOrDefault(s.name(),new CurrentSlot(s,0,null))).toList(),
+                r.getObject("blocked_for_sell_until",java.time.LocalDate.class));
         });
     }
     public CurrentSlot slot(long memberId, Slot slot) {

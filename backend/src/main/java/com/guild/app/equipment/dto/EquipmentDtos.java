@@ -50,7 +50,11 @@ public final class EquipmentDtos {
                                   @NotNull @Size(min=1,max=12) List<@NotNull @Valid ReportedSlot> slots) {}
     public record GearScore(Integer points, Integer originalLevel, boolean included) {}
     public record GearScoreTotal(int total,int weapon,int armor,int accessories,int unscored) {}
-    public record MemberEquipment(long memberId, String nickname, int level, Float expPercent, Long classId, String className, String classImageUrl, List<CurrentSlot> slots) {
+    /** {@code blockedForSellUntil}: conta bloqueada para venda ate esse dia (cadeado no nick); null = sem bloqueio. */
+    public record MemberEquipment(long memberId, String nickname, int level, Float expPercent, Long classId, String className, String classImageUrl, List<CurrentSlot> slots, LocalDate blockedForSellUntil) {
+        public MemberEquipment(long memberId, String nickname, int level, Float expPercent, Long classId, String className, String classImageUrl, List<CurrentSlot> slots) {
+            this(memberId,nickname,level,expPercent,classId,className,classImageUrl,slots,null);
+        }
         @com.fasterxml.jackson.annotation.JsonProperty("gearScore")
         public GearScoreTotal gearScore() {
             int weapon=0,armor=0,accessories=0,unscored=0;
