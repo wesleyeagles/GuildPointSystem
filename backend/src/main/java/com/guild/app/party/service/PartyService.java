@@ -593,7 +593,7 @@ public class PartyService {
 
         var existing = partyLfgRepository.findByMemberId(member.getId());
         if (existing.isEmpty() && isLfgLocked()) {
-            throw new AppException("A lista de espera está fechada no momento", HttpStatus.BAD_REQUEST);
+            throw new AppException("A lista de espera está bloqueada no momento", HttpStatus.BAD_REQUEST);
         }
 
         PartyLfg entry;

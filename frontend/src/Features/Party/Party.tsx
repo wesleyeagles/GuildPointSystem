@@ -633,10 +633,10 @@ export function PartyPage() {
                 variant="secondary"
                 loading={upsertLfg.isPending}
                 disabled={lfgLocked}
-                title={lfgLocked ? 'A lista de espera está fechada no momento' : undefined}
+                title={lfgLocked ? 'A lista de espera está bloqueada no momento' : undefined}
                 onClick={() => upsertLfg.mutate({}, onFail)}
               >
-                {lfgLocked ? 'Lista de espera fechada' : 'Entrar na lista de espera'}
+                {lfgLocked ? 'Lista de espera bloqueada' : 'Entrar na lista de espera'}
               </Button>
             )}
           </div>
@@ -671,12 +671,12 @@ export function PartyPage() {
               loading={setLfgLocked.isPending}
               title={
                 lfgLocked
-                  ? 'Reabrir: os membros voltam a poder entrar na lista'
-                  : 'Fechar: ninguém entra por conta própria; quem já está continua'
+                  ? 'Desbloquear: os membros voltam a poder entrar na lista'
+                  : 'Bloquear: ninguém entra por conta própria; quem já está continua'
               }
               onClick={() => setLfgLocked.mutate(!lfgLocked, onFail)}
             >
-              {lfgLocked ? 'Abrir lista' : 'Fechar lista'}
+              {lfgLocked ? 'Desbloquear Lista de Espera' : 'Bloquear Lista de Espera'}
             </Button>
           )}
           {my.canOrganizeParties && (
@@ -742,7 +742,7 @@ export function PartyPage() {
 
           <Panel
             title="Lista de espera"
-            code={lfgLocked ? `FECHADA · ${board.lfg.length} LFP` : `${board.lfg.length} LFP`}
+            code={lfgLocked ? `BLOQUEADA · ${board.lfg.length} LFP` : `${board.lfg.length} LFP`}
             flush
             actions={
               board.lfg.length > 0 && (

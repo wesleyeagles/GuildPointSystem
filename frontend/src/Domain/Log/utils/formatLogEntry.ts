@@ -135,8 +135,8 @@ export function formatLogDetails(log: AuditLogEntry): string {
     case 'AUCTION_DELETED':
       return `#${str(p.auctionId)} · ${str(p.items)}`
     case 'PARTY_QUEUE_UPDATED':
-      if (p.action === 'LOCKED') return 'Lista de espera fechada · ninguém entra por conta própria'
-      if (p.action === 'UNLOCKED') return 'Lista de espera reaberta'
+      if (p.action === 'LOCKED') return 'Lista de espera bloqueada · ninguém entra por conta própria'
+      if (p.action === 'UNLOCKED') return 'Lista de espera desbloqueada'
       if (p.action === 'AFK_STARTED') return 'AFK avisado · limite de 15 minutos'
       if (p.action === 'AFK_CANCELLED') return 'AFK cancelado · voltou antes do prazo'
       if (p.action === 'AFK_EXPIRED') return '15 minutos de AFK · enviado ao final da fila'

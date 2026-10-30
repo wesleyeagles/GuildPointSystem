@@ -110,7 +110,7 @@ class PartyQueueIntegrationTest {
             .andExpect(status().isOk()).andExpect(jsonPath("$.lfgLocked").value(true));
         assertTrue(service.getPublicSnapshot().lfgLocked());
         var ex=assertThrows(com.guild.app.common.exception.AppException.class,()->service.upsertLfg(new UpsertLfgRequest(null),principal(outsider)));
-        assertEquals("A lista de espera está fechada no momento",ex.getMessage());
+        assertEquals("A lista de espera está bloqueada no momento",ex.getMessage());
         service.upsertLfg(new UpsertLfgRequest("ainda aqui"),principal(a)); // quem já está pode editar a nota
         service.addMemberToLfg(outsider,principal(admin));                   // a administração ainda adiciona
         assertEquals(List.of(a,b,c),order());
