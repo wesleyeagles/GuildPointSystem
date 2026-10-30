@@ -34,6 +34,7 @@ import { PartyLfgList, WaitingTime } from '@/Features/Party/components/PartyLfgL
 import { PartyAfkControl } from '@/Features/Party/components/PartyAfkControl'
 import { PartyQueueControls } from '@/Features/Party/components/PartyQueueControls'
 import { PartyLfgAddModal } from '@/Features/Party/components/PartyLfgAddModal'
+import { PartyLocationPointsModal } from '@/Features/Party/components/PartyLocationPointsModal'
 import { sortByWaiting } from '@/Features/Party/utils/partyWait'
 import { SellLock } from '@/Features/Dashboard/components/MemberContextMenu'
 import { sellBlockedUntil } from '@/Features/Dashboard/utils/sellBlock'
@@ -393,7 +394,7 @@ function PartyCard({
 }
 
 export function PartyPage() {
-  const { user } = useAuthContext()
+  const { user, hasRole } = useAuthContext()
   const { showToast } = useAppToast()
   const [kickLoadingId, setKickLoadingId] = useState<number | null>(null)
   const [leaderLoadingId, setLeaderLoadingId] = useState<number | null>(null)
@@ -423,6 +424,7 @@ export function PartyPage() {
   const [lfgRemovingId, setLfgRemovingId] = useState<number | null>(null)
   const [lfgSearch, setLfgSearch] = useState('')
   const [addLfgOpen, setAddLfgOpen] = useState(false)
+  const [locationPointsOpen, setLocationPointsOpen] = useState(false)
   const closeAddLfg = useCallback(() => setAddLfgOpen(false), [])
 
   const onPartyNotice = useCallback(
@@ -714,6 +716,11 @@ export function PartyPage() {
                     onChange={(e) => setLfgSearch(e.target.value)}
                   />
                 )}
+                {hasRole('MODERADOR') && (
+                  <Button size="sm" variant="secondary" onClick={() => setLocationPointsOpen(true)}>
+                    Pontos por local
+                  </Button>
+                )}
                 {my.canOrganizeParties && (
                   <Button size="sm" variant="secondary" onClick={() => setAddLfgOpen(true)}>
                     Adicionar membro
@@ -757,6 +764,8 @@ export function PartyPage() {
           </Panel>
         </div>
       )}
+
+      {locationPointsOpen && <PartyLocationPointsModal onClose={() => setLocationPointsOpen(false)} />}
 
       {addLfgOpen && board && (
         <PartyLfgAddModal

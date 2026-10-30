@@ -13,7 +13,7 @@
     min-height: 0;
   }
 
-  // Right column: next PBs on top, news below, each taking half of the viewport-filling height.
+  // Right column: next PBs on top (only as tall as their content), news fills the rest.
   &__side {
     display: flex;
     flex-direction: column;
@@ -31,9 +31,9 @@
       min-height: 0;
     }
 
-    // Next PBs overflow scroll inside their half instead of growing the page.
-    > .dashboard__col--bosses > .panel__body {
-      overflow-y: auto;
+    // Next PBs (next + 1) take only their height; news gets the remaining space.
+    > .dashboard__col--bosses {
+      flex: 0 0 auto;
     }
   }
 

@@ -1,0 +1,80 @@
+.party-location-points {
+  max-width: 620px;
+  width: 100%;
+
+  &__body {
+    display: flex;
+    flex-direction: column;
+    gap: theme.$spacing-md;
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: theme.$spacing-md;
+
+    label {
+      display: flex;
+      flex-direction: column;
+      gap: theme.$spacing-xs;
+      @include theme.field-label;
+    }
+
+    input,
+    select {
+      @include theme.field-input;
+      @include theme.field-control-height;
+    }
+  }
+
+  &__preview {
+    border-top: 1px solid theme.$color-border;
+    padding-top: theme.$spacing-sm;
+  }
+
+  &__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 40vh;
+    overflow-y: auto;
+  }
+
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: theme.$spacing-sm;
+    padding: 6px theme.$spacing-xs;
+    border-bottom: 1px solid theme.$color-border;
+    cursor: pointer;
+  }
+
+  &__name {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__where {
+    flex: 1;
+    min-width: 0;
+    color: theme.$color-text-muted;
+    font-size: theme.$font-size-base;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__empty {
+    margin: 0;
+    color: theme.$color-text-muted;
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: theme.$spacing-sm;
+  }
+}

@@ -24,6 +24,10 @@ public interface CharacterStatusRepository extends JpaRepository<CharacterStatus
     @EntityGraph(attributePaths = {"member"})
     List<CharacterStatus> findByMemberIdOrderByLevelDescExpPercentDesc(Long memberId);
 
+    /** Personagens com local recebido depois de {@code since} (os que estao no jogo agora). */
+    @EntityGraph(attributePaths = {"member"})
+    List<CharacterStatus> findByLocationAtAfter(Instant since);
+
     /** Ranking da guilda: todos os personagens, maior level/EXP primeiro. */
     @EntityGraph(attributePaths = {"member"})
     List<CharacterStatus> findAllByOrderByLevelDescExpPercentDesc();

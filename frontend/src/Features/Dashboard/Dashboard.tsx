@@ -138,7 +138,7 @@ export function DashboardPage() {
   const sortArrow = (key: SortKey) =>
     sortKey === key ? (sortDir === 'desc' ? ' ▼' : ' ▲') : ''
 
-  // Side columns end exactly where the ranking panel ends; next PBs and news split theirs in half.
+  // Side columns end exactly where the ranking panel ends; next PBs take their height, news the rest.
   const sideRef = useRef<HTMLDivElement>(null)
   const rankingRef = useRef<HTMLDivElement>(null)
   const sideHeight = useMatchBottom(sideRef, rankingRef, !isLoading)
@@ -362,7 +362,7 @@ export function DashboardPage() {
       </Panel>
       </div>
 
-      {/* ── Right: Next PBs (top half) + News (bottom half) ───────────── */}
+      {/* ── Right: Next PBs (next + 1) + News (rest of the column) ─────── */}
       <div className="dashboard__side" ref={sideRef} style={sideHeight ? { height: sideHeight } : undefined}>
       <NextBossesPanel className="dashboard__col dashboard__col--bosses" />
 

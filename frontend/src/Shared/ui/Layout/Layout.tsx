@@ -7,6 +7,7 @@ import { useMemberLogNotifications } from '@/Domain/Log/hooks/useLogs'
 import { useGuildEmojisSubscription } from '@/Domain/Emoji/hooks/useGuildEmojis'
 import { EventToastProvider } from '@/Features/Events/components/EventToast/EventToast'
 import { EventCreateModal } from '@/Features/Events/components/EventCreateModal/EventCreateModal'
+import { PartyLocationPointsModal } from '@/Features/Party/components/PartyLocationPointsModal'
 import { AppToastProvider } from '@/Shared/ui/components/AppToast/AppToast'
 import { MemberClassIcon } from '@/Shared/ui/components/MemberClassIcon/MemberClassIcon'
 import { getSocketState, type SocketState } from '@/Shared/websocket/socketClient'
@@ -105,6 +106,7 @@ function LayoutShell() {
   const drawerOpen = drawerPath === location.pathname
   const setDrawerOpen = (open: boolean) => setDrawerPath(open ? location.pathname : null)
   const [eventModalOpen, setEventModalOpen] = useState(false)
+  const [rgPointsOpen, setRgPointsOpen] = useState(false)
 
   usePointsSubscription(user?.memberId)
   useMemberLogNotifications(user?.memberId)
@@ -128,6 +130,7 @@ function LayoutShell() {
       <PartyGameInviteListener />
       {hasRole('MODERADOR') && <ApprovalsListener />}
       {eventModalOpen && <EventCreateModal onClose={() => setEventModalOpen(false)} />}
+      {rgPointsOpen && <PartyLocationPointsModal variant="rg" onClose={() => setRgPointsOpen(false)} />}
       <aside className="layout__sidebar">
         <div className="layout__brand">
           <img src="/Logo-Blacklist.png" alt="" className="layout__logo" />
@@ -188,6 +191,19 @@ function LayoutShell() {
               }}
             >
               <span className="layout__nav-label">+ Criar evento</span>
+            </button>
+          )}
+
+          {hasRole('MODERADOR') && (
+            <button
+              type="button"
+              className="layout__nav-link layout__quick-event"
+              onClick={() => {
+                setDrawerOpen(false)
+                setRgPointsOpen(true)
+              }}
+            >
+              <span className="layout__nav-label">+ Pontos de RG</span>
             </button>
           )}
 

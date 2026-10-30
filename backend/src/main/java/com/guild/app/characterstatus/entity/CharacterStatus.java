@@ -60,6 +60,22 @@ public class CharacterStatus {
     @Column(name = "dll_version", length = 32)
     private String dllVersion;
 
+    /** Local no ultimo envio: mapa, regiao do mini-mapa e grade X/Y. Null = DLL sem leitura de local. */
+    @Column(name = "map_name", length = 64)
+    private String mapName;
+
+    @Column(name = "region_name", length = 64)
+    private String regionName;
+
+    @Column(name = "map_x")
+    private Integer mapX;
+
+    @Column(name = "map_y")
+    private Integer mapY;
+
+    @Column(name = "location_at")
+    private Instant locationAt;
+
     /** Quando o cliente observou (recebido) e quando o servidor gravou. */
     @Column(name = "observed_at", nullable = false)
     private Instant observedAt = Instant.now();

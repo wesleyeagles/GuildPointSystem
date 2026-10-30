@@ -239,6 +239,13 @@ $mobile-breakpoint: 640px;
   box-shadow: inset 1px 1px 0 $metal-highlight, inset -1px -1px 0 $metal-shadow;
 }
 
+// Seta dos selects (SVG inline; '#' da cor vai como %23 na URL).
+@function chevron-svg($hex) {
+  @return url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23#{$hex}' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+$select-chevron: chevron-svg('6c7689');        // $color-text-muted
+$select-chevron-active: chevron-svg('3fe3d6'); // $color-primary
+
 // Form inputs / selects — recessed field.
 @mixin field-input {
   @include chamfer($chamfer-sm);
@@ -270,6 +277,29 @@ $mobile-breakpoint: 640px;
   option {
     background: $color-bg-elevated;
     color: $color-text;
+  }
+
+  // appearance: none tira a seta nativa; esta mostra que o campo e uma lista.
+  // So casa em <select> (o mixin tambem e usado em input/textarea).
+  &:is(select) {
+    padding-right: 36px;
+    background:
+      chamfer-edges($chamfer-sm, $color-border-strong),
+      $select-chevron no-repeat right 14px center / 12px 8px,
+      linear-gradient(180deg, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.3));
+    cursor: pointer;
+  }
+
+  &:is(select):focus {
+    background:
+      chamfer-edges($chamfer-sm, $color-cyan-dim),
+      $select-chevron-active no-repeat right 14px center / 12px 8px,
+      linear-gradient(180deg, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.3));
+  }
+
+  &:is(select):disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
   }
 }
 

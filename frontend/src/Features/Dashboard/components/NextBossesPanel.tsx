@@ -7,7 +7,7 @@ import { formatCountdown, upcomingBossSlots } from '@/Features/Dashboard/utils/n
 const GUILD = 'Blacklist'
 /** Brasília → Moscou (servidor), same offset the rotation page uses. */
 const SERVER_OFFSET = 6
-const LATER_COUNT = 3
+const LATER_COUNT = 1
 
 function Bosses({ label, bosses }: { label: string; bosses: string[] }) {
   if (bosses.length === 0) return null
