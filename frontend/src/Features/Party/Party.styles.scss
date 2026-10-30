@@ -62,6 +62,14 @@
   }
 }
 
+.party-page__lfg-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: theme.$spacing-sm;
+  margin-bottom: calc(#{theme.$spacing-sm} - #{theme.$spacing-lg});
+}
+
 .party-page__grid {
   display: grid;
   grid-template-columns: 1fr;

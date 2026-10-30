@@ -101,6 +101,23 @@ class PartyQueueIntegrationTest {
         mvc.perform(post("/api/parties/lfg/"+admin+"/unanswered").with(authentication(auth(admin)))).andExpect(status().isBadRequest());
         assertEquals(List.of(a,b,c),order());assertEquals(0,points(a));
     }
+    @Test void lockedQueueRejectsNewEntriesButKeepsWaitersAndOnlyAdminsToggleIt() throws Exception {
+        long moderator=member("MODERADOR"),outsider=member("MEMBRO");
+        for(long actor:List.of(a,moderator))
+            mvc.perform(put("/api/parties/lfg/lock").with(authentication(auth(actor))).contentType("application/json").content("{\"locked\":true}"))
+                .andExpect(status().isForbidden());
+        mvc.perform(put("/api/parties/lfg/lock").with(authentication(auth(admin))).contentType("application/json").content("{\"locked\":true}"))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.lfgLocked").value(true));
+        assertTrue(service.getPublicSnapshot().lfgLocked());
+        var ex=assertThrows(com.guild.app.common.exception.AppException.class,()->service.upsertLfg(new UpsertLfgRequest(null),principal(outsider)));
+        assertEquals("A lista de espera está fechada no momento",ex.getMessage());
+        service.upsertLfg(new UpsertLfgRequest("ainda aqui"),principal(a)); // quem já está pode editar a nota
+        service.addMemberToLfg(outsider,principal(admin));                   // a administração ainda adiciona
+        assertEquals(List.of(a,b,c),order());
+        service.setLfgLocked(new PartyLfgLockRequest(false),principal(admin));
+        assertFalse(service.getPublicSnapshot().lfgLocked());
+        assertEquals(2,jdbc.queryForObject("SELECT count(*) FROM audit_log WHERE actor_id=? AND type='PARTY_QUEUE_UPDATED' AND payload->>'action' IN ('LOCKED','UNLOCKED')",Integer.class,admin));
+    }
     @Test void leavingQueuePreservesPointsButJoiningAnyPartyResetsThem() {
         change(a,1);change(b,1);change(c,1);
         service.leaveLfg(principal(a));

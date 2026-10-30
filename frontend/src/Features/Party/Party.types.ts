@@ -196,6 +196,9 @@ export interface PartyBoard {
 
   lfg: PartyLfgEntry[]
 
+  /** Lista de espera fechada pela Administração/Liderança: ninguém entra por conta própria. */
+  lfgLocked: boolean
+
   my: MyPartyState
 
   /** When the server built this snapshot (also drives the waiting timers). */

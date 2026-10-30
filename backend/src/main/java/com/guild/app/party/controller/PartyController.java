@@ -107,6 +107,11 @@ public class PartyController {
         return partyService.upsertLfg(request, SecurityUtils.currentMember());
     }
 
+    @PutMapping("/lfg/lock")
+    public PartyBoardResponse setLfgLocked(@Valid @RequestBody PartyLfgLockRequest request) {
+        return partyService.setLfgLocked(request, SecurityUtils.currentMember());
+    }
+
     @PostMapping("/lfg/{memberId}")
     public PartyBoardResponse addToLfg(@PathVariable Long memberId) {
         return partyService.addMemberToLfg(memberId, SecurityUtils.currentMember());

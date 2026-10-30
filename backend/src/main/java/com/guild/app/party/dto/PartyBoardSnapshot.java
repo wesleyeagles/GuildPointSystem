@@ -7,5 +7,6 @@ import java.util.List;
 public record PartyBoardSnapshot(
         List<PartySummary> parties,
         List<PartyLfgEntry> lfg,
+        boolean lfgLocked,
         Instant serverTime
 ) {}

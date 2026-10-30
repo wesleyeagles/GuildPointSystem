@@ -11,6 +11,7 @@ import {
   useLeaveParty,
   useLeavePartyLfg,
   useRemoveFromPartyLfg,
+  useSetPartyLfgLocked,
   useMovePartyMember,
   usePartyBoard,
   usePartyMemberNotices,
@@ -421,6 +422,8 @@ export function PartyPage() {
   const leaveLfg = useLeavePartyLfg()
   const addToLfg = useAddToPartyLfg()
   const removeFromLfg = useRemoveFromPartyLfg()
+  const setLfgLocked = useSetPartyLfgLocked()
+  const lfgLocked = board?.lfgLocked ?? false
   const [lfgRemovingId, setLfgRemovingId] = useState<number | null>(null)
   const [lfgSearch, setLfgSearch] = useState('')
   const [addLfgOpen, setAddLfgOpen] = useState(false)
@@ -626,8 +629,14 @@ export function PartyPage() {
                 Sair da lista de espera
               </Button>
             ) : (
-              <Button variant="secondary" loading={upsertLfg.isPending} onClick={() => upsertLfg.mutate({}, onFail)}>
-                Entrar na lista de espera
+              <Button
+                variant="secondary"
+                loading={upsertLfg.isPending}
+                disabled={lfgLocked}
+                title={lfgLocked ? 'A lista de espera está fechada no momento' : undefined}
+                onClick={() => upsertLfg.mutate({}, onFail)}
+              >
+                {lfgLocked ? 'Lista de espera fechada' : 'Entrar na lista de espera'}
               </Button>
             )}
           </div>
@@ -646,6 +655,37 @@ export function PartyPage() {
       )}
 
       {isLoading && <p className="party-page__empty">Carregando...</p>}
+
+      {/* Staff actions for the waiting list, above the panels (aligned with the list's column). */}
+      {board && (hasRole('MODERADOR') || my.canOrganizeParties) && (
+        <div className="party-page__lfg-toolbar">
+          {hasRole('MODERADOR') && (
+            <Button size="sm" variant="secondary" onClick={() => setLocationPointsOpen(true)}>
+              Pontos por local
+            </Button>
+          )}
+          {my.canOrganizeParties && (
+            <Button
+              size="sm"
+              variant={lfgLocked ? 'primary' : 'secondary'}
+              loading={setLfgLocked.isPending}
+              title={
+                lfgLocked
+                  ? 'Reabrir: os membros voltam a poder entrar na lista'
+                  : 'Fechar: ninguém entra por conta própria; quem já está continua'
+              }
+              onClick={() => setLfgLocked.mutate(!lfgLocked, onFail)}
+            >
+              {lfgLocked ? 'Abrir lista' : 'Fechar lista'}
+            </Button>
+          )}
+          {my.canOrganizeParties && (
+            <Button size="sm" variant="secondary" onClick={() => setAddLfgOpen(true)}>
+              Adicionar membro
+            </Button>
+          )}
+        </div>
+      )}
 
       {board && (
         <div className="party-page__grid">
@@ -702,31 +742,19 @@ export function PartyPage() {
 
           <Panel
             title="Lista de espera"
-            code={`${board.lfg.length} LFP`}
+            code={lfgLocked ? `FECHADA · ${board.lfg.length} LFP` : `${board.lfg.length} LFP`}
             flush
             actions={
-              <>
-                {board.lfg.length > 0 && (
-                  <input
-                    type="search"
-                    className="party-lfg-search"
-                    placeholder="Buscar membro"
-                    aria-label="Buscar membro na lista de espera"
-                    value={lfgSearch}
-                    onChange={(e) => setLfgSearch(e.target.value)}
-                  />
-                )}
-                {hasRole('MODERADOR') && (
-                  <Button size="sm" variant="secondary" onClick={() => setLocationPointsOpen(true)}>
-                    Pontos por local
-                  </Button>
-                )}
-                {my.canOrganizeParties && (
-                  <Button size="sm" variant="secondary" onClick={() => setAddLfgOpen(true)}>
-                    Adicionar membro
-                  </Button>
-                )}
-              </>
+              board.lfg.length > 0 && (
+                <input
+                  type="search"
+                  className="party-lfg-search"
+                  placeholder="Buscar membro"
+                  aria-label="Buscar membro na lista de espera"
+                  value={lfgSearch}
+                  onChange={(e) => setLfgSearch(e.target.value)}
+                />
+              )
             }
           >
             {board.lfg.length === 0 ? (
