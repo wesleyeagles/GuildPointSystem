@@ -1,6 +1,7 @@
 package com.guild.app.dll.controller;
 
 import com.guild.app.dll.dto.DllReleaseView;
+import com.guild.app.dll.dto.DllUpdateManifest;
 import com.guild.app.dll.dto.MemberDllView;
 import com.guild.app.dll.service.DllReleaseService;
 import lombok.RequiredArgsConstructor;
@@ -47,12 +48,40 @@ public class DllReleaseController {
         return service.releases();
     }
 
+    /**
+     * {@code dll} + {@code signature} (version.dll e version.dll.sig do dll-signing.ps1) ligam a
+     * atualizacao automatica; {@code file} (.rar/.zip) e opcional nesse caso.
+     */
     @PostMapping("/releases")
     @ResponseStatus(HttpStatus.CREATED)
     public DllReleaseView publish(@RequestParam("version") String version,
                                   @RequestParam(value = "notes", required = false) String notes,
-                                  @RequestParam("file") MultipartFile file) throws IOException {
-        return service.publish(version, notes, file);
+                                  @RequestParam(value = "file", required = false) MultipartFile file,
+                                  @RequestParam(value = "dll", required = false) MultipartFile dll,
+                                  @RequestParam(value = "signature", required = false) MultipartFile signature)
+            throws IOException {
+        String signatureText = signature == null || signature.isEmpty() || signature.getSize() > 1024
+                ? null : new String(signature.getBytes(), StandardCharsets.US_ASCII);
+        return service.publish(version, notes, file, dll, signatureText);
+    }
+
+    /** Publico: a DLL instalada pergunta se ha versao nova (204 = nenhuma com atualizacao automatica). */
+    @GetMapping("/update")
+    public ResponseEntity<DllUpdateManifest> updateManifest() {
+        return service.updateManifest()
+                .map(manifest -> ResponseEntity.ok().header(HttpHeaders.CACHE_CONTROL, "no-cache").body(manifest))
+                .orElseGet(() -> ResponseEntity.noContent().build());
+    }
+
+    /** Publico: o version.dll assinado (a DLL confere sha256 e assinatura antes de usar). */
+    @GetMapping("/update/file")
+    public ResponseEntity<byte[]> updateFile(@RequestParam("v") String version) {
+        return service.updateFile(version)
+                .map(bytes -> ResponseEntity.ok()
+                        .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                        .header(HttpHeaders.CACHE_CONTROL, "no-cache")
+                        .body(bytes))
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @GetMapping("/members")

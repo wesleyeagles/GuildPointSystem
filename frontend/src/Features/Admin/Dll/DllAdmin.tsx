@@ -23,6 +23,8 @@ export function DllAdminPage() {
   const { showToast } = useAppToast()
   const [version, setVersion] = useState('')
   const [notes, setNotes] = useState('')
+  const [dll, setDll] = useState<File | null>(null)
+  const [signature, setSignature] = useState<File | null>(null)
   const [file, setFile] = useState<File | null>(null)
   const [fileKey, setFileKey] = useState(0)
   const [onlyOutdated, setOnlyOutdated] = useState(false)
@@ -39,15 +41,24 @@ export function DllAdminPage() {
   }, [members])
   const visibleMembers = onlyOutdated ? members.filter((m) => m.outdated) : members
   const validVersion = VERSION_FORMAT.test(version.trim())
+  // Com a DLL assinada o pacote é opcional; sem ela, vale o .rar/.zip como antes (sem atualização automática).
+  const canPublish = validVersion && (dll ? !!signature : !!file)
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
-    if (!file || !validVersion) return
+    if (!canPublish) return
     try {
-      const release = await publish.mutateAsync({ version: version.trim(), notes, file })
-      showToast(`Versão ${release.version} publicada: todos foram avisados.`, 'success')
+      const release = await publish.mutateAsync({ version: version.trim(), notes, dll, signature, file })
+      showToast(
+        release.autoUpdate
+          ? `Versão ${release.version} publicada: as DLLs instaladas se atualizam ao abrir o jogo.`
+          : `Versão ${release.version} publicada: todos foram avisados.`,
+        'success',
+      )
       setVersion('')
       setNotes('')
+      setDll(null)
+      setSignature(null)
       setFile(null)
       setFileKey((k) => k + 1)
     } catch (err) {
@@ -64,6 +75,7 @@ export function DllAdminPage() {
               <strong>v{latest.version}</strong> · {latest.fileName} · {formatSize(latest.fileSize)} · publicada em{' '}
               {formatDate(latest.publishedAt)}
               {latest.publishedBy ? ` por ${latest.publishedBy}` : ''}
+              {latest.autoUpdate && <span className="dll-admin__state dll-admin__state--ok">Atualização automática</span>}
             </p>
             {latest.notes && <p className="dll-admin__notes">{latest.notes}</p>}
             <a className="btn btn--secondary btn--sm dll-admin__download" href={dllDownloadUrl(latest)} download>
@@ -92,21 +104,43 @@ export function DllAdminPage() {
             <small>A mesma versão compilada na DLL (enviada no User-Agent "CerberusBags/x.y.z").</small>
           </label>
           <label>
-            Arquivo (.rar ou .zip, até 5 MB)
+            version.dll
             <input
-              key={fileKey}
+              key={`dll-${fileKey}`}
+              type="file"
+              accept=".dll"
+              onChange={(e) => setDll(e.target.files?.[0] ?? null)}
+            />
+            <small>Com a assinatura, as DLLs instaladas se atualizam sozinhas.</small>
+          </label>
+          <label>
+            Assinatura (version.dll.sig)
+            <input
+              key={`sig-${fileKey}`}
+              type="file"
+              accept=".sig"
+              onChange={(e) => setSignature(e.target.files?.[0] ?? null)}
+              required={!!dll}
+            />
+            <small>Gerada por dll-signing.ps1 -Sign -Version {version.trim() || 'x.y.z'}.</small>
+          </label>
+          <label>
+            Pacote .rar/.zip (opcional)
+            <input
+              key={`pkg-${fileKey}`}
               type="file"
               accept=".rar,.zip"
               onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-              required
+              required={!dll}
             />
+            <small>Sem pacote, o site gera um .zip com o version.dll para o download manual.</small>
           </label>
           <label className="dll-admin__form-notes">
             O que mudou (aparece no aviso para os membros)
             <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} maxLength={2000} />
           </label>
           <div className="dll-admin__actions">
-            <Button type="submit" loading={publish.isPending} disabled={!file || !validVersion}>
+            <Button type="submit" loading={publish.isPending} disabled={!canPublish}>
               Publicar e avisar todos
             </Button>
           </div>
@@ -168,6 +202,7 @@ export function DllAdminPage() {
               <li key={r.id}>
                 <strong>v{r.version}</strong> · {formatDate(r.publishedAt)}
                 {r.publishedBy ? ` · ${r.publishedBy}` : ''} · {r.fileName} · {formatSize(r.fileSize)}
+                {r.autoUpdate && <span className="dll-admin__state dll-admin__state--ok">Atualização automática</span>}
                 {r.notes && <p className="dll-admin__notes">{r.notes}</p>}
               </li>
             ))}

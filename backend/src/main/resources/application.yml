@@ -67,6 +67,11 @@ guild:
     window: 3d
     # Contas criadas depois do prazo geral tem este tempo, a partir do cadastro, para sincronizar.
     new-account-grace: 1d
+  dll:
+    # Chave PUBLICA (BCRYPT_ECCPUBLIC_BLOB em base64) das atualizacoes automaticas da DLL; a
+    # mesma embutida em CerberusBags/src/update_key.hpp. A privada fica so no PC de quem publica
+    # (RF-ui/CerberusBags/tools/dll-signing.ps1). O site recusa publicar DLL sem esta assinatura.
+    update-public-key: ${DLL_UPDATE_PUBLIC_KEY:RUNTMSAAAABCGs/WyFdkZjh4ft6MINXu+OodDRmMmqzcPMAQ0bzP5VFdONzSbYrH+lf4llhmJDtLH/3ZCIfBK9tU6jjnu/uu}
   cors:
     allowed-origins: ${CORS_ORIGINS:http://localhost:5173,http://localhost:5174,http://127.0.0.1:5173}
 
