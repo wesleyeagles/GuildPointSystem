@@ -28,9 +28,9 @@ const DATE_FORMAT: Intl.DateTimeFormatOptions = {
   hour12: false,
 }
 
-/** O prazo e o instante em que o bloqueio comeca (ex.: 01/11 00:00): mostra o ultimo minuto valido. */
+/** O prazo e o instante em que o bloqueio comeca (ex.: 31/10 12:00). */
 function formatDeadline(deadline: string) {
-  return new Date(new Date(deadline).getTime() - 60_000).toLocaleString('pt-BR', DATE_FORMAT)
+  return new Date(deadline).toLocaleString('pt-BR', DATE_FORMAT)
 }
 
 function formatLastSync(lastSyncAt: string | null) {

@@ -63,7 +63,7 @@ guild:
   sync:
     # Depois deste instante, so acessa o site quem sincronizou a DLL nos ultimos `window`.
     # Prazo: fim de 31/10/2026 (horario de Brasilia).
-    enforce-from: 2026-11-01T00:00:00-03:00
+    enforce-from: 2026-10-31T12:00:00-03:00
     window: 3d
     # Contas criadas depois do prazo geral tem este tempo, a partir do cadastro, para sincronizar.
     new-account-grace: 1d
