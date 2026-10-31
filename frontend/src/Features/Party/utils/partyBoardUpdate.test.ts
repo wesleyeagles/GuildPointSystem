@@ -82,6 +82,12 @@ const publicBoard = (overrides: Partial<PublicPartyBoard> = {}): PublicPartyBoar
 })
 
 describe('applyPublicBoard', () => {
+  it('applies an administrator opening or closing the queue through websocket', () => {
+    const queueAccess = { open: false, manual: true, nextChangeAt: '2026-10-31T21:00:00Z' }
+    const next = applyPublicBoard(board(), publicBoard({ queueAccess }))
+    expect(next.queueAccess).toEqual(queueAccess)
+  })
+
   it('derives my PT, number and leadership from the public parties', () => {
     const next = applyPublicBoard(board(), publicBoard({ parties: [party(3, 2, [1, ME], ME)] }))
     expect(next.my).toMatchObject({ partyId: 3, partyNumber: 2, partyMap: 'ELAN', partySpot: 'TC1', leader: true })

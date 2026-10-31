@@ -35,7 +35,7 @@ public class PartyService {
     private final PartyMemberRepository partyMemberRepository;
     private final PartyPendingRepository partyPendingRepository;
     private final PartyLfgRepository partyLfgRepository;
-    private final PartySettingsRepository partySettingsRepository;
+    private final PartyQueueAccessService queueAccess;
     private final MemberRepository memberRepository;
     private final CharacterStatusRepository characterStatusRepository;
     private final WebSocketPublisher webSocketPublisher;
@@ -48,20 +48,20 @@ public class PartyService {
         var member = requireApproved(actor);
         var board = loadPublicBoard();
         var my = buildMyState(member, board.memberLookup(), board.displayNumbers());
-        return new PartyBoardResponse(board.parties(), board.lfg(), board.lfgLocked(), my, board.serverTime());
+        return new PartyBoardResponse(board.parties(), board.lfg(), !board.queueAccess().open(), my, board.serverTime(),board.queueAccess());
     }
 
     /** Board without personal state, broadcast to every client by {@link PartyBoardBroadcaster}. */
     @Transactional(readOnly = true)
     public PartyBoardSnapshot getPublicSnapshot() {
         var board = loadPublicBoard();
-        return new PartyBoardSnapshot(board.parties(), board.lfg(), board.lfgLocked(), board.serverTime());
+        return new PartyBoardSnapshot(board.parties(), board.lfg(), !board.queueAccess().open(), board.serverTime(),board.queueAccess());
     }
 
     private record PublicBoard(
             List<PartySummary> parties,
             List<PartyLfgEntry> lfg,
-            boolean lfgLocked,
+            PartyQueueAccess queueAccess,
             Map<Long, Member> memberLookup,
             Map<Long, Integer> displayNumbers,
             Instant serverTime) {}
@@ -104,7 +104,7 @@ public class PartyService {
                 .map(row -> toLfgEntry(row, memberLookup))
                 .toList();
 
-        return new PublicBoard(partySummaries, lfg, isLfgLocked(), memberLookup, displayNumbers, Instant.now());
+        return new PublicBoard(partySummaries, lfg, queueAccess.current(), memberLookup, displayNumbers, Instant.now());
     }
 
     @Transactional
@@ -592,14 +592,12 @@ public class PartyService {
         }
 
         var existing = partyLfgRepository.findByMemberId(member.getId());
-        if (existing.isEmpty() && isLfgLocked()) {
-            throw new AppException("A lista de espera está bloqueada no momento", HttpStatus.BAD_REQUEST);
-        }
 
         PartyLfg entry;
         if (existing.isPresent()) {
             entry = existing.get();
         } else {
+            queueAccess.requireOpen();
             entry = new PartyLfg();
             entry.setMemberId(member.getId());
             entry.setCreatedAt(Instant.now());
@@ -624,31 +622,12 @@ public class PartyService {
         return getBoard(actor);
     }
 
-    /**
-     * Administrador/Líder: closes or reopens the waiting list. Closed, members cannot join it on their own;
-     * whoever is waiting stays, and organizers can still add members and send PT leftovers back to it.
-     */
+    /** Compatibility endpoint: shares the scheduled queue access control. */
     @Transactional
     public PartyBoardResponse setLfgLocked(PartyLfgLockRequest request, MemberPrincipal actor) {
-        var organizer = queueOrganizer(actor);
-        var settings = partySettingsRepository.findById(PartySettings.SINGLETON_ID)
-                .orElseThrow(() -> new AppException("Configuração da PT não encontrada", HttpStatus.INTERNAL_SERVER_ERROR));
-        if (settings.isLfgLocked() != request.locked()) {
-            settings.setLfgLocked(request.locked());
-            settings.setUpdatedBy(organizer);
-            settings.setUpdatedAt(Instant.now());
-            partySettingsRepository.save(settings);
-            audit.log(AuditLogType.PARTY_QUEUE_UPDATED, organizer, null,
-                    Map.of("action", request.locked() ? "LOCKED" : "UNLOCKED"));
-            publishBoard();
-        }
+        var organizer=queueOrganizer(actor);
+        queueAccess.setOpen(!request.locked(),organizer);
         return getBoard(actor);
-    }
-
-    private boolean isLfgLocked() {
-        return partySettingsRepository.findById(PartySettings.SINGLETON_ID)
-                .map(PartySettings::isLfgLocked)
-                .orElse(false);
     }
 
     /** Admin: takes another member off the waiting list. */
@@ -805,6 +784,7 @@ public class PartyService {
             throw new AppException("Membro já está na lista de espera", HttpStatus.BAD_REQUEST);
         }
 
+        queueAccess.requireOpen();
         var entry = new PartyLfg();
         entry.setMemberId(memberId);
         entry.setCreatedAt(Instant.now());

@@ -23,6 +23,6 @@ export interface PlayerStatus {
   sample: { sequence: number; sampledAt: string; status: 'OBSERVED' | 'UNAVAILABLE'; name: string; serial: number
     identityEpoch: string; level: number; xpPercent: number | null; quests: QuestBrief[] }
 }
-export interface DailyQuest { quest: { code: string; title: string; definitionHash: string }; npcName: string; npcCodes: string[]; races: number[]; objectives: string[] }
-export interface ExpectedQuest { definition: DailyQuest; completionSignals: number; hidden: boolean }
+export interface DailyQuest { quest: { code: string; title: string; definitionHash: string }; npcName: string; npcCodes: string[]; races: number[]; objectives: string[]; minLevel?: number | null; maxLevel?: number | null; experience?: number | null; rewards?: { code: string; name: string; quantity: number }[] | null }
+export interface ExpectedQuest { definition: DailyQuest; completionSignals: number; hidden: boolean; experiencePercent?: number | null; rewardLevel?: number | null }
 export interface NpcCoverage { name: string; npcCodes: string[]; questCount: number }

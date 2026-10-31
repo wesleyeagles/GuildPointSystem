@@ -57,8 +57,14 @@ public class QuestStatusService {
         }
         Set<String> active = toCodes(request.active());
         Set<String> sent = toCodes(request.done());
+        // Uma conclusão explícita prevalece enquanto o journal ainda mostra a quest.
+        active.removeAll(sent);
         LocalDate today = currentQuestDay();
-        for (Member member : members) save(member, active, sent, today);
+        // Serializa a união das conclusões para não perder quests em envios simultâneos.
+        for (Member member : members) {
+            memberRepository.findByIdForUpdate(member.getId()).orElseThrow();
+            save(member, active, sent, today);
+        }
     }
 
     private void save(Member member, Set<String> active, Set<String> sent, LocalDate today) {
@@ -108,6 +114,12 @@ public class QuestStatusService {
         PlayerSample sample = new PlayerSample(0L, qs.getUpdatedAt(), SampleStatus.OBSERVED,
                 member.getNickname(), 1L, "0".repeat(64), level, xp, List.of());
         return Optional.of(new PlayerStatus(null, sample, qs.getUpdatedAt(), false));
+    }
+
+    @Transactional(readOnly = true)
+    public int currentLevel(Member member) {
+        return characterStatusRepository.findFirstByMemberIdOrderByUpdatedAtDesc(member.getId())
+                .map(s -> s.getLevel()).orElse(member.getLevel() != null ? member.getLevel() : 1);
     }
 
     private static Set<String> toCodes(java.util.List<Integer> values) {

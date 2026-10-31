@@ -105,6 +105,20 @@
   gap: theme.$spacing-md;
 }
 
+.party-card__body:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  gap: theme.$spacing-md;
+}
+
+.party-card__collapse {
+  flex-shrink: 0;
+  width: 30px;
+  min-height: 28px;
+  padding: 0;
+  font-size: theme.$font-size-section;
+}
+
 .party-card__head {
   display: flex;
   align-items: center;
@@ -120,6 +134,7 @@
 }
 
 .party-card__count {
+  margin-left: auto;
   font-family: theme.$font-mono;
   font-size: theme.$font-size-heading;
   color: theme.$color-accent;

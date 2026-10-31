@@ -42,6 +42,7 @@ class PartyQueueIntegrationTest {
         var p=principal(id); return new UsernamePasswordAuthenticationToken(p,null,p.getAuthorities());
     }
     @BeforeEach void setup() {
+        jdbc.update("UPDATE party_settings SET lfg_locked=false,lfg_override_until=now()+interval '1 day' WHERE id=1");
         admin=member("ADMINISTRADOR");a=member("MEMBRO");b=member("MEMBRO");c=member("MEMBRO");
         SecurityContextHolder.getContext().setAuthentication(auth(admin));
         for(long id:List.of(a,b,c)) jdbc.update("INSERT INTO party_lfg(member_id,created_at) VALUES(?,?)",id,java.sql.Timestamp.from(since));
@@ -110,13 +111,13 @@ class PartyQueueIntegrationTest {
             .andExpect(status().isOk()).andExpect(jsonPath("$.lfgLocked").value(true));
         assertTrue(service.getPublicSnapshot().lfgLocked());
         var ex=assertThrows(com.guild.app.common.exception.AppException.class,()->service.upsertLfg(new UpsertLfgRequest(null),principal(outsider)));
-        assertEquals("A lista de espera está bloqueada no momento",ex.getMessage());
+        assertTrue(ex.getMessage().contains("Fila fechada"));
         service.upsertLfg(new UpsertLfgRequest("ainda aqui"),principal(a)); // quem já está pode editar a nota
-        service.addMemberToLfg(outsider,principal(admin));                   // a administração ainda adiciona
+        assertThrows(com.guild.app.common.exception.AppException.class,()->service.addMemberToLfg(outsider,principal(admin)));
         assertEquals(List.of(a,b,c),order());
         service.setLfgLocked(new PartyLfgLockRequest(false),principal(admin));
         assertFalse(service.getPublicSnapshot().lfgLocked());
-        assertEquals(2,jdbc.queryForObject("SELECT count(*) FROM audit_log WHERE actor_id=? AND type='PARTY_QUEUE_UPDATED' AND payload->>'action' IN ('LOCKED','UNLOCKED')",Integer.class,admin));
+        assertEquals(2,jdbc.queryForObject("SELECT count(*) FROM audit_log WHERE actor_id=? AND type='PARTY_QUEUE_UPDATED' AND payload->>'action' IN ('QUEUE_CLOSED','QUEUE_OPENED')",Integer.class,admin));
     }
     @Test void leavingQueuePreservesPointsButJoiningAnyPartyResetsThem() {
         change(a,1);change(b,1);change(c,1);

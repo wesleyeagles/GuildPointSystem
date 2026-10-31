@@ -1,0 +1,1057 @@
+{
+  "quests": [
+    {
+      "quest": {
+        "code": "Q071923",
+        "title": "[24÷](EXP)[40-42] Infernal Demolis",
+        "definitionHash": "1fcc548aaef23e3abcdc14921eaa53755387518d70bafb3c4feefdef67feadbe"
+      },
+      "npcName": "EXP Quester(40+)",
+      "npcCodes": [
+        "04137"
+      ],
+      "races": [
+        1
+      ],
+      "objectives": [
+        "6 × [48]Infernal Demolis"
+      ],
+      "minLevel": 40,
+      "maxLevel": 42,
+      "experience": 10937364950,
+      "rewards": [
+        {
+          "code": "bxbos15",
+          "name": "Small Quest Reward Box",
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "quest": {
+        "code": "Q071926",
+        "title": "[24÷](EXP)[40-42] Ash",
+        "definitionHash": "36bb93ebf4fdafa0af9f08613d2af368e2ed88682efdb35f3b967f27f8ace259"
+      },
+      "npcName": "EXP Quester(40+)",
+      "npcCodes": [
+        "04137"
+      ],
+      "races": [
+        1
+      ],
+      "objectives": [
+        "3 × [51]Ash",
+        "1 × [45]Turncoat Knight",
+        "2 × [43]Turncoat Psyper"
+      ],
+      "minLevel": 40,
+      "maxLevel": 42,
+      "experience": 10937364950,
+      "rewards": [
+        {
+          "code": "bxbos15",
+          "name": "Small Quest Reward Box",
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "quest": {
+        "code": "Q071930",
+        "title": "[24÷](EXP)[41-43][1/2] Volite",
+        "definitionHash": "261ffbaea2b29d226685661e88d2322d18c97f49928f4c7b54e83e5e82d1312f"
+      },
+      "npcName": "EXP Quester(40+)",
+      "npcCodes": [
+        "04137"
+      ],
+      "races": [
+        1
+      ],
+      "objectives": [
+        "7 × [50]Volite"
+      ],
+      "minLevel": 41,
+      "maxLevel": 43,
+      "experience": 15344470150,
+      "rewards": [
+        {
+          "code": "bxbos15",
+          "name": "Small Quest Reward Box",
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "quest": {
+        "code": "Q071935",
+        "title": "[24÷](EXP)[41-43] Fever lapis",
+        "definitionHash": "4b93fe72e2d7d52f160a4e43621b92aac982ed449de9d7676331336fd4b2d47e"
+      },
+      "npcName": "EXP Quester(40+)",
+      "npcCodes": [
+        "04137"
+      ],
+      "races": [
+        1
+      ],
+      "objectives": [
+        "6 × [49]Fever Lapis"
+      ],
+      "minLevel": 41,
+      "maxLevel": 43,
+      "experience": 15344470150,
+      "rewards": [
+        {
+          "code": "bxbos15",
+          "name": "Small Quest Reward Box",
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "quest": {
+        "code": "Q071939",
+        "title": "[24÷](EXP)[42-44][1/2] Curr",
+        "definitionHash": "1bd3b286906b8fe642af15bef1f8d0d0b8b6cb6fec73f9e13dacdd3be2269d5d"
+      },
+      "npcName": "EXP Quester(40+)",
+      "npcCodes": [
+        "04137"
+      ],
+      "races": [
+        1
+      ],
+      "objectives": [
+        "12 × [52]Curr"
+      ],
+      "minLevel": 42,
+      "maxLevel": 44,
+      "experience": 10370786146,
+      "rewards": [
+        {
+          "code": "bxbos15",
+          "name": "Small Quest Reward Box",
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "quest": {
+        "code": "Q071945",
+        "title": "[24÷](EXP)[43-45][1/2] Ash",
+        "definitionHash": "d0ca31e016ae65898f88f07ca90a20b35b48261da6625822c52f2d916caf907b"
+      },
+      "npcName": "EXP Quester(40+)",
+      "npcCodes": [
+        "04137"
+      ],
+      "races": [
+        1
+      ],
+      "objectives": [
+        "8 × [51]Ash"
+      ],
+      "minLevel": 43,
+      "maxLevel": 45,
+      "experience": 23218993982,
+      "rewards": [
+        {
+          "code": "bxbos15",
+          "name": "Small Quest Reward Box",
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "quest": {
+        "code": "Q071951",
+        "title": "[24÷](EXP)[43-45][1/2] Infernal Demolis",
+        "definitionHash": "ca0d0943cc1ddde7c925c4de23e724291f0b8870d22baf101f2daa877d064548"
+      },
+      "npcName": "EXP Quester(40+)",
+      "npcCodes": [
+        "04137"
+      ],
+      "races": [
+        1
+      ],
+      "objectives": [
+        "15 × [48]Infernal Demolis"
+      ],
+      "minLevel": 43,
+      "maxLevel": 45,
+      "experience": 23218993982,
+      "rewards": [
+        {
+          "code": "bxbos15",
+          "name": "Small Quest Reward Box",
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "quest": {
+        "code": "Q071957",
+        "title": "[24÷](EXP)[44-46][1/2] Volite",
+        "definitionHash": "69719b082f527f7e4aeab271ed4104dcd21968f91b7fed3ea9ae6925a334d4c1"
+      },
+      "npcName": "EXP Quester(40+)",
+      "npcCodes": [
+        "04137"
+      ],
+      "races": [
+        1
+      ],
+      "objectives": [
+        "4 × [50]Volite"
+      ],
+      "minLevel": 44,
+      "maxLevel": 46,
+      "experience": 20773010838,
+      "rewards": [
+        {
+          "code": "bxbos15",
+          "name": "Small Quest Reward Box",
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "quest": {
+        "code": "Q071962",
+        "title": "[24÷](EXP)[44-46] Granite Block",
+        "definitionHash": "187031d288668b1e913ebf8825e2be9e2c4f66b0fda755c48b666a81a2ce1117"
+      },
+      "npcName": "EXP Quester(40+)",
+      "npcCodes": [
+        "04137"
+      ],
+      "races": [
+        1
+      ],
+      "objectives": [
+        "3 × [54]Granite Block"
+      ],
+      "minLevel": 44,
+      "maxLevel": 46,
+      "experience": 20773010838,
+      "rewards": [
+        {
+          "code": "bxbos15",
+          "name": "Small Quest Reward Box",
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "quest": {
+        "code": "Q071965",
+        "title": "[24÷](EXP)[45-47] Infernal Lava",
+        "definitionHash": "03d1480e395494a84748bc9da32f16f16362a3b373377944345dfab39aa98e5f"
+      },
+      "npcName": "EXP Quester(40+)",
+      "npcCodes": [
+        "04137"
+      ],
+      "races": [
+        1
+      ],
+      "objectives": [
+        "12 × [49]Infernal Lava"
+      ],
+      "minLevel": 45,
+      "maxLevel": 47,
+      "experience": 39007525994,
+      "rewards": [
+        {
+          "code": "bxbos15",
+          "name": "Small Quest Reward Box",
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "quest": {
+        "code": "Q071968",
+        "title": "[24÷](EXP)[45-47] Draco",
+        "definitionHash": "3dcfcb0ba44ca535e7d22a728b82a6967dbd1a09e9277c151f45cecbe2043a6a"
+      },
+      "npcName": "EXP Quester(40+)",
+      "npcCodes": [
+        "04137"
+      ],
+      "races": [
+        1
+      ],
+      "objectives": [
+        "4 × [55]Draco"
+      ],
+      "minLevel": 45,
+      "maxLevel": 47,
+      "experience": 39007525994,
+      "rewards": [
+        {
+          "code": "bxbos15",
+          "name": "Small Quest Reward Box",
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "quest": {
+        "code": "Q071971",
+        "title": "[24÷](EXP)[45-47] Turncoat Wizard",
+        "definitionHash": "5f51b5951db46f5b2d96f786f482cfc2d4dc95371f84fb0999a6c41093d0dee8"
+      },
+      "npcName": "EXP Quester(40+)",
+      "npcCodes": [
+        "04137"
+      ],
+      "races": [
+        1
+      ],
+      "objectives": [
+        "4 × [56]Turncoat Wizard"
+      ],
+      "minLevel": 45,
+      "maxLevel": 47,
+      "experience": 39007525994,
+      "rewards": [
+        {
+          "code": "bxbos15",
+          "name": "Small Quest Reward Box",
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "quest": {
+        "code": "Q071974",
+        "title": "[24÷](EXP)[46-49] Robo 58",
+        "definitionHash": "1834a6e1508a002b0c6e79713947d4b88a83e8575d65822e814089c989b18b19"
+      },
+      "npcName": "EXP Quester(40+)",
+      "npcCodes": [
+        "04137"
+      ],
+      "races": [
+        1
+      ],
+      "objectives": [
+        "5 × [58]Hobo Assassin",
+        "5 × [58]Hobo Trooper",
+        "5 × [43]Turncoat Psyper"
+      ],
+      "minLevel": 46,
+      "maxLevel": 49,
+      "experience": 60237915000,
+      "rewards": [
+        {
+          "code": "bxbos15",
+          "name": "Small Quest Reward Box",
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "quest": {
+        "code": "Q071978",
+        "title": "[24÷](EXP)[46-49][1/2] Infernal Demolis",
+        "definitionHash": "2d25e305fee46f7c0443f90fb1eaa4f76d8a3133f327ade5e95aea7630b6cc92"
+      },
+      "npcName": "EXP Quester(40+)",
+      "npcCodes": [
+        "04137"
+      ],
+      "races": [
+        1
+      ],
+      "objectives": [
+        "7 × [48]Infernal Demolis"
+      ],
+      "minLevel": 46,
+      "maxLevel": 49,
+      "experience": 60237915000,
+      "rewards": [
+        {
+          "code": "bxbos15",
+          "name": "Small Quest Reward Box",
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "quest": {
+        "code": "Q071984",
+        "title": "[24÷](EXP)[46-49][1/2] Infenal Gruble, Burn Ash",
+        "definitionHash": "056b9e9b220d5b99ab667157e6993f155e05b90fabdbf374e1fc50ad36e86081"
+      },
+      "npcName": "EXP Quester(40+)",
+      "npcCodes": [
+        "04137"
+      ],
+      "races": [
+        1
+      ],
+      "objectives": [
+        "4 × [50]Infernal Grumble",
+        "2 × [52]Burn Ash"
+      ],
+      "minLevel": 46,
+      "maxLevel": 49,
+      "experience": 60237915000,
+      "rewards": [
+        {
+          "code": "bxbos15",
+          "name": "Small Quest Reward Box",
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "quest": {
+        "code": "Q071989",
+        "title": "[24÷](EXP)[48-49] Granite Block",
+        "definitionHash": "cc26b2c38039e99ff4a86f37e6ab4a6c50e3730ba06fe191ad2cd3b36d5f2a83"
+      },
+      "npcName": "EXP Quester(40+)",
+      "npcCodes": [
+        "04137"
+      ],
+      "races": [
+        1
+      ],
+      "objectives": [
+        "5 × [54]Granite Block"
+      ],
+      "minLevel": 48,
+      "maxLevel": 49,
+      "experience": 89488377916,
+      "rewards": [
+        {
+          "code": "bxbos15",
+          "name": "Small Quest Reward Box",
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "quest": {
+        "code": "Q071992",
+        "title": "[24÷](EXP)[48-49] Draco, Turncoat Wizard",
+        "definitionHash": "0e450f9eb848f9be3e99b91e273aa087929c09e923c77608e37d6d8405944a95"
+      },
+      "npcName": "EXP Quester(40+)",
+      "npcCodes": [
+        "04137"
+      ],
+      "races": [
+        1
+      ],
+      "objectives": [
+        "3 × [55]Draco",
+        "2 × [56]Turncoat Wizard"
+      ],
+      "minLevel": 48,
+      "maxLevel": 49,
+      "experience": 89488377916,
+      "rewards": [
+        {
+          "code": "bxbos15",
+          "name": "Small Quest Reward Box",
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "quest": {
+        "code": "Q071995",
+        "title": "[24÷](EXP)[48-49] Infernal Lava, Volite",
+        "definitionHash": "af076c586e5eae3a2837cbfb38fdb0e244526db9856f8249cdd34a23a8723df9"
+      },
+      "npcName": "EXP Quester(40+)",
+      "npcCodes": [
+        "04137"
+      ],
+      "races": [
+        1
+      ],
+      "objectives": [
+        "6 × [49]Infernal Lava",
+        "3 × [50]Volite"
+      ],
+      "minLevel": 48,
+      "maxLevel": 49,
+      "experience": 89488377916,
+      "rewards": [
+        {
+          "code": "bxbos15",
+          "name": "Small Quest Reward Box",
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "quest": {
+        "code": "Q072030",
+        "title": "[24÷](EXP)[49][1/2] Giant Marsh Scud",
+        "definitionHash": "864beea31ce5f3df86124325953e63bb36357343e2a525f3c74d4293b2988170"
+      },
+      "npcName": "EXP Quester(40+)",
+      "npcCodes": [
+        "04137"
+      ],
+      "races": [
+        1
+      ],
+      "objectives": [
+        "2 × [59]Giant Marsh Scud"
+      ],
+      "minLevel": 49,
+      "maxLevel": 49,
+      "experience": 121120109517,
+      "rewards": [
+        {
+          "code": "bxbos15",
+          "name": "Small Quest Reward Box",
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "quest": {
+        "code": "Q072035",
+        "title": "[24÷](EXP)[49] Robo 59",
+        "definitionHash": "2640a2590a56f11d7bc2548ae3d36c00ae778b34625e602e59596cb6be57a920"
+      },
+      "npcName": "EXP Quester(40+)",
+      "npcCodes": [
+        "04137"
+      ],
+      "races": [
+        1
+      ],
+      "objectives": [
+        "5 × [59]Hobo Defender",
+        "3 × [59]Passer Delta"
+      ],
+      "minLevel": 49,
+      "maxLevel": 49,
+      "experience": 121120109517,
+      "rewards": [
+        {
+          "code": "bxbos15",
+          "name": "Small Quest Reward Box",
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "quest": {
+        "code": "Q070871",
+        "title": "[24h][Group][1/5] Deposit data (EXP 1%) cc l",
+        "definitionHash": "f976d5aa45a1f11c37db5ed22fe11deb2cdca9d288b2bf693be3699d16e90897"
+      },
+      "npcName": "EXP Quester(40+)",
+      "npcCodes": [
+        "04137"
+      ],
+      "races": [
+        1
+      ],
+      "objectives": [
+        "10 × Assassin BuilderA ÑCC"
+      ],
+      "minLevel": 45,
+      "maxLevel": 49,
+      "experience": 21276832360,
+      "rewards": []
+    },
+    {
+      "quest": {
+        "code": "Q072038",
+        "title": "[24÷](EXP)[Party][35-38] Turncoats",
+        "definitionHash": "e0b8c6cf001ebc3c7faa196d395cc7f3ca41f300ad2b6763606d4a2f42cc45fc"
+      },
+      "npcName": "PartyEXPQuester(CashShop)",
+      "npcCodes": [
+        "04138"
+      ],
+      "races": [
+        1
+      ],
+      "objectives": [
+        "5 × [43]Turncoat Desperado",
+        "6 × [43]Turncoat Hunter",
+        "6 × [45]Turncoat Destroyer"
+      ],
+      "minLevel": 35,
+      "maxLevel": 38,
+      "experience": 408797970,
+      "rewards": [
+        {
+          "code": "bxbos15",
+          "name": "Small Quest Reward Box",
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "quest": {
+        "code": "Q072041",
+        "title": "[24÷](EXP)[Party][35-38] Robo 41",
+        "definitionHash": "2287cf15e3397a55537032efc11eb85c983e398b9a38222bdad4a37b31c80565"
+      },
+      "npcName": "PartyEXPQuester(CashShop)",
+      "npcCodes": [
+        "04138"
+      ],
+      "races": [
+        1
+      ],
+      "objectives": [
+        "10 × [41]Hobo Sword",
+        "15 × [41]Hobo Might"
+      ],
+      "minLevel": 35,
+      "maxLevel": 38,
+      "experience": 408797970,
+      "rewards": [
+        {
+          "code": "bxbos15",
+          "name": "Small Quest Reward Box",
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "quest": {
+        "code": "Q072044",
+        "title": "[24÷](EXP)[Party][36-39] Chuty",
+        "definitionHash": "1d1320196b9f52d3ade89e9e2dba2e3dbb0ecec30165a28134b61962878ee507"
+      },
+      "npcName": "PartyEXPQuester(CashShop)",
+      "npcCodes": [
+        "04138"
+      ],
+      "races": [
+        1
+      ],
+      "objectives": [
+        "6 × [40]Chuty"
+      ],
+      "minLevel": 36,
+      "maxLevel": 39,
+      "experience": 497108568,
+      "rewards": [
+        {
+          "code": "bxbos15",
+          "name": "Small Quest Reward Box",
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "quest": {
+        "code": "Q072047",
+        "title": "[24÷](EXP)[Party][37-40] Robo 43",
+        "definitionHash": "856b2748d6ed81f062e5e0b80fcf30f8681d20e8f78431c7ea32086a9b079544"
+      },
+      "npcName": "PartyEXPQuester(CashShop)",
+      "npcCodes": [
+        "04138"
+      ],
+      "races": [
+        1
+      ],
+      "objectives": [
+        "10 × [43]Hobo Cutter",
+        "15 × [43]Hobo Turnpike"
+      ],
+      "minLevel": 37,
+      "maxLevel": 40,
+      "experience": 979642091,
+      "rewards": [
+        {
+          "code": "bxbos15",
+          "name": "Small Quest Reward Box",
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "quest": {
+        "code": "Q072050",
+        "title": "[24÷](EXP)[Party][38-41] Robo 45",
+        "definitionHash": "44935851d53c8df38889ed33d42ac78f89344c4eb835fab6b9aa44a4c9263673"
+      },
+      "npcName": "PartyEXPQuester(CashShop)",
+      "npcCodes": [
+        "04138"
+      ],
+      "races": [
+        1
+      ],
+      "objectives": [
+        "10 × [45]Hobo Blade",
+        "7 × [45]Hobo Rover"
+      ],
+      "minLevel": 38,
+      "maxLevel": 41,
+      "experience": 1506974424,
+      "rewards": [
+        {
+          "code": "bxbos15",
+          "name": "Small Quest Reward Box",
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "quest": {
+        "code": "Q072053",
+        "title": "[24÷](EXP)[Party][39-42] Calianas",
+        "definitionHash": "90f34c6c25b53313eb911a3c8a99f25b2f0757cdef30d2367f92cf018a35fd47"
+      },
+      "npcName": "PartyEXPQuester(CashShop)",
+      "npcCodes": [
+        "04138"
+      ],
+      "races": [
+        1
+      ],
+      "objectives": [
+        "6 × [47]Caliana Crew",
+        "12 × [47]Caliana Atrock"
+      ],
+      "minLevel": 39,
+      "maxLevel": 42,
+      "experience": 4488317102,
+      "rewards": [
+        {
+          "code": "bxbos15",
+          "name": "Small Quest Reward Box",
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "quest": {
+        "code": "Q072056",
+        "title": "[24÷](EXP)[Party][40-43] Assassin BuilderB",
+        "definitionHash": "2558e19cc18142a982c7174ef59362470845b79afee751ccba96cf7dc508eb2d"
+      },
+      "npcName": "PartyEXPQuester(CashShop)",
+      "npcCodes": [
+        "04138"
+      ],
+      "races": [
+        1
+      ],
+      "objectives": [
+        "5 × [50]Assassin BuilderB"
+      ],
+      "minLevel": 40,
+      "maxLevel": 43,
+      "experience": 14583153266,
+      "rewards": [
+        {
+          "code": "bxbos15",
+          "name": "Small Quest Reward Box",
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "quest": {
+        "code": "Q072059",
+        "title": "[24÷](EXP)[Party][40-43] Robo 41, Chuty, Fever lapis",
+        "definitionHash": "446d949e081b151eef50034f5583b0fca73a359c56b411d8120414f8d3b36370"
+      },
+      "npcName": "PartyEXPQuester(CashShop)",
+      "npcCodes": [
+        "04138"
+      ],
+      "races": [
+        1
+      ],
+      "objectives": [
+        "10 × [41]Hobo Sword",
+        "3 × [40]Chuty",
+        "3 × [49]Fever Lapis"
+      ],
+      "minLevel": 40,
+      "maxLevel": 43,
+      "experience": 14583153266,
+      "rewards": [
+        {
+          "code": "bxbos15",
+          "name": "Small Quest Reward Box",
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "quest": {
+        "code": "Q072062",
+        "title": "[24÷](EXP)[Party][41-44] Robo 43, Burn Ash",
+        "definitionHash": "b6d69d710baa74ad69df2324990d0b86ab3dc748142373b7fa7edfc5f044c463"
+      },
+      "npcName": "PartyEXPQuester(CashShop)",
+      "npcCodes": [
+        "04138"
+      ],
+      "races": [
+        1
+      ],
+      "objectives": [
+        "15 × [43]Hobo Cutter",
+        "5 × [52]Burn Ash"
+      ],
+      "minLevel": 41,
+      "maxLevel": 44,
+      "experience": 36169108212,
+      "rewards": [
+        {
+          "code": "bxbos15",
+          "name": "Small Quest Reward Box",
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "quest": {
+        "code": "Q072065",
+        "title": "[24÷](EXP)[Party][42-45] Robo 45, Great Curr",
+        "definitionHash": "03d815dd4827fcd207feef718207119e1b2be7f093b3e2bac2c3fe9eadc2013c"
+      },
+      "npcName": "PartyEXPQuester(CashShop)",
+      "npcCodes": [
+        "04138"
+      ],
+      "races": [
+        1
+      ],
+      "objectives": [
+        "12 × [45]Hobo Blade",
+        "3 × [53]Great Curr"
+      ],
+      "minLevel": 42,
+      "maxLevel": 45,
+      "experience": 31112358439,
+      "rewards": [
+        {
+          "code": "bxbos15",
+          "name": "Small Quest Reward Box",
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "quest": {
+        "code": "Q072068",
+        "title": "[24÷](EXP)[Party][43-46] Calianas, Heavy Squad",
+        "definitionHash": "c8f803cae8da720b24b8f11ecd7e8bd93d324c6925b33077958e2329723efdd4"
+      },
+      "npcName": "PartyEXPQuester(CashShop)",
+      "npcCodes": [
+        "04138"
+      ],
+      "races": [
+        1
+      ],
+      "objectives": [
+        "10 × [47]Caliana Crew",
+        "5 × [51]Heavy Squad"
+      ],
+      "minLevel": 43,
+      "maxLevel": 46,
+      "experience": 74727796724,
+      "rewards": [
+        {
+          "code": "bxbos15",
+          "name": "Small Quest Reward Box",
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "quest": {
+        "code": "Q072071",
+        "title": "[24÷](EXP)[Party][46-49] Robo 48, Fever lapis",
+        "definitionHash": "c4e80f42833ad667f97032bd15cac41da65d518e510c1b0486d0e02d8ad6a143"
+      },
+      "npcName": "PartyEXPQuester(CashShop)",
+      "npcCodes": [
+        "04138"
+      ],
+      "races": [
+        1
+      ],
+      "objectives": [
+        "8 × [58]Hobo Assassin",
+        "8 × [58]Passer Gamma",
+        "4 × [49]Fever Lapis"
+      ],
+      "minLevel": 46,
+      "maxLevel": 49,
+      "experience": 254852717313,
+      "rewards": [
+        {
+          "code": "bxbos15",
+          "name": "Small Quest Reward Box",
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "quest": {
+        "code": "Q072074",
+        "title": "[24÷](EXP)[Party][49] Boggie Volt, Heavy Squad",
+        "definitionHash": "f82b9605ec5d62cf8312a1233d24d090c8f0c5b4799d0158e35238ff1fd8d4f9"
+      },
+      "npcName": "PartyEXPQuester(CashShop)",
+      "npcCodes": [
+        "04138"
+      ],
+      "races": [
+        1
+      ],
+      "objectives": [
+        "5 × [59]Boggie Volt",
+        "3 × [51]Heavy Squad"
+      ],
+      "minLevel": 49,
+      "maxLevel": 49,
+      "experience": 348825915414,
+      "rewards": [
+        {
+          "code": "bxbos15",
+          "name": "Small Quest Reward Box",
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "quest": {
+        "code": "Q071207",
+        "title": "[24h][Group] Hero Path (EXP 10%)",
+        "definitionHash": "99272fb7b9e4d932f24f97f9204556e715e0a5dcb8e5e56b5dd4642c928c0c09"
+      },
+      "npcName": "PartyEXPQuester(CashShop)",
+      "npcCodes": [
+        "04138"
+      ],
+      "races": [
+        1
+      ],
+      "objectives": [
+        "20 × [47]Caliana Crew",
+        "20 × [47]Caliana Atrock"
+      ],
+      "minLevel": 50,
+      "maxLevel": 65,
+      "experience": 0,
+      "rewards": [
+        {
+          "code": "ipexp20",
+          "name": "EXP Potion 5%",
+          "quantity": 1
+        }
+      ]
+    }
+  ],
+  "npcs": [
+    {
+      "name": "EXP Quester(40+)",
+      "npcCodes": [
+        "04137"
+      ],
+      "questCount": 21
+    },
+    {
+      "name": "PartyEXPQuester(CashShop)",
+      "npcCodes": [
+        "04138"
+      ],
+      "questCount": 14
+    }
+  ],
+  "sourceHashes": {
+    "quest": "0e8f9882d74892834a626b39174e753b609f62910df96e47a6839855e239f04e",
+    "texts": "6b01a6e2710b75ffa4a8864877e238adee0018b100440f57ec54c632cd90ed75",
+    "store": "b294c36dbe9a007962be1b81a1d8d97e2f6ba161ab8cf80ff905c97beb7dba40",
+    "names": "e7fdce41e47959adfec6f3b7e3d7e8e66d8e1592250ee0d678ebc7c7a4000fe7",
+    "character": "6b10308f7bc45ee965460758aa31b8d058ed5c6e284f2393a37179af957c48d6"
+  },
+  "experienceByLevel": {
+    "0": 0,
+    "1": 292,
+    "2": 399,
+    "3": 626,
+    "4": 896,
+    "5": 1408,
+    "6": 2139,
+    "7": 3308,
+    "8": 4301,
+    "9": 7607,
+    "10": 13181,
+    "11": 19735,
+    "12": 29393,
+    "13": 47928,
+    "14": 69151,
+    "15": 109526,
+    "16": 175167,
+    "17": 288441,
+    "18": 473619,
+    "19": 780967,
+    "20": 1425258,
+    "21": 2440855,
+    "22": 3908670,
+    "23": 6710844,
+    "24": 12132323,
+    "25": 18986900,
+    "26": 29697798,
+    "27": 55950075,
+    "28": 77850777,
+    "29": 131827637,
+    "30": 158877492,
+    "31": 218672353,
+    "32": 364088159,
+    "33": 555510530,
+    "34": 963934566,
+    "35": 1635191883,
+    "36": 2924168052,
+    "37": 5762600540,
+    "38": 10764103027,
+    "39": 24935095012,
+    "40": 121526277224,
+    "41": 274008395550,
+    "42": 432116089440,
+    "43": 1067539953210,
+    "44": 1112839866403,
+    "45": 2146184829413,
+    "46": 4673978689092,
+    "47": 5944516913596,
+    "48": 8389535429719,
+    "49": 14534413142295,
+    "50": 32839470032450,
+    "51": 160443887901004,
+    "52": 173418649348844,
+    "53": 600765106879100,
+    "54": 815249340174110,
+    "55": 174896209898499,
+    "56": 780673714915456,
+    "57": 781371188653095,
+    "58": 1227797393478230,
+    "59": 1454799541437510,
+    "60": 1635884371381290,
+    "61": 1724729394528590,
+    "62": 2455495304047590,
+    "63": 3702896150894860,
+    "64": 3835383444987850,
+    "65": 19358239400658700
+  }
+}

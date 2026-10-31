@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/Shared/api/client'
 import { onSocketReconnect, subscribeTopicEffect } from '@/Shared/websocket/socketClient'
-import { trackServerTime } from '@/Shared/utils/serverClock'
+import { serverNow, trackServerTime } from '@/Shared/utils/serverClock'
 import type { PartyBoard, PartyMap, PartyMemberNotice } from '@/Features/Party/Party.types'
 import {
   applyPublicBoard,
@@ -52,7 +52,7 @@ export function usePartyBoard() {
     [queryClient],
   )
 
-  return useQuery({
+  const query = useQuery({
     queryKey: partyKeys.board,
     queryFn: async () => {
       const board = await apiClient<PartyBoard>('/parties/board')
@@ -62,6 +62,16 @@ export function usePartyBoard() {
     structuralSharing: (oldData, newData) =>
       newerBoard(oldData as PartyBoard | undefined, newData as PartyBoard),
   })
+  useEffect(() => {
+    const next = query.data?.queueAccess?.nextChangeAt
+    if (!next) return
+    const timer = window.setTimeout(() => {
+      void queryClient.invalidateQueries({ queryKey: partyKeys.board, exact: true })
+    }, Math.max(0, Date.parse(next) - serverNow()) + 150)
+    return () => window.clearTimeout(timer)
+  }, [query.data?.queueAccess?.nextChangeAt, queryClient])
+  return query
+
 }
 
 export function useCreateParty() {

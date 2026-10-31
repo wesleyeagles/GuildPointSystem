@@ -13,5 +13,6 @@ public record PartyBoardResponse(
         List<PartyLfgEntry> lfg,
         boolean lfgLocked,
         MyPartyState my,
-        Instant serverTime
+        Instant serverTime,
+        PartyQueueAccess queueAccess
 ) {}

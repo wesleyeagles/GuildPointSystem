@@ -11,7 +11,7 @@ afterEach(() => { cleanup(); state.events = [] })
 describe('quest history', () => {
   it('explains missing coverage, approved reset and real ingestion restriction', () => {
     render(<QuestsPage />)
-    expect(screen.getByRole('heading', { name: 'Checklist' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Suas quests' })).toBeInTheDocument()
     expect(screen.getByText('Reset 03h · Brasília')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Histórico das observações' })).not.toBeVisible()
     fireEvent.change(screen.getByLabelText('Data'), { target: { value: '2026-10-22' } })

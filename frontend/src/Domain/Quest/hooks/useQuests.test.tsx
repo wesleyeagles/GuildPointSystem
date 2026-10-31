@@ -8,7 +8,7 @@ vi.mock('@/Features/Auth/contexts/AuthContext', () => ({ useAuthContext: () => (
 vi.mock('@/Shared/api/client', () => ({ apiClient: (path: string) => state.api(path) }))
 vi.mock('@/Shared/websocket/socketClient', () => ({
   subscribeTopicEffect: (topic: string, handler: () => void) => {
-    expect([`/topic/quests/member/${state.memberId}`, '/topic/quests/catalog']).toContain(topic)
+    expect([`/topic/quests/member/${state.memberId}`, '/topic/quests/catalog', '/topic/character-status']).toContain(topic)
     const callback = () => handler()
     state.messages.add(callback); return () => state.messages.delete(callback)
   },
@@ -29,7 +29,7 @@ describe('private quest cache', () => {
     await waitFor(() => expect(state.api).toHaveBeenCalledTimes(3))
     state.memberId = 2; view.rerender()
     await waitFor(() => expect(view.result.current.data?.pages[0].memberId).toBe(2))
-    expect(state.messages.size).toBe(2)
+    expect(state.messages.size).toBe(3)
     expect(state.connects.size).toBe(1)
     view.unmount(); expect(state.messages.size).toBe(0); expect(state.connects.size).toBe(0)
     client.clear()

@@ -14,9 +14,10 @@ export function useQuests(day: string, resetPeriod: boolean) {
     if (!enabled) return
     const refresh = () => { void queries.invalidateQueries({ queryKey: ['quests', memberId] }) }
     const unsubscribe = subscribeTopicEffect(`/topic/quests/member/${memberId}`, refresh)
+    const character = subscribeTopicEffect('/topic/character-status', refresh)
     const catalog = subscribeTopicEffect('/topic/quests/catalog', refresh)
     const reconnect = onSocketConnect(refresh)
-    return () => { unsubscribe(); catalog(); reconnect() }
+    return () => { unsubscribe(); character(); catalog(); reconnect() }
   }, [queries, memberId, enabled])
   return useInfiniteQuery({
     queryKey: ['quests', memberId, day, resetPeriod], enabled: enabled && !!day,

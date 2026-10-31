@@ -8,5 +8,6 @@ public record PartyBoardSnapshot(
         List<PartySummary> parties,
         List<PartyLfgEntry> lfg,
         boolean lfgLocked,
-        Instant serverTime
+        Instant serverTime,
+        PartyQueueAccess queueAccess
 ) {}

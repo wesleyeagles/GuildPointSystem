@@ -293,6 +293,7 @@ export function EquipmentPage() {
               return <div key={slot} className="equipment-mini-slot-wrap"
                 onDragOver={e => { e.stopPropagation(); if (acceptsDrop(member.memberId, slot, dragSource.current)) { e.preventDefault(); e.dataTransfer.dropEffect = 'move' } }}
                 onDrop={e => { e.preventDefault(); e.stopPropagation(); dropOn(member, slot) }}><button className={`equipment-mini-slot equipment-slot--${SLOT_POSITIONS[slot]}${current ? ' is-filled' : ''}${acceptsDrop(member.memberId, slot) ? ' can-drop' : ''}`} title={current ? undefined : label} aria-label={label}
+                style={current ? { borderColor: gradeColor(current.grade) } : undefined}
                 aria-describedby={tooltipItem && tooltip?.memberId === member.memberId && tooltip.slot === slot ? 'equipment-item-tooltip' : undefined}
                 onMouseEnter={e => { if (current) showTooltip(e.currentTarget, member.memberId, slot) }} onMouseLeave={hideTooltip}
                 onFocus={e => { if (current) showTooltip(e.currentTarget, member.memberId, slot) }} onBlur={closeTooltip}
@@ -355,7 +356,7 @@ export function EquipmentPage() {
       {tab === 'current' || !admin ? <div id="equipment-current-panel" role={admin ? 'tabpanel' : 'region'} aria-labelledby={admin ? 'equipment-current-tab' : undefined} aria-label={admin ? undefined : 'Equipamento atual'} className="equipment-inspector">
         <div>
           <div className="equipment-inventory" role="group" aria-label={`Inventário de ${inspected.nickname}`}>
-            {inspected.slots.map(current => <button key={current.slot} type="button" className={`equipment-inventory__slot equipment-slot--${SLOT_POSITIONS[current.slot]}${selectedSlot === current.slot ? ' is-selected' : ''}`} aria-pressed={selectedSlot === current.slot} aria-label={`${slotDescription(current.slot)}: ${current.assignment ? itemLabel(current.assignment) : 'Não informado'}`} onClick={() => { if (canEdit) openEditor(current.slot, 'CREATE'); else { setSelectedSlot(current.slot); setEditor(null) } }}>
+            {inspected.slots.map(current => <button key={current.slot} type="button" className={`equipment-inventory__slot equipment-slot--${SLOT_POSITIONS[current.slot]}${selectedSlot === current.slot ? ' is-selected' : ''}`} style={current.assignment ? { borderColor: gradeColor(current.assignment.grade) } : undefined} aria-pressed={selectedSlot === current.slot} aria-label={`${slotDescription(current.slot)}: ${current.assignment ? itemLabel(current.assignment) : 'Não informado'}`} onClick={() => { if (canEdit) openEditor(current.slot, 'CREATE'); else { setSelectedSlot(current.slot); setEditor(null) } }}>
               {current.assignment ? <EquipmentIcon item={current.assignment} size={48} /> : <span className="equipment-inventory__empty" aria-hidden="true">+</span>}
               <span>{SLOT_LABELS[current.slot]}</span>
             </button>)}
