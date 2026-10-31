@@ -79,6 +79,14 @@ public class DllReleaseService {
         return memberVersion == null || DllVersion.compare(memberVersion, latestVersion) < 0;
     }
 
+    /** Versoes publicadas mais novas que a do membro (sem versao = todas). */
+    @Transactional(readOnly = true)
+    public int releasesNewerThan(String memberVersion) {
+        return (int) releaseRepository.findAllViews().stream()
+                .filter(r -> memberVersion == null || DllVersion.compare(r.version(), memberVersion) > 0)
+                .count();
+    }
+
     @Transactional(readOnly = true)
     public List<DllReleaseView> releases() {
         SecurityUtils.requireRole(Role.ADMINISTRADOR);

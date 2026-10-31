@@ -14,6 +14,7 @@ import java.time.Instant;
  * @param dllVersion     versao da DLL no ultimo envio (null = nunca ou cliente sem versao)
  * @param latestDllVersion versao mais recente publicada no site (null = nenhuma)
  * @param dllOutdated    sincroniza, mas com versao anterior a mais recente (so aviso, nao bloqueia)
+ * @param dllReleasesBehind quantas versoes publicadas sao mais novas que a dele (0 = em dia)
  */
 public record SyncAccessView(
         boolean synced,
@@ -24,5 +25,6 @@ public record SyncAccessView(
         long windowDays,
         String dllVersion,
         String latestDllVersion,
-        boolean dllOutdated
+        boolean dllOutdated,
+        int dllReleasesBehind
 ) {}

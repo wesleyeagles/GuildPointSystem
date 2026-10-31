@@ -266,10 +266,14 @@ function LayoutShell() {
               <button
                 type="button"
                 className="layout__dll-outdated"
-                title={`Atualize para a v${dllNotice.latestVersion}`}
+                title={
+                  dllNotice.autoUpdating
+                    ? `A DLL vai se atualizar sozinha para a v${dllNotice.latestVersion}`
+                    : `Atualize para a v${dllNotice.latestVersion}`
+                }
                 onClick={dllNotice.open}
               >
-                DLL desatualizada
+                {dllNotice.autoUpdating ? 'Atualização pendente' : 'DLL desatualizada'}
               </button>
             )}
             <span className={`layout__socket layout__socket--${socket}`} title={SOCKET_LABEL[socket]}>

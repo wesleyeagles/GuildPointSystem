@@ -94,9 +94,14 @@ class DllReleaseTest {
         assertTrue(status.dllOutdated());
         assertEquals("0.1", status.dllVersion());
         assertEquals("1.1.0", status.latestDllVersion());
+        assertEquals(1, status.dllReleasesBehind());
         assertTrue(releases.members().stream().anyMatch(m -> m.memberId() == memberId && m.outdated()));
 
-        sync("1.1.0");
+        releases.publish("1.2.0", null, rar());
+        assertEquals(2, syncAccess.status(memberId, Instant.now()).dllReleasesBehind());
+
+        sync("1.2.0");
         assertFalse(syncAccess.status(memberId, Instant.now()).dllOutdated());
+        assertEquals(0, syncAccess.status(memberId, Instant.now()).dllReleasesBehind());
     }
 }

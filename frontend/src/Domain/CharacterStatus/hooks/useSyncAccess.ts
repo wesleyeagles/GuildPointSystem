@@ -19,6 +19,8 @@ export interface SyncAccessView {
   latestDllVersion: string | null
   /** Sincroniza, mas com uma versão anterior à mais recente: só aviso. */
   dllOutdated: boolean
+  /** Quantas versões publicadas são mais novas que a dele (0 = em dia). */
+  dllReleasesBehind: number
 }
 
 export const syncAccessKeys = {

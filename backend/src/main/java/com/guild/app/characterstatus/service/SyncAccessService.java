@@ -58,6 +58,7 @@ public class SyncAccessService {
         String dllVersion = statusRepository.findFirstByMemberIdOrderByUpdatedAtDesc(memberId)
                 .map(CharacterStatus::getDllVersion).orElse(null);
         String latestDllVersion = dllReleaseService.latest().map(DllReleaseView::version).orElse(null);
+        boolean dllOutdated = lastSyncAt != null && DllReleaseService.isOutdated(dllVersion, latestDllVersion);
         return new SyncAccessView(
                 synced,
                 lastSyncAt,
@@ -67,7 +68,8 @@ public class SyncAccessService {
                 window.toDays(),
                 dllVersion,
                 latestDllVersion,
-                lastSyncAt != null && DllReleaseService.isOutdated(dllVersion, latestDllVersion));
+                dllOutdated,
+                dllOutdated ? dllReleaseService.releasesNewerThan(dllVersion) : 0);
     }
 
     /** Usado pelo filtro: antes do prazo responde sem tocar no banco. */

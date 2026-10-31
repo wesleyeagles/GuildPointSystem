@@ -4,7 +4,13 @@ import { useLocation } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAuthContext } from '@/Features/Auth/contexts/AuthContext'
 import { syncAccessKeys, useSyncAccess, type SyncAccessView } from '@/Domain/CharacterStatus/hooks/useSyncAccess'
-import { dllDownloadUrl, useDllReleaseSubscription, useLatestDll, type DllRelease } from '@/Domain/Dll/hooks/useDll'
+import {
+  dllDownloadUrl,
+  dllUpdatesItself,
+  useDllReleaseSubscription,
+  useLatestDll,
+  type DllRelease,
+} from '@/Domain/Dll/hooks/useDll'
 import { Button } from '@/Shared/ui/components/Button/Button'
 import { DllNoticeContext, type DllNotice } from './dllNotice'
 import { serverNow } from '@/Shared/utils/serverClock'
@@ -236,11 +242,13 @@ function DllUpdateDialog({
   sync,
   latest,
   firstNotice,
+  autoUpdating,
   onClose,
 }: {
   sync: SyncAccessView
   latest: DllRelease
   firstNotice: boolean
+  autoUpdating: boolean
   onClose: () => void
 }) {
   return (
@@ -258,8 +266,10 @@ function DllUpdateDialog({
       <p className="sync-gate__lead">
         {firstNotice ? 'Saiu uma nova versão da DLL de sincronização. ' : ''}
         Você está usando <strong>{formatVersion(sync.dllVersion)}</strong> e a versão atual é{' '}
-        <strong>v{latest.version}</strong>, publicada em {new Date(latest.publishedAt).toLocaleString('pt-BR', DATE_FORMAT)}.
-        Sua conta continua sincronizada, mas atualize para receber as correções e novidades.
+        <strong>v{latest.version}</strong>, publicada em {new Date(latest.publishedAt).toLocaleString('pt-BR', DATE_FORMAT)}.{' '}
+        {autoUpdating
+          ? 'Sua DLL se atualiza sozinha: não precisa baixar nada.'
+          : 'Sua conta continua sincronizada, mas atualize para receber as correções e novidades.'}
       </p>
       {latest.notes && (
         <div className="sync-gate__notes">
@@ -267,15 +277,26 @@ function DllUpdateDialog({
           <p>{latest.notes}</p>
         </div>
       )}
-      <ol className="sync-gate__steps">
-        <li>
-          Feche o jogo e baixe a nova versão (botão <strong>Download DLL</strong> abaixo).
-        </li>
-        <li>
-          Extraia o <strong>version.dll</strong> e substitua o antigo na pasta do cliente do RF Online.
-        </li>
-        <li>Abra o jogo de novo: este aviso some sozinho quando a nova versão sincronizar.</li>
-      </ol>
+      {autoUpdating ? (
+        <ol className="sync-gate__steps">
+          <li>Com o jogo aberto, a DLL baixa a nova versão sozinha (logo ao abrir o jogo e de tempos em tempos com ele aberto).</li>
+          <li>Feche e abra o jogo de novo: a nova versão passa a valer e este aviso some sozinho.</li>
+          <li>
+            Se o aviso não sumir (antivírus pode bloquear a troca), baixe pelo botão <strong>Download DLL</strong> e
+            substitua o <strong>version.dll</strong> na pasta do cliente.
+          </li>
+        </ol>
+      ) : (
+        <ol className="sync-gate__steps">
+          <li>
+            Feche o jogo e baixe a nova versão (botão <strong>Download DLL</strong> abaixo).
+          </li>
+          <li>
+            Extraia o <strong>version.dll</strong> e substitua o antigo na pasta do cliente do RF Online.
+          </li>
+          <li>Abra o jogo de novo: este aviso some sozinho quando a nova versão sincronizar.</li>
+        </ol>
+      )}
     </SyncWindow>
   )
 }
@@ -291,6 +312,8 @@ export function SyncAccessGate({ children }: { children: ReactNode }) {
   useDllReleaseSubscription()
   // Aviso de DLL desatualizada fechado para esta versão (login/recarga abrem de novo).
   const [dismissedDllVersion, setDismissedDllVersion] = useState<string | null>(null)
+  // DLL que se atualiza sozinha: o aviso só abre pelo selo do topo.
+  const [openedDllVersion, setOpenedDllVersion] = useState<string | null>(null)
   const [seenRelease, setSeenRelease] = useState(readSeenRelease)
   const downloadUrl = dllDownloadUrl(latestDll)
   const queryClient = useQueryClient()
@@ -321,10 +344,17 @@ export function SyncAccessGate({ children }: { children: ReactNode }) {
     (dismissedAt === null || navigation.count - dismissedAt >= NAVIGATIONS_BETWEEN_WARNINGS)
 
   const outdated = !!sync?.synced && sync.dllOutdated && !!latestDll
-  const showDllUpdate = outdated && !showWarning && dismissedDllVersion !== latestDll.version
+  // 1.2.0+ só uma versão atrás: a própria DLL troca sozinha. Duas ou mais = a troca falhou, avisa.
+  const autoUpdating = outdated && dllUpdatesItself(sync.dllVersion, latestDll) && sync.dllReleasesBehind <= 1
+  const showDllUpdate =
+    outdated &&
+    !showWarning &&
+    dismissedDllVersion !== latestDll.version &&
+    (!autoUpdating || openedDllVersion === latestDll.version)
   const closeDllUpdate = () => {
     if (!latestDll) return
     setDismissedDllVersion(latestDll.version)
+    setOpenedDllVersion(null)
     setSeenRelease(latestDll.version)
     try {
       localStorage.setItem(SEEN_RELEASE_KEY, latestDll.version)
@@ -334,8 +364,12 @@ export function SyncAccessGate({ children }: { children: ReactNode }) {
   }
   const notice: DllNotice = {
     outdated,
+    autoUpdating,
     latestVersion: latestDll?.version ?? null,
-    open: () => setDismissedDllVersion(null),
+    open: () => {
+      setDismissedDllVersion(null)
+      setOpenedDllVersion(latestDll?.version ?? null)
+    },
   }
 
   return (
@@ -354,6 +388,7 @@ export function SyncAccessGate({ children }: { children: ReactNode }) {
           sync={sync}
           latest={latestDll}
           firstNotice={seenRelease !== latestDll.version}
+          autoUpdating={autoUpdating}
           onClose={closeDllUpdate}
         />
       )}

@@ -36,6 +36,21 @@ export const dllKeys = {
 /** Antes da primeira publicação no site, o download usa o arquivo de frontend/public. */
 const FALLBACK_DOWNLOAD_URL = '/version.rar?v=1.0.0'
 
+/** Primeira versão da DLL com atualização automática assinada. */
+const FIRST_AUTO_UPDATE_VERSION = [1, 2, 0]
+
+/** A DLL instalada se troca sozinha pela release publicada (assinada e instalada >= 1.2.0). */
+export function dllUpdatesItself(installed: string | null | undefined, latest: DllRelease | null | undefined) {
+  if (!latest?.autoUpdate || !installed) return false
+  const parts = installed.split('.').map(Number)
+  if (parts.some(Number.isNaN)) return false
+  for (let i = 0; i < FIRST_AUTO_UPDATE_VERSION.length; i++) {
+    const diff = (parts[i] ?? 0) - FIRST_AUTO_UPDATE_VERSION[i]
+    if (diff !== 0) return diff > 0
+  }
+  return true
+}
+
 /** Link do botão "Download DLL": sempre a versão mais recente publicada. */
 export function dllDownloadUrl(latest: DllRelease | null | undefined) {
   return latest ? `${API_BASE}/dll/download?v=${encodeURIComponent(latest.version)}` : FALLBACK_DOWNLOAD_URL
