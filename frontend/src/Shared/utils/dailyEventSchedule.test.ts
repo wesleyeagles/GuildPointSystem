@@ -26,6 +26,25 @@ describe('dailyEventSchedule', () => {
     expect(ms).toBe(24 * 60 * 60 * 1000)
   })
 
+  it('getNextDailyOccurrence handles month rollover in another zone (CW3 Moscow 22:00)', () => {
+    // 31/10 14:41 Brasília = 31/10 20:41 Moscou; CW3 é hoje 22:00 Moscou.
+    const now = new Date('2026-10-31T14:41:33-03:00')
+    const next = getNextDailyOccurrence(22, 0, now, 'Europe/Moscow')
+    expect(next.toISOString()).toBe('2026-10-31T19:00:00.000Z')
+  })
+
+  it('getNextDailyOccurrence rolls into next month (PB 02:00 Brasília)', () => {
+    const now = new Date('2026-10-31T14:41:33-03:00')
+    const next = getNextDailyOccurrence(2, 0, now, 'America/Sao_Paulo')
+    expect(next.toISOString()).toBe('2026-11-01T05:00:00.000Z')
+  })
+
+  it('getNextDailyOccurrence rolls into next year', () => {
+    const now = new Date('2026-12-31T23:30:00-03:00')
+    const next = getNextDailyOccurrence(6, 0, now, 'Europe/Moscow')
+    expect(next.toISOString()).toBe('2027-01-01T03:00:00.000Z')
+  })
+
   it('formatHmsCountdown pads segments', () => {
     expect(formatHmsCountdown((2 * 3600 + 5 * 60 + 7) * 1000)).toBe('02:05:07')
   })

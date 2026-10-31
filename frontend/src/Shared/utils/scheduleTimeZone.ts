@@ -46,17 +46,16 @@ export function zonedLocalToUtc(
   minute: number,
   timeZone: string,
 ): Date {
-  let guess = new Date(Date.UTC(year, month - 1, day, hour, minute, 0))
+  // Compara datas completas (não só o dia do mês) para não quebrar na virada de mês/ano.
+  const target = Date.UTC(year, month - 1, day, hour, minute, 0)
+  let guess = new Date(target)
   for (let i = 0; i < 4; i++) {
     const z = getZonedParts(guess, timeZone)
-    const targetMin = hour * 60 + minute
-    const actualMin = z.hour * 60 + z.minute
-    const dayDiff = day - z.day
-    const minDiff = targetMin - actualMin + dayDiff * 24 * 60
-    if (minDiff === 0 && z.year === year && z.month === month) {
+    const diffMs = target - Date.UTC(z.year, z.month - 1, z.day, z.hour, z.minute, 0)
+    if (diffMs === 0) {
       return guess
     }
-    guess = new Date(guess.getTime() + minDiff * 60 * 1000)
+    guess = new Date(guess.getTime() + diffMs)
   }
   return guess
 }
