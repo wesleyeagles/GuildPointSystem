@@ -1,4 +1,3 @@
-import type { Member } from '@/Domain/types/models'
 import { serverNow } from '@/Shared/utils/serverClock'
 
 /** Today in Brasília as yyyy-mm-dd (same calendar the sale block uses). */
@@ -15,5 +14,5 @@ export const addDays = (day: string, days: number) => {
 }
 
 /** Blocked through `blockedForSellUntil` (inclusive); checked here too so the lock leaves at midnight. */
-export const sellBlockedUntil = (m: Member): string | null =>
+export const sellBlockedUntil = (m: { blockedForSellUntil?: string | null }): string | null =>
   m.blockedForSellUntil && m.blockedForSellUntil >= todayBrt() ? m.blockedForSellUntil : null

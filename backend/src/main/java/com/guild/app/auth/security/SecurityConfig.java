@@ -84,6 +84,9 @@ public class SecurityConfig {
                         .requestMatchers("/ws/**").permitAll()
                         // Download da DLL: link aberto direto no navegador (sem o token).
                         .requestMatchers(HttpMethod.GET, "/api/dll/download").permitAll()
+                        // Atualizacao automatica: a DLL nao tem login. O arquivo vem assinado e a
+                        // DLL so troca se a assinatura bater com a chave publica embutida nela.
+                        .requestMatchers(HttpMethod.GET, "/api/dll/update", "/api/dll/update/file").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/seeds/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/catalog/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()

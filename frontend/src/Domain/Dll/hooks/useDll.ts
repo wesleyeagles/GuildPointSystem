@@ -14,6 +14,8 @@ export interface DllRelease {
   fileSize: number
   publishedBy: string | null
   publishedAt: string
+  /** Publicada com o version.dll assinado: as DLLs instaladas se atualizam sozinhas. */
+  autoUpdate: boolean
 }
 
 /** Versão da DLL de cada membro (painel da administração). */
@@ -77,11 +79,27 @@ export function useMemberDlls() {
 export function usePublishDll() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async ({ version, notes, file }: { version: string; notes: string; file: File }) => {
+    mutationFn: async ({
+      version,
+      notes,
+      dll,
+      signature,
+      file,
+    }: {
+      version: string
+      notes: string
+      /** version.dll e version.dll.sig (tools/dll-signing.ps1): atualização automática. */
+      dll: File | null
+      signature: File | null
+      /** .rar/.zip para download manual; opcional com a DLL assinada (o site gera um .zip). */
+      file: File | null
+    }) => {
       const formData = new FormData()
       formData.append('version', version)
       if (notes.trim()) formData.append('notes', notes)
-      formData.append('file', file)
+      if (dll) formData.append('dll', dll)
+      if (signature) formData.append('signature', signature)
+      if (file) formData.append('file', file)
       const token = getToken()
       const response = await fetch(`${API_BASE}/dll/releases`, {
         method: 'POST',

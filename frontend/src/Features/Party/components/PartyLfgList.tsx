@@ -6,6 +6,8 @@ import { MemberClassIcon } from '@/Shared/ui/components/MemberClassIcon/MemberCl
 import { PartyAfkControl } from './PartyAfkControl'
 import { useServerNow } from '@/Shared/utils/useServerNow'
 import { SCHEDULE_TIME_ZONE } from '@/Shared/utils/scheduleTimeZone'
+import { SellLock } from '@/Features/Dashboard/components/MemberContextMenu'
+import { sellBlockedUntil } from '@/Features/Dashboard/utils/sellBlock'
 
 // Timers tick here (server clock, once a second) so only the waiting list re-renders, not the page.
 
@@ -30,14 +32,13 @@ export function PartyLfgList({
   actions?: (entry: PartyLfgEntry) => ReactNode
   queueActions?: (entry: PartyLfgEntry) => ReactNode
   canManageAfk?: boolean
-  /** Shows only nicknames containing this text; each card keeps its real place in the queue. */
+  /** Shows only nicknames containing this text; cards keep their queue order. */
   search?: string
 }) {
   const now = useServerNow()
   const term = search.trim().toLocaleLowerCase('pt-BR')
   const ordered = sortByWaiting(entries)
-    .map((entry, index) => ({ entry, place: index + 1 }))
-    .filter(({ entry }) => !term || entry.nickname.toLocaleLowerCase('pt-BR').includes(term))
+    .filter((entry) => !term || entry.nickname.toLocaleLowerCase('pt-BR').includes(term))
 
   if (ordered.length === 0) {
     return <p className="party-page__empty party-page__empty--panel">Nenhum membro encontrado.</p>
@@ -45,9 +46,10 @@ export function PartyLfgList({
 
   return (
     <ol className="party-lfg-grid">
-      {ordered.map(({ entry, place }) => {
+      {ordered.map((entry) => {
         const draggable = canDrag && entry.memberId !== viewerId
         const isMe = entry.memberId === viewerId
+        const sellBlock = sellBlockedUntil(entry)
         return (
           <li
             key={entry.memberId}
@@ -64,35 +66,45 @@ export function PartyLfgList({
               setPartyDragData(e, { memberId: entry.memberId, fromPartyId: null, nickname: entry.nickname })
             }}
           >
+            {/* Top: icon, nick and Lv/EXP on the left, remove on the right. */}
             <div className="party-lfg-item__main">
-              <span className="party-lfg-item__rank" title="Posição na fila: mais pontos primeiro, depois a ordem de espera">
-                {place}
-              </span>
-              <span className={`party-lfg-item__points${(entry.priorityPoints ?? 0) > 0 ? ' is-positive' : ''}`}
-                title="Prioridade da fila. Zera ao entrar em uma PT.">{entry.priorityPoints ?? 0} pts</span>
               {entry.classImageUrl ? (
-                <MemberClassIcon classImageUrl={entry.classImageUrl} classLabel={entry.className ?? ''} size="sm" />
+                <MemberClassIcon classImageUrl={entry.classImageUrl} classLabel={entry.className ?? ''} size="md" />
               ) : (
-                <span className="party-card__roster-fallback party-card__roster-fallback--muted">?</span>
+                <span className="party-card__roster-fallback party-card__roster-fallback--muted party-lfg-item__fallback">?</span>
               )}
-              <strong className="party-lfg-item__name" title={entry.nickname}>
-                {entry.nickname}
-                {isMe ? ' (você)' : ''}
-              </strong>
-              {entry.lastUnansweredAt && <span className="party-lfg-item__unanswered" role="img"
-                aria-label="Chamado, não respondeu"
-                title={`Chamado, não respondeu · ${new Date(entry.lastUnansweredAt).toLocaleString('pt-BR', { timeZone: SCHEDULE_TIME_ZONE })}`} />}
+              <div className="party-lfg-item__who">
+                <span className="party-lfg-item__nick">
+                  <strong className="party-lfg-item__name" title={entry.nickname}>
+                    {entry.nickname}
+                    {isMe ? ' (você)' : ''}
+                  </strong>
+                  {sellBlock && <SellLock className="party-lfg-item__lock" until={sellBlock} />}
+                </span>
+                <span className="party-lfg-item__level" title={`Lv ${entry.level}${entry.expPercent != null ? ` · ${entry.expPercent.toFixed(2)}% XP` : ''}`}>
+                  Lv {entry.level}
+                  {entry.expPercent != null ? ` · ${entry.expPercent.toFixed(2)}%` : ''}
+                </span>
+              </div>
               {actions && (
                 <div className="party-lfg-item__actions" draggable={false} onDragStart={(e) => e.stopPropagation()}>
                   {actions(entry)}
                 </div>
               )}
             </div>
-            {/* Keep the original wait clock separate from queue priority and actions. */}
-            <div className="party-lfg-item__meta">
-              <span className="party-lfg-item__level" title={`Lv ${entry.level}${entry.expPercent != null ? ` · ${entry.expPercent.toFixed(2)}% XP` : ''}`}>
-                Lv {entry.level}
-                {entry.expPercent != null ? ` · ${entry.expPercent.toFixed(2)}%` : ''}
+            {/* Bottom: queue buttons on the left; points, "no answer" mark and the wait clock on the right. */}
+            <div className="party-lfg-item__footer">
+              {queueActions && (
+                <div className="party-lfg-item__tools" draggable={false} onDragStart={(e) => e.stopPropagation()}>
+                  {queueActions(entry)}
+                </div>
+              )}
+              <span className="party-lfg-item__badges">
+                {(entry.priorityPoints ?? 0) > 0 && <span className="party-lfg-item__points"
+                  title="Prioridade da fila. Zera ao entrar em uma PT.">{entry.priorityPoints} pts</span>}
+                {entry.lastUnansweredAt && <span className="party-lfg-item__unanswered" role="img"
+                  aria-label="Chamado, não respondeu"
+                  title={`Chamado, não respondeu · ${new Date(entry.lastUnansweredAt).toLocaleString('pt-BR', { timeZone: SCHEDULE_TIME_ZONE })}`} />}
               </span>
               <span
                 className="party-lfg-item__wait"
@@ -100,7 +112,6 @@ export function PartyLfgList({
               >
                 {formatWaiting(now - new Date(entry.createdAt).getTime())}
               </span>
-              {queueActions && <div draggable={false} onDragStart={e => e.stopPropagation()}>{queueActions(entry)}</div>}
             </div>
             {entry.afkSince && <PartyAfkControl memberId={entry.memberId} nickname={entry.nickname} queued
               canControl={canManageAfk || entry.memberId === viewerId} />}

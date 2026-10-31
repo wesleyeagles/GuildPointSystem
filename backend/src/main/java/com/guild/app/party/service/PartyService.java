@@ -48,19 +48,20 @@ public class PartyService {
         var member = requireApproved(actor);
         var board = loadPublicBoard();
         var my = buildMyState(member, board.memberLookup(), board.displayNumbers());
-        return new PartyBoardResponse(board.parties(), board.lfg(), my, board.serverTime(),queueAccess.current());
+        return new PartyBoardResponse(board.parties(), board.lfg(), !board.queueAccess().open(), my, board.serverTime(),board.queueAccess());
     }
 
     /** Board without personal state, broadcast to every client by {@link PartyBoardBroadcaster}. */
     @Transactional(readOnly = true)
     public PartyBoardSnapshot getPublicSnapshot() {
         var board = loadPublicBoard();
-        return new PartyBoardSnapshot(board.parties(), board.lfg(), board.serverTime(),queueAccess.current());
+        return new PartyBoardSnapshot(board.parties(), board.lfg(), !board.queueAccess().open(), board.serverTime(),board.queueAccess());
     }
 
     private record PublicBoard(
             List<PartySummary> parties,
             List<PartyLfgEntry> lfg,
+            PartyQueueAccess queueAccess,
             Map<Long, Member> memberLookup,
             Map<Long, Integer> displayNumbers,
             Instant serverTime) {}
@@ -103,7 +104,7 @@ public class PartyService {
                 .map(row -> toLfgEntry(row, memberLookup))
                 .toList();
 
-        return new PublicBoard(partySummaries, lfg, memberLookup, displayNumbers, Instant.now());
+        return new PublicBoard(partySummaries, lfg, queueAccess.current(), memberLookup, displayNumbers, Instant.now());
     }
 
     @Transactional
@@ -621,6 +622,14 @@ public class PartyService {
         return getBoard(actor);
     }
 
+    /** Compatibility endpoint: shares the scheduled queue access control. */
+    @Transactional
+    public PartyBoardResponse setLfgLocked(PartyLfgLockRequest request, MemberPrincipal actor) {
+        var organizer=queueOrganizer(actor);
+        queueAccess.setOpen(!request.locked(),organizer);
+        return getBoard(actor);
+    }
+
     /** Admin: takes another member off the waiting list. */
     @Transactional
     public PartyBoardResponse removeFromLfg(Long memberId, MemberPrincipal actor) {
@@ -752,13 +761,6 @@ public class PartyService {
     private PartyLfg requireWaiting(Long memberId) {
         return partyLfgRepository.findByMemberId(memberId)
             .orElseThrow(()->new AppException("Membro não está na lista de espera",HttpStatus.BAD_REQUEST));
-    }
-
-    @Transactional
-    public PartyBoardResponse updateQueueAccess(UpdatePartyQueueAccessRequest request,MemberPrincipal actor) {
-        var organizer=queueOrganizer(actor);
-        queueAccess.setOpen(request.open(),organizer);
-        return getBoard(actor);
     }
 
     /** Admin: puts another approved member on the waiting list (the queue clock starts now). */
@@ -1047,7 +1049,8 @@ public class PartyService {
                 gameLevel(m, gs),
                 gs != null ? gs.getExpPercent() : null,
                 leader,
-                afkUntil
+                afkUntil,
+                m.isBlockedForSellAccount() ? m.getBlockedForSellUntil() : null
         );
     }
 
@@ -1082,7 +1085,8 @@ public class PartyService {
                 m.getPartyPriorityPoints(),
                 lfg.getQueueOrder(),
                 lfg.getLastUnansweredAt(),
-                lfg.getAfkSince()
+                lfg.getAfkSince(),
+                m.isBlockedForSellAccount() ? m.getBlockedForSellUntil() : null
         );
     }
 

@@ -54,6 +54,10 @@
 .equipment-roster__member > .equipment-roster__summary { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 8px;
   small { grid-column: 1 / -1; }
 }
+.equipment-roster__nick { display: flex; align-items: center; gap: 6px; min-width: 0; }
+// Cadeado de conta bloqueada para venda (mesmo da Dashboard e da Party).
+.equipment-roster__lock, .equipment-page__lock { flex-shrink: 0; display: inline-flex; font-size: 14px; color: theme.$color-warning; }
+.equipment-page__lock { margin-left: 6px; vertical-align: -2px; }
 .equipment-roster__score { color: theme.$color-primary; font: 600 theme.$font-size-heading theme.$font-mono; white-space: nowrap; align-self: center; }
 .equipment-roster__row.is-checked { background: rgba(theme.$color-primary, .04); }
 .equipment-roster__row.is-drop-target { border-style: dashed; border-color: theme.$color-primary; }

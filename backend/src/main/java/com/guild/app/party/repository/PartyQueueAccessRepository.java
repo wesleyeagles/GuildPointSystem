@@ -14,10 +14,10 @@ public class PartyQueueAccessRepository {
 
     public Override read(boolean lock) {
         // Entradas compartilham a trava; abrir/fechar aguarda as entradas em andamento.
-        return jdbc.queryForObject("SELECT override_open,override_until FROM party_queue_access WHERE id=1" + (lock ? " FOR SHARE" : ""),
-            (rs,n)->new Override(rs.getObject(1,Boolean.class),rs.getTimestamp(2)==null?null:rs.getTimestamp(2).toInstant()));
+        return jdbc.queryForObject("SELECT lfg_locked,lfg_override_until FROM party_settings WHERE id=1" + (lock ? " FOR SHARE" : ""),
+            (rs,n)->new Override(rs.getTimestamp(2)==null?null:!rs.getBoolean(1),rs.getTimestamp(2)==null?null:rs.getTimestamp(2).toInstant()));
     }
-    public void update(boolean open,Instant until) {
-        jdbc.update("UPDATE party_queue_access SET override_open=?,override_until=? WHERE id=1",open,Timestamp.from(until));
+    public void update(boolean open,Instant until,Long actorId) {
+        jdbc.update("UPDATE party_settings SET lfg_locked=?,lfg_override_until=?,updated_by_id=?,updated_at=now() WHERE id=1",!open,Timestamp.from(until),actorId);
     }
 }

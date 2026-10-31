@@ -47,7 +47,7 @@ public class PartyQueueAccessService {
     @Transactional
     public void setOpen(boolean open,Member actor) {
         var until=nextBoundary(clock.instant());
-        repository.update(open,until);
+        repository.update(open,until,actor.getId());
         audit.log(AuditLogType.PARTY_QUEUE_UPDATED,actor,null,
             Map.of("action",open?"QUEUE_OPENED":"QUEUE_CLOSED","until",until.toString()));
         broadcaster.boardChanged();

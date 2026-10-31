@@ -33,6 +33,21 @@ public class DllRelease {
     @Column(name = "file_size", nullable = false)
     private Integer fileSize;
 
+    /** version.dll cru da atualizacao automatica; null = versao publicada so com o pacote. */
+    @Basic(fetch = FetchType.LAZY)
+    @Column(name = "update_data")
+    private byte[] updateData;
+
+    @Column(name = "update_size")
+    private Integer updateSize;
+
+    @Column(name = "update_sha256", length = 64)
+    private String updateSha256;
+
+    /** ECDSA P-256 r||s em base64 sobre "CerberusBags-update\n<versao>\n<sha256>". */
+    @Column(name = "update_signature", length = 128)
+    private String updateSignature;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "published_by_id")
     private Member publishedBy;

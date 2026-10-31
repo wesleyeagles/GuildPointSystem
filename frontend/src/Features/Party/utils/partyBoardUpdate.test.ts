@@ -67,6 +67,7 @@ const my = (overrides: Partial<MyPartyState> = {}): MyPartyState => ({
 const board = (overrides: Partial<PartyBoard> = {}): PartyBoard => ({
   parties: [],
   lfg: [],
+  lfgLocked: false,
   my: my(),
   serverTime: '2026-10-18T10:00:00Z',
   ...overrides,
@@ -75,6 +76,7 @@ const board = (overrides: Partial<PartyBoard> = {}): PartyBoard => ({
 const publicBoard = (overrides: Partial<PublicPartyBoard> = {}): PublicPartyBoard => ({
   parties: [],
   lfg: [],
+  lfgLocked: false,
   serverTime: '2026-10-18T10:00:05Z',
   ...overrides,
 })

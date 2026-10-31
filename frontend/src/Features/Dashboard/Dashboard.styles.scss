@@ -13,7 +13,7 @@
     min-height: 0;
   }
 
-  // Right column: next PBs on top, news below, each taking half of the viewport-filling height.
+  // Right column: next PBs on top (only as tall as their content), news fills the rest.
   &__side {
     display: flex;
     flex-direction: column;
@@ -31,9 +31,9 @@
       min-height: 0;
     }
 
-    // Next PBs overflow scroll inside their half instead of growing the page.
-    > .dashboard__col--bosses > .panel__body {
-      overflow-y: auto;
+    // Next PBs (next + 1) take only their height; news gets the remaining space.
+    > .dashboard__col--bosses {
+      flex: 0 0 auto;
     }
   }
 
@@ -131,6 +131,16 @@
     font-family: theme.$font-mono;
     font-size: theme.$font-size-heading;
     color: theme.$color-text-muted;
+  }
+
+  // Mapa · região onde o personagem está agora (DLL).
+  &__where {
+    max-width: 100%;
+    font-size: theme.$font-size-heading;
+    color: theme.$color-cyan;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   &__discord {
@@ -298,6 +308,24 @@
   &__empty-name {
     color: theme.$color-text-faint;
     opacity: 0.5;
+  }
+
+  // Member cell: nickname line, then the in-game location (when known).
+  &__member {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  &__where {
+    font-size: theme.$font-size-heading;
+    font-weight: 500;
+    line-height: 1.2;
+    color: theme.$color-cyan;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   // Nickname + "(Discord name)" share the member cell.

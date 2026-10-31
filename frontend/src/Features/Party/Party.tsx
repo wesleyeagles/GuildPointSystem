@@ -11,6 +11,7 @@ import {
   useLeaveParty,
   useLeavePartyLfg,
   useRemoveFromPartyLfg,
+  useSetPartyLfgLocked,
   useMovePartyMember,
   usePartyBoard,
   usePartyMemberNotices,
@@ -35,7 +36,10 @@ import { PartyAfkControl } from '@/Features/Party/components/PartyAfkControl'
 import { PartyQueueGate } from '@/Features/Party/components/PartyQueueGate'
 import { PartyQueueControls } from '@/Features/Party/components/PartyQueueControls'
 import { PartyLfgAddModal } from '@/Features/Party/components/PartyLfgAddModal'
+import { PartyLocationPointsModal } from '@/Features/Party/components/PartyLocationPointsModal'
 import { sortByWaiting } from '@/Features/Party/utils/partyWait'
+import { SellLock } from '@/Features/Dashboard/components/MemberContextMenu'
+import { sellBlockedUntil } from '@/Features/Dashboard/utils/sellBlock'
 import { ConfirmDialog } from '@/Shared/ui/components/ConfirmDialog/ConfirmDialog'
 import {
   formatPartyLabel,
@@ -244,6 +248,7 @@ function PartyRoster({
                 {member.leader ? '★ ' : ''}
                 {member.nickname}
               </span>
+              {sellBlockedUntil(member) && <SellLock className="party-card__roster-lock" until={sellBlockedUntil(member)!} />}
               <span className="party-card__roster-meta">
                 Lv {member.level}
                 {member.expPercent != null ? ` · ${member.expPercent.toFixed(2)}%` : ''}
@@ -402,7 +407,7 @@ function PartyCard({
 }
 
 export function PartyPage() {
-  const { user } = useAuthContext()
+  const { user, hasRole } = useAuthContext()
   const { showToast } = useAppToast()
   const [kickLoadingId, setKickLoadingId] = useState<number | null>(null)
   const [leaderLoadingId, setLeaderLoadingId] = useState<number | null>(null)
@@ -429,9 +434,12 @@ export function PartyPage() {
   const leaveLfg = useLeavePartyLfg()
   const addToLfg = useAddToPartyLfg()
   const removeFromLfg = useRemoveFromPartyLfg()
+  const setLfgLocked = useSetPartyLfgLocked()
+  const lfgLocked = !board?.queueAccess?.open
   const [lfgRemovingId, setLfgRemovingId] = useState<number | null>(null)
   const [lfgSearch, setLfgSearch] = useState('')
   const [addLfgOpen, setAddLfgOpen] = useState(false)
+  const [locationPointsOpen, setLocationPointsOpen] = useState(false)
   const closeAddLfg = useCallback(() => setAddLfgOpen(false), [])
 
   const onPartyNotice = useCallback(
@@ -633,8 +641,14 @@ export function PartyPage() {
                 Sair da lista de espera
               </Button>
             ) : (
-              <Button variant="secondary" loading={upsertLfg.isPending} disabled={!board?.queueAccess?.open} onClick={() => upsertLfg.mutate({}, onFail)}>
-                Entrar na lista de espera
+              <Button
+                variant="secondary"
+                loading={upsertLfg.isPending}
+                disabled={lfgLocked}
+                title={lfgLocked ? 'A lista de espera está bloqueada no momento' : undefined}
+                onClick={() => upsertLfg.mutate({}, onFail)}
+              >
+                {lfgLocked ? 'Lista de espera bloqueada' : 'Entrar na lista de espera'}
               </Button>
             )}
           </div>
@@ -653,6 +667,37 @@ export function PartyPage() {
       )}
 
       {isLoading && <p className="party-page__empty">Carregando...</p>}
+
+      {/* Staff actions for the waiting list, above the panels (aligned with the list's column). */}
+      {board && (hasRole('MODERADOR') || my.canOrganizeParties) && (
+        <div className="party-page__lfg-toolbar">
+          {hasRole('MODERADOR') && (
+            <Button size="sm" variant="secondary" onClick={() => setLocationPointsOpen(true)}>
+              Pontos por local
+            </Button>
+          )}
+          {my.canOrganizeParties && (
+            <Button
+              size="sm"
+              variant={lfgLocked ? 'primary' : 'secondary'}
+              loading={setLfgLocked.isPending}
+              title={
+                lfgLocked
+                  ? 'Abrir a fila até a próxima troca de horário'
+                  : 'Fechar novas entradas; quem já está continua na fila'
+              }
+              onClick={() => setLfgLocked.mutate(!lfgLocked, onFail)}
+            >
+              {lfgLocked ? 'Abrir fila' : 'Fechar fila'}
+            </Button>
+          )}
+          {my.canOrganizeParties && (
+            <Button size="sm" variant="secondary" disabled={lfgLocked} onClick={() => setAddLfgOpen(true)}>
+              Adicionar membro
+            </Button>
+          )}
+        </div>
+      )}
 
       {board && (
         <div className="party-page__grid">
@@ -709,29 +754,22 @@ export function PartyPage() {
 
           <Panel
             title="Lista de espera"
-            code={`${board.lfg.length} LFP`}
+            code={lfgLocked ? `BLOQUEADA · ${board.lfg.length} LFP` : `${board.lfg.length} LFP`}
             flush
             actions={
-              <>
-                {board.lfg.length > 0 && (
-                  <input
-                    type="search"
-                    className="party-lfg-search"
-                    placeholder="Buscar membro"
-                    aria-label="Buscar membro na lista de espera"
-                    value={lfgSearch}
-                    onChange={(e) => setLfgSearch(e.target.value)}
-                  />
-                )}
-                {my.canOrganizeParties && (
-                  <Button size="sm" variant="secondary" disabled={!board?.queueAccess?.open} onClick={() => setAddLfgOpen(true)}>
-                    Adicionar membro
-                  </Button>
-                )}
-              </>
+              board.lfg.length > 0 && (
+                <input
+                  type="search"
+                  className="party-lfg-search"
+                  placeholder="Buscar membro"
+                  aria-label="Buscar membro na lista de espera"
+                  value={lfgSearch}
+                  onChange={(e) => setLfgSearch(e.target.value)}
+                />
+              )
             }
           >
-            <PartyQueueGate access={board.queueAccess} canManage={my.canOrganizeParties} />
+            <PartyQueueGate access={board.queueAccess} />
             {board.lfg.length === 0 ? (
               <p className="party-page__empty party-page__empty--panel">Ninguém na lista de espera.</p>
             ) : (
@@ -767,6 +805,8 @@ export function PartyPage() {
           </Panel>
         </div>
       )}
+
+      {locationPointsOpen && <PartyLocationPointsModal onClose={() => setLocationPointsOpen(false)} />}
 
       {addLfgOpen && board && (
         <PartyLfgAddModal

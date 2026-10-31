@@ -53,7 +53,7 @@ public class EquipmentService {
         var board=repository.board();
         if(admin) return board;
         return board.stream().map(m->new MemberEquipment(m.memberId(),m.nickname(),m.level(),m.expPercent(),m.classId(),m.className(),m.classImageUrl(),m.slots().stream()
-            .map(s->new CurrentSlot(s.slot(),s.version(),s.assignment()==null?null:s.assignment().withoutAudit())).toList())).toList();
+            .map(s->new CurrentSlot(s.slot(),s.version(),s.assignment()==null?null:s.assignment().withoutAudit())).toList(),m.blockedForSellUntil())).toList();
     }
     public List<ReviewStatus> reviews() {
         var actor=actor(false);

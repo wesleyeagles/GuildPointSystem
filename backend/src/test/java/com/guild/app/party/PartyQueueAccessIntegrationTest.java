@@ -42,10 +42,23 @@ class PartyQueueAccessIntegrationTest {
     void at(String time) { ReflectionTestUtils.setField(gate,"clock",Clock.fixed(Instant.parse(time),ZoneOffset.UTC)); }
     @BeforeEach void setup() {
         admin=member("ADMINISTRADOR");player=member("MEMBRO");other=member("MEMBRO");moderator=member("MODERADOR");
-        jdbc.update("UPDATE party_queue_access SET override_open=NULL,override_until=NULL WHERE id=1");
+        jdbc.update("UPDATE party_settings SET lfg_locked=false,lfg_override_until=NULL WHERE id=1");
         at("2026-10-31T15:00:00Z");
     }
     @AfterEach void resetClock() { ReflectionTestUtils.setField(gate,"clock",Clock.systemUTC()); }
+
+    @Test void migrationExtendsExistingSettingsWithoutDiscardingTheManualClosure() throws Exception {
+        jdbc.execute("CREATE SCHEMA queue_hours_migration_test");
+        jdbc.execute("SET LOCAL search_path TO queue_hours_migration_test");
+        try {
+            jdbc.execute("CREATE TABLE member(id BIGINT PRIMARY KEY)");
+            for(String migration:new String[]{"V84__party_settings.sql","V85__party_queue_hours.sql"}) {
+                if(migration.startsWith("V85")) jdbc.update("UPDATE party_settings SET lfg_locked=true WHERE id=1");
+                jdbc.execute(new org.springframework.core.io.ClassPathResource("db/migration/"+migration).getContentAsString(java.nio.charset.StandardCharsets.UTF_8));
+            }
+            assertTrue(jdbc.queryForObject("SELECT lfg_locked AND lfg_override_until>now() AND lfg_override_until<=now()+interval '12 hours' FROM party_settings WHERE id=1",Boolean.class));
+        } finally { jdbc.execute("SET LOCAL search_path TO public"); }
+    }
 
     @Test void closedHoursBlockBothEntryRoutesAndOnlyAdminsCanOpen() throws Exception {
         mvc.perform(get("/api/parties/board").with(authentication(auth(player))))
@@ -54,13 +67,13 @@ class PartyQueueAccessIntegrationTest {
             .andExpect(status().isConflict());
         mvc.perform(post("/api/parties/lfg/"+player).with(authentication(auth(admin)))).andExpect(status().isConflict());
         for(long actor:new long[]{player,moderator})
-            mvc.perform(put("/api/parties/lfg/access").with(authentication(auth(actor))).contentType("application/json").content("{\"open\":true}"))
+            mvc.perform(put("/api/parties/lfg/lock").with(authentication(auth(actor))).contentType("application/json").content("{\"locked\":false}"))
                 .andExpect(status().isForbidden());
-        mvc.perform(put("/api/parties/lfg/access").with(anonymous()).contentType("application/json").content("{\"open\":true}"))
+        mvc.perform(put("/api/parties/lfg/lock").with(anonymous()).contentType("application/json").content("{\"locked\":false}"))
             .andExpect(status().isUnauthorized());
-        mvc.perform(put("/api/parties/lfg/access").with(authentication(auth(admin))).contentType("application/json").content("{}"))
+        mvc.perform(put("/api/parties/lfg/lock").with(authentication(auth(admin))).contentType("application/json").content("{}"))
             .andExpect(status().isBadRequest());
-        mvc.perform(put("/api/parties/lfg/access").with(authentication(auth(admin))).contentType("application/json").content("{\"open\":true}"))
+        mvc.perform(put("/api/parties/lfg/lock").with(authentication(auth(admin))).contentType("application/json").content("{\"locked\":false}"))
             .andExpect(status().isOk()).andExpect(jsonPath("$.queueAccess.manual").value(true));
         parties.upsertLfg(new UpsertLfgRequest(null),principal(player));
         parties.addMemberToLfg(other,principal(admin));
@@ -71,7 +84,7 @@ class PartyQueueAccessIntegrationTest {
         at("2026-10-31T21:00:00Z");
         var first=parties.upsertLfg(new UpsertLfgRequest(null),principal(player)).my().lfg();
         long party=parties.createParty(new CreatePartyRequest(PartyMap.ELAN,"gate test"),principal(other)).my().partyId();
-        parties.updateQueueAccess(new UpdatePartyQueueAccessRequest(false),principal(admin));
+        parties.setLfgLocked(new PartyLfgLockRequest(true),principal(admin));
         var updated=parties.upsertLfg(new UpsertLfgRequest("nota"),principal(player)).my().lfg();
         assertEquals(first.createdAt(),updated.createdAt());assertEquals(first.queueOrder(),updated.queueOrder());
         parties.leave(party,principal(other));
@@ -84,8 +97,8 @@ class PartyQueueAccessIntegrationTest {
         assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM audit_log WHERE actor_id=? AND payload->>'action'='QUEUE_CLOSED'",Integer.class,admin));
     }
     @Test void manualOpeningPersistsInTheDatabaseAndExpiresAtEighteen() {
-        parties.updateQueueAccess(new UpdatePartyQueueAccessRequest(true),principal(admin));
-        assertEquals(Instant.parse("2026-10-31T21:00:00Z"),jdbc.queryForObject("SELECT override_until FROM party_queue_access WHERE id=1",java.sql.Timestamp.class).toInstant());
+        parties.setLfgLocked(new PartyLfgLockRequest(false),principal(admin));
+        assertEquals(Instant.parse("2026-10-31T21:00:00Z"),jdbc.queryForObject("SELECT lfg_override_until FROM party_settings WHERE id=1",java.sql.Timestamp.class).toInstant());
         at("2026-10-31T21:00:00Z");assertTrue(gate.current().open());assertFalse(gate.current().manual());
         at("2026-11-01T09:00:00Z");assertFalse(gate.current().open());
         assertEquals(gate.current(),parties.getPublicSnapshot().queueAccess());

@@ -175,6 +175,16 @@ export function useRemoveFromPartyLfg() {
   })
 }
 
+/** Administrador/Líder: fecha ou reabre a lista de espera. */
+export function useSetPartyLfgLocked() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (locked: boolean) =>
+      apiClient<PartyBoard>('/parties/lfg/lock', { method: 'PUT', body: { locked } }),
+    onSuccess: (data) => setBoard(queryClient, data),
+  })
+}
+
 /** Admin: puts another member on the waiting list. */
 export function useAddToPartyLfg() {
   const queryClient = useQueryClient()
@@ -316,13 +326,5 @@ export function usePartyAfk() {
       apiClient<PartyBoard>(`/parties/members/${memberId}/afk`, { method: 'PUT', body: { active } }),
     onSuccess: (data) => setBoard(queryClient, data),
     onSettled: () => queryClient.invalidateQueries({ queryKey: partyKeys.board, exact: true }),
-  })
-}
-
-export function useSetPartyQueueAccess() {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: (open: boolean) => apiClient<PartyBoard>('/parties/lfg/access', { method: 'PUT', body: { open } }),
-    onSuccess: data => setBoard(queryClient, data),
   })
 }

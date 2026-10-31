@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useFitRows } from '@/Shared/utils/useFitRows'
 import { useMatchBottom } from '@/Shared/utils/useMatchBottom'
@@ -20,6 +20,7 @@ import {
   useCharacterStatusSubscription,
 } from '@/Domain/CharacterStatus/hooks/useCharacterStatus'
 import { useEquipment } from '@/Domain/Equipment/hooks/useEquipment'
+import { currentLocation } from '@/Domain/Location/gameMaps'
 import { useDiscordMembers, type DiscordMember } from '@/Domain/Discord/hooks/useDiscordMembers'
 import { discordProfileUrl, openInDiscordApp } from '@/Shared/utils/discordLink'
 import { MemberClassIcon } from '@/Shared/ui/components/MemberClassIcon/MemberClassIcon'
@@ -83,6 +84,16 @@ function DiscordTag({ member, className }: { member?: DiscordMember; className: 
 
 type SellBlockFilter = 'all' | 'blocked' | 'unblocked'
 
+/** Relógio de 30 s: some o local de quem parou de enviar sem esperar outro evento. */
+function useMinuteClock() {
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), 30_000)
+    return () => window.clearInterval(id)
+  }, [])
+  return now
+}
+
 export function DashboardPage() {
   const { data: ranking = [], isLoading } = useMemberRanking()
   const { data: characterStatus = [] } = useCharacterRanking()
@@ -94,6 +105,9 @@ export function DashboardPage() {
     const current = gameStatusByMember.get(s.memberId)
     if (!current || Date.parse(s.updatedAt) > Date.parse(current.updatedAt)) gameStatusByMember.set(s.memberId, s)
   }
+  // Mapa e região onde o personagem está agora (envio da DLL nos últimos 3 min).
+  const now = useMinuteClock()
+  const locationOf = (memberId: number) => currentLocation(gameStatusByMember.get(memberId), now)
   // GearScore de cada membro (soma dos equipamentos atuais); 0 = sem equipamento pontuado.
   const { data: equipment = [] } = useEquipment()
   const gearScoreByMember = new Map<number, number>()
@@ -138,7 +152,7 @@ export function DashboardPage() {
   const sortArrow = (key: SortKey) =>
     sortKey === key ? (sortDir === 'desc' ? ' ▼' : ' ▲') : ''
 
-  // Side columns end exactly where the ranking panel ends; next PBs and news split theirs in half.
+  // Side columns end exactly where the ranking panel ends; next PBs take their height, news the rest.
   const sideRef = useRef<HTMLDivElement>(null)
   const rankingRef = useRef<HTMLDivElement>(null)
   const sideHeight = useMatchBottom(sideRef, rankingRef, !isLoading)
@@ -260,6 +274,11 @@ export function DashboardPage() {
                             .expPercent.toFixed(2)}%`
                         : '—'}
                     </span>
+                    {locationOf(member.id) && (
+                      <span className="podium__where" title="Mapa e região no jogo agora">
+                        {locationOf(member.id)}
+                      </span>
+                    )}
                     <span className="podium__gs" title="GearScore">
                       {gearScoreByMember.has(member.id) ? `GS ${gearScoreByMember.get(member.id)}` : 'GS —'}
                     </span>
@@ -325,12 +344,19 @@ export function DashboardPage() {
                     // Keep the icon column even without a class, or the row's cells shift left.
                     <span className="ranking-list__empty-icon" aria-hidden="true" />
                   )}
-                  <span className="ranking-list__who">
-                    <Link to={`/profile/${m.id}`} className="ranking-list__name">
-                      {m.nickname}
-                    </Link>
-                    {sellBlockedUntil(m) && <SellLock className="ranking-list__lock" until={sellBlockedUntil(m)!} />}
-                    <DiscordTag member={discordBySiteId.get(m.id)} className="ranking-list__discord" />
+                  <span className="ranking-list__member">
+                    <span className="ranking-list__who">
+                      <Link to={`/profile/${m.id}`} className="ranking-list__name">
+                        {m.nickname}
+                      </Link>
+                      {sellBlockedUntil(m) && <SellLock className="ranking-list__lock" until={sellBlockedUntil(m)!} />}
+                      <DiscordTag member={discordBySiteId.get(m.id)} className="ranking-list__discord" />
+                    </span>
+                    {locationOf(m.id) && (
+                      <span className="ranking-list__where" title="Mapa e região no jogo agora">
+                        {locationOf(m.id)}
+                      </span>
+                    )}
                   </span>
                   <span className="ranking-list__game-lv">
                     {gameStatusByMember.get(m.id)?.level ?? '—'}
@@ -362,7 +388,7 @@ export function DashboardPage() {
       </Panel>
       </div>
 
-      {/* ── Right: Next PBs (top half) + News (bottom half) ───────────── */}
+      {/* ── Right: Next PBs (next + 1) + News (rest of the column) ─────── */}
       <div className="dashboard__side" ref={sideRef} style={sideHeight ? { height: sideHeight } : undefined}>
       <NextBossesPanel className="dashboard__col dashboard__col--bosses" />
 

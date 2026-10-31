@@ -8,8 +8,10 @@ import com.guild.app.common.enums.MemberStatus;
 import com.guild.app.common.enums.Role;
 import com.guild.app.common.exception.AppException;
 import com.guild.app.common.security.SecurityUtils;
+import com.guild.app.dll.DllSignatureVerifier;
 import com.guild.app.dll.DllVersion;
 import com.guild.app.dll.dto.DllReleaseView;
+import com.guild.app.dll.dto.DllUpdateManifest;
 import com.guild.app.dll.dto.MemberDllView;
 import com.guild.app.dll.entity.DllRelease;
 import com.guild.app.dll.repository.DllReleaseRepository;
@@ -23,7 +25,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -40,8 +48,10 @@ import java.util.Optional;
 public class DllReleaseService {
 
     private static final long MAX_FILE_SIZE = 5L * 1024 * 1024;
+    private static final long MAX_DLL_SIZE = 4L * 1024 * 1024;
     private static final List<String> EXTENSIONS = List.of(".rar", ".zip");
 
+    private final DllSignatureVerifier signatureVerifier;
     private final DllReleaseRepository releaseRepository;
     private final CharacterStatusRepository statusRepository;
     private final MemberRepository memberRepository;
@@ -75,8 +85,32 @@ public class DllReleaseService {
         return releaseRepository.findAllViews();
     }
 
+    /** Manifesto da atualizacao automatica mais recente (rota publica, lida pela DLL). */
+    @Transactional(readOnly = true)
+    public Optional<DllUpdateManifest> updateManifest() {
+        return releaseRepository.findUpdateManifests().stream().findFirst();
+    }
+
+    /** version.dll assinado de uma versao com atualizacao automatica. */
+    @Transactional(readOnly = true)
+    public Optional<byte[]> updateFile(String version) {
+        return releaseRepository.findByVersion(version).map(DllRelease::getUpdateData);
+    }
+
+    /** Publicacao so com o pacote (.rar/.zip), sem atualizacao automatica. */
     @Transactional
     public DllReleaseView publish(String version, String notes, MultipartFile file) throws IOException {
+        return publish(version, notes, file, null, null);
+    }
+
+    /**
+     * Publica uma versao. Com {@code dll} + {@code signature} (tools/dll-signing.ps1) as DLLs
+     * instaladas se atualizam sozinhas; o pacote para download manual e opcional (o site gera
+     * um .zip com o version.dll). So com {@code file}: como antes, sem atualizacao automatica.
+     */
+    @Transactional
+    public DllReleaseView publish(String version, String notes, MultipartFile file, MultipartFile dll,
+                                  String signature) throws IOException {
         SecurityUtils.requireRole(Role.ADMINISTRADOR);
         MemberPrincipal actor = SecurityUtils.currentMember();
 
@@ -92,34 +126,108 @@ public class DllReleaseService {
             throw new AppException("A nova versão precisa ser maior que a atual (" + current.get().version() + ").",
                     HttpStatus.BAD_REQUEST);
         }
-        if (file == null || file.isEmpty()) {
-            throw new AppException("Selecione o arquivo da DLL (.rar ou .zip).", HttpStatus.BAD_REQUEST);
-        }
-        String fileName = file.getOriginalFilename() == null ? "" : file.getOriginalFilename().trim();
-        String lower = fileName.toLowerCase(Locale.ROOT);
-        if (EXTENSIONS.stream().noneMatch(lower::endsWith)) {
-            throw new AppException("Envie a DLL compactada em .rar ou .zip.", HttpStatus.BAD_REQUEST);
-        }
-        if (file.getSize() > MAX_FILE_SIZE) {
-            throw new AppException("O arquivo passa de 5 MB.", HttpStatus.BAD_REQUEST);
+        boolean hasPackage = file != null && !file.isEmpty();
+        boolean hasDll = dll != null && !dll.isEmpty();
+        if (!hasPackage && !hasDll) {
+            throw new AppException("Envie o version.dll assinado (atualização automática) ou o pacote .rar/.zip.",
+                    HttpStatus.BAD_REQUEST);
         }
 
         DllRelease release = new DllRelease();
         release.setVersion(cleanVersion);
         release.setNotes(notes == null || notes.isBlank() ? null : notes.trim());
-        release.setFileName(fileName.length() > 120 ? fileName.substring(fileName.length() - 120) : fileName);
-        release.setFileData(file.getBytes());
-        release.setFileSize((int) file.getSize());
+        if (hasDll) attachSignedDll(release, cleanVersion, dll, signature);
+
+        if (hasPackage) {
+            String fileName = file.getOriginalFilename() == null ? "" : file.getOriginalFilename().trim();
+            String lower = fileName.toLowerCase(Locale.ROOT);
+            if (EXTENSIONS.stream().noneMatch(lower::endsWith)) {
+                throw new AppException("Envie a DLL compactada em .rar ou .zip.", HttpStatus.BAD_REQUEST);
+            }
+            if (file.getSize() > MAX_FILE_SIZE) {
+                throw new AppException("O arquivo passa de 5 MB.", HttpStatus.BAD_REQUEST);
+            }
+            release.setFileName(fileName.length() > 120 ? fileName.substring(fileName.length() - 120) : fileName);
+            release.setFileData(file.getBytes());
+        } else {
+            // Download manual: .zip com o mesmo version.dll assinado.
+            release.setFileName("CerberusBags-" + cleanVersion + ".zip");
+            release.setFileData(zipDll(release.getUpdateData()));
+        }
+        release.setFileSize(release.getFileData().length);
         release.setPublishedBy(memberRepository.getReferenceById(actor.getId()));
         release = releaseRepository.save(release);
 
         DllReleaseView view = new DllReleaseView(release.getId(), release.getVersion(), release.getNotes(),
-                release.getFileName(), release.getFileSize(), actor.getNickname(), release.getPublishedAt());
+                release.getFileName(), release.getFileSize(), actor.getNickname(), release.getPublishedAt(), hasDll);
         auditLogService.log(AuditLogType.DLL_RELEASED, actor, null,
-                Map.of("version", cleanVersion, "fileName", release.getFileName()));
+                Map.of("version", cleanVersion, "fileName", release.getFileName(), "autoUpdate", hasDll));
         // Todo mundo online recebe o aviso de nova versao na hora (apos o commit).
         webSocketPublisher.publishDllRelease(view);
         return view;
+    }
+
+    /**
+     * Confere o version.dll antes de aceitar: DLL x86 com "CerberusBags/<versao>" embutido e
+     * assinatura valida. O que a DLL instalada recusaria, o site recusa na publicacao.
+     */
+    private void attachSignedDll(DllRelease release, String version, MultipartFile dll, String signature)
+            throws IOException {
+        if (dll.getSize() > MAX_DLL_SIZE) {
+            throw new AppException("O version.dll passa de 4 MB.", HttpStatus.BAD_REQUEST);
+        }
+        byte[] bytes = dll.getBytes();
+        if (!isX86Dll(bytes)) {
+            throw new AppException("O arquivo enviado não é um version.dll (DLL x86).", HttpStatus.BAD_REQUEST);
+        }
+        if (!containsUserAgent(bytes, version)) {
+            throw new AppException("O version.dll não é da versão " + version
+                    + " (não tem CerberusBags/" + version + " embutido).", HttpStatus.BAD_REQUEST);
+        }
+        if (signature == null || signature.isBlank()) {
+            throw new AppException("Envie a assinatura (version.dll.sig) gerada pelo dll-signing.ps1.",
+                    HttpStatus.BAD_REQUEST);
+        }
+        String sha256 = DllSignatureVerifier.sha256Hex(bytes);
+        if (!signatureVerifier.verify(version, sha256, signature)) {
+            throw new AppException("Assinatura inválida para este version.dll e esta versão. Assine de novo com "
+                    + "dll-signing.ps1 -Sign -Version " + version + ".", HttpStatus.BAD_REQUEST);
+        }
+        release.setUpdateData(bytes);
+        release.setUpdateSize(bytes.length);
+        release.setUpdateSha256(sha256);
+        release.setUpdateSignature(signature.trim());
+    }
+
+    static boolean isX86Dll(byte[] dll) {
+        if (dll.length < 0x400 || dll[0] != 'M' || dll[1] != 'Z') return false;
+        int pe = ByteBuffer.wrap(dll, 0x3C, 4).order(ByteOrder.LITTLE_ENDIAN).getInt();
+        if (pe < 0 || pe > dll.length - 24 || dll[pe] != 'P' || dll[pe + 1] != 'E' || dll[pe + 2] != 0 || dll[pe + 3] != 0) {
+            return false;
+        }
+        ByteBuffer header = ByteBuffer.wrap(dll).order(ByteOrder.LITTLE_ENDIAN);
+        return (header.getShort(pe + 4) & 0xFFFF) == 0x14C && (header.getShort(pe + 22) & 0x2000) != 0;
+    }
+
+    /** User-Agent UTF-16 com terminador: "1.2" nao casa com "1.2.0". */
+    static boolean containsUserAgent(byte[] dll, String version) {
+        byte[] ua = ("CerberusBags/" + version + "\0").getBytes(StandardCharsets.UTF_16LE);
+        outer:
+        for (int i = 0; i + ua.length <= dll.length; i++) {
+            for (int j = 0; j < ua.length; j++) if (dll[i + j] != ua[j]) continue outer;
+            return true;
+        }
+        return false;
+    }
+
+    private static byte[] zipDll(byte[] dll) throws IOException {
+        var out = new ByteArrayOutputStream();
+        try (var zip = new ZipOutputStream(out)) {
+            zip.putNextEntry(new ZipEntry("version.dll"));
+            zip.write(dll);
+            zip.closeEntry();
+        }
+        return out.toByteArray();
     }
 
     /** Versao da DLL de cada membro aprovado, pelo envio mais recente de qualquer personagem. */

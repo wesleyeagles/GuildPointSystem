@@ -4,6 +4,8 @@ import { useAuthContext } from '@/Features/Auth/contexts/AuthContext'
 import { useEquipment, useEquipmentHistory, useEquipmentCatalog, useEquipmentOperation, useEquipmentSlotEdit, useEquipmentImportStatus, useEquipmentReviews, useEquipmentReviewAction } from '@/Domain/Equipment/hooks/useEquipment'
 import { EQUIPMENT_GROUPS, SLOT_CATEGORY, type CatalogFilters, type CurrentSlot, type EquipmentAssignment, type EquipmentEffect, type EquipmentItem, type EquipmentOperation, type EquipmentSlot, type EquipmentSlotEdit, type EquipmentSlotEditResult, type MemberEquipment } from '@/Domain/Equipment/types'
 import { useMember } from '@/Domain/Member/hooks/useMembers'
+import { SellLock } from '@/Features/Dashboard/components/MemberContextMenu'
+import { sellBlockedUntil } from '@/Features/Dashboard/utils/sellBlock'
 import { isGuildDelivery, summarizeDeliveries } from '@/Domain/Equipment/utils/equipmentDeliveries'
 import { armorClassForCharacter, playerClassForEquipmentList, weaponClassForCharacter } from '@/Domain/Equipment/utils/equipmentClass'
 import { gradeLabel as catalogGradeLabel, gradeColor } from '@/Domain/Catalog/utils/catalogUtils'
@@ -282,7 +284,7 @@ export function EquipmentPage() {
             const checked = e.target.checked
             if (!checked && selectedMembers.size === 1) setOnlySelected(false)
             setSelectedMembers(previous => { const next = new Set(previous); if (checked) next.add(member.memberId); else next.delete(member.memberId); return next })
-          }} /><span className="equipment-roster__class" tabIndex={0} title={member.className ?? 'Classe não informada'}>{member.classImageUrl && member.className ? <MemberClassIcon classImageUrl={member.classImageUrl} classLabel={member.className} /> : <span className="equipment-roster__class-fallback" role="img" aria-label={member.className ?? 'Classe não informada'}>?</span>}</span><div className="equipment-roster__summary"><button className="equipment-nick-link" title={member.nickname} onClick={() => inspect(member.memberId)}>{member.nickname}</button><strong className="equipment-roster__score" title={memberScore(member)}>{memberScore(member)}</strong><small>Lv. {member.level} · {member.expPercent != null ? `${member.expPercent.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}% XP` : 'EXP não informada'}</small></div></div>
+          }} /><span className="equipment-roster__class" tabIndex={0} title={member.className ?? 'Classe não informada'}>{member.classImageUrl && member.className ? <MemberClassIcon classImageUrl={member.classImageUrl} classLabel={member.className} /> : <span className="equipment-roster__class-fallback" role="img" aria-label={member.className ?? 'Classe não informada'}>?</span>}</span><div className="equipment-roster__summary"><span className="equipment-roster__nick"><button className="equipment-nick-link" title={member.nickname} onClick={() => inspect(member.memberId)}>{member.nickname}</button>{sellBlockedUntil(member) && <SellLock className="equipment-roster__lock" until={sellBlockedUntil(member)!} />}</span><strong className="equipment-roster__score" title={memberScore(member)}>{memberScore(member)}</strong><small>Lv. {member.level} · {member.expPercent != null ? `${member.expPercent.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}% XP` : 'EXP não informada'}</small></div></div>
           {EQUIPMENT_GROUPS.map(group => <div key={group.id} className="equipment-roster__group" role="group" aria-label={`${group.label} de ${member.nickname}`}>
             <span className="equipment-roster__label">{group.label}</span>
             <div className="equipment-mini-slots">{group.slots.map(slot => {
@@ -327,7 +329,7 @@ export function EquipmentPage() {
         {transferMutation.error && <p role="alert">{transferMutation.error.message}</p>}</>}
     </ConfirmDialog>
     {inspected && <Panel className="equipment-workspace__inspection" aria-label={`Equipamentos de ${inspected.nickname}`} title={managing ? "Inspecionar personagem" : "Meu inventário"} code={`${inspected.slots.filter(s => s.assignment).length}/${SLOT_COUNT} INFORMADOS`}>
-      <div className="equipment-page__heading"><h2 ref={inspectRef} tabIndex={-1}>{inspected.nickname} · {memberScore(inspected)}</h2>{managing && <Button variant="secondary" onClick={() => { setHistoryId(0); setEditor(null) }}>Fechar inspeção</Button>}</div>
+      <div className="equipment-page__heading"><h2 ref={inspectRef} tabIndex={-1}>{inspected.nickname}{sellBlockedUntil(inspected) && <SellLock className="equipment-page__lock" until={sellBlockedUntil(inspected)!} />} · {memberScore(inspected)}</h2>{managing && <Button variant="secondary" onClick={() => { setHistoryId(0); setEditor(null) }}>Fechar inspeção</Button>}</div>
       {managing && <div className="equipment-inspection-summary">
         {inspected.classImageUrl && inspected.className && <MemberClassIcon classImageUrl={inspected.classImageUrl} classLabel={inspected.className} size="sm" />}
         <span>Lv. {inspected.level}{inspected.expPercent != null ? ` · ${inspected.expPercent.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}% XP` : ''} · {inspected.className ?? 'Classe não informada'}</span>

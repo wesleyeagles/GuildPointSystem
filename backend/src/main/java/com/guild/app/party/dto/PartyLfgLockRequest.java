@@ -2,4 +2,4 @@ package com.guild.app.party.dto;
 
 import jakarta.validation.constraints.NotNull;
 
-public record UpdatePartyQueueAccessRequest(@NotNull Boolean open) {}
+public record PartyLfgLockRequest(@NotNull Boolean locked) {}

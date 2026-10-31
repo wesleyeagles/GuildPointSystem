@@ -9,5 +9,7 @@ public record DllReleaseView(
         String fileName,
         Integer fileSize,
         String publishedBy,
-        Instant publishedAt
+        Instant publishedAt,
+        /** Publicada com o version.dll assinado: as DLLs instaladas se atualizam sozinhas. */
+        boolean autoUpdate
 ) {}

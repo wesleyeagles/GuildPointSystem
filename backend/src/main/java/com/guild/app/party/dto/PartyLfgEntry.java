@@ -14,5 +14,6 @@ public record PartyLfgEntry(
         int priorityPoints,
         long queueOrder,
         Instant lastUnansweredAt,
-        Instant afkSince
+        Instant afkSince,
+        java.time.LocalDate blockedForSellUntil
 ) {}
