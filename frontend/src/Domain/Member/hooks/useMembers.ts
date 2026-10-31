@@ -97,6 +97,7 @@ export function useUpdateProfile() {
       queryClient.invalidateQueries({ queryKey: memberKeys.all })
       queryClient.invalidateQueries({ queryKey: authKeys.me })
       queryClient.invalidateQueries({ queryKey: ['equipment', 'board'] })
+      queryClient.invalidateQueries({ queryKey: ['quests'] })
     },
   })
 }

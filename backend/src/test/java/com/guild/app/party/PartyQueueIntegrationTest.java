@@ -42,6 +42,7 @@ class PartyQueueIntegrationTest {
         var p=principal(id); return new UsernamePasswordAuthenticationToken(p,null,p.getAuthorities());
     }
     @BeforeEach void setup() {
+        jdbc.update("UPDATE party_queue_access SET override_open=true,override_until=now()+interval '1 day' WHERE id=1");
         admin=member("ADMINISTRADOR");a=member("MEMBRO");b=member("MEMBRO");c=member("MEMBRO");
         SecurityContextHolder.getContext().setAuthentication(auth(admin));
         for(long id:List.of(a,b,c)) jdbc.update("INSERT INTO party_lfg(member_id,created_at) VALUES(?,?)",id,java.sql.Timestamp.from(since));

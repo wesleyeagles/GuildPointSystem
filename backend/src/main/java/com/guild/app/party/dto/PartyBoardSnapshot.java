@@ -7,5 +7,6 @@ import java.util.List;
 public record PartyBoardSnapshot(
         List<PartySummary> parties,
         List<PartyLfgEntry> lfg,
-        Instant serverTime
+        Instant serverTime,
+        PartyQueueAccess queueAccess
 ) {}

@@ -1,16 +1,17 @@
 @use '@/Shared/styles/theme' as *;
 .quests {
-  display: grid; gap: 12px; width: 100%;
+  display: grid; gap: 6px; width: 100%; min-width: 0;
+  .items-tabs__btn { padding-block: 5px; }
   p { margin-block: $spacing-sm; }
   label { display: grid; gap: $spacing-xs; }
   input:not([type='checkbox']), select { @include field-input; }
   summary { cursor: pointer; }
-  &__panel { display: grid; gap: 12px; min-width: 0; }
+  &__panel { display: grid; gap: 6px; min-width: 0; }
   summary:focus-visible, a:focus-visible { outline: 2px solid $color-primary; outline-offset: 3px; }
   &__character.panel, &__checklist.panel { background: $color-bg-elevated; box-shadow: none; }
-  &__character .panel__body { display: flex; align-items: center; flex-wrap: wrap; gap: $spacing-lg; padding: 12px 18px; }
+  &__character .panel__body { display: flex; align-items: center; flex-wrap: wrap; gap: $spacing-lg; padding: 8px 14px; }
   &__identity { display: flex; align-items: center; gap: 12px; flex: 1; }
-  &__identity h2 { font: 28px $font-heading; margin: 0; line-height: 1.1; }
+  &__identity h2 { font: 24px $font-heading; margin: 0; line-height: 1.1; }
   &__avatar { @include slot; display: grid; place-items: center; width: 44px; height: 44px; color: $color-primary; font: 26px $font-heading; flex-shrink: 0; }
   &__eyebrow { display: none; }
   &__connection { color: $color-text-muted; display: flex; align-items: center; gap: 6px; }
@@ -33,36 +34,50 @@
   &__character-info a { color: $color-primary; }
   &__date-controls { display: flex; gap: 6px; align-items: center; }
   &__date-controls input { color-scheme: dark; min-width: 150px; max-width: 170px; }
-  &__checklist > .panel__titlebar { background: none; box-shadow: none; min-height: 54px; }
+  &__checklist > .panel__titlebar { background: none; box-shadow: none; min-height: 42px; }
   &__checklist > .panel__titlebar .panel__actions { margin-right: 0; }
   &__checklist .panel__code { color: $color-primary; white-space: nowrap; }
-  &__checklist > .panel__body { padding: 12px 14px 8px; }
-  &__groups { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); align-items: start; }
-  &__group { min-width: 0; padding-inline: 8px; }
-  &__group + &__group { border-left: 1px solid $color-border; }
-  &__group > header { display: flex; justify-content: space-between; align-items: center; gap: 4px; padding: 0 0 8px; border-bottom: 1px solid $color-border; }
-  &__group h3, &__extras h3 { font: 20px $font-heading; margin: 0; }
-  &__group > header > span { color: $color-text-muted; font: 14px $font-mono; }
-  &__group > ul, &__extras > ul { margin: 0; list-style: none; padding: 0; }
-  &__group > ul > li + li { border-top: 1px solid $color-border; }
-  &__quest-detail > summary { list-style: none; display: flex; gap: 6px; padding: 7px 0; align-items: center; min-height: 44px; }
+  &__checklist > .panel__body { padding: 8px 10px; }
+  &__toolbar { display: flex; align-items: center; gap: 8px; }
+  &__level-tag { color: $color-primary; border: 1px solid rgba($color-primary, .3); background: rgba($color-primary, .04); padding: 3px 7px; font: 12px $font-mono; white-space: nowrap; }
+  label.quests__search { margin-left: auto; min-width: 0; width: 240px; }
+  &__search input { width: 100%; min-width: 0; padding: 6px 9px; font-size: 13px; }
+  &__board { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.22fr) minmax(0, 1fr); gap: 12px; align-items: start; }
+  &__exp-column:empty { display: none; }
+  &__board:has(> .quests__exp-column:empty) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  &__emblems, &__group { min-width: 0; border: 1px solid $color-border; background: rgba($color-bg, .35); }
+  &__emblems > h2 { display: flex; align-items: center; gap: 8px; margin: 0 0 6px; padding: 6px 9px; border-left: 3px solid $color-primary; border-bottom: 1px solid $color-border; font: 18px $font-heading; text-transform: uppercase; }
+  &__emblems > .quests__group { margin: 0 7px 7px; }
+  &__extra-column > .quests__group + .quests__group, &__exp-column > .quests__group + .quests__group { margin-top: 12px; }
+  &__group > h3 { margin: 0; font: 17px $font-heading; }
+  &__group > h3 > button { display: flex; gap: 6px; align-items: center; width: 100%; padding: 5px 7px; min-height: 28px; line-height: 1.1; border: 0; background: linear-gradient($metal-700, $color-bg-elevated); color: $color-text; font-family: inherit; font-size: inherit; font-weight: inherit; text-align: left; cursor: pointer; }
+  &__group > h3 > button:focus-visible { outline: 2px solid $color-primary; outline-offset: -2px; }
+  &__group > h3 > button > span:nth-child(2) { min-width: 0; overflow-wrap: anywhere; }
+  &__npc-group > h3, &__extra-column > .quests__group > h3 { border-left: 3px solid $color-primary; }
+  &__count { color: $color-text-muted; font: 11px $font-mono; white-space: nowrap; margin-left: auto; }
+  &__group > div > ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin: 0; padding: 7px; list-style: none; }
+  &__extra-column .quests__group > div > ul { grid-template-columns: minmax(0, 1fr); }
+  &__extra-column .quests__group--dense > div > ul { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  &__quest-card { height: 100%; border: 1px solid $color-border; background: linear-gradient(135deg, $color-bg-elevated, $color-bg); overflow-wrap: anywhere; }
+  .is-complete > &__quest-card { border-color: rgba($color-primary, .35); background: rgba($color-primary, .04); }
+  .is-capped > &__quest-card { opacity: .6; }
+  &__quest-detail > summary { list-style: none; display: flex; gap: 5px; padding: 5px 6px; align-items: center; min-height: 27px; border-bottom: 1px solid $color-border; }
   &__quest-detail > summary::-webkit-details-marker { display: none; }
-  &__quest-detail > summary:hover, .is-complete > &__quest-detail > summary { background: rgba($color-primary, .04); }
-  // Grupo com limite diário já cumprido: a que sobrou não conta como pendente.
-  .is-capped > &__quest-detail > summary { opacity: .55; }
-  .is-capped > &__quest-detail > summary &__quest-name strong { text-decoration: line-through; }
-  &__reward-slot { @include slot; color: $color-text-muted; width: 30px; height: 30px; display: grid; place-items: center; flex-shrink: 0; }
+  &__quest-detail > summary:hover { background: rgba($color-primary, .05); }
+  &__reward-slot { color: $color-warning; width: 20px; height: 20px; display: grid; place-items: center; flex-shrink: 0; }
   &__reward-slot img { display: block; object-fit: contain; image-rendering: pixelated; }
-  &__quest-name { display: grid; gap: 2px; min-width: 0; flex: 1; }
-  &__quest-name strong { font-weight: 500; line-height: 1.15; overflow-wrap: anywhere; }
-  &__quest-name > span { color: $color-text-muted; }
-  &__quest-detail input[type='checkbox'] { width: 16px; height: 16px; accent-color: $color-primary; flex-shrink: 0; opacity: 1; margin: 0; }
-  &__quest-body { padding: $spacing-sm 0; border-top: 1px solid $color-border; color: $color-text-muted; overflow-wrap: anywhere; }
-  &__quest-body ul { padding-left: $spacing-md; }
-  &__extras { margin-top: 10px; padding-top: 8px; border-top: 1px solid $color-border; }
-  &__extras > ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
-  &__extras .quests__quest-detail > summary { gap: 10px; }
-  &__list-footer { margin-top: 8px; padding-top: 8px; border-top: 1px solid $color-border; color: $color-text-muted; display: flex; gap: $spacing-md; justify-content: space-between; flex-wrap: wrap; }
+  &__quest-name { font-size: 13px; font-weight: 600; line-height: 1.1; min-width: 0; flex: 1; }
+  &__quest-detail input[type='checkbox'] { width: 13px; height: 13px; accent-color: $color-primary; flex-shrink: 0; opacity: 1; margin: 0; }
+  &__quest-facts { padding: 4px 7px; margin: 0; font-size: 12px; line-height: 1.2; }
+  &__quest-facts > div + div { margin-top: 5px; }
+  &__quest-facts dt { display: inline; font: 9px $font-family; text-transform: uppercase; color: $color-text-muted; margin-right: 5px; }
+  &__quest-facts abbr { text-decoration: none; }
+  &__quest-facts dd { display: inline; margin: 0; }
+  &__reward-text { color: $color-primary; }
+  &__quest-body { padding: 6px; border-bottom: 1px solid $color-border; color: $color-text-muted; font-size: 12px; }
+  &__quest-body p { margin-block: 4px; }
+  p.quests__limit { color: $color-text-muted; margin: 0; padding: 2px 7px 6px; font-size: 11px; line-height: 1.15; }
+  &__list-footer { margin-top: 8px; padding-top: 8px; border-top: 1px solid $color-border; color: $color-text-muted; display: flex; gap: $spacing-md; justify-content: space-between; flex-wrap: wrap; font-size: 12px; }
   &__list-footer > details[open] { flex-basis: 100%; }
   &__list-footer summary { color: $color-text; }
   &__filters { display: flex; flex-wrap: wrap; align-items: end; gap: $spacing-md; margin-block: $spacing-md; }
@@ -74,20 +89,27 @@
   &__events { list-style: none; padding: 0; display: grid; gap: $spacing-sm; }
   &__events > li { @include card; padding: $spacing-md; overflow-wrap: anywhere; }
   &__code { font-family: $font-mono; color: $color-primary; font-size: 14px; }
-  &__group--other { grid-column: 1 / -1; margin-top: $spacing-md; }
-  &__group--other > ul { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: $spacing-md; }
-  &__sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
-  @media (max-width: 1150px) { &__groups { grid-template-columns: repeat(3, minmax(0, 1fr)); row-gap: 14px; } }
+  & &__sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+  @media (max-width: 1250px) {
+    &__board { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    &__extra-column { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: start; }
+    &__extra-column > .quests__group + .quests__group { margin-top: 0; }
+  }
   @media (max-width: $mobile-breakpoint) {
-    &__character .panel__body { gap: 12px; padding: 12px; }
-    &__identity { flex-basis: 100%; }
+    .items-tabs { padding-left: 0; flex-wrap: wrap; }
+    .items-tabs__btn { padding-inline: 14px; font-size: 16px; }
+    &__character .panel__body { gap: 12px; padding: 10px; }
+    &__identity { flex-basis: 100%; min-width: 0; }
+    &__identity h2 { overflow-wrap: anywhere; }
     &__stats { flex: 1; gap: 12px; }
     &__xp { flex: 1; }
     &__level { padding-right: 12px; }
-    &__groups { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    &__group:nth-child(odd) { border-left: 0; }
+    &__toolbar { flex-wrap: wrap; width: 100%; }
+    &__checklist > .panel__titlebar .panel__actions { flex-wrap: wrap; }
+    label.quests__search { order: 1; width: 100%; }
+    &__board, &__board:has(> .quests__exp-column:empty), &__extra-column { grid-template-columns: minmax(0, 1fr); }
+    &__extra-column { grid-column: auto; }
     &__date-controls input { max-width: none; }
     &__checklist > .panel__titlebar .panel__actions { width: 100%; }
-    &__extras > ul, &__group--other > ul { grid-template-columns: minmax(0, 1fr); gap: 0; }
   }
 }

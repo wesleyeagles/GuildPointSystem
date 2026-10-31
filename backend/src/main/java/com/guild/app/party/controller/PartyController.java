@@ -102,6 +102,11 @@ public class PartyController {
         return partyService.cancelPending(pendingId, SecurityUtils.currentMember());
     }
 
+    @PutMapping("/lfg/access")
+    public PartyBoardResponse queueAccess(@Valid @RequestBody UpdatePartyQueueAccessRequest request) {
+        return partyService.updateQueueAccess(request,SecurityUtils.currentMember());
+    }
+
     @PutMapping("/lfg")
     public PartyBoardResponse upsertLfg(@Valid @RequestBody UpsertLfgRequest request) {
         return partyService.upsertLfg(request, SecurityUtils.currentMember());

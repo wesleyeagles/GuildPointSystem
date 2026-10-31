@@ -16,10 +16,15 @@ public final class QuestDtos {
         @NotBlank @Pattern(regexp="[\\p{L}\\p{N}_-]{1,32}") String expectedName) {}
     public record CatalogQuest(String code,String title,String definitionHash) {}
     public record VisibilityRequest(boolean hidden) {}
-    public record DailyQuest(CatalogQuest quest,String npcName,List<String> npcCodes,List<Integer> races,List<String> objectives) {}
+    public record QuestReward(String code,String name,int quantity) {}
+    public record DailyQuestDetails(List<String> objectives,List<QuestReward> rewards) {}
+    public record DailyQuest(CatalogQuest quest,String npcName,List<String> npcCodes,List<Integer> races,List<String> objectives,
+        Integer minLevel,Integer maxLevel,BigDecimal experience,List<QuestReward> rewards) {}
     public record NpcCoverage(String name,List<String> npcCodes,int questCount) {}
     public record CouponCatalog(List<DailyQuest> quests,List<NpcCoverage> npcs,java.util.Map<String,String> sourceHashes) {}
-    public record ExpectedQuest(DailyQuest definition,long completionSignals,boolean hidden) {}
+    public record ExperienceCatalog(List<DailyQuest> quests,List<NpcCoverage> npcs,java.util.Map<String,String> sourceHashes,
+        java.util.Map<Integer,BigDecimal> experienceByLevel) {}
+    public record ExpectedQuest(DailyQuest definition,long completionSignals,boolean hidden,BigDecimal experiencePercent,Integer rewardLevel) {}
     public record QuestBrief(@NotBlank @Pattern(regexp="Q[0-9A-F]{6}") String code,
         @NotBlank @Pattern(regexp="[a-f0-9]{64}") String definitionHash,
         @NotNull @Size(max=200) String title,@Min(0) @Max(2) int group,@Min(0) @Max(255) int type,@Min(0) @Max(255) int slot) {}

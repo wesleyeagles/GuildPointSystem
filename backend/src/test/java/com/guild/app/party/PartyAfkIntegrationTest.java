@@ -44,6 +44,7 @@ class PartyAfkIntegrationTest {
         var p=principal(id);return new UsernamePasswordAuthenticationToken(p,null,p.getAuthorities());
     }
     @BeforeEach void setup() {
+        jdbc.update("UPDATE party_queue_access SET override_open=true,override_until=now()+interval '1 day' WHERE id=1");
         admin=member("ADMINISTRADOR");leader=member("MEMBRO");player=member("MEMBRO");outsider=member("MEMBRO");
         party=service.createParty(new CreatePartyRequest(PartyMap.ELAN,"AFK test"),principal(leader)).my().partyId();
         service.addMemberDirect(party,new AddPartyMemberRequest(player),principal(admin));

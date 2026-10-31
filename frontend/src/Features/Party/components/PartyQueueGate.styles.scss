@@ -1,0 +1,10 @@
+@use '@/Shared/styles/theme' as *;
+.party-queue-gate {
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;
+  gap: $spacing-sm; padding: $spacing-sm $spacing-md; border-bottom: 1px solid $color-border;
+  > div { display: grid; gap: 2px; }
+  strong { color: $color-warning; }
+  &.is-open strong { color: $color-success; }
+  span { color: $color-text-muted; font-size: $font-size-base; }
+  p { flex-basis: 100%; margin: 0; color: $color-danger; }
+}

@@ -11,5 +11,6 @@ public record PartyBoardResponse(
         List<PartySummary> parties,
         List<PartyLfgEntry> lfg,
         MyPartyState my,
-        Instant serverTime
+        Instant serverTime,
+        PartyQueueAccess queueAccess
 ) {}

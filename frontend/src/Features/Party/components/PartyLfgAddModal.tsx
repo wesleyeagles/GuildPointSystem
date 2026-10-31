@@ -79,7 +79,7 @@ export function PartyLfgAddModal({ board, addingId, onAdd, onClose }: PartyLfgAd
                     size="sm"
                     variant="secondary"
                     loading={addingId === m.id}
-                    disabled={addingId != null && addingId !== m.id}
+                    disabled={!board.queueAccess?.open || (addingId != null && addingId !== m.id)}
                     onClick={() => onAdd(m.id)}
                   >
                     Adicionar

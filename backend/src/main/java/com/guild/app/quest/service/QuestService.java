@@ -64,11 +64,13 @@ public class QuestService {
         // Sobreposicao do monitor name-based do CerberusBags: uma quest que sumiu do
         // journal no dia marca a checklist como concluida (display-only, imprecisao aceita).
         var doneCodes=questStatus.doneCodesForDay(id,day);
+        int level=questStatus.currentLevel(member(id));
         var expected=catalog.coupons.quests().stream()
+            .filter(row->row.minLevel()==null || (level>=row.minLevel() && level<=row.maxLevel()))
             .map(row->{
                 long sig=signals.getOrDefault(row.quest().definitionHash(),0L);
                 if(sig==0 && doneCodes.contains(row.quest().code())) sig=1;
-                return new ExpectedQuest(row,sig,visibility.getOrDefault(row.quest().definitionHash(),catalog.defaultHidden(row.quest().definitionHash())));
+                return new ExpectedQuest(row,sig,visibility.getOrDefault(row.quest().definitionHash(),catalog.defaultHidden(row.quest().definitionHash())),catalog.experiencePercent(row,level),row.minLevel()==null?null:level);
             })
             .filter(row->admin||!row.hidden()).toList();
         // Sem o monitor antigo (token), o "player" vem do que o CerberusBags envia,

@@ -32,6 +32,7 @@ import { playScheduleAlertSound } from '@/Shared/utils/notificationSound'
 import { PartyCreateModal, type PartyCreateMode } from '@/Features/Party/components/PartyCreateModal'
 import { PartyLfgList, WaitingTime } from '@/Features/Party/components/PartyLfgList'
 import { PartyAfkControl } from '@/Features/Party/components/PartyAfkControl'
+import { PartyQueueGate } from '@/Features/Party/components/PartyQueueGate'
 import { PartyQueueControls } from '@/Features/Party/components/PartyQueueControls'
 import { PartyLfgAddModal } from '@/Features/Party/components/PartyLfgAddModal'
 import { sortByWaiting } from '@/Features/Party/utils/partyWait'
@@ -322,6 +323,8 @@ function PartyCard({
   onDragHighlight: (slot: number | null) => void
   movePending: boolean
 }) {
+  const [collapsed, setCollapsed] = useState(false)
+  const bodyId = `party-body-${party.id}`
   const inThisParty = my.partyId === party.id
   const isLeaderHere = inThisParty && my.leader
   const canManage = (my.leader && my.partyId === party.id) || my.canOrganizeParties
@@ -340,7 +343,15 @@ function PartyCard({
           {party.memberCount === 0 ? ' · vazia' : ''}
         </h3>
         <span className="party-card__count">{party.memberCount}/{PARTY_MAX_MEMBERS}</span>
+        <Button size="sm" variant="ghost" className="party-card__collapse"
+          aria-label={`${collapsed ? 'Expandir' : 'Minimizar'} ${formatPartyLabel(party)}`}
+          title={collapsed ? 'Expandir PT' : 'Minimizar PT'}
+          aria-expanded={!collapsed} aria-controls={bodyId}
+          onClick={() => setCollapsed(value => !value)}>
+          <span aria-hidden="true">{collapsed ? '+' : '−'}</span>
+        </Button>
       </div>
+      <div id={bodyId} className="party-card__body" hidden={collapsed}>
       <PartyRoster
         party={party}
         canManage={canManage}
@@ -385,6 +396,7 @@ function PartyCard({
           <PartyGameInvite partyId={party.id} canManage={canManage} />
         </div>
       )}
+      </div>
     </li>
   )
 }
@@ -621,7 +633,7 @@ export function PartyPage() {
                 Sair da lista de espera
               </Button>
             ) : (
-              <Button variant="secondary" loading={upsertLfg.isPending} onClick={() => upsertLfg.mutate({}, onFail)}>
+              <Button variant="secondary" loading={upsertLfg.isPending} disabled={!board?.queueAccess?.open} onClick={() => upsertLfg.mutate({}, onFail)}>
                 Entrar na lista de espera
               </Button>
             )}
@@ -712,13 +724,14 @@ export function PartyPage() {
                   />
                 )}
                 {my.canOrganizeParties && (
-                  <Button size="sm" variant="secondary" onClick={() => setAddLfgOpen(true)}>
+                  <Button size="sm" variant="secondary" disabled={!board?.queueAccess?.open} onClick={() => setAddLfgOpen(true)}>
                     Adicionar membro
                   </Button>
                 )}
               </>
             }
           >
+            <PartyQueueGate access={board.queueAccess} canManage={my.canOrganizeParties} />
             {board.lfg.length === 0 ? (
               <p className="party-page__empty party-page__empty--panel">Ninguém na lista de espera.</p>
             ) : (

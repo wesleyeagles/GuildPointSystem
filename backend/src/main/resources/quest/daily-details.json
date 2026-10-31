@@ -1,0 +1,793 @@
+{
+  "Q071382": {
+    "objectives": [
+      "Eliminar 8× Spider Invader Metal"
+    ],
+    "rewards": [
+      {
+        "code": "iyfiw56",
+        "name": "Yellow Cartella Emblem(st.1.1)",
+        "quantity": 10
+      }
+    ]
+  },
+  "Q070777": {
+    "objectives": [
+      "Conversar com Coupon Reward Manager 2"
+    ],
+    "rewards": [
+      {
+        "code": "bxbox76",
+        "name": "Elf Hall Reward Box",
+        "quantity": 3
+      }
+    ]
+  },
+  "Q070780": {
+    "objectives": [
+      "Conversar com Coupon Reward Manager 2"
+    ],
+    "rewards": [
+      {
+        "code": "ippvp70",
+        "name": "Daily Guild Experience Potion [60-64",
+        "quantity": 1
+      },
+      {
+        "code": "iyfiw54",
+        "name": "BD Reward Shard 50-54 (st.1.1)",
+        "quantity": 8
+      }
+    ]
+  },
+  "Q070783": {
+    "objectives": [
+      "Conversar com Coupon Reward Manager 2"
+    ],
+    "rewards": [
+      {
+        "code": "ippvp71",
+        "name": "Daily Guild Experience Potion [65-66",
+        "quantity": 1
+      },
+      {
+        "code": "iyfjb17",
+        "name": "BD Reward Shard 55-59 (st.2.1)",
+        "quantity": 8
+      }
+    ]
+  },
+  "Q070786": {
+    "objectives": [
+      "Conversar com Coupon Reward Manager 2"
+    ],
+    "rewards": [
+      {
+        "code": "ippvp75",
+        "name": "Weekly Guild Experience Potion [60-64",
+        "quantity": 1
+      },
+      {
+        "code": "iyfiw54",
+        "name": "BD Reward Shard 50-54 (st.1.1)",
+        "quantity": 16
+      }
+    ]
+  },
+  "Q070789": {
+    "objectives": [
+      "Conversar com Coupon Reward Manager 2"
+    ],
+    "rewards": [
+      {
+        "code": "ippvp76",
+        "name": "Weekly Guild Experience Potion [65-66",
+        "quantity": 1
+      },
+      {
+        "code": "iyfjb17",
+        "name": "BD Reward Shard 55-59 (st.2.1)",
+        "quantity": 16
+      }
+    ]
+  },
+  "Q070798": {
+    "objectives": [
+      "Conversar com Coupon Reward Manager 2"
+    ],
+    "rewards": [
+      {
+        "code": "ipexp08",
+        "name": "Exp Potion 3% [Paragon",
+        "quantity": 1
+      }
+    ]
+  },
+  "Q070801": {
+    "objectives": [
+      "Conversar com Coupon Reward Manager 2"
+    ],
+    "rewards": [
+      {
+        "code": "ipexp08",
+        "name": "Exp Potion 3% [Paragon",
+        "quantity": 1
+      }
+    ]
+  },
+  "Q070807": {
+    "objectives": [
+      "Conversar com Coupon Reward Manager 2"
+    ],
+    "rewards": [
+      {
+        "code": "ipexp08",
+        "name": "Exp Potion 3% [Paragon",
+        "quantity": 1
+      }
+    ]
+  },
+  "Q070810": {
+    "objectives": [
+      "Conversar com Coupon Reward Manager 2"
+    ],
+    "rewards": [
+      {
+        "code": "ipexp08",
+        "name": "Exp Potion 3% [Paragon",
+        "quantity": 1
+      }
+    ]
+  },
+  "Q070813": {
+    "objectives": [
+      "Conversar com Coupon Reward Manager 2"
+    ],
+    "rewards": [
+      {
+        "code": "ipexp08",
+        "name": "Exp Potion 3% [Paragon",
+        "quantity": 1
+      }
+    ]
+  },
+  "Q070816": {
+    "objectives": [
+      "Conversar com Coupon Reward Manager 2"
+    ],
+    "rewards": [
+      {
+        "code": "ipexp08",
+        "name": "Exp Potion 3% [Paragon",
+        "quantity": 1
+      }
+    ]
+  },
+  "Q070819": {
+    "objectives": [
+      "Conversar com Coupon Reward Manager 2"
+    ],
+    "rewards": [
+      {
+        "code": "ipexp08",
+        "name": "Exp Potion 3% [Paragon",
+        "quantity": 1
+      }
+    ]
+  },
+  "Q070822": {
+    "objectives": [
+      "Conversar com Coupon Reward Manager 2"
+    ],
+    "rewards": [
+      {
+        "code": "ipexp08",
+        "name": "Exp Potion 3% [Paragon",
+        "quantity": 1
+      }
+    ]
+  },
+  "Q071124": {
+    "objectives": [
+      "Eliminar 1× Young Flym"
+    ],
+    "rewards": [
+      {
+        "code": "iyfiw54",
+        "name": "BD Reward Shard 50-54 (st.1.1)",
+        "quantity": 20
+      }
+    ]
+  },
+  "Q071127": {
+    "objectives": [
+      "Eliminar 1× Young Flym"
+    ],
+    "rewards": [
+      {
+        "code": "iyfjb17",
+        "name": "BD Reward Shard 55-59 (st.2.1)",
+        "quantity": 20
+      }
+    ]
+  },
+  "Q071269": {
+    "objectives": [
+      "Conversar com Coupon Reward Manager 2"
+    ],
+    "rewards": [
+      {
+        "code": "iyfiw54",
+        "name": "BD Reward Shard 50-54 (st.1.1)",
+        "quantity": 20
+      }
+    ]
+  },
+  "Q071272": {
+    "objectives": [
+      "Conversar com Coupon Reward Manager 2"
+    ],
+    "rewards": [
+      {
+        "code": "iyfjb17",
+        "name": "BD Reward Shard 55-59 (st.2.1)",
+        "quantity": 20
+      }
+    ]
+  },
+  "Q071396": {
+    "objectives": [
+      "Eliminar 1× Young Flym"
+    ],
+    "rewards": [
+      {
+        "code": "iyfiw55",
+        "name": "Green Cartella Emblem(st.1.1)",
+        "quantity": 2
+      }
+    ]
+  },
+  "Q071397": {
+    "objectives": [
+      "Eliminar 1× Young Flym"
+    ],
+    "rewards": [
+      {
+        "code": "iyfiw55",
+        "name": "Green Cartella Emblem(st.1.1)",
+        "quantity": 2
+      }
+    ]
+  },
+  "Q071398": {
+    "objectives": [
+      "Eliminar 1× Young Flym"
+    ],
+    "rewards": [
+      {
+        "code": "iyfiw55",
+        "name": "Green Cartella Emblem(st.1.1)",
+        "quantity": 2
+      }
+    ]
+  },
+  "Q071399": {
+    "objectives": [
+      "Eliminar 1× Young Flym"
+    ],
+    "rewards": [
+      {
+        "code": "iyfiw55",
+        "name": "Green Cartella Emblem(st.1.1)",
+        "quantity": 2
+      }
+    ]
+  },
+  "Q071400": {
+    "objectives": [
+      "Eliminar 1× Young Flym"
+    ],
+    "rewards": [
+      {
+        "code": "iyfiw55",
+        "name": "Green Cartella Emblem(st.1.1)",
+        "quantity": 2
+      }
+    ]
+  },
+  "Q071401": {
+    "objectives": [
+      "Eliminar 1× Young Flym"
+    ],
+    "rewards": [
+      {
+        "code": "iyfiw55",
+        "name": "Green Cartella Emblem(st.1.1)",
+        "quantity": 6
+      },
+      {
+        "code": "iyfiw56",
+        "name": "Yellow Cartella Emblem(st.1.1)",
+        "quantity": 6
+      }
+    ]
+  },
+  "Q071402": {
+    "objectives": [
+      "Eliminar 1× Young Flym"
+    ],
+    "rewards": [
+      {
+        "code": "iyfiw55",
+        "name": "Green Cartella Emblem(st.1.1)",
+        "quantity": 6
+      },
+      {
+        "code": "iyfiw56",
+        "name": "Yellow Cartella Emblem(st.1.1)",
+        "quantity": 6
+      }
+    ]
+  },
+  "Q071403": {
+    "objectives": [
+      "Eliminar 1× Young Flym"
+    ],
+    "rewards": [
+      {
+        "code": "iyfiw55",
+        "name": "Green Cartella Emblem(st.1.1)",
+        "quantity": 6
+      },
+      {
+        "code": "iyfiw56",
+        "name": "Yellow Cartella Emblem(st.1.1)",
+        "quantity": 6
+      }
+    ]
+  },
+  "Q071404": {
+    "objectives": [
+      "Eliminar 1× Young Flym"
+    ],
+    "rewards": [
+      {
+        "code": "iyfiw57",
+        "name": "Red Cartella Emblem(st.1.1)",
+        "quantity": 9
+      }
+    ]
+  },
+  "Q071405": {
+    "objectives": [
+      "Eliminar 1× Young Flym"
+    ],
+    "rewards": [
+      {
+        "code": "iyfiw57",
+        "name": "Red Cartella Emblem(st.1.1)",
+        "quantity": 9
+      }
+    ]
+  },
+  "Q071406": {
+    "objectives": [
+      "Eliminar 1× Young Flym"
+    ],
+    "rewards": [
+      {
+        "code": "iyfiw57",
+        "name": "Red Cartella Emblem(st.1.1)",
+        "quantity": 8
+      }
+    ]
+  },
+  "Q071408": {
+    "objectives": [
+      "Conversar com Coupon Reward Manager 2"
+    ],
+    "rewards": [
+      {
+        "code": "ipevn40",
+        "name": "EXP Potion 1%",
+        "quantity": 1
+      }
+    ]
+  },
+  "Q071450": {
+    "objectives": [
+      "Accept the quest and deliver the Cartella Hard+ Quest Reward Coupon to the NPC Coupon Manager 2. To deliver the item, you must: 1) Have the item in your inventory 2) Press conversation with the NPC · Quantidade: 1"
+    ],
+    "rewards": [
+      {
+        "code": "iyfiw57",
+        "name": "Red Cartella Emblem(st.1.1)",
+        "quantity": 10
+      }
+    ]
+  },
+  "Q071416": {
+    "objectives": [
+      "Conversar com Coupon Reward Manager 3"
+    ],
+    "rewards": [
+      {
+        "code": "ipevo14",
+        "name": "300 PVP Potion",
+        "quantity": 1
+      }
+    ]
+  },
+  "Q071439": {
+    "objectives": [
+      "Eliminar 1× Young Flym"
+    ],
+    "rewards": [
+      {
+        "code": "ipevo28",
+        "name": "EXP Guild Potion +3",
+        "quantity": 1
+      }
+    ]
+  },
+  "Q071446": {
+    "objectives": [
+      "Eliminar 1× Young Flym"
+    ],
+    "rewards": [
+      {
+        "code": "ipevo30",
+        "name": "Temporary Unlimited HP Potion 4000 (7 days)",
+        "quantity": 1
+      }
+    ]
+  },
+  "Q071458": {
+    "objectives": [
+      "Eliminar 1× Young Flym"
+    ],
+    "rewards": [
+      {
+        "code": "bxbon90",
+        "name": "(2GR) Random Relic (can't be traded)",
+        "quantity": 1
+      }
+    ]
+  },
+  "Q071459": {
+    "objectives": [
+      "Eliminar 1× Young Flym"
+    ],
+    "rewards": [
+      {
+        "code": "iyfiq16",
+        "name": "Combining Coupon",
+        "quantity": 1
+      }
+    ]
+  },
+  "Q071461": {
+    "objectives": [
+      "Eliminar 1× Young Flym"
+    ],
+    "rewards": [
+      {
+        "code": "ipevo30",
+        "name": "Temporary Unlimited HP Potion 4000 (7 days)",
+        "quantity": 1
+      }
+    ]
+  },
+  "Q071499": {
+    "objectives": [
+      "Eliminar 1× Young Flym"
+    ],
+    "rewards": [
+      {
+        "code": "bxbon89",
+        "name": "(1GR) Random Relic (can't be traded)",
+        "quantity": 1
+      }
+    ]
+  },
+  "Q071500": {
+    "objectives": [
+      "Eliminar 1× Young Flym"
+    ],
+    "rewards": [
+      {
+        "code": "bxbon90",
+        "name": "(2GR) Random Relic (can't be traded)",
+        "quantity": 1
+      }
+    ]
+  },
+  "Q071501": {
+    "objectives": [
+      "Eliminar 1× Young Flym"
+    ],
+    "rewards": [
+      {
+        "code": "bxbon89",
+        "name": "(1GR) Random Relic (can't be traded)",
+        "quantity": 1
+      }
+    ]
+  },
+  "Q071502": {
+    "objectives": [
+      "Eliminar 1× Young Flym"
+    ],
+    "rewards": [
+      {
+        "code": "bxbon90",
+        "name": "(2GR) Random Relic (can't be traded)",
+        "quantity": 1
+      }
+    ]
+  },
+  "Q071503": {
+    "objectives": [
+      "Eliminar 1× Young Flym"
+    ],
+    "rewards": [
+      {
+        "code": "bxbon89",
+        "name": "(1GR) Random Relic (can't be traded)",
+        "quantity": 1
+      }
+    ]
+  },
+  "Q071504": {
+    "objectives": [
+      "Eliminar 1× Young Flym"
+    ],
+    "rewards": [
+      {
+        "code": "bxbon91",
+        "name": "(3GR) Random Relic (can't be traded)",
+        "quantity": 1
+      }
+    ]
+  },
+  "Q071505": {
+    "objectives": [
+      "Eliminar 1× Young Flym"
+    ],
+    "rewards": [
+      {
+        "code": "iyfiq16",
+        "name": "Combining Coupon",
+        "quantity": 1
+      }
+    ]
+  },
+  "Q071506": {
+    "objectives": [
+      "Eliminar 1× Young Flym"
+    ],
+    "rewards": [
+      {
+        "code": "iyfiq94",
+        "name": "Elite Combining Coupon",
+        "quantity": 1
+      }
+    ]
+  },
+  "Q071508": {
+    "objectives": [
+      "Eliminar 1× Young Flym"
+    ],
+    "rewards": [
+      {
+        "code": "ipevo30",
+        "name": "Temporary Unlimited HP Potion 4000 (7 days)",
+        "quantity": 1
+      }
+    ]
+  },
+  "Q071752": {
+    "objectives": [
+      "Eliminar 1× Young Flym"
+    ],
+    "rewards": [
+      {
+        "code": "bxbon91",
+        "name": "(3GR) Random Relic (can't be traded)",
+        "quantity": 1
+      }
+    ]
+  },
+  "Q071754": {
+    "objectives": [
+      "Eliminar 1× Young Flym"
+    ],
+    "rewards": [
+      {
+        "code": "bxbon92",
+        "name": "(4GR) Random Relic (can't be traded)",
+        "quantity": 1
+      }
+    ]
+  },
+  "Q071755": {
+    "objectives": [
+      "Eliminar 1× Young Flym"
+    ],
+    "rewards": [
+      {
+        "code": "iyfiq16",
+        "name": "Combining Coupon",
+        "quantity": 1
+      }
+    ]
+  },
+  "Q071756": {
+    "objectives": [
+      "Eliminar 1× Young Flym"
+    ],
+    "rewards": [
+      {
+        "code": "iyfiq94",
+        "name": "Elite Combining Coupon",
+        "quantity": 1
+      }
+    ]
+  },
+  "Q071757": {
+    "objectives": [
+      "Eliminar 1× Young Flym"
+    ],
+    "rewards": [
+      {
+        "code": "iyfis15",
+        "name": "Superior Combining Coupon",
+        "quantity": 1
+      }
+    ]
+  },
+  "Q071759": {
+    "objectives": [
+      "Eliminar 1× Young Flym"
+    ],
+    "rewards": [
+      {
+        "code": "ipevo30",
+        "name": "Temporary Unlimited HP Potion 4000 (7 days)",
+        "quantity": 1
+      }
+    ]
+  },
+  "Q071761": {
+    "objectives": [
+      "Eliminar 1× Young Flym"
+    ],
+    "rewards": [
+      {
+        "code": "iyfis75",
+        "name": "Unlimited 5000 HP Potion Flask",
+        "quantity": 1
+      }
+    ]
+  },
+  "Q071762": {
+    "objectives": [
+      "Eliminar 1× Young Flym"
+    ],
+    "rewards": [
+      {
+        "code": "ipbcu04",
+        "name": "Temporary Unlimited Cure Potion 4sec (7 days)",
+        "quantity": 1
+      }
+    ]
+  },
+  "Q071763": {
+    "objectives": [
+      "Eliminar 1× Young Flym"
+    ],
+    "rewards": [
+      {
+        "code": "iyfit51",
+        "name": "Unlimited FP Potion Flask",
+        "quantity": 1
+      }
+    ]
+  },
+  "Q071764": {
+    "objectives": [
+      "Eliminar 1× Young Flym"
+    ],
+    "rewards": [
+      {
+        "code": "iyfit52",
+        "name": "Unlimited SP Potion Flask",
+        "quantity": 1
+      }
+    ]
+  },
+  "Q071765": {
+    "objectives": [
+      "Eliminar 1× Young Flym"
+    ],
+    "rewards": [
+      {
+        "code": "bxbon92",
+        "name": "(4GR) Random Relic (can't be traded)",
+        "quantity": 1
+      }
+    ]
+  },
+  "Q071766": {
+    "objectives": [
+      "Eliminar 1× Young Flym"
+    ],
+    "rewards": [
+      {
+        "code": "iyfio51",
+        "name": "Perfect Combining Coupon",
+        "quantity": 1
+      }
+    ]
+  },
+  "Q071767": {
+    "objectives": [
+      "Eliminar 1× Young Flym"
+    ],
+    "rewards": [
+      {
+        "code": "bxbon91",
+        "name": "(3GR) Random Relic (can't be traded)",
+        "quantity": 1
+      }
+    ]
+  },
+  "Q071768": {
+    "objectives": [
+      "Eliminar 1× Young Flym"
+    ],
+    "rewards": [
+      {
+        "code": "bxbon93",
+        "name": "(5GR) Random Relic (can't be traded)",
+        "quantity": 1
+      }
+    ]
+  },
+  "Q071770": {
+    "objectives": [
+      "Eliminar 1× Young Flym"
+    ],
+    "rewards": [
+      {
+        "code": "bxbon93",
+        "name": "(5GR) Random Relic (can't be traded)",
+        "quantity": 1
+      }
+    ]
+  },
+  "Q070944": {
+    "objectives": [
+      "Conversar com CouponRewardManager"
+    ],
+    "rewards": [
+      {
+        "code": "bxbox86",
+        "name": "Gift Chocolate Box (10 pcs.)",
+        "quantity": 1
+      }
+    ]
+  },
+  "Q070947": {
+    "objectives": [
+      "Conversar com CouponRewardManager"
+    ],
+    "rewards": [
+      {
+        "code": "bxbof78",
+        "name": "Gift Chaos Potion Box (2 pcs.)",
+        "quantity": 1
+      }
+    ]
+  }
+}

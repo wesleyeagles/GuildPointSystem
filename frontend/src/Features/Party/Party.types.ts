@@ -185,7 +185,15 @@ export interface PartyBoardUpdate {
   joinRequestsChanged: boolean
 }
 
+export interface PartyQueueAccess {
+  open: boolean
+  manual: boolean
+  nextChangeAt: string
+}
+
 export interface PartyBoard {
+  queueAccess?: PartyQueueAccess
+
 
   parties: PartySummary[]
 

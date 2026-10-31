@@ -59,6 +59,41 @@ class QuestIntegrationTest {
             "fa5e6d236cce98265cae4fc3bc5374ba8560824bbdef94ffb0ed8ec269456e98",
             "0d1df9a6f52f3984cd6248b833da423856268627ec112413404753e5f4aa4831",1,1,slot,state);
     }
+    @Test void experienceQuestsRespectNpcLevelsAndKeepExistingQuests() {
+        var exp=catalog.coupons.quests().stream().filter(q->q.minLevel()!=null).toList();
+        assertEquals(35,exp.size());
+        assertEquals(35,exp.stream().map(q->q.quest().code()).distinct().count());
+        assertEquals(21,exp.stream().filter(q->q.npcCodes().equals(List.of("04137"))).count());
+        assertEquals(14,exp.stream().filter(q->q.npcCodes().equals(List.of("04138"))).count());
+        for(int level:List.of(34,35,38,40,42,43,45,49,50,65,66)) {
+            var member=members.findById(memberId).orElseThrow(); member.setLevel(level); members.saveAndFlush(member);
+            var rows=service.history(LocalDate.now(),true,0).expected();
+            int current=level;
+            var codes=exp.stream().filter(q->current>=q.minLevel() && current<=q.maxLevel()).map(q->q.quest().code()).collect(java.util.stream.Collectors.toSet());
+            assertEquals(codes,rows.stream().filter(r->r.definition().minLevel()!=null).map(r->r.definition().quest().code()).collect(java.util.stream.Collectors.toSet()));
+            assertEquals(15,rows.stream().filter(r->r.definition().minLevel()==null).count());
+            assertTrue(rows.stream().filter(r->r.definition().minLevel()!=null).allMatch(r->!r.hidden() && r.rewardLevel()==current));
+        }
+        var hero=exp.stream().filter(q->q.quest().code().equals("Q071207")).findFirst().orElseThrow();
+        assertEquals(50,hero.minLevel()); assertEquals(65,hero.maxLevel());
+        assertNull(catalog.experiencePercent(hero,50));
+        assertEquals("EXP Potion 5%",hero.rewards().getFirst().name());
+    }
+    @Test void latestCharacterLevelDeterminesEligibilityAndXpPercentage() {
+        var member=members.findById(memberId).orElseThrow(); member.setLevel(50); members.saveAndFlush(member);
+        jdbc.update("INSERT INTO character_status(member_id,gid,character_name,level,exp_percent,hp,hp_max,fp,fp_max,sp,sp_max,observed_at,updated_at) VALUES(?,1,'Test',40,0,1,1,1,1,1,1,now(),now())",memberId);
+        var rows=service.history(LocalDate.now(),true,0).expected();
+        var reward=rows.stream().filter(r->r.definition().quest().code().equals("Q071923")).findFirst().orElseThrow();
+        assertEquals(40,reward.rewardLevel());
+        assertEquals(new java.math.BigDecimal("9.000000"),reward.experiencePercent());
+        assertFalse(rows.stream().anyMatch(r->r.definition().quest().code().equals("Q071207")));
+        var expected=reward.definition().experience().multiply(java.math.BigDecimal.valueOf(100)).divide(new java.math.BigDecimal("274008395550"),6,java.math.RoundingMode.HALF_UP);
+        assertEquals(expected,catalog.experiencePercent(reward.definition(),41));
+        assertEquals(new java.math.BigDecimal("0.509619"),catalog.experiencePercent(reward.definition(),45));
+        assertEquals(new java.math.BigDecimal("0.234005"),catalog.experiencePercent(reward.definition(),46));
+        assertEquals(new java.math.BigDecimal("0.183991"),catalog.experiencePercent(reward.definition(),47));
+        assertEquals(new java.math.BigDecimal("0.075252"),catalog.experiencePercent(reward.definition(),49));
+    }
     @Test void duplicateRetryAndLegitimateRepeat() {
         var run=UUID.randomUUID();
         var batch=new Batch(List.of(event(run,0,State.PRESENT,8),event(run,1,State.COMPLETION_SIGNAL,111),event(run,2,State.REMOVED_UNKNOWN,111)));
@@ -190,7 +225,11 @@ class QuestIntegrationTest {
         authenticate(memberId);
         var history=service.history(LocalDate.of(2026,10,23),true,0);
         assertEquals(63,history.expected().size());
-        assertEquals(List.of(30,30,0,1,2),history.npcCoverage().stream().map(NpcCoverage::questCount).toList());
+        assertTrue(history.expected().stream().allMatch(row->!row.definition().rewards().isEmpty()));
+        var easy=history.expected().stream().filter(row->row.definition().quest().code().equals("Q071396")).findFirst().orElseThrow();
+        assertEquals(new QuestReward("iyfiw55","Green Cartella Emblem(st.1.1)",2),easy.definition().rewards().getFirst());
+        assertEquals(List.of("Eliminar 1× Young Flym"),easy.definition().objectives());
+        assertEquals(List.of(30,30,0,1,2,21,14),history.npcCoverage().stream().map(NpcCoverage::questCount).toList());
         assertTrue(history.expected().stream().allMatch(row->!row.definition().objectives().isEmpty() && row.completionSignals()==0));
         assertTrue(history.expected().stream().allMatch(row->row.definition().races().equals(List.of(1))));
         var codes=history.expected().stream().map(row->row.definition().quest().code()).collect(java.util.stream.Collectors.toSet());

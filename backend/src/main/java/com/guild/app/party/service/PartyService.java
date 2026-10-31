@@ -35,6 +35,7 @@ public class PartyService {
     private final PartyMemberRepository partyMemberRepository;
     private final PartyPendingRepository partyPendingRepository;
     private final PartyLfgRepository partyLfgRepository;
+    private final PartyQueueAccessService queueAccess;
     private final MemberRepository memberRepository;
     private final CharacterStatusRepository characterStatusRepository;
     private final WebSocketPublisher webSocketPublisher;
@@ -47,14 +48,14 @@ public class PartyService {
         var member = requireApproved(actor);
         var board = loadPublicBoard();
         var my = buildMyState(member, board.memberLookup(), board.displayNumbers());
-        return new PartyBoardResponse(board.parties(), board.lfg(), my, board.serverTime());
+        return new PartyBoardResponse(board.parties(), board.lfg(), my, board.serverTime(),queueAccess.current());
     }
 
     /** Board without personal state, broadcast to every client by {@link PartyBoardBroadcaster}. */
     @Transactional(readOnly = true)
     public PartyBoardSnapshot getPublicSnapshot() {
         var board = loadPublicBoard();
-        return new PartyBoardSnapshot(board.parties(), board.lfg(), board.serverTime());
+        return new PartyBoardSnapshot(board.parties(), board.lfg(), board.serverTime(),queueAccess.current());
     }
 
     private record PublicBoard(
@@ -595,6 +596,7 @@ public class PartyService {
         if (existing.isPresent()) {
             entry = existing.get();
         } else {
+            queueAccess.requireOpen();
             entry = new PartyLfg();
             entry.setMemberId(member.getId());
             entry.setCreatedAt(Instant.now());
@@ -752,6 +754,13 @@ public class PartyService {
             .orElseThrow(()->new AppException("Membro não está na lista de espera",HttpStatus.BAD_REQUEST));
     }
 
+    @Transactional
+    public PartyBoardResponse updateQueueAccess(UpdatePartyQueueAccessRequest request,MemberPrincipal actor) {
+        var organizer=queueOrganizer(actor);
+        queueAccess.setOpen(request.open(),organizer);
+        return getBoard(actor);
+    }
+
     /** Admin: puts another approved member on the waiting list (the queue clock starts now). */
     @Transactional
     public PartyBoardResponse addMemberToLfg(Long memberId, MemberPrincipal actor) {
@@ -773,6 +782,7 @@ public class PartyService {
             throw new AppException("Membro já está na lista de espera", HttpStatus.BAD_REQUEST);
         }
 
+        queueAccess.requireOpen();
         var entry = new PartyLfg();
         entry.setMemberId(memberId);
         entry.setCreatedAt(Instant.now());
