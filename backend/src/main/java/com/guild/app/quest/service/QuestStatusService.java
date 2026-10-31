@@ -9,6 +9,7 @@ import com.guild.app.quest.dto.QuestDtos.PlayerStatus;
 import com.guild.app.quest.dto.QuestDtos.SampleStatus;
 import com.guild.app.quest.entity.QuestStatus;
 import com.guild.app.quest.repository.QuestStatusRepository;
+import com.guild.app.websocket.WebSocketPublisher;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -42,6 +43,7 @@ public class QuestStatusService {
     private final QuestStatusRepository repository;
     private final MemberRepository memberRepository;
     private final CharacterStatusRepository characterStatusRepository;
+    private final WebSocketPublisher publisher;
 
     /** Dia de quest: reset 03:00 America/Sao_Paulo (desloca 3h e pega a data). */
     public static LocalDate currentQuestDay() {
@@ -64,6 +66,7 @@ public class QuestStatusService {
         for (Member member : members) {
             memberRepository.findByIdForUpdate(member.getId()).orElseThrow();
             save(member, active, sent, today);
+            publisher.publishQuestChanged(member.getId());
         }
     }
 
