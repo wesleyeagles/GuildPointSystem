@@ -1,9 +1,6 @@
-import { useEffect } from 'react'
-import {
-  HEADER_SCHEDULED_EVENTS,
-  TEN_MINUTE_WARNING_MS,
-  getScheduledOccurrenceStart,
-} from '@/Shared/utils/dailyEventSchedule'
+import { useEffect, useRef } from 'react'
+import { TEN_MINUTE_WARNING_MS, getScheduledOccurrenceStart } from '@/Shared/utils/dailyEventSchedule'
+import { useGuildScheduledEvents } from '@/Domain/Schedule/hooks/useGuildScheduledEvents'
 import { subscribeTopic } from '@/Shared/websocket/socketClient'
 import { serverNow } from '@/Shared/utils/serverClock'
 
@@ -72,10 +69,16 @@ export function useScheduleAlertSubscription(onAlert: (alert: ScheduleTenMinuteA
 
 /** Fallback local: mesmo critério do servidor (primeiro tick com ≤10 min). */
 export function useLocalScheduleAlertPolling(onAlert: (alert: ScheduleTenMinuteAlert) => void) {
+  const guildEvents = useGuildScheduledEvents()
+  // O intervalo lê sempre a lista atual, sem reiniciar quando a rotação muda.
+  const events = useRef(guildEvents)
+  useEffect(() => {
+    events.current = guildEvents
+  }, [guildEvents])
   useEffect(() => {
     const tick = () => {
       const now = new Date(serverNow())
-      for (const event of HEADER_SCHEDULED_EVENTS) {
+      for (const event of events.current) {
         const start = getScheduledOccurrenceStart(event, now)
         const msUntil = start.getTime() - now.getTime()
         if (msUntil > TEN_MINUTE_WARNING_MS || msUntil <= 0) {

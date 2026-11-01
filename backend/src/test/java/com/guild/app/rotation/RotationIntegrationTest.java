@@ -34,7 +34,7 @@ class RotationIntegrationTest {
     @Autowired ObjectMapper json;
     long admin, player;
     long member(String role) {
-        return jdbc.queryForObject("INSERT INTO member(nickname,role,status,profile_complete) VALUES(?,?,'APROVADO',true) RETURNING id",Long.class,"Rotation test "+UUID.randomUUID(),role);
+        return jdbc.queryForObject("INSERT INTO member(nickname,role,status,profile_complete) VALUES(?,?,'APROVADO',true) RETURNING id",Long.class,"Rot"+UUID.randomUUID().toString().substring(0,8),role);
     }
     UsernamePasswordAuthenticationToken auth(long id) {
         var principal=new MemberPrincipal(members.findById(id).orElseThrow());
@@ -70,6 +70,30 @@ class RotationIntegrationTest {
         mvc.perform(get("/api/rotation/bosses").with(anonymous())).andExpect(status().isUnauthorized());
         SecurityContextHolder.getContext().setAuthentication(auth(player));
         assertThrows(RuntimeException.class,()->service.update(request));
+    }
+    @Test void guildPbHoursComeFromTheRotation() {
+        var hours=service.pbHours(Guild.Blacklist);
+        assertEquals(Set.of(14,18,22),hours.get(com.guild.app.schedule.GameEventDefinitions.RotationArea.QG));
+        assertEquals(Set.of(2,18),hours.get(com.guild.app.schedule.GameEventDefinitions.RotationArea.OUTPOST));
+    }
+    @Test void gameTextListsOnlyOurSlotsForApprovedMemberCharacters() throws Exception {
+        String nick=jdbc.queryForObject("SELECT nickname FROM member WHERE id=?",String.class,player);
+        var text=service.gameText(nick.toUpperCase()).orElseThrow();
+        assertEquals(List.of(
+            "02:00\t\tBlood King Twizer / Rex Cannibal (Rhino)",
+            "14:00\tRatmoth / Beach (Vafer)\t",
+            "18:00\tSplinter\tRex Cannibal (Rhino)",
+            "22:00\tWarbeast / Splinter / Ratmoth\t"),List.of(text.split("\n")));
+        assertTrue(service.gameText("Ninguem"+UUID.randomUUID()).isEmpty());
+        assertTrue(service.gameText(null).isEmpty());
+        String pending="Pend"+UUID.randomUUID().toString().substring(0,8);
+        jdbc.update("INSERT INTO member(nickname,role,status,profile_complete) VALUES(?,'MEMBRO','PENDENTE',true)",pending);
+        assertTrue(service.gameText(pending).isEmpty());
+        // Sem login: a DLL do jogo nao tem token.
+        mvc.perform(get("/api/rotation/bosses/game").param("character",nick).with(anonymous()))
+            .andExpect(status().isOk()).andExpect(content().string(text));
+        mvc.perform(get("/api/rotation/bosses/game").param("character","Ninguem").with(anonymous()))
+            .andExpect(status().isNotFound());
     }
     @Test void saveIsAuditedAndRejectsStaleVersion() {
         var request=new Update(0,List.of(new Slot("03:00",List.of(new Assignment(Guild.Quit,List.of("Boss teste"))),List.of())));

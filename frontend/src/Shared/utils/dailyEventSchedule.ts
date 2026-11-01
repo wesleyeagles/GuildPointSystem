@@ -71,6 +71,9 @@ export type DailyScheduledEvent = {
   timeZone?: string
 }
 
+/** Área da rotação de bosses de um PB (QG = PB HQ, outpost = PB Colônia). */
+export type RotationArea = 'qg' | 'outpost'
+
 /** Vários horários fixos por dia; conta para o próximo deles. */
 export type MultiDailyScheduledEvent = {
   kind: 'multiDaily'
@@ -79,6 +82,8 @@ export type MultiDailyScheduledEvent = {
   hours: number[]
   minute: number
   timeZone?: string
+  /** Com área, só contam os horários em que a guilda tem boss nela (ver {@link eventsForGuild}). */
+  area?: RotationArea
 }
 
 export type IntervalScheduledEvent = {
@@ -139,6 +144,7 @@ export const HEADER_SCHEDULED_EVENTS: ScheduledEvent[] = [
     hours: [2, 6, 10, 14, 18, 22],
     minute: 0,
     timeZone: SCHEDULE_TIME_ZONE,
+    area: 'qg',
   },
   {
     kind: 'multiDaily',
@@ -147,6 +153,7 @@ export const HEADER_SCHEDULED_EVENTS: ScheduledEvent[] = [
     hours: [2, 10, 18],
     minute: 0,
     timeZone: SCHEDULE_TIME_ZONE,
+    area: 'outpost',
   },
   {
     kind: 'multiDaily',
@@ -157,3 +164,36 @@ export const HEADER_SCHEDULED_EVENTS: ScheduledEvent[] = [
     timeZone: SCHEDULE_TIME_ZONE,
   },
 ]
+
+/** O mínimo da rotação de bosses que os contadores precisam (horário de Brasília "HH:mm"). */
+export interface RotationSlotHours {
+  time: string
+  qg: { guild: string; bosses: string[] }[]
+  outpost: { guild: string; bosses: string[] }[]
+}
+
+/**
+ * Os eventos como a guilda os vê: PB HQ/Colônia ficam só com os horários em que ela tem boss na
+ * rotação (pulam para o próximo PB nosso) e somem se não sobrar nenhum. Sem rotação carregada,
+ * todos os horários continuam valendo. Mesmo critério do servidor (GameEventDefinitions.forGuild).
+ */
+export function eventsForGuild(
+  events: ScheduledEvent[],
+  slots: RotationSlotHours[] | undefined,
+  guild: string,
+): ScheduledEvent[] {
+  if (!slots) return events
+  const ours = (area: RotationArea) =>
+    new Set(
+      slots
+        .filter((slot) => slot.time.endsWith(':00'))
+        .filter((slot) => slot[area].some((a) => a.guild === guild && a.bosses.length > 0))
+        .map((slot) => Number(slot.time.slice(0, 2))),
+    )
+  return events.flatMap((event) => {
+    if (event.kind !== 'multiDaily' || !event.area) return [event]
+    const allowed = ours(event.area)
+    const hours = event.hours.filter((hour) => allowed.has(hour))
+    return hours.length > 0 ? [{ ...event, hours }] : []
+  })
+}
