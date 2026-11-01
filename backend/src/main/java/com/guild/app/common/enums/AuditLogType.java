@@ -37,7 +37,8 @@ public enum AuditLogType {
     ROTATION_UPDATED,
     PARTY_QUEUE_UPDATED,
     PARTY_GAME_INVITE,
-    DLL_RELEASED;
+    DLL_RELEASED,
+    SHOUT;
 
     public boolean isEquipmentPrivate() {
         return this == EQUIPMENT_CHANGED || this == EQUIPMENT_CATALOG_IMPORTED;

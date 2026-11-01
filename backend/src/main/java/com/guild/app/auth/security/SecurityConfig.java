@@ -81,6 +81,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/party-invites/*/done").permitAll()
                         // PBs da guilda no painel do jogo: so responde a personagem de membro aprovado.
                         .requestMatchers(HttpMethod.GET, "/api/rotation/bosses/game").permitAll()
+                        // Shout no jogo pela DLL: ver/enviar so para personagem de membro aprovado (enviar: Lider/Admin).
+                        .requestMatchers(HttpMethod.GET, "/api/shout/game", "/api/shout/game/sender").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/shout/game").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/quests/ingest").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/quests/live/ingest").permitAll()
                         .requestMatchers("/ws/**").permitAll()

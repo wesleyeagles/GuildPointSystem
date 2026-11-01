@@ -3,6 +3,7 @@ import type { AuditLogEntry, AuditLogType } from '@/Domain/types/models'
 const LOG_TYPE_LABELS: Record<AuditLogType, string> = {
   PARTY_DISCORD_CALLED: 'PT chamada no Discord',
   PARTY_GAME_INVITE: 'PT chamada no jogo',
+  SHOUT: 'Shout no jogo',
   DLL_RELEASED: 'Nova versão da DLL',
   PARTY_QUEUE_UPDATED: 'Fila de PT atualizada',
   ROTATION_UPDATED: 'Rotação atualizada',
@@ -71,6 +72,8 @@ export function formatLogDetails(log: AuditLogEntry): string {
       return str(p.party)
     case 'DLL_RELEASED':
       return `v${str(p.version)} · ${str(p.fileName)}`
+    case 'SHOUT':
+      return str(p.message)
     case 'PARTY_GAME_INVITE':
       return Array.isArray(p.nicks) ? `Convites: ${p.nicks.join(', ')}` : ''
     case 'QUEST_CATALOG_UPDATED':
