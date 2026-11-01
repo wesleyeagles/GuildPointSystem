@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
+  eventsForGuild,
   formatHmsCountdown,
+  getScheduledOccurrenceStart,
+  HEADER_SCHEDULED_EVENTS,
   getMsUntilNextDailyEvent,
   getMsUntilNextIntervalEvent,
   getNextDailyOccurrence,
@@ -72,5 +75,34 @@ describe('dailyEventSchedule', () => {
     const ms = getMsUntilNextIntervalEvent(majorAnchor, 4, now)
     const next = new Date(now.getTime() + ms)
     expect(next.toISOString()).toBe('2026-10-01T22:00:00.000Z')
+  })
+
+  describe('eventsForGuild', () => {
+    const slots = [
+      { time: '02:00', qg: [], outpost: [{ guild: 'Blacklist', bosses: ['Blood King Twizer'] }] },
+      { time: '14:00', qg: [{ guild: 'Blacklist', bosses: ['Ratmoth'] }], outpost: [] },
+      { time: '18:00', qg: [{ guild: 'Quit', bosses: ['Splinter'] }], outpost: [{ guild: 'Quit', bosses: ['Rex'] }] },
+      { time: '22:00', qg: [{ guild: 'Blacklist', bosses: ['Warbeast'] }], outpost: [] },
+    ]
+    const byId = (events: ReturnType<typeof eventsForGuild>, id: string) => events.find((e) => e.id === id)
+
+    it('PB HQ pula o horário sem boss nosso e vai para o próximo PB nosso', () => {
+      const events = eventsForGuild(HEADER_SCHEDULED_EVENTS, slots, 'Blacklist')
+      // 15h: o PB HQ das 18h é da Quit, então o nosso é o das 22h.
+      const next = getScheduledOccurrenceStart(byId(events, 'pb-hq')!, new Date('2026-10-31T15:00:00-03:00'))
+      expect(next.toISOString()).toBe('2026-11-01T01:00:00.000Z')
+      expect(byId(events, 'pb-colonia')).toMatchObject({ hours: [2] })
+    })
+
+    it('mantém Middle e CW, e some com o PB sem nenhum horário nosso', () => {
+      const events = eventsForGuild(HEADER_SCHEDULED_EVENTS, [slots[1], slots[3]], 'Blacklist')
+      expect(byId(events, 'pb-colonia')).toBeUndefined()
+      expect(byId(events, 'pb-middle')).toEqual(byId(HEADER_SCHEDULED_EVENTS, 'pb-middle'))
+      expect(byId(events, 'cw1')).toBeDefined()
+    })
+
+    it('sem rotação carregada, todos os horários continuam valendo', () => {
+      expect(eventsForGuild(HEADER_SCHEDULED_EVENTS, undefined, 'Blacklist')).toBe(HEADER_SCHEDULED_EVENTS)
+    })
   })
 })

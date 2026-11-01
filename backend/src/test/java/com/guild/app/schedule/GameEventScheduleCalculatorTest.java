@@ -63,4 +63,23 @@ class GameEventScheduleCalculatorTest {
         assertEquals(27, next.getDayOfMonth());
         assertEquals(2, next.getHour());
     }
+
+    @Test
+    void rotationBoundPbSkipsHoursWithoutOurBoss() {
+        var hq = GameEventDefinitions.ALL.stream().filter(e -> e.id().equals("pb-hq")).findFirst().orElseThrow();
+        var middle = GameEventDefinitions.ALL.stream().filter(e -> e.id().equals("pb-middle")).findFirst().orElseThrow();
+        var hours = java.util.Map.of(
+                GameEventDefinitions.RotationArea.QG, java.util.Set.of(14, 22),
+                GameEventDefinitions.RotationArea.OUTPOST, java.util.Set.<Integer>of());
+        // 15h: o PB HQ das 18h nao e nosso, entao o proximo e o das 22h.
+        ZonedDateTime afternoon = ZonedDateTime.of(2026, 3, 26, 15, 0, 0, 0, SCHEDULE_ZONE);
+        var ours = GameEventDefinitions.forGuild(hq, hours).orElseThrow();
+        assertEquals(22, calculator.nextOccurrence(ours, afternoon).getHour());
+        // Nenhum PB nosso na Colonia: o evento some. Middle nao esta na rotacao: fica igual.
+        var colonia = GameEventDefinitions.ALL.stream().filter(e -> e.id().equals("pb-colonia")).findFirst().orElseThrow();
+        assertEquals(java.util.Optional.empty(), GameEventDefinitions.forGuild(colonia, hours));
+        assertEquals(middle, GameEventDefinitions.forGuild(middle, hours).orElseThrow());
+        // Sem rotacao: todos os horarios, como antes.
+        assertEquals(hq, GameEventDefinitions.forGuild(hq, null).orElseThrow());
+    }
 }

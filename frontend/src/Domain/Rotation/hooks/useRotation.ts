@@ -5,6 +5,8 @@ import { onSocketConnect, subscribeTopicEffect } from '@/Shared/websocket/socket
 
 export const guilds = ['Energy', 'Espada', 'Quit', 'Devotion', 'Yonkou', 'Blacklist'] as const
 export type Guild = typeof guilds[number]
+/** Nossa guilda na rotação: é dela o painel de PBs e os contadores PB HQ/Colônia. */
+export const HOME_GUILD: Guild = 'Blacklist'
 export interface Assignment { guild: Guild; bosses: string[] }
 export interface RotationSlot { time: string; qg: Assignment[]; outpost: Assignment[] }
 export interface Rotation { version: number; updatedAt: string; slots: RotationSlot[] }

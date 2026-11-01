@@ -1,5 +1,7 @@
 package com.guild.app.schedule;
 
+import com.guild.app.rotation.service.RotationService;
+import com.guild.app.schedule.GameEventDefinitions.RotationArea;
 import com.guild.app.schedule.dto.ScheduleTenMinuteAlertMessage;
 import com.guild.app.websocket.WebSocketPublisher;
 import lombok.RequiredArgsConstructor;
@@ -8,6 +10,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 import java.time.ZonedDateTime;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -24,13 +27,20 @@ public class GameEventScheduleAlertScheduler {
     private final GameEventScheduleCalculator calculator;
     private final WebSocketPublisher webSocketPublisher;
     private final ScheduleTestAlertState testAlertState;
+    private final RotationService rotation;
 
     private final Set<String> sentKeys = ConcurrentHashMap.newKeySet();
 
     @Scheduled(fixedRate = TICK_MS)
     public void checkTenMinuteWarnings() {
         ZonedDateTime now = ZonedDateTime.now(SCHEDULE_ZONE);
-        for (var event : ALL) {
+        Map<RotationArea, Set<Integer>> guildHours = guildHours();
+        for (var definition : ALL) {
+            var guildEvent = GameEventDefinitions.forGuild(definition, guildHours);
+            if (guildEvent.isEmpty()) {
+                continue;
+            }
+            var event = guildEvent.get();
             ZonedDateTime next = calculator.nextOccurrence(event, now);
             long msUntil = calculator.millisUntil(event, now);
             if (msUntil > TEN_MINUTE_WARNING_MS || msUntil <= 0) {
@@ -49,6 +59,15 @@ public class GameEventScheduleAlertScheduler {
         }
         checkTestAlert(now);
         pruneSentKeys(now);
+    }
+
+    /** PB HQ/Colônia só avisam nos horários com PB nosso; sem a rotação, avisa em todos (como antes). */
+    private Map<RotationArea, Set<Integer>> guildHours() {
+        try {
+            return rotation.pbHours(RotationService.HOME_GUILD);
+        } catch (RuntimeException e) {
+            return null;
+        }
     }
 
     private void checkTestAlert(ZonedDateTime now) {

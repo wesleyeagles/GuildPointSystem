@@ -3,6 +3,9 @@ package com.guild.app.schedule;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
 public final class GameEventDefinitions {
 
@@ -26,9 +29,19 @@ public final class GameEventDefinitions {
         }
     }
 
-    /** Several fixed times per day; counts down to the nearest one. */
-    public record MultiDailyGameEvent(String id, String label, List<Integer> hours, int minute, ZoneId zone)
-            implements GameEvent {}
+    /** Area of the boss rotation a PB belongs to (QG = PB HQ, outpost = PB Colônia). */
+    public enum RotationArea { QG, OUTPOST }
+
+    /**
+     * Several fixed times per day; counts down to the nearest one. With an {@code area}, only the
+     * hours where the guild has bosses in that rotation area count (see {@link #forGuild}).
+     */
+    public record MultiDailyGameEvent(String id, String label, List<Integer> hours, int minute, ZoneId zone,
+                                      RotationArea area) implements GameEvent {
+        public MultiDailyGameEvent(String id, String label, List<Integer> hours, int minute, ZoneId zone) {
+            this(id, label, hours, minute, zone, null);
+        }
+    }
 
     public record IntervalGameEvent(String id, String label, int intervalDays, ZonedDateTime anchor)
             implements GameEvent {}
@@ -39,7 +52,23 @@ public final class GameEventDefinitions {
             new DailyGameEvent("cw2", "CW2", 14, 0, SERVER_ZONE),
             new DailyGameEvent("cw3", "CW3", 22, 0, SERVER_ZONE),
             // PBs in Brasília time.
-            new MultiDailyGameEvent("pb-hq", "PB HQ", List.of(2, 6, 10, 14, 18, 22), 0, SCHEDULE_ZONE),
-            new MultiDailyGameEvent("pb-colonia", "PB Colônia", List.of(2, 10, 18), 0, SCHEDULE_ZONE),
+            // HQ and Colônia skip the hours where the guild has no boss in the rotation; Middle is not in it.
+            new MultiDailyGameEvent("pb-hq", "PB HQ", List.of(2, 6, 10, 14, 18, 22), 0, SCHEDULE_ZONE, RotationArea.QG),
+            new MultiDailyGameEvent("pb-colonia", "PB Colônia", List.of(2, 10, 18), 0, SCHEDULE_ZONE, RotationArea.OUTPOST),
             new MultiDailyGameEvent("pb-middle", "PB Middle", List.of(2, 14), 0, SCHEDULE_ZONE));
+
+    /**
+     * The event as the guild sees it: a rotation-bound PB keeps only the hours in {@code guildHours}
+     * for its area, and disappears when none is left. {@code guildHours == null} (rotation unavailable)
+     * keeps every hour, as before the rotation existed.
+     */
+    public static Optional<GameEvent> forGuild(GameEvent event, Map<RotationArea, Set<Integer>> guildHours) {
+        if (!(event instanceof MultiDailyGameEvent multi) || multi.area() == null || guildHours == null) {
+            return Optional.of(event);
+        }
+        var allowed = guildHours.getOrDefault(multi.area(), Set.of());
+        var hours = multi.hours().stream().filter(allowed::contains).toList();
+        if (hours.isEmpty()) return Optional.empty();
+        return Optional.of(new MultiDailyGameEvent(multi.id(), multi.label(), hours, multi.minute(), multi.zone(), multi.area()));
+    }
 }
