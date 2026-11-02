@@ -79,6 +79,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/equipment-status/ingest").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/party-invites/pending").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/party-invites/*/done").permitAll()
+                        // Status ao vivo da raid pela DLL: so responde a personagem de membro aprovado em raid.
+                        .requestMatchers(HttpMethod.POST, "/api/raids/game/status").permitAll()
                         // PBs da guilda no painel do jogo: so responde a personagem de membro aprovado.
                         .requestMatchers(HttpMethod.GET, "/api/rotation/bosses/game").permitAll()
                         // Shout no jogo pela DLL: ver/enviar so para personagem de membro aprovado (enviar: Lider/Admin).

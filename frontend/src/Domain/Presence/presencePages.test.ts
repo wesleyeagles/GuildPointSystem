@@ -5,6 +5,7 @@ describe('pageFromPath', () => {
   it('maps the app routes to page keys', () => {
     expect(pageFromPath('/')).toEqual({ page: 'dashboard', detail: null })
     expect(pageFromPath('/party')).toEqual({ page: 'party', detail: null })
+    expect(pageFromPath('/raid')).toEqual({ page: 'party', detail: null })
     expect(pageFromPath('/auctions')).toEqual({ page: 'auctions', detail: null })
     expect(pageFromPath('/admin/online')).toEqual({ page: 'admin', detail: null })
     expect(pageFromPath('/server-info/some-topic.123')).toEqual({ page: 'server-info', detail: null })

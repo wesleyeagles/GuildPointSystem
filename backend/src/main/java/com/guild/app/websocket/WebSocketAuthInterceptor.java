@@ -27,6 +27,7 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
     private static final String PARTY_MEMBER_TOPIC = "/topic/parties/member/";
     private static final String PRESENCE_TOPIC = "/topic/presence";
     private static final String APPROVALS_TOPIC = "/topic/approvals";
+    private static final String RAID_TOPIC = "/topic/raids";
 
     private final JwtService jwtService;
     private final MemberDetailsService memberDetailsService;
@@ -54,6 +55,7 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
             throw new IllegalStateException("Não autorizado. Faça login novamente.");
         } else if (StompCommand.SUBSCRIBE.equals(accessor.getCommand())) {
             checkPartySubscription(accessor);
+            checkRaidSubscription(accessor);
             checkPresenceSubscription(accessor);
             checkApprovalsSubscription(accessor);
             checkQuestSubscription(accessor);
@@ -73,6 +75,17 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
         if(member==null || member.getStatus()!=MemberStatus.APROVADO || !member.isProfileComplete()
             || !destination.equals("/topic/quests/member/"+member.getId()))
             throw new IllegalStateException("Não autorizado.");
+    }
+
+    /** Raids and their live HP/FP/SP: approved members, like {@code GET /api/raids}. */
+    private void checkRaidSubscription(StompHeaderAccessor accessor) {
+        var destination = accessor.getDestination();
+        if (destination == null || !destination.startsWith(RAID_TOPIC)) return;
+        var member = accessor.getUser() instanceof UsernamePasswordAuthenticationToken auth
+                && auth.getPrincipal() instanceof MemberPrincipal principal ? principal : null;
+        if (member == null || member.getStatus() != MemberStatus.APROVADO) {
+            throw new IllegalStateException("Não autorizado.");
+        }
     }
 
     /** Who is online and where: leadership only, like {@code GET /api/presence}. */

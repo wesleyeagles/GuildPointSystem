@@ -4,6 +4,9 @@ const LOG_TYPE_LABELS: Record<AuditLogType, string> = {
   PARTY_DISCORD_CALLED: 'PT chamada no Discord',
   PARTY_GAME_INVITE: 'PT chamada no jogo',
   SHOUT: 'Shout no jogo',
+  RAID_CREATED: 'Raid criada',
+  RAID_DISBANDED: 'Raid desfeita',
+  RAID_GAME_INVITE: 'Raid chamada no jogo',
   DLL_RELEASED: 'Nova versão da DLL',
   PARTY_QUEUE_UPDATED: 'Fila de PT atualizada',
   ROTATION_UPDATED: 'Rotação atualizada',
@@ -74,6 +77,13 @@ export function formatLogDetails(log: AuditLogEntry): string {
       return `v${str(p.version)} · ${str(p.fileName)}`
     case 'SHOUT':
       return str(p.message)
+    case 'RAID_CREATED':
+    case 'RAID_DISBANDED':
+      return str(p.name)
+    case 'RAID_GAME_INVITE':
+      return Array.isArray(p.groups)
+        ? `${str(p.name)} · ${p.groups.map((g: { group?: unknown; leader?: unknown }) => `Subgrupo ${str(g.group)}: ${str(g.leader)}`).join(' · ')}`
+        : str(p.name)
     case 'PARTY_GAME_INVITE':
       return Array.isArray(p.nicks) ? `Convites: ${p.nicks.join(', ')}` : ''
     case 'QUEST_CATALOG_UPDATED':

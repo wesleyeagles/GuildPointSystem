@@ -4,6 +4,7 @@ import com.guild.app.common.security.SecurityUtils;
 import com.guild.app.party.service.PartyGameInviteService;
 import com.guild.app.party.service.PartyGameInviteService.InviteView;
 import com.guild.app.party.service.PartyGameInviteService.PendingInvite;
+import com.guild.app.raid.service.RaidService;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +19,7 @@ import java.util.UUID;
 @Validated
 public class PartyGameInviteController {
     private final PartyGameInviteService service;
+    private final RaidService raids;
 
     @PostMapping("/api/parties/{id}/game-invite")
     @PreAuthorize("isAuthenticated()")
@@ -30,14 +32,17 @@ public class PartyGameInviteController {
         return view == null ? ResponseEntity.noContent().build() : ResponseEntity.ok(view);
     }
 
-    /** DLL do líder: público, pelo nome do personagem (liberado no SecurityConfig). 204 = nada a fazer. */
+    /**
+     * DLL do líder: público, pelo nome do personagem (liberado no SecurityConfig). 204 = nada a fazer.
+     * Também entrega os convites de subgrupo de raid, no mesmo formato, para a DLL atual chamá-los.
+     */
     @GetMapping("/api/party-invites/pending")
     public ResponseEntity<PendingInvite> pending(@RequestParam @NotBlank @Size(max = 32) String character) {
-        return service.pending(character).map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.noContent().build());
+        return service.pending(character).or(() -> raids.pending(character)).map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.noContent().build());
     }
 
     @PostMapping("/api/party-invites/{id}/done")
     public ResponseEntity<Void> done(@PathVariable UUID id, @RequestParam @NotBlank @Size(max = 32) String character) {
-        return service.done(id, character) ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
+        return service.done(id, character) || raids.done(id, character) ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
     }
 }

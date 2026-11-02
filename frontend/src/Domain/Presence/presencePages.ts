@@ -36,6 +36,8 @@ const SECTIONS: Record<string, PresencePage> = {
   objectives: 'events',
   events: 'events',
   party: 'party',
+  // Sem chave própria no servidor (PresenceRegistry.PAGES): a raid aparece como Party.
+  raid: 'party',
   items: 'auctions',
   admin: 'admin',
   'server-info': 'server-info',

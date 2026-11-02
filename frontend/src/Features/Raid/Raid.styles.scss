@@ -1,0 +1,271 @@
+.raid-page {
+  display: flex;
+  flex-direction: column;
+  gap: theme.$spacing-lg;
+
+  &__intro {
+    margin: 0 0 theme.$spacing-md;
+    color: theme.$color-text-muted;
+  }
+
+  &__create {
+    display: flex;
+    gap: theme.$spacing-sm;
+    flex-wrap: wrap;
+  }
+
+  &__name {
+    @include theme.field-input;
+    @include theme.field-control-height;
+    flex: 1;
+    min-width: 220px;
+    max-width: 420px;
+  }
+
+  &__empty {
+    margin: 0;
+    color: theme.$color-text-muted;
+  }
+}
+
+.raid-card {
+  &__actions {
+    display: flex;
+    gap: theme.$spacing-xs;
+  }
+
+  &__meta {
+    margin-bottom: theme.$spacing-sm;
+    color: theme.$color-text-muted;
+
+    strong { color: theme.$color-text; }
+  }
+}
+
+.raid-invite {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: theme.$spacing-xs;
+  margin-bottom: theme.$spacing-md;
+
+  &__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-size: theme.$font-size-heading;
+    color: theme.$color-text-muted;
+  }
+
+  &__item--complete { color: theme.$color-success; }
+  &__item--expired { color: theme.$color-danger; }
+}
+
+// Grade de subgrupos, no estilo da janela de PT do jogo: uma coluna por PT.
+.raid-groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: theme.$spacing-sm;
+}
+
+.raid-group {
+  @include theme.slot;
+  padding: theme.$spacing-xs;
+  min-height: 90px;
+  transition: border-color 0.15s;
+
+  &--drop { border-color: theme.$color-primary; }
+
+  &--new {
+    opacity: 0.7;
+    border-style: dashed;
+  }
+
+  &__title {
+    display: flex;
+    justify-content: space-between;
+    padding: 2px 4px 6px;
+    font-family: theme.$font-mono;
+    font-size: theme.$font-size-heading;
+    color: theme.$color-amber;
+
+    span { color: theme.$color-text-muted; }
+  }
+
+  &__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  &__hint {
+    margin: 0;
+    padding: 0 4px;
+    font-size: theme.$font-size-heading;
+    color: theme.$color-text-muted;
+  }
+}
+
+.raid-member {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 3px 4px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid transparent;
+
+  &[draggable='true'] { cursor: grab; }
+
+  &__head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  &--offline &__name { color: theme.$color-text-muted; }
+  &--dead &__name { color: theme.$color-danger; text-decoration: line-through; }
+
+  &__bars {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  &__status {
+    font-size: theme.$font-size-heading;
+    color: theme.$color-text-faint;
+  }
+  &:hover { border-color: theme.$color-border; }
+
+  &__fallback {
+    width: 22px;
+    text-align: center;
+    color: theme.$color-text-muted;
+  }
+
+  &__level {
+    font-family: theme.$font-mono;
+    font-size: theme.$font-size-heading;
+    color: theme.$color-text-muted;
+  }
+
+  &__name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: theme.$color-cyan;
+  }
+
+  &__badge {
+    @include theme.tag(theme.$color-text-muted);
+    padding: 2px 4px;
+
+    &--raid { color: theme.$color-gold; }
+  }
+
+  &__actions {
+    display: none;
+    gap: 2px;
+
+    button {
+      padding: 0 5px;
+      background: transparent;
+      border: 1px solid theme.$color-border;
+      color: theme.$color-text-muted;
+      font-size: theme.$font-size-heading;
+      cursor: pointer;
+
+      &:hover { color: theme.$color-text; border-color: theme.$color-primary; }
+    }
+  }
+
+  &:hover &__actions,
+  &:focus-within &__actions { display: inline-flex; }
+}
+
+.raid-add {
+  max-width: 520px;
+  width: 100%;
+
+  &__body {
+    display: flex;
+    flex-direction: column;
+    gap: theme.$spacing-md;
+  }
+
+  &__filters {
+    display: flex;
+    gap: theme.$spacing-sm;
+    flex-wrap: wrap;
+  }
+
+  &__search,
+  &__group {
+    @include theme.field-input;
+    @include theme.field-control-height;
+    flex: 1;
+    min-width: 180px;
+  }
+
+  &__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 50vh;
+    overflow-y: auto;
+  }
+
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: theme.$spacing-sm;
+    padding: 6px theme.$spacing-xs;
+    border-bottom: 1px solid theme.$color-border;
+    cursor: pointer;
+  }
+
+  &__name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__level {
+    font-family: theme.$font-mono;
+    color: theme.$color-text-muted;
+  }
+
+  &__empty { margin: 0; color: theme.$color-text-muted; }
+  &__warn { margin: 0; color: theme.$color-warning; }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: theme.$spacing-sm;
+  }
+}
+
+// Barras como na janela de PT do jogo: HP vermelho, FP azul, SP amarelo.
+.raid-bar {
+  display: block;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.08);
+
+  &__fill {
+    display: block;
+    height: 100%;
+    transition: width 0.3s;
+  }
+
+  &--hp { height: 6px; }
+  &--hp &__fill { background: #d83a32; }
+  &--fp &__fill { background: #3a7ee0; }
+  &--sp &__fill { background: #d6b05a; }
+}

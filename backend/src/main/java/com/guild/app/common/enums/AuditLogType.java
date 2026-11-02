@@ -38,7 +38,10 @@ public enum AuditLogType {
     PARTY_QUEUE_UPDATED,
     PARTY_GAME_INVITE,
     DLL_RELEASED,
-    SHOUT;
+    SHOUT,
+    RAID_CREATED,
+    RAID_DISBANDED,
+    RAID_GAME_INVITE;
 
     public boolean isEquipmentPrivate() {
         return this == EQUIPMENT_CHANGED || this == EQUIPMENT_CATALOG_IMPORTED;

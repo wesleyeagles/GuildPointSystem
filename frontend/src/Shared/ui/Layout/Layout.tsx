@@ -32,6 +32,7 @@ const NAV_ITEMS = [
   { to: '/donate', label: 'Doar Disena' },
   { to: '/events', label: 'Eventos' },
   { to: '/party', label: 'Party' },
+  { to: '/raid', label: 'Raid' },
   { to: '/equipment', label: 'Equipamentos' },
   { to: '/quests', label: 'Quests' },
   { to: '/rotation', label: 'Rotação' },

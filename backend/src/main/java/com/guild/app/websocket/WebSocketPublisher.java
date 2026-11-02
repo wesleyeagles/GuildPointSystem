@@ -79,6 +79,16 @@ public class WebSocketPublisher {
         send("/topic/parties/member/" + memberId, payload);
     }
 
+    /** Alguma raid mudou: o site busca a lista de novo. */
+    public void publishRaids() {
+        send("/topic/raids", Map.of("changed", true));
+    }
+
+    /** HP/FP/SP ao vivo dos integrantes de uma raid (enviados pela DLL de cada um). */
+    public void publishRaidLive(Long raidId, Object payload) {
+        send("/topic/raids/" + raidId + "/live", payload);
+    }
+
     /** Account-level notices for one member (e.g. ACCOUNT_DELETED → the client logs out). */
     public void publishAccountNotice(Long memberId, Object payload) {
         send("/topic/account/" + memberId, payload);
