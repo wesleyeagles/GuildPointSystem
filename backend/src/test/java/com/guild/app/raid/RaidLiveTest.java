@@ -180,6 +180,26 @@ class RaidLiveTest {
         verify(ws).publishRaidLiveAll(eq(raid.id()), argThat(l -> l instanceof List<?> list && list.size() == 2));
     }
 
+    @Test void positionsGoOnlyToDllsThatAskForThem() throws Exception {
+        var raid = raids.create("Raid", as(leaderId));
+        raids.addMembers(raid.id(), List.of(otherId), null, as(leaderId));
+        report(otherNick, "50\t10\t800\t0\t300\t0\t40\nE\t\nL\t1\t7920\t-2224");
+        String fx2 = mvc.perform(post("/api/raids/game/status").param("character", leaderNick).param("fx", "2")
+                .contentType(MediaType.TEXT_PLAIN).content("55\t900\t1000\t300\t400\t50\t60\nE\t\nL\t1\t100\t200"))
+            .andReturn().getResponse().getContentAsString();
+        var lines = fx2.split("\n");
+        assertEquals("1,100,200", lines[1].split("\t", -1)[12]);
+        assertEquals("1,7920,-2224", lines[2].split("\t", -1)[12]);
+        String fx1 = mvc.perform(post("/api/raids/game/status").param("character", leaderNick).param("fx", "1")
+                .contentType(MediaType.TEXT_PLAIN).content("55\t900\t1000\t300\t400\t50\t60"))
+            .andReturn().getResponse().getContentAsString();
+        assertEquals(12, fx1.split("\n")[1].split("\t", -1).length);  // a DLL que só pede fx=1 não recebe a posição
+        for (String bad : List.of("L\t1\t2", "L\t-1\t0\t0", "L\t1\tx\t0", "L\t1\t0\t2000000", "X\t1\t2\t3"))
+            mvc.perform(post("/api/raids/game/status").param("character", leaderNick)
+                    .contentType(MediaType.TEXT_PLAIN).content("55\t900\t1000\t300\t400\t50\t60\n" + bad))
+                .andExpect(status().isBadRequest());
+    }
+
     @Test void invalidEffectsAreRejected() throws Exception {
         raids.create("Raid", as(leaderId));
         for (String effects : List.of("0,3,7,X,Nome", "0,3", "16,3,7,B,Nome", "0,3,7,B,x,Nome", "0,3,7,B,4096,Nome", "0,3,7,B," + "a".repeat(33), "0,3,7,B,Tab\tNo"))

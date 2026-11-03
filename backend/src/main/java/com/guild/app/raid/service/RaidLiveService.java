@@ -46,8 +46,10 @@ public class RaidLiveService {
      * icon: célula na folha de ícones do tipo (/effect-icons/{skill,force,class}.png); -1 = desconhecido.
      */
     public record Effect(int type, int index, int level, boolean debuff, int icon, String name) {}
-    record Report(Vitals vitals, List<Effect> effects) {}
-    private record Live(Vitals vitals, List<Effect> effects, Instant at) {}
+    /** Onde o personagem está: índice do mapa do jogo e posição no mundo (X e Z), como o mapa do jogo usa. */
+    public record Position(int map, int x, int z) {}
+    record Report(Vitals vitals, List<Effect> effects, Position position) {}
+    private record Live(Vitals vitals, List<Effect> effects, Position position, Instant at) {}
     /** Para o site: ageMs = há quanto tempo veio o último envio (-1 = nunca). */
     public record LiveMember(Long memberId, int level, int hp, int hpMax, int fp, int fpMax, int sp, int spMax, long ageMs,
                              List<Effect> effects) {}
@@ -61,18 +63,32 @@ public class RaidLiveService {
      * Corpo da DLL: "level<TAB>hp<TAB>hpMax<TAB>fp<TAB>fpMax<TAB>sp<TAB>spMax" e, a partir da 1.7.0, uma segunda
      * linha "E<TAB>efeitos" com "tipo,indice,nivel,B|D,icone,nome" separados por ';' (vazia = nenhum). O nome
      * nunca tem vírgula, então também vale o formato sem ícone ("tipo,indice,nivel,B|D,nome").
+     * Depois (DLL com fx=2), uma linha "L<TAB>mapa<TAB>x<TAB>z" com o índice do mapa e a posição no mundo.
      */
     static Report parse(String body) {
         if (body == null) throw invalid();
         String[] lines = body.strip().split("\r?\n", -1);
-        if (lines.length > 2) throw invalid();
+        if (lines.length > 3) throw invalid();
         List<Effect> effects = List.of();
-        if (lines.length == 2) {
+        Position position = null;
+        for (int i = 1; i < lines.length; i++) {
+            String line = lines[i];
             // "E" sozinho: lista vazia (o strip() do corpo leva o TAB final de "E<TAB>").
-            if (!lines[1].equals("E") && !lines[1].startsWith("E\t")) throw invalid();
-            effects = lines[1].length() <= 2 ? List.of() : parseEffects(lines[1].substring(2));
+            if (line.equals("E") || line.startsWith("E\t")) effects = line.length() <= 2 ? List.of() : parseEffects(line.substring(2));
+            else if (line.startsWith("L\t")) position = parsePosition(line.substring(2));
+            else throw invalid();
         }
-        return new Report(parseVitals(lines[0]), effects);
+        return new Report(parseVitals(lines[0]), effects, position);
+    }
+
+    static Position parsePosition(String text) {
+        String[] f = text.split("\t", -1);
+        if (f.length != 3) throw invalid();
+        try {
+            int map = Integer.parseInt(f[0]), x = Integer.parseInt(f[1]), z = Integer.parseInt(f[2]);
+            if (map < 0 || map > 1000 || Math.abs(x) > 1_000_000 || Math.abs(z) > 1_000_000) throw invalid();
+            return new Position(map, x, z);
+        } catch (NumberFormatException e) { throw invalid(); }
     }
 
     static List<Effect> parseEffects(String text) {
@@ -122,8 +138,16 @@ public class RaidLiveService {
         return report(character, body, false);
     }
 
-    /** withEffects: a DLL pediu (fx=1) a 12a coluna, com os efeitos de cada integrante. */
     public Optional<String> report(String character, String body, boolean withEffects) {
+        return report(character, body, withEffects ? 1 : 0);
+    }
+
+    /**
+     * fx: o que a DLL entende na resposta. 1 (1.7.0+): marca de raid e 12a coluna com os efeitos;
+     * 2: também a 13a coluna com o mapa e a posição de cada integrante ("mapa,x,z"; vazia = sem posição).
+     */
+    public Optional<String> report(String character, String body, int fx) {
+        boolean withEffects = fx >= 1;
         Report report = parse(body);
         if (character == null || character.isBlank() || character.length() > 32) return Optional.empty();
         Instant now = clock.instant();
@@ -132,13 +156,13 @@ public class RaidLiveService {
             if (!RaidService.eligible(member)) continue;
             RaidView raid = current.byMember().get(member.getId());
             if (raid == null) continue;
-            live.put(member.getId(), new Live(report.vitals(), report.effects(), now));
+            live.put(member.getId(), new Live(report.vitals(), report.effects(), report.position(), now));
             dirty.add(raid.id());
             // Oculto: continua enviando a cada 1 s (DLL 1.7.0+ recebe "O"), mas sem raid para mostrar.
             // A DLL 1.6.0 recebe 204 e passa a enviar a cada 10 s.
             boolean hidden = raid.members().stream().anyMatch(m -> m.id().equals(member.getId()) && m.hidden());
             if (hidden) return withEffects ? Optional.of(OBSERVED) : Optional.empty();
-            return Optional.of(render(raid, now, withEffects));
+            return Optional.of(render(raid, now, fx));
         }
         return Optional.empty();
     }
@@ -193,7 +217,8 @@ public class RaidLiveService {
         }).toList();
     }
 
-    private String render(RaidView raid, Instant now, boolean withEffects) {
+    private String render(RaidView raid, Instant now, int fx) {
+        boolean withEffects = fx >= 1;
         var out = new StringBuilder("R\t").append(raid.id()).append('\t').append(clean(raid.name())).append('\n');
         for (var m : raid.members()) {
             Live l = live.get(m.id());
@@ -208,6 +233,10 @@ public class RaidLiveService {
                 .append('\t').append(v.sp()).append('\t').append(v.spMax())
                 .append('\t').append(flags.isEmpty() ? "-" : flags).append('\t').append(age);
             if (withEffects) out.append('\t').append(l != null ? effectsField(l.effects()) : "");
+            if (fx >= 2) {
+                Position p = l != null ? l.position() : null;
+                out.append('\t').append(p != null ? p.map() + "," + p.x() + "," + p.z() : "");
+            }
             out.append('\n');
         }
         return out.toString();
