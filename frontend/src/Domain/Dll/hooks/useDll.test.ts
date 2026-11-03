@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { dllUpdatesItself, type DllRelease } from './useDll'
+import { dllAtLeast, dllUpdatesItself, type DllRelease } from './useDll'
 
 const release = (autoUpdate: boolean): DllRelease => ({
   id: 1,
@@ -21,5 +21,17 @@ describe('dllUpdatesItself', () => {
     expect(dllUpdatesItself('1.2.0', release(false))).toBe(false)
     expect(dllUpdatesItself(null, release(true))).toBe(false)
     expect(dllUpdatesItself('x.y', release(true))).toBe(false)
+  })
+})
+
+describe('dllAtLeast', () => {
+  it('compara parte a parte, sem versão ou inválida não passa', () => {
+    expect(dllAtLeast('1.7.0', [1, 7, 0])).toBe(true)
+    expect(dllAtLeast('1.7.1', [1, 7, 0])).toBe(true)
+    expect(dllAtLeast('1.10.0', [1, 7, 0])).toBe(true)
+    expect(dllAtLeast('1.6.9', [1, 7, 0])).toBe(false)
+    expect(dllAtLeast('1.7', [1, 7, 0])).toBe(true)
+    expect(dllAtLeast(null, [1, 7, 0])).toBe(false)
+    expect(dllAtLeast('x', [1, 7, 0])).toBe(false)
   })
 })

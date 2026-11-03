@@ -22,6 +22,8 @@ export interface CharacterStatusView {
   mapName: string | null
   regionName: string | null
   locationAt: string | null
+  /** Versão da DLL no último envio; null = cliente sem versão. */
+  dllVersion: string | null
 }
 
 export const characterStatusKeys = {

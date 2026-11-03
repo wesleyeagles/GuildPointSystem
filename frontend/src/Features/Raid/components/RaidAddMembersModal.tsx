@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { useMemberRanking } from '@/Domain/Member/hooks/useMembers'
 import { useCharacterRanking } from '@/Domain/CharacterStatus/hooks/useCharacterStatus'
+import { dllAtLeast } from '@/Domain/Dll/hooks/useDll'
 import { nextFreeGroup, raidGroups, raidKeys, RAID_GROUP_SIZE, useAddRaidMembers, type Raid } from '@/Domain/Raid/hooks/useRaids'
 import { Button } from '@/Shared/ui/components/Button/Button'
 import { MemberClassIcon } from '@/Shared/ui/components/MemberClassIcon/MemberClassIcon'
@@ -10,10 +11,13 @@ import { useAppToast } from '@/Shared/ui/components/AppToast/AppToast'
 import '@/Features/Auth/Auth.styles.scss'
 
 /**
- * Escolhe vários membros de uma vez, sem limite. Fica de fora quem já está em alguma raid.
+ * Escolhe vários membros de uma vez, sem limite. Fica de fora quem já está em alguma raid e quem não
+ * envia com a DLL 1.7.0 ou mais nova (a primeira com o painel de raid completo: buffs, marcas, oculto).
  * "Automático" põe cada um no primeiro subgrupo com vaga. Vai para o body (portal): dentro do
  * painel da raid, que corta o conteúdo, a sobreposição ficaria presa ao painel.
  */
+const RAID_MIN_DLL = [1, 7, 0] as const
+
 export function RaidAddMembersModal({ raid, onClose }: { raid: Raid; onClose: () => void }) {
   const { showToast } = useAppToast()
   const queryClient = useQueryClient()
@@ -34,15 +38,17 @@ export function RaidAddMembersModal({ raid, onClose }: { raid: Raid; onClose: ()
 
   const busy = new Set<number>()
   for (const r of queryClient.getQueryData<Raid[]>(raidKeys.all) ?? [raid]) r.members.forEach((m) => busy.add(m.id))
-  // Level do jogo (último status enviado pela DLL), como na Party; sem status, o do cadastro.
-  const gameLevel = new Map<number, { level: number; at: string }>()
+  // Level e versão da DLL do último status enviado, como na Party; sem status, o level do cadastro.
+  const gameLevel = new Map<number, { level: number; at: string; dll: string | null }>()
   for (const s of statuses) {
     const current = gameLevel.get(s.memberId)
-    if (!current || s.updatedAt > current.at) gameLevel.set(s.memberId, { level: s.level, at: s.updatedAt })
+    if (!current || s.updatedAt > current.at) gameLevel.set(s.memberId, { level: s.level, at: s.updatedAt, dll: s.dllVersion })
   }
+  const free = members.filter((m) => !busy.has(m.id))
+  const eligible = free.filter((m) => dllAtLeast(gameLevel.get(m.id)?.dll, RAID_MIN_DLL))
+  const oldDll = free.length - eligible.length
   const term = search.trim().toLocaleLowerCase('pt-BR')
-  const available = members
-    .filter((m) => !busy.has(m.id))
+  const available = eligible
     .filter((m) => !term || m.nickname.toLocaleLowerCase('pt-BR').includes(term))
     .sort((a, b) => a.nickname.localeCompare(b.nickname, 'pt-BR'))
 
@@ -101,7 +107,9 @@ export function RaidAddMembersModal({ raid, onClose }: { raid: Raid; onClose: ()
           {isLoading ? (
             <p className="raid-add__empty">Carregando membros...</p>
           ) : available.length === 0 ? (
-            <p className="raid-add__empty">{term ? 'Nenhum membro encontrado.' : 'Todos os membros já estão em uma raid.'}</p>
+            <p className="raid-add__empty">
+              {term ? 'Nenhum membro encontrado.' : oldDll ? 'Ninguém fora de raid com a DLL 1.7.0 ou mais nova.' : 'Todos os membros já estão em uma raid.'}
+            </p>
           ) : (
             <ul className="raid-add__list">
               {available.map((m) => (
@@ -119,6 +127,9 @@ export function RaidAddMembersModal({ raid, onClose }: { raid: Raid; onClose: ()
                 </li>
               ))}
             </ul>
+          )}
+          {oldDll > 0 && (
+            <p className="raid-add__hint">{oldDll} membro(s) sem a DLL 1.7.0 ou mais nova não aparecem na lista.</p>
           )}
           <label className="raid-add__visible">
             <input type="checkbox" checked={visible} onChange={(e) => setVisible(e.target.checked)} />

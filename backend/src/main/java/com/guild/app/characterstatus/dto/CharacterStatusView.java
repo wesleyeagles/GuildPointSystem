@@ -20,5 +20,7 @@ public record CharacterStatusView(
         /** Local no ultimo envio (mapa, regiao do mini-mapa); null = DLL sem leitura de local. */
         String mapName,
         String regionName,
-        Instant locationAt
+        Instant locationAt,
+        /** Versao da DLL no ultimo envio (null = cliente sem versao). */
+        String dllVersion
 ) {}

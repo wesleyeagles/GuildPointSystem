@@ -39,16 +39,21 @@ const FALLBACK_DOWNLOAD_URL = '/version.rar?v=1.0.0'
 /** Primeira versão da DLL com atualização automática assinada. */
 const FIRST_AUTO_UPDATE_VERSION = [1, 2, 0]
 
-/** A DLL instalada se troca sozinha pela release publicada (assinada e instalada >= 1.2.0). */
-export function dllUpdatesItself(installed: string | null | undefined, latest: DllRelease | null | undefined) {
-  if (!latest?.autoUpdate || !installed) return false
+/** A versão instalada é igual ou mais nova que `minimum` (ex.: [1, 7, 0]); sem versão, não. */
+export function dllAtLeast(installed: string | null | undefined, minimum: readonly number[]) {
+  if (!installed) return false
   const parts = installed.split('.').map(Number)
   if (parts.some(Number.isNaN)) return false
-  for (let i = 0; i < FIRST_AUTO_UPDATE_VERSION.length; i++) {
-    const diff = (parts[i] ?? 0) - FIRST_AUTO_UPDATE_VERSION[i]
+  for (let i = 0; i < minimum.length; i++) {
+    const diff = (parts[i] ?? 0) - minimum[i]
     if (diff !== 0) return diff > 0
   }
   return true
+}
+
+/** A DLL instalada se troca sozinha pela release publicada (assinada e instalada >= 1.2.0). */
+export function dllUpdatesItself(installed: string | null | undefined, latest: DllRelease | null | undefined) {
+  return !!latest?.autoUpdate && dllAtLeast(installed, FIRST_AUTO_UPDATE_VERSION)
 }
 
 /** Link do botão "Download DLL": sempre a versão mais recente publicada. */
