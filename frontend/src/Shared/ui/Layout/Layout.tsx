@@ -9,7 +9,6 @@ import { EventToastProvider } from '@/Features/Events/components/EventToast/Even
 import { EventCreateModal } from '@/Features/Events/components/EventCreateModal/EventCreateModal'
 import { PartyLocationPointsModal } from '@/Features/Party/components/PartyLocationPointsModal'
 import { AppToastProvider } from '@/Shared/ui/components/AppToast/AppToast'
-import { MemberClassIcon } from '@/Shared/ui/components/MemberClassIcon/MemberClassIcon'
 import { getSocketState, type SocketState } from '@/Shared/websocket/socketClient'
 import { serverNow } from '@/Shared/utils/serverClock'
 import { EventHeaderTimers } from '@/Shared/ui/Layout/EventHeaderTimers'
@@ -145,19 +144,7 @@ function LayoutShell() {
             className={`layout__member-head${location.pathname === PROFILE_ITEM.to ? ' layout__member-head--active' : ''}`}
             title="Abrir meu perfil"
           >
-            {member?.classImageUrl ? (
-              <MemberClassIcon
-                classImageUrl={member.classImageUrl}
-                classLabel={member.className}
-                size="md"
-              />
-            ) : (
-              <span className="layout__member-slot" aria-hidden="true" />
-            )}
-            <div className="layout__member-id">
-              <span className="layout__member-name">{user?.nickname ?? 'Membro'}</span>
-              <span className="layout__member-class">{member?.className ?? '—'}</span>
-            </div>
+            <span className="layout__member-name">{user?.nickname ?? 'Membro'}</span>
           </Link>
 
           {member && (

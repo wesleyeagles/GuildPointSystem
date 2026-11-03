@@ -85,34 +85,12 @@ $drawer-breakpoint: 960px;
     }
   }
 
-  &__member-slot {
-    @include theme.slot(4px);
-    width: 46px;
-    height: 46px;
-    flex-shrink: 0;
-  }
-
-  &__member-id {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-  }
-
   &__member-name {
     font-family: theme.$font-heading;
     font-size: 18px;
     font-weight: 800;
     letter-spacing: 0.5px;
     color: theme.$color-text;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  &__member-class {
-    font-family: theme.$font-mono;
-    font-size: theme.$font-size-heading;
-    color: theme.$color-text-muted;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
