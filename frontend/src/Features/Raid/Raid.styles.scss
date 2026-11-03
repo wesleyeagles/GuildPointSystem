@@ -269,3 +269,33 @@
   &--fp &__fill { background: #3a7ee0; }
   &--sp &__fill { background: #d6b05a; }
 }
+
+// Buffs e debuffs do integrante, abaixo das barras.
+.raid-effects {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  margin-top: 2px;
+}
+
+.raid-effect {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  color: #ececec;
+  background: #28704a;
+  border: 1px solid #60b882;
+  overflow: hidden;
+
+  img { width: 100%; height: 100%; display: block; }
+
+  &--debuff {
+    background: #962a26;
+    border-color: #d65a50;
+  }
+}

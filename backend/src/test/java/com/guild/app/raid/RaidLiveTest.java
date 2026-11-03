@@ -114,6 +114,38 @@ class RaidLiveTest {
         verify(ws, times(1)).publishRaidLive(eq(raid.id()), argThat(list -> list instanceof List<?> l && l.size() == 1));
     }
 
+    @Test void effectsTravelOnlyToDllsThatAskForThem() throws Exception {
+        var raid = raids.create("Raid", as(leaderId));
+        raids.addMembers(raid.id(), List.of(otherId), null, as(leaderId));
+        report(otherNick, "50\t10\t800\t0\t300\t0\t40\nE\t0,3,7,B,Rage Range;2,45,1,D,Trust");
+
+        String withFx = mvc.perform(post("/api/raids/game/status").param("character", leaderNick).param("fx", "1")
+                .contentType(MediaType.TEXT_PLAIN).content("55\t900\t1000\t300\t400\t50\t60\nE\t"))
+            .andReturn().getResponse().getContentAsString();
+        var lines = withFx.split("\n");
+        assertEquals(12, lines[1].split("\t", -1).length);
+        assertEquals("", lines[1].split("\t", -1)[11]);  // o lider nao tem efeitos
+        assertEquals("0,3,7,B,Rage Range;2,45,1,D,Trust", lines[2].split("\t", -1)[11]);
+
+        String old = report(leaderNick, "55\t900\t1000\t300\t400\t50\t60");  // DLL 1.6.0: sem fx
+        for (String line : old.split("\n")) if (!line.startsWith("R\t")) assertEquals(11, line.split("\t", -1).length);
+
+        var healer = live.forRaid(raid.id(), as(outsiderId)).stream().filter(m -> m.memberId() == otherId).findFirst().orElseThrow();
+        assertEquals(List.of(new RaidLiveService.Effect(0, 3, 7, false, "Rage Range"), new RaidLiveService.Effect(2, 45, 1, true, "Trust")),
+            healer.effects());
+    }
+
+    @Test void invalidEffectsAreRejected() throws Exception {
+        raids.create("Raid", as(leaderId));
+        for (String effects : List.of("0,3,7,X,Nome", "0,3", "16,3,7,B,Nome", "0,3,7,B," + "a".repeat(33), "0,3,7,B,Tab\tNo"))
+            mvc.perform(post("/api/raids/game/status").param("character", leaderNick)
+                    .contentType(MediaType.TEXT_PLAIN).content("50\t1\t2\t1\t2\t1\t2\nE\t" + effects))
+                .andExpect(status().isBadRequest());
+        mvc.perform(post("/api/raids/game/status").param("character", leaderNick)
+                .contentType(MediaType.TEXT_PLAIN).content("50\t1\t2\t1\t2\t1\t2\nX\tlixo"))
+            .andExpect(status().isBadRequest());
+    }
+
     @Test void invalidBodiesAreRejected() throws Exception {
         raids.create("Raid", as(leaderId));
         for (String body : List.of("", "1\t2\t3", "0\t1\t2\t1\t2\t1\t2", "50\t3\t2\t1\t2\t1\t2", "50\tx\t2\t1\t2\t1\t2", "50\t-1\t2\t1\t2\t1\t2"))

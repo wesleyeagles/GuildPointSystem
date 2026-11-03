@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isRaidMemberOnline, nextFreeGroup, raidGroups, type Raid, type RaidMember } from './useRaids'
+import { effectIconUrl, effectSlug, isRaidMemberOnline, nextFreeGroup, raidGroups, type Raid, type RaidMember } from './useRaids'
 
 const member = (id: number, group: number): RaidMember => ({
   id, nickname: `M${id}`, className: null, classImageUrl: null, level: 50, group, raidLeader: id === 1, groupLeader: false,
@@ -24,7 +24,7 @@ describe('nextFreeGroup', () => {
 })
 
 describe('isRaidMemberOnline', () => {
-  const vitals = { memberId: 1, level: 50, hp: 1, hpMax: 2, fp: 1, fpMax: 2, sp: 1, spMax: 2, ageMs: 1000 }
+  const vitals = { memberId: 1, level: 50, hp: 1, hpMax: 2, fp: 1, fpMax: 2, sp: 1, spMax: 2, ageMs: 1000, effects: [] }
   it('counts the time since the message arrived on top of the server age', () => {
     expect(isRaidMemberOnline(vitals, 10_000, 13_000)).toBe(true)
     expect(isRaidMemberOnline(vitals, 10_000, 14_000)).toBe(false)
@@ -32,5 +32,17 @@ describe('isRaidMemberOnline', () => {
   it('treats members that never reported as offline', () => {
     expect(isRaidMemberOnline({ ...vitals, ageMs: -1 }, 10_000, 10_000)).toBe(false)
     expect(isRaidMemberOnline(undefined, 10_000, 10_000)).toBe(false)
+  })
+})
+
+describe('effectIconUrl', () => {
+  it('uses the force icons the site already has, by name', () => {
+    expect(effectSlug("Air Blast")).toBe('air-blast')
+    expect(effectIconUrl({ type: 2, index: 1, level: 1, debuff: false, name: 'Tempo' })).toBe('/forces/tempo.png')
+    expect(effectIconUrl({ type: 2, index: 1, level: 1, debuff: false, name: 'Chain Lightning' })).toBe('/forces/chain-lightning.png')
+  })
+  it('falls back to the initial for skills and unknown forces', () => {
+    expect(effectIconUrl({ type: 0, index: 3, level: 7, debuff: false, name: 'Tempo' })).toBeNull()
+    expect(effectIconUrl({ type: 2, index: 45, level: 1, debuff: false, name: 'Trust' })).toBeNull()
   })
 })

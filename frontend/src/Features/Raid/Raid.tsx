@@ -11,10 +11,12 @@ import {
   useRemoveRaidMember,
   useSetRaidGroupLeader,
   useTransferRaidLeader,
+  effectIconUrl,
   isRaidMemberOnline,
   useNowTick,
   useRaidLive,
   type Raid,
+  type RaidEffect,
   type RaidLive,
   type RaidMember,
 } from '@/Domain/Raid/hooks/useRaids'
@@ -38,6 +40,23 @@ function Bar({ kind, value, max }: { kind: 'hp' | 'fp' | 'sp'; value: number; ma
   return (
     <span className={`raid-bar raid-bar--${kind}`} title={`${kind.toUpperCase()} ${value}/${max}`}>
       <span className="raid-bar__fill" style={{ width: `${pct}%` }} />
+    </span>
+  )
+}
+
+/** Buffs (verde) e debuffs (vermelho), como a fileira de ícones da janela de PT do jogo. */
+function EffectList({ effects }: { effects: RaidEffect[] }) {
+  return (
+    <span className="raid-effects">
+      {effects.map((effect, i) => {
+        const icon = effectIconUrl(effect)
+        const title = `${effect.name || 'Efeito'}${effect.level ? ` (nível ${effect.level})` : ''}${effect.debuff ? ' — debuff' : ''}`
+        return (
+          <span key={`${effect.type}-${effect.index}-${i}`} className={`raid-effect${effect.debuff ? ' raid-effect--debuff' : ''}`} title={title}>
+            {icon ? <img src={icon} alt="" /> : (effect.name[0] ?? '?')}
+          </span>
+        )
+      })}
     </span>
   )
 }
@@ -89,6 +108,7 @@ function RaidMemberRow({ raid, member, live, now, onAction }: {
           <Bar kind="hp" value={vitals.hp} max={vitals.hpMax} />
           <Bar kind="fp" value={vitals.fp} max={vitals.fpMax} />
           <Bar kind="sp" value={vitals.sp} max={vitals.spMax} />
+          {vitals.effects?.length > 0 && <EffectList effects={vitals.effects} />}
         </span>
       ) : (
         <span className="raid-member__status">Fora do jogo ou sem DLL</span>

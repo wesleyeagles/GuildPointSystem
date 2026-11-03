@@ -100,7 +100,10 @@ public class RaidController {
      * envia o próprio status e recebe o da raid inteira. 204 = não está em raid.
      */
     @PostMapping(value = "/game/status", produces = "text/plain;charset=UTF-8")
-    public ResponseEntity<String> gameStatus(@RequestParam(required = false) String character, @RequestBody(required = false) String body) {
-        return live.report(character, body).map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.noContent().build());
+    public ResponseEntity<String> gameStatus(@RequestParam(required = false) String character,
+                                             @RequestParam(defaultValue = "0") int fx,
+                                             @RequestBody(required = false) String body) {
+        // fx=1 (DLL 1.7.0+): a resposta traz a 12a coluna, com os buffs/debuffs de cada integrante.
+        return live.report(character, body, fx == 1).map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.noContent().build());
     }
 }

@@ -136,6 +136,41 @@ export interface RaidLiveMember {
   sp: number
   spMax: number
   ageMs: number
+  /** Buffs/debuffs ativos, lidos pela DLL do integrante (vazio em DLL anterior à 1.7.0). */
+  effects: RaidEffect[]
+}
+
+/** type: 0 skill, 1 skill de classe, 2 force (como no jogo). */
+export interface RaidEffect {
+  type: number
+  index: number
+  level: number
+  debuff: boolean
+  name: string
+}
+
+/** Ícones de force que o site já tem em /forces, pelo nome em minúsculas com hífens. */
+const FORCE_ICONS = new Set([
+  'acute', 'adept', 'aegis', 'agility', 'air-blast', 'aqua-blade', 'blaze-lance', 'blaze-pearl',
+  'blind-sight', 'celerity', 'chain-lightning', 'circle-of-fire', 'conservation', 'conservation-dark',
+  'contain', 'counter', 'dispel', 'energize', 'enfeeblement', 'entangle', 'fire-ball', 'fire-bomb',
+  'fire-wall', 'flame-arrow', 'flash-beam', 'focus', 'frost-arrow', 'frost-nova', 'geyser', 'healing',
+  'ice-shard', 'individual-cancellation-skill-revoker', 'lightning-bolt', 'meteor-swarm',
+  'offensive-cancellation-force-revoker', 'poison-bloom', 'poison-mist', 'prism-shard', 'radiant-fall',
+  'raging-wave', 'refresh', 'repress', 'resistance', 'restrain', 'rock-blade', 'sacrifice', 'sand-storm',
+  'sight', 'sloth', 'slow', 'solar-blade', 'soul-vitality', 'spark', 'stifle', 'suppress', 'tempo',
+  'torment', 'vein-fall', 'velocity', 'velocity-speed', 'venom', 'vista', 'vulnerability', 'weakness',
+  'wind-blast', 'wind-shear',
+])
+
+export function effectSlug(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+}
+
+/** Ícone do efeito, se o site tiver (só forces); senão null e a tela mostra a inicial. */
+export function effectIconUrl(effect: RaidEffect): string | null {
+  const slug = effectSlug(effect.name)
+  return effect.type === 2 && FORCE_ICONS.has(slug) ? `/forces/${slug}.png` : null
 }
 
 export interface RaidLive {
