@@ -188,6 +188,20 @@ class RaidTest {
         assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM audit_log WHERE type='RAID_DISBANDED' AND actor_id=?", Integer.class, adminId));
     }
 
+    @Test void levelComesFromTheLatestGameStatus() {
+        var raid = service.create("Raid", as(leaderId));
+        long other = member();
+        service.addMembers(raid.id(), List.of(other), null, as(leaderId));
+        for (Object[] row : new Object[][]{{1L, 40, "2026-11-01T10:00:00Z"}, {2L, 52, "2026-11-02T10:00:00Z"}})
+            jdbc.update("""
+                INSERT INTO character_status(member_id,gid,character_name,level,exp_percent,hp,hp_max,fp,fp_max,sp,sp_max,observed_at,updated_at)
+                VALUES(?,?,?,?,0,1,1,1,1,1,1,?::timestamptz,?::timestamptz)
+                """, leaderId, row[0], leaderNick + row[0], row[1], row[2], row[2]);
+        var view = raid(raid.id());
+        assertEquals(52, view.members().stream().filter(m -> m.id() == leaderId).findFirst().orElseThrow().level());
+        assertEquals(1, view.members().stream().filter(m -> m.id() == other).findFirst().orElseThrow().level());
+    }
+
     @Test void apiRequiresLogin() throws Exception {
         mvc.perform(get("/api/raids")).andExpect(status().is4xxClientError());
     }

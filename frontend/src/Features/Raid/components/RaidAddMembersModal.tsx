@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { useMemberRanking } from '@/Domain/Member/hooks/useMembers'
+import { useCharacterRanking } from '@/Domain/CharacterStatus/hooks/useCharacterStatus'
 import { nextFreeGroup, raidGroups, raidKeys, RAID_GROUP_SIZE, useAddRaidMembers, type Raid } from '@/Domain/Raid/hooks/useRaids'
 import { Button } from '@/Shared/ui/components/Button/Button'
 import { MemberClassIcon } from '@/Shared/ui/components/MemberClassIcon/MemberClassIcon'
@@ -17,6 +18,7 @@ export function RaidAddMembersModal({ raid, onClose }: { raid: Raid; onClose: ()
   const { showToast } = useAppToast()
   const queryClient = useQueryClient()
   const { data: members = [], isLoading } = useMemberRanking()
+  const { data: statuses = [] } = useCharacterRanking()
   const add = useAddRaidMembers()
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState<Set<number>>(new Set())
@@ -30,6 +32,12 @@ export function RaidAddMembersModal({ raid, onClose }: { raid: Raid; onClose: ()
 
   const busy = new Set<number>()
   for (const r of queryClient.getQueryData<Raid[]>(raidKeys.all) ?? [raid]) r.members.forEach((m) => busy.add(m.id))
+  // Level do jogo (último status enviado pela DLL), como na Party; sem status, o do cadastro.
+  const gameLevel = new Map<number, { level: number; at: string }>()
+  for (const s of statuses) {
+    const current = gameLevel.get(s.memberId)
+    if (!current || s.updatedAt > current.at) gameLevel.set(s.memberId, { level: s.level, at: s.updatedAt })
+  }
   const term = search.trim().toLocaleLowerCase('pt-BR')
   const available = members
     .filter((m) => !busy.has(m.id))
@@ -104,7 +112,7 @@ export function RaidAddMembersModal({ raid, onClose }: { raid: Raid; onClose: ()
                       <span className="raid-member__fallback">?</span>
                     )}
                     <span className="raid-add__name" title={m.nickname}>{m.nickname}</span>
-                    <span className="raid-add__level">L{m.level}</span>
+                    <span className="raid-add__level">L{gameLevel.get(m.id)?.level ?? m.level}</span>
                   </label>
                 </li>
               ))}

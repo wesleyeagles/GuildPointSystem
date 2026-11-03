@@ -354,10 +354,13 @@ public class RaidService {
             }, raidId).stream().findFirst().orElseThrow(() -> new AppException("Raid não encontrada", HttpStatus.NOT_FOUND));
     }
 
+    /** Level do jogo: o do último status enviado pela DLL (como na Party); sem status, o do cadastro. */
     private Map<Long, List<Row>> rows(Long raidId) {
         String sql = """
-            SELECT rm.raid_id,m.id,m.nickname,c.name class_name,c.image_url,m.level,rm.group_no,rm.group_leader,rm.joined_at
+            SELECT rm.raid_id,m.id,m.nickname,c.name class_name,c.image_url,COALESCE(gs.level,m.level,1) AS level,
+                   rm.group_no,rm.group_leader,rm.joined_at
             FROM raid_member rm JOIN member m ON m.id=rm.member_id LEFT JOIN character_class c ON c.id=m.class_id
+            LEFT JOIN LATERAL (SELECT s.level FROM character_status s WHERE s.member_id=m.id ORDER BY s.updated_at DESC LIMIT 1) gs ON TRUE
             """ + (raidId != null ? "WHERE rm.raid_id=? " : "") + "ORDER BY rm.group_no,rm.joined_at,m.id";
         Object[] args = raidId != null ? new Object[]{raidId} : new Object[0];
         return jdbc.query(sql, (r, n) -> new Row(r.getLong("raid_id"), r.getLong("id"), r.getString("nickname"),
