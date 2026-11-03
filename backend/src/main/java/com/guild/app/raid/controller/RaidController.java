@@ -30,7 +30,8 @@ public class RaidController {
     private final RaidAccessService access;
 
     public record CreateRaidRequest(@NotNull @Size(max = 60) String name) {}
-    public record AddRaidMembersRequest(@NotEmpty @Size(max = 200) List<Long> memberIds, @Min(1) Integer group) {}
+    /** hidden: null ou true = entram ocultos (padrão); false = veem a raid. */
+    public record AddRaidMembersRequest(@NotEmpty @Size(max = 200) List<Long> memberIds, @Min(1) Integer group, Boolean hidden) {}
     public record MoveRaidMemberRequest(@NotNull @Min(1) Integer group) {}
     public record RaidAccessRequest(@NotNull Role minRole, @Size(max = 500) List<Long> viewerIds) {}
     public record RaidHiddenRequest(boolean hidden) {}
@@ -68,7 +69,7 @@ public class RaidController {
     @PreAuthorize("isAuthenticated()")
     @PostMapping("/{id}/members")
     public RaidView add(@PathVariable Long id, @Valid @RequestBody AddRaidMembersRequest body) {
-        return service.addMembers(id, body.memberIds(), body.group(), SecurityUtils.currentMember());
+        return service.addMembers(id, body.memberIds(), body.group(), !Boolean.FALSE.equals(body.hidden()), SecurityUtils.currentMember());
     }
 
     /** Tirar alguém (líder/organizador) ou sair da raid (o próprio membro). */

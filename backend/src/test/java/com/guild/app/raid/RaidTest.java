@@ -77,7 +77,7 @@ class RaidTest {
 
     @Test void raidHasNoMemberLimitAndFillsGroupsOfEight() {
         var raid = service.create("Raid PB", as(leaderId));
-        var view = service.addMembers(raid.id(), many(20), null, as(leaderId));
+        var view = service.addMembers(raid.id(), many(20), null, false, as(leaderId));
         assertEquals(21, view.members().size());
         var groups = groups(view);
         assertEquals(List.of(8, 8, 5), groups.values().stream().map(List::size).toList());
@@ -89,8 +89,8 @@ class RaidTest {
     @Test void onlyLeaderOrAdministratorManages() {
         var raid = service.create("Raid", as(leaderId));
         long other = member();
-        assertThrows(AppException.class, () -> service.addMembers(raid.id(), List.of(other), null, as(outsiderId)));
-        assertEquals(2, service.addMembers(raid.id(), List.of(other), null, as(adminId)).members().size());
+        assertThrows(AppException.class, () -> service.addMembers(raid.id(), List.of(other), null, false, as(outsiderId)));
+        assertEquals(2, service.addMembers(raid.id(), List.of(other), null, false, as(adminId)).members().size());
         assertFalse(service.list(as(outsiderId)).getFirst().canManage());
         assertTrue(raid(raid.id()).canManage());
     }
@@ -99,19 +99,19 @@ class RaidTest {
         var a = service.create("A", as(leaderId));
         var b = service.create("B", as(outsiderId));
         long x = member();
-        service.addMembers(a.id(), List.of(x), null, as(leaderId));
-        var busy = assertThrows(AppException.class, () -> service.addMembers(b.id(), List.of(x), null, as(outsiderId)));
+        service.addMembers(a.id(), List.of(x), null, false, as(leaderId));
+        var busy = assertThrows(AppException.class, () -> service.addMembers(b.id(), List.of(x), null, false, as(outsiderId)));
         assertEquals(HttpStatus.CONFLICT, busy.getStatus());
-        assertThrows(AppException.class, () -> service.addMembers(a.id(), List.of(pendingId), null, as(leaderId)));
+        assertThrows(AppException.class, () -> service.addMembers(a.id(), List.of(pendingId), null, false, as(leaderId)));
         assertThrows(AppException.class, () -> service.create("C", as(x)));
     }
 
     @Test void groupsHoldAtMostEightOnAddAndMove() {
         var raid = service.create("Raid", as(leaderId));
-        service.addMembers(raid.id(), many(7), 1, as(leaderId));
+        service.addMembers(raid.id(), many(7), 1, false, as(leaderId));
         long extra = member();
-        assertThrows(AppException.class, () -> service.addMembers(raid.id(), List.of(extra), 1, as(leaderId)));
-        service.addMembers(raid.id(), List.of(extra), 2, as(leaderId));
+        assertThrows(AppException.class, () -> service.addMembers(raid.id(), List.of(extra), 1, false, as(leaderId)));
+        service.addMembers(raid.id(), List.of(extra), 2, false, as(leaderId));
         assertThrows(AppException.class, () -> service.moveMember(raid.id(), extra, 1, as(leaderId)));
         var moved = service.moveMember(raid.id(), extra, 5, as(leaderId));
         assertEquals(5, moved.members().stream().filter(m -> m.id() == extra).findFirst().orElseThrow().group());
@@ -120,7 +120,7 @@ class RaidTest {
     @Test void groupLeaderCanBeChosenAndResetsOnMove() {
         var raid = service.create("Raid", as(leaderId));
         var ids = many(3);
-        service.addMembers(raid.id(), ids, 2, as(leaderId));
+        service.addMembers(raid.id(), ids, 2, false, as(leaderId));
         assertEquals(ids.get(0), groups(raid(raid.id())).get(2).getFirst().id());
         var view = service.setGroupLeader(raid.id(), ids.get(2), as(leaderId));
         assertEquals(ids.get(2), groups(view).get(2).getFirst().id());
@@ -132,7 +132,7 @@ class RaidTest {
     @Test void leaderLeavingPassesLeadershipAndLastOneOutEndsRaid() {
         var raid = service.create("Raid", as(leaderId));
         long next = member();
-        service.addMembers(raid.id(), List.of(next), null, as(leaderId));
+        service.addMembers(raid.id(), List.of(next), null, false, as(leaderId));
         assertThrows(AppException.class, () -> service.removeMember(raid.id(), leaderId, as(next)));
         service.removeMember(raid.id(), leaderId, as(leaderId));
         assertEquals(next, raid(raid.id()).leaderId());
@@ -142,8 +142,8 @@ class RaidTest {
 
     @Test void callInGameCreatesOneInviteForEachGroupLeaderDeliveredThroughThePartyRoute() throws Exception {
         var raid = service.create("Raid", as(leaderId));
-        var ids = service.addMembers(raid.id(), many(10), null, as(leaderId)).members();
-        service.addMembers(raid.id(), List.of(member()), 4, as(leaderId)); // subgrupo só com o líder: ninguém a chamar
+        var ids = service.addMembers(raid.id(), many(10), null, false, as(leaderId)).members();
+        service.addMembers(raid.id(), List.of(member()), 4, false, as(leaderId)); // subgrupo só com o líder: ninguém a chamar
         var invites = service.callInGame(raid.id(), as(leaderId));
         assertEquals(List.of(1, 2), invites.stream().map(RaidService.GroupInviteView::group).toList());
         assertEquals(leaderNick, invites.get(0).leader());
@@ -170,7 +170,7 @@ class RaidTest {
 
     @Test void waitingInviteAndCooldownBlockRepeatedCalls() throws Exception {
         var raid = service.create("Raid", as(leaderId));
-        service.addMembers(raid.id(), many(2), null, as(leaderId));
+        service.addMembers(raid.id(), many(2), null, false, as(leaderId));
         service.callInGame(raid.id(), as(leaderId));
         assertThrows(AppException.class, () -> service.callInGame(raid.id(), as(leaderId)));
         service.pending(leaderNick);
@@ -194,7 +194,7 @@ class RaidTest {
     @Test void levelComesFromTheLatestGameStatus() {
         var raid = service.create("Raid", as(leaderId));
         long other = member();
-        service.addMembers(raid.id(), List.of(other), null, as(leaderId));
+        service.addMembers(raid.id(), List.of(other), null, false, as(leaderId));
         for (Object[] row : new Object[][]{{1L, 40, "2026-11-01T10:00:00Z"}, {2L, 52, "2026-11-02T10:00:00Z"}})
             jdbc.update("""
                 INSERT INTO character_status(member_id,gid,character_name,level,exp_percent,hp,hp_max,fp,fp_max,sp,sp_max,observed_at,updated_at)
@@ -208,7 +208,7 @@ class RaidTest {
     @Test void marksMoveLikeInWowAndOnlyManagersSetThem() {
         var raid = service.create("Raid", as(leaderId));
         var ids = many(2);
-        service.addMembers(raid.id(), ids, null, as(leaderId));
+        service.addMembers(raid.id(), ids, null, false, as(leaderId));
         var view = service.setMark(raid.id(), ids.get(0), 8, as(leaderId));
         assertEquals(8, view.members().stream().filter(m -> m.id().equals(ids.get(0))).findFirst().orElseThrow().mark());
         // a caveira passa para o outro: cada marca em um integrante só
@@ -225,7 +225,7 @@ class RaidTest {
     @Test void hiddenMembersAreNeverInvitedNorCallTheirSubgroup() {
         var raid = service.create("Raid", as(leaderId));
         var ids = many(4);
-        service.addMembers(raid.id(), ids, 2, as(leaderId));
+        service.addMembers(raid.id(), ids, 2, false, as(leaderId));
         service.setGroupLeader(raid.id(), ids.get(0), as(leaderId));
         service.setHidden(raid.id(), ids.get(0), true, as(leaderId));   // o líder do subgrupo 2, oculto
         service.setHidden(raid.id(), ids.get(1), true, as(leaderId));
@@ -257,9 +257,19 @@ class RaidTest {
         // sem acesso, as rotas da raid recusam, mesmo para quem lidera uma raid
         var denied = assertThrows(AppException.class, () -> service.list(as(outsiderId)));
         assertEquals(HttpStatus.FORBIDDEN, denied.getStatus());
-        assertThrows(AppException.class, () -> service.addMembers(raid.id(), List.of(allowed), null, as(leaderId)));
+        assertThrows(AppException.class, () -> service.addMembers(raid.id(), List.of(allowed), null, false, as(leaderId)));
         assertEquals(1, service.list(as(allowed)).size());
         assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM audit_log WHERE type='RAID_ACCESS_UPDATED' AND actor_id=?", Integer.class, adminId));
+    }
+
+    @Test void addedMembersAreHiddenByDefaultAndTheLeaderIsNot() {
+        var raid = service.create("Raid", as(leaderId));
+        long quiet = member(), shown = member();
+        service.addMembers(raid.id(), List.of(quiet), null, as(leaderId));
+        var view = service.addMembers(raid.id(), List.of(shown), null, false, as(leaderId));
+        assertFalse(view.members().stream().filter(m -> m.id() == leaderId).findFirst().orElseThrow().hidden());
+        assertTrue(view.members().stream().filter(m -> m.id() == quiet).findFirst().orElseThrow().hidden());
+        assertFalse(view.members().stream().filter(m -> m.id() == shown).findFirst().orElseThrow().hidden());
     }
 
     @Test void apiRequiresLogin() throws Exception {

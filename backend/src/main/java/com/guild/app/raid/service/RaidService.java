@@ -140,6 +140,12 @@ public class RaidService {
      */
     @Transactional
     public RaidView addMembers(Long raidId, List<Long> memberIds, Integer group, MemberPrincipal actor) {
+        return addMembers(raidId, memberIds, group, true, actor);
+    }
+
+    /** hidden: quem entra fica oculto (padrão) — a liderança acompanha e ele não vê a raid. */
+    @Transactional
+    public RaidView addMembers(Long raidId, List<Long> memberIds, Integer group, boolean hidden, MemberPrincipal actor) {
         Member member = approved(actor);
         manageable(raidId, member);
         if (memberIds == null || memberIds.isEmpty()) throw new AppException("Escolha ao menos um membro.", HttpStatus.BAD_REQUEST);
@@ -160,7 +166,7 @@ public class RaidService {
             int target = group != null ? group : firstFreeGroup(sizes);
             if (sizes.getOrDefault(target, 0) >= GROUP_SIZE)
                 throw new AppException("O subgrupo " + target + " já tem " + GROUP_SIZE + " integrantes.", HttpStatus.CONFLICT);
-            jdbc.update("INSERT INTO raid_member(raid_id,member_id,group_no) VALUES(?,?,?)", raidId, m.getId(), target);
+            jdbc.update("INSERT INTO raid_member(raid_id,member_id,group_no,hidden) VALUES(?,?,?,?)", raidId, m.getId(), target, hidden);
             sizes.merge(target, 1, Integer::sum);
         }
         changed();

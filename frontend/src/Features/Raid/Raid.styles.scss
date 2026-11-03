@@ -245,6 +245,8 @@
 
   &__empty { margin: 0; color: theme.$color-text-muted; }
   &__warn { margin: 0; color: theme.$color-warning; }
+  &__visible { display: flex; align-items: center; gap: theme.$spacing-sm; cursor: pointer; }
+  &__hint { margin: 0; color: theme.$color-text-muted; font-size: theme.$font-size-heading; }
 
   &__actions {
     display: flex;

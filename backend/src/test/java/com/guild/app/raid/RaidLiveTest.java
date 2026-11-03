@@ -73,7 +73,7 @@ class RaidLiveTest {
 
     @Test void reportReturnsTheWholeRaidWithEachMembersVitals() throws Exception {
         var raid = raids.create("PB 21h", as(leaderId));
-        raids.addMembers(raid.id(), List.of(otherId), 2, as(leaderId));
+        raids.addMembers(raid.id(), List.of(otherId), 2, false, as(leaderId));
 
         String text = report(leaderNick.toLowerCase(), "55\t900\t1000\t300\t400\t50\t60\n");
         var lines = text.split("\n");
@@ -98,7 +98,7 @@ class RaidLiveTest {
     @Test void rosterChangesAreSeenOnTheNextReport() throws Exception {
         var raid = raids.create("Raid", as(leaderId));
         assertTrue(report(otherNick, "50\t1\t2\t1\t2\t1\t2").isEmpty());
-        raids.addMembers(raid.id(), List.of(otherId), null, as(leaderId));
+        raids.addMembers(raid.id(), List.of(otherId), null, false, as(leaderId));
         assertTrue(report(otherNick, "50\t1\t2\t1\t2\t1\t2").contains(otherNick));
         raids.removeMember(raid.id(), otherId, as(otherId));
         assertTrue(report(otherNick, "50\t1\t2\t1\t2\t1\t2").isEmpty());
@@ -116,7 +116,7 @@ class RaidLiveTest {
 
     @Test void effectsTravelOnlyToDllsThatAskForThem() throws Exception {
         var raid = raids.create("Raid", as(leaderId));
-        raids.addMembers(raid.id(), List.of(otherId), null, as(leaderId));
+        raids.addMembers(raid.id(), List.of(otherId), null, false, as(leaderId));
         // Um efeito com ícone (6 campos) e um no formato sem ícone (5 campos), que continua aceito.
         report(otherNick, "50\t10\t800\t0\t300\t0\t40\nE\t0,3,7,B,4,Rage Range;2,45,1,D,Trust");
 
@@ -149,7 +149,7 @@ class RaidLiveTest {
 
     @Test void hiddenMembersKeepSendingButNeverSeeTheRaid() throws Exception {
         var raid = raids.create("Raid", as(leaderId));
-        raids.addMembers(raid.id(), List.of(otherId), null, as(leaderId));
+        raids.addMembers(raid.id(), List.of(otherId), null, false, as(leaderId));
         raids.setHidden(raid.id(), otherId, true, as(leaderId));
 
         // DLL 1.7.0 do oculto: "O" (continua a cada 1 s, sem painel); DLL 1.6.0: 204
@@ -182,7 +182,7 @@ class RaidLiveTest {
 
     @Test void positionsGoOnlyToDllsThatAskForThem() throws Exception {
         var raid = raids.create("Raid", as(leaderId));
-        raids.addMembers(raid.id(), List.of(otherId), null, as(leaderId));
+        raids.addMembers(raid.id(), List.of(otherId), null, false, as(leaderId));
         report(otherNick, "50\t10\t800\t0\t300\t0\t40\nE\t\nL\t1\t7920\t-2224");
         String fx2 = mvc.perform(post("/api/raids/game/status").param("character", leaderNick).param("fx", "2")
                 .contentType(MediaType.TEXT_PLAIN).content("55\t900\t1000\t300\t400\t50\t60\nE\t\nL\t1\t100\t200"))

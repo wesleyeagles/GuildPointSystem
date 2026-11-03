@@ -105,8 +105,12 @@ export const useDisbandRaid = () =>
   useRaidMutation((raidId: number) => apiClient<void>(`/raids/${raidId}`, { method: 'DELETE' }))
 
 export const useAddRaidMembers = () =>
-  useRaidMutation((v: { raidId: number; memberIds: number[]; group?: number }) =>
-    apiClient<Raid>(`/raids/${v.raidId}/members`, { method: 'POST', body: { memberIds: v.memberIds, group: v.group } }))
+  useRaidMutation((v: { raidId: number; memberIds: number[]; group?: number; hidden?: boolean }) =>
+    apiClient<Raid>(`/raids/${v.raidId}/members`, {
+      method: 'POST',
+      // Sem hidden, o servidor põe oculto (padrão): a liderança acompanha e o membro não vê a raid.
+      body: { memberIds: v.memberIds, group: v.group, hidden: v.hidden },
+    }))
 
 export const useRemoveRaidMember = () =>
   useRaidMutation((v: { raidId: number; memberId: number }) =>

@@ -23,6 +23,8 @@ export function RaidAddMembersModal({ raid, onClose }: { raid: Raid; onClose: ()
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState<Set<number>>(new Set())
   const [group, setGroup] = useState<number | 'auto'>('auto')
+  // Padrão: entram ocultos (não veem a raid no jogo nem no site e não recebem convites).
+  const [visible, setVisible] = useState(false)
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
@@ -57,7 +59,7 @@ export function RaidAddMembersModal({ raid, onClose }: { raid: Raid; onClose: ()
   })
 
   const submit = () => add.mutate(
-    { raidId: raid.id, memberIds: [...selected], group: group === 'auto' ? undefined : group },
+    { raidId: raid.id, memberIds: [...selected], group: group === 'auto' ? undefined : group, hidden: !visible },
     {
       onSuccess: () => { showToast(`${selected.size} membro(s) adicionado(s) à raid.`, 'success'); onClose() },
       onError: (e) => showToast(e instanceof Error ? e.message : 'Não foi possível adicionar.', 'error'),
@@ -118,6 +120,11 @@ export function RaidAddMembersModal({ raid, onClose }: { raid: Raid; onClose: ()
               ))}
             </ul>
           )}
+          <label className="raid-add__visible">
+            <input type="checkbox" checked={visible} onChange={(e) => setVisible(e.target.checked)} />
+            Mostrar a raid para eles (veem o painel no jogo e recebem os convites)
+          </label>
+          {!visible && <p className="raid-add__hint">Entram ocultos: a liderança acompanha HP e buffs, e eles não veem a raid.</p>}
           {selected.size > chosenFree && (
             <p className="raid-add__warn">O subgrupo escolhido só tem {chosenFree} vaga(s).</p>
           )}
