@@ -3,11 +3,6 @@
   flex-direction: column;
   gap: theme.$spacing-lg;
 
-  &__intro {
-    margin: 0 0 theme.$spacing-md;
-    color: theme.$color-text-muted;
-  }
-
   &__create {
     display: flex;
     gap: theme.$spacing-sm;
@@ -355,8 +350,6 @@
 .raid-page--settings { margin-top: theme.$spacing-lg; }
 
 .raid-access {
-  &__hint { margin: 0 0 theme.$spacing-md; color: theme.$color-text-muted; }
-
   &__field {
     display: flex;
     flex-direction: column;

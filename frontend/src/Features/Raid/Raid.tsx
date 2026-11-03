@@ -273,12 +273,8 @@ function RaidBoard() {
 
   return (
     <div className="raid-page">
-      <Panel title="Raid" code="RAID">
-        <p className="raid-page__intro">
-          Grupo sem limite de integrantes, dividido em subgrupos de até {RAID_GROUP_SIZE} — cada subgrupo vira uma PT no jogo.
-          O líder de cada subgrupo recebe os convites pela DLL ao clicar em <strong>Chamar todos no jogo</strong>.
-        </p>
-        {!inRaid && (
+      {!inRaid && (
+        <Panel title="Raid" code="RAID">
           <form className="raid-page__create" onSubmit={onCreate}>
             <input
               className="raid-page__name"
@@ -290,8 +286,8 @@ function RaidBoard() {
             />
             <Button type="submit" loading={create.isPending} disabled={!name.trim()}>Criar raid</Button>
           </form>
-        )}
-      </Panel>
+        </Panel>
+      )}
       {isLoading ? (
         <p className="raid-page__empty">Carregando raids...</p>
       ) : ordered.length === 0 ? (

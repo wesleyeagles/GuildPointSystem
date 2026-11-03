@@ -39,10 +39,6 @@ export function RaidAccessSettings({ access }: { access: RaidAccess }) {
 
   return (
     <Panel title="Quem vê a Raid" code="ACESSO" className="raid-access">
-      <p className="raid-access__hint">
-        Só muda o site: a DLL de todos continua enviando HP e buffs, e o painel no jogo aparece para quem está na raid.
-        Administradores e o Líder sempre veem.
-      </p>
       <label className="raid-access__field">
         <span>Cargo mínimo</span>
         <select value={minRole} onChange={(e) => setMinRole(e.target.value as Role)}>
