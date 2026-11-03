@@ -33,6 +33,8 @@ public class RaidLiveService {
     /** Resposta à DLL de um integrante oculto: "continue enviando, sem raid para mostrar". */
     static final String OBSERVED = "O\n";
     static final int EFFECT_NAME_MAX = 32;
+    /** Bandeira no mapa: some sozinha depois disso. */
+    static final Duration FLAG_TTL = Duration.ofMinutes(2);
 
     private final RaidService raids;
     private final MemberRepository members;
@@ -48,14 +50,19 @@ public class RaidLiveService {
     public record Effect(int type, int index, int level, boolean debuff, int icon, String name) {}
     /** Onde o personagem está: índice do mapa do jogo e posição no mundo (X e Z), como o mapa do jogo usa. */
     public record Position(int map, int x, int z) {}
-    record Report(Vitals vitals, List<Effect> effects, Position position) {}
+    /** Pedido de bandeira que veio no envio: colocar (position) ou tirar (position null). */
+    record FlagAction(Position position) {}
+    record Report(Vitals vitals, List<Effect> effects, Position position, FlagAction flag) {}
     private record Live(Vitals vitals, List<Effect> effects, Position position, Instant at) {}
+    private record Flag(Position position, Instant at) {}
     /** Para o site: ageMs = há quanto tempo veio o último envio (-1 = nunca). */
     public record LiveMember(Long memberId, int level, int hp, int hpMax, int fp, int fpMax, int sp, int spMax, long ageMs,
                              List<Effect> effects) {}
     private record Roster(long version, Map<Long, RaidView> byMember, Map<Long, RaidView> byRaid) {}
 
     private final Map<Long, Live> live = new ConcurrentHashMap<>();
+    /** Uma bandeira por integrante (a nova substitui a anterior), só em memória. */
+    private final Map<Long, Flag> flags = new ConcurrentHashMap<>();
     private final Set<Long> dirty = ConcurrentHashMap.newKeySet();
     private volatile Roster roster = new Roster(-1, Map.of(), Map.of());
 
@@ -64,21 +71,26 @@ public class RaidLiveService {
      * linha "E<TAB>efeitos" com "tipo,indice,nivel,B|D,icone,nome" separados por ';' (vazia = nenhum). O nome
      * nunca tem vírgula, então também vale o formato sem ícone ("tipo,indice,nivel,B|D,nome").
      * Depois (DLL com fx=2), uma linha "L<TAB>mapa<TAB>x<TAB>z" com o índice do mapa e a posição no mundo.
+     * Só no envio em que o jogador marca (DLL com fx=3), uma linha "F<TAB>mapa<TAB>x<TAB>z" coloca a bandeira
+     * dele no mapa e "F<TAB>-" tira.
      */
     static Report parse(String body) {
         if (body == null) throw invalid();
         String[] lines = body.strip().split("\r?\n", -1);
-        if (lines.length > 3) throw invalid();
+        if (lines.length > 4) throw invalid();
         List<Effect> effects = List.of();
         Position position = null;
+        FlagAction flag = null;
         for (int i = 1; i < lines.length; i++) {
             String line = lines[i];
             // "E" sozinho: lista vazia (o strip() do corpo leva o TAB final de "E<TAB>").
             if (line.equals("E") || line.startsWith("E\t")) effects = line.length() <= 2 ? List.of() : parseEffects(line.substring(2));
             else if (line.startsWith("L\t")) position = parsePosition(line.substring(2));
+            else if (line.equals("F\t-")) flag = new FlagAction(null);
+            else if (line.startsWith("F\t")) flag = new FlagAction(parsePosition(line.substring(2)));
             else throw invalid();
         }
-        return new Report(parseVitals(lines[0]), effects, position);
+        return new Report(parseVitals(lines[0]), effects, position, flag);
     }
 
     static Position parsePosition(String text) {
@@ -145,6 +157,7 @@ public class RaidLiveService {
     /**
      * fx: o que a DLL entende na resposta. 1 (1.7.0+): marca de raid e 12a coluna com os efeitos;
      * 2: também a 13a coluna com o mapa e a posição de cada integrante ("mapa,x,z"; vazia = sem posição).
+     * 3 (1.8.1+): também as linhas "F" das bandeiras no mapa, depois dos integrantes.
      */
     public Optional<String> report(String character, String body, int fx) {
         boolean withEffects = fx >= 1;
@@ -162,6 +175,11 @@ public class RaidLiveService {
             // A DLL 1.6.0 recebe 204 e passa a enviar a cada 10 s.
             boolean hidden = raid.members().stream().anyMatch(m -> m.id().equals(member.getId()) && m.hidden());
             if (hidden) return withEffects ? Optional.of(OBSERVED) : Optional.empty();
+            // Oculto não marca o mapa (nem vê a raid); qualquer outro integrante coloca ou tira a própria bandeira.
+            if (report.flag() != null) {
+                if (report.flag().position() == null) flags.remove(member.getId());
+                else flags.put(member.getId(), new Flag(report.flag().position(), now));
+            }
             return Optional.of(render(raid, now, fx));
         }
         return Optional.empty();
@@ -238,6 +256,18 @@ public class RaidLiveService {
                 out.append('\t').append(p != null ? p.map() + "," + p.x() + "," + p.z() : "");
             }
             out.append('\n');
+        }
+        // fx=3: bandeiras dos integrantes visíveis, "F<TAB>nick<TAB>mapa,x,z<TAB>idade em segundos".
+        if (fx >= 3) {
+            for (var m : raid.members()) {
+                Flag f = flags.get(m.id());
+                if (f == null || m.hidden()) continue;
+                long age = Duration.between(f.at(), now).toSeconds();
+                if (age >= FLAG_TTL.toSeconds()) { flags.remove(m.id(), f); continue; }
+                Position p = f.position();
+                out.append("F\t").append(clean(m.nickname())).append('\t')
+                    .append(p.map()).append(',').append(p.x()).append(',').append(p.z()).append('\t').append(age).append('\n');
+            }
         }
         return out.toString();
     }

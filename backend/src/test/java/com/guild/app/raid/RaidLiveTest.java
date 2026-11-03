@@ -180,6 +180,50 @@ class RaidLiveTest {
         verify(ws).publishRaidLiveAll(eq(raid.id()), argThat(l -> l instanceof List<?> list && list.size() == 2));
     }
 
+    String reportFx(String character, int fx, String body) throws Exception {
+        return mvc.perform(post("/api/raids/game/status").param("character", character).param("fx", String.valueOf(fx))
+                .contentType(MediaType.TEXT_PLAIN).content(body))
+            .andReturn().getResponse().getContentAsString();
+    }
+
+    @Test void flagsAreSharedWithTheRaidAndExpire() throws Exception {
+        var raid = raids.create("Raid", as(leaderId));
+        raids.addMembers(raid.id(), List.of(otherId), null, false, as(leaderId));
+        String vitals = "50\t10\t800\t0\t300\t0\t40\nE\t\nL\t1\t100\t200";
+        String placed = reportFx(otherNick, 3, vitals + "\nF\t1\t7920\t-2224");
+        assertTrue(placed.endsWith("F\t" + otherNick + "\t1,7920,-2224\t0\n"), placed);
+        // O próximo envio sem "F" mantém a bandeira; os outros da raid a recebem.
+        String leaderView = reportFx(leaderNick, 3, "55\t900\t1000\t300\t400\t50\t60");
+        assertTrue(leaderView.contains("F\t" + otherNick + "\t1,7920,-2224\t"), leaderView);
+        // DLL que não pede fx=3 não recebe a linha (a 1.8.0 recusaria a resposta).
+        assertFalse(reportFx(leaderNick, 2, "55\t900\t1000\t300\t400\t50\t60").contains("F\t"));
+        // Nova bandeira substitui; "F -" tira.
+        assertTrue(reportFx(otherNick, 3, vitals + "\nF\t1\t10\t20").contains("\t1,10,20\t"));
+        assertFalse(reportFx(otherNick, 3, vitals + "\nF\t-").contains("F\t"));
+        // Expira em 2 minutos.
+        reportFx(otherNick, 3, vitals + "\nF\t1\t10\t20");
+        var clock = RaidLiveService.class.getDeclaredField("clock");
+        clock.setAccessible(true);
+        clock.set(live, java.time.Clock.offset(java.time.Clock.systemUTC(), java.time.Duration.ofMinutes(3)));
+        try {
+            assertFalse(reportFx(leaderNick, 3, "55\t900\t1000\t300\t400\t50\t60").contains("F\t"));
+        } finally {
+            clock.set(live, java.time.Clock.systemUTC());
+        }
+        for (String bad : List.of("F\t1\t2", "F\tx", "F\t1\t0\t2000000"))
+            mvc.perform(post("/api/raids/game/status").param("character", leaderNick)
+                    .contentType(MediaType.TEXT_PLAIN).content("55\t900\t1000\t300\t400\t50\t60\n" + bad))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test void hiddenMembersCannotPlaceFlags() throws Exception {
+        var raid = raids.create("Raid", as(leaderId));
+        raids.addMembers(raid.id(), List.of(otherId), null, false, as(leaderId));
+        raids.setHidden(raid.id(), otherId, true, as(leaderId));
+        assertEquals("O\n", reportFx(otherNick, 3, "50\t10\t800\t0\t300\t0\t40\nF\t1\t10\t20"));
+        assertFalse(reportFx(leaderNick, 3, "55\t900\t1000\t300\t400\t50\t60").contains("F\t"));
+    }
+
     @Test void positionsGoOnlyToDllsThatAskForThem() throws Exception {
         var raid = raids.create("Raid", as(leaderId));
         raids.addMembers(raid.id(), List.of(otherId), null, false, as(leaderId));

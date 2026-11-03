@@ -138,7 +138,8 @@ public class RaidController {
                                              @RequestBody(required = false) String body) {
         // fx=1 (DLL 1.7.0+): a resposta traz a 12a coluna, com os buffs/debuffs de cada integrante.
         // fx=2: também a 13a coluna com mapa e posição (bolinhas no mapa do jogo).
-        return live.report(character, body, Math.max(0, Math.min(fx, 2))).map(ResponseEntity::ok)
+        // fx=3: também as bandeiras no mapa (linhas "F" no fim).
+        return live.report(character, body, Math.max(0, Math.min(fx, 3))).map(ResponseEntity::ok)
             .orElseGet(() -> ResponseEntity.noContent().build());
     }
 }
