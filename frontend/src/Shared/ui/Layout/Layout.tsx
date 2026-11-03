@@ -29,7 +29,6 @@ import './Layout.styles.scss'
 
 const NAV_ITEMS = [
   { to: '/', label: 'Dashboard' },
-  { to: '/donate', label: 'Doar Disena' },
   { to: '/events', label: 'Eventos' },
   { to: '/party', label: 'Party' },
   { to: '/raid', label: 'Raid' },
@@ -43,7 +42,11 @@ const NAV_ITEMS = [
 const PROFILE_ITEM = { to: '/profile', label: 'Perfil' }
 
 /** Reachable only by URL; listed so the header still shows the page title. */
-const HIDDEN_ITEMS = [{ to: '/logs', label: 'Logs' }]
+// Fora do menu, mas com título no cabeçalho se alguém abrir pelo endereço.
+const HIDDEN_ITEMS = [
+  { to: '/logs', label: 'Logs' },
+  { to: '/donate', label: 'Doar Disena' },
+]
 
 const ADMIN_ITEMS: { to: string; label: string; minRole: Role }[] = [
   { to: '/admin/approvals', label: 'Aprovações', minRole: 'MODERADOR' },
