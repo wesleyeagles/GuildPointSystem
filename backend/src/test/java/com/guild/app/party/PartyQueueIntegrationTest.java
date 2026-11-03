@@ -48,6 +48,16 @@ class PartyQueueIntegrationTest {
         for(long id:List.of(a,b,c)) jdbc.update("INSERT INTO party_lfg(member_id,created_at) VALUES(?,?)",id,java.sql.Timestamp.from(since));
     }
     @AfterEach void clear() { SecurityContextHolder.clearContext(); }
+
+    @Test void organizerInTheQueueMovesHimselfIntoAnEmptyParty() {
+        jdbc.update("INSERT INTO party_lfg(member_id,created_at) VALUES(?,now())",admin);
+        service.createEmptyParty(new CreatePartyRequest(PartyMap.values()[0],null),principal(admin));
+        long party=jdbc.queryForObject("SELECT id FROM party WHERE leader_id IS NULL ORDER BY id DESC LIMIT 1",Long.class);
+        service.moveMember(party,new MovePartyMemberRequest(admin,null),principal(admin));
+        assertEquals(admin,jdbc.queryForObject("SELECT leader_id FROM party WHERE id=?",Long.class,party));
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM party_member WHERE party_id=? AND member_id=?",Integer.class,party,admin));
+        assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM party_lfg WHERE member_id=?",Integer.class,admin));
+    }
     void change(long id,int delta) { service.adjustQueuePriority(id,new AdjustPartyPriorityRequest(delta),principal(admin)); }
     int points(long id) { return jdbc.queryForObject("SELECT party_priority_points FROM member WHERE id=?",Integer.class,id); }
     List<Long> order() {

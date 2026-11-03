@@ -47,7 +47,8 @@ export function PartyLfgList({
   return (
     <ol className="party-lfg-grid">
       {ordered.map((entry) => {
-        const draggable = canDrag && entry.memberId !== viewerId
+        // Inclui o próprio nome: o organizador que criou uma PT vazia se arrasta para ela.
+        const draggable = canDrag
         const isMe = entry.memberId === viewerId
         const sellBlock = sellBlockedUntil(entry)
         return (
