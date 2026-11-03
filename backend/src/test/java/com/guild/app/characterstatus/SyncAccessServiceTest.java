@@ -1,5 +1,6 @@
 package com.guild.app.characterstatus;
 
+import com.guild.app.characterstatus.entity.CharacterStatus;
 import com.guild.app.characterstatus.repository.CharacterStatusRepository;
 import com.guild.app.characterstatus.service.SyncAccessService;
 import com.guild.app.dll.service.DllReleaseService;
@@ -62,6 +63,43 @@ class SyncAccessServiceTest {
         assertThat(service.isBlocked(1L, createdAt)).isFalse();
 
         assertThat(service.isBlocked(1L, now.minus(Duration.ofHours(25)))).isTrue();
+    }
+
+    private void synced(long memberId, String version) {
+        when(repository.findLastSyncAt(memberId)).thenReturn(Optional.of(now.minus(Duration.ofHours(1))));
+        var status = new CharacterStatus();
+        status.setDllVersion(version);
+        when(repository.findFirstByMemberIdOrderByUpdatedAtDesc(memberId)).thenReturn(Optional.of(status));
+    }
+
+    @Test
+    void dllBelowMinimumIsRefusedEvenWhenSynced() {
+        var service = service(now.minus(Duration.ofDays(1)));
+        synced(1L, "1.1.9");
+        synced(2L, "1.2.0");
+        synced(3L, "1.7.0");
+        synced(4L, null);                       // DLL antiga, sem versão no User-Agent
+        when(repository.findLastSyncAt(5L)).thenReturn(Optional.empty());  // nunca sincronizou: outro bloqueio
+
+        assertThat(service.isDllTooOld(1L)).isTrue();
+        assertThat(service.isDllTooOld(2L)).isFalse();
+        assertThat(service.isDllTooOld(3L)).isFalse();
+        assertThat(service.isDllTooOld(4L)).isTrue();
+        assertThat(service.isDllTooOld(5L)).isFalse();
+
+        var status = service.status(1L, now.minus(Duration.ofDays(30)));
+        assertThat(status.dllTooOld()).isTrue();
+        assertThat(status.dllVersion()).isEqualTo("1.1.9");
+        assertThat(status.minDllVersion()).isEqualTo("1.2.0");
+    }
+
+    @Test
+    void updatingTheDllUnblocksImmediately() {
+        var service = service(now.minus(Duration.ofDays(1)));
+        synced(1L, "1.0.0");
+        assertThat(service.isDllTooOld(1L)).isTrue();
+        service.recordSync(1L, Instant.now(), "1.7.0");
+        assertThat(service.isDllTooOld(1L)).isFalse();
     }
 
     @Test

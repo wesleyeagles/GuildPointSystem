@@ -313,9 +313,9 @@ class EquipmentIntegrationTest {
         assertNull(fallback.expPercent());
         assertEquals(className,fallback.className());
         jdbc.update("""
-            INSERT INTO character_status(member_id,gid,character_name,level,exp_percent,hp,hp_max,fp,fp_max,sp,sp_max,updated_at)
-            VALUES (?,1,'Old character',60,99,1,1,1,1,1,1,now()-interval '1 hour'),
-                   (?,2,'Current character',45,12.5,1,1,1,1,1,1,now())
+            INSERT INTO character_status(member_id,gid,character_name,level,exp_percent,hp,hp_max,fp,fp_max,sp,sp_max,updated_at,dll_version)
+            VALUES (?,1,'Old character',60,99,1,1,1,1,1,1,now()-interval '1 hour','1.7.0'),
+                   (?,2,'Current character',45,12.5,1,1,1,1,1,1,now(),'1.7.0')
             """,memberId,memberId);
         for(long viewer:List.of(actorId,memberId)) {
             var response=mvc.perform(get("/api/equipment").with(authentication(authenticationFor(viewer))))

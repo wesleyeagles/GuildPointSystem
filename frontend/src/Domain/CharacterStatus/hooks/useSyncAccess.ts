@@ -21,6 +21,10 @@ export interface SyncAccessView {
   dllOutdated: boolean
   /** Quantas versões publicadas são mais novas que a dele (0 = em dia). */
   dllReleasesBehind: number
+  /** Versão mínima para entrar no site. */
+  minDllVersion: string
+  /** Sincroniza, mas com DLL abaixo da mínima: o site recusa as requisições até atualizar. */
+  dllTooOld: boolean
 }
 
 export const syncAccessKeys = {
@@ -35,7 +39,8 @@ export function useSyncAccess(memberId: number | undefined) {
     queryFn: () => apiClient<SyncAccessView>('/character-status/sync-access'),
     enabled: memberId != null,
     // Sem sincronizar: confere de tempos em tempos (o websocket pode estar fora para quem esta bloqueado).
-    refetchInterval: (q) => (q.state.data && !q.state.data.synced ? 30_000 : false),
+    // Bloqueado (sem sincronizar ou DLL abaixo da mínima): confere de tempos em tempos para liberar sozinho.
+    refetchInterval: (q) => (q.state.data && (!q.state.data.synced || q.state.data.dllTooOld) ? 30_000 : false),
   })
 
   // O jogo enviou dados deste membro: libera o aviso/bloqueio na hora.

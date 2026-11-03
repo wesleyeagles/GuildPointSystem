@@ -26,6 +26,8 @@ import java.util.Map;
 public class SyncRequiredFilter extends OncePerRequestFilter {
 
     public static final String CODE = "SYNC_REQUIRED";
+    /** Sincroniza, mas com DLL abaixo da versão mínima. */
+    public static final String OUTDATED_CODE = "DLL_OUTDATED";
 
     private static final List<String> ALLOWED_PREFIXES = List.of(
             "/api/auth/",
@@ -61,6 +63,18 @@ public class SyncRequiredFilter extends OncePerRequestFilter {
             objectMapper.writeValue(response.getOutputStream(), Map.of(
                     "code", CODE,
                     "message", "Conta não sincronizada: instale a DLL e entre no jogo para liberar o acesso."));
+            return;
+        }
+        if (auth != null
+                && auth.getPrincipal() instanceof MemberPrincipal principal
+                && principal.getStatus() == MemberStatus.APROVADO
+                && syncAccessService.isDllTooOld(principal.getId())) {
+            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+            objectMapper.writeValue(response.getOutputStream(), Map.of(
+                    "code", OUTDATED_CODE,
+                    "message", "Sua DLL está desatualizada: atualize para a versão " + syncAccessService.minDllVersion()
+                            + " ou mais nova para usar o site."));
             return;
         }
         chain.doFilter(request, response);

@@ -59,6 +59,22 @@
     a { color: theme.$color-cyan; }
   }
 
+  // Sua versão / mínima / atual, na tela de DLL abaixo da mínima.
+  &__versions {
+    margin: 0;
+    padding: theme.$spacing-sm theme.$spacing-md;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    border-left: 2px solid theme.$color-danger;
+    background: rgba(255, 255, 255, 0.02);
+    font-size: theme.$font-size-base;
+    color: theme.$color-text-muted;
+
+    strong { color: theme.$color-text; }
+  }
+
   &__notes {
     padding: theme.$spacing-sm theme.$spacing-md;
     border-left: 2px solid theme.$color-cyan;

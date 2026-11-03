@@ -15,6 +15,8 @@ import java.time.Instant;
  * @param latestDllVersion versao mais recente publicada no site (null = nenhuma)
  * @param dllOutdated    sincroniza, mas com versao anterior a mais recente (so aviso, nao bloqueia)
  * @param dllReleasesBehind quantas versoes publicadas sao mais novas que a dele (0 = em dia)
+ * @param minDllVersion  versao minima para entrar no site
+ * @param dllTooOld      sincroniza, mas com versao abaixo da minima: o site recusa as requisicoes
  */
 public record SyncAccessView(
         boolean synced,
@@ -26,5 +28,7 @@ public record SyncAccessView(
         String dllVersion,
         String latestDllVersion,
         boolean dllOutdated,
-        int dllReleasesBehind
+        int dllReleasesBehind,
+        String minDllVersion,
+        boolean dllTooOld
 ) {}

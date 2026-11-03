@@ -225,6 +225,45 @@ function SyncBlockedScreen({
   )
 }
 
+/** DLL abaixo da versão mínima: o site não abre até atualizar. Libera sozinho quando a DLL nova sincronizar. */
+function DllTooOldScreen({
+  sync,
+  downloadUrl,
+  onLogout,
+}: {
+  sync: SyncAccessView
+  downloadUrl: string
+  onLogout: () => void
+}) {
+  return (
+    <SyncWindow
+      title="Acesso bloqueado · DLL desatualizada"
+      code="DLL"
+      downloadUrl={downloadUrl}
+      footer={
+        <Button type="button" variant="secondary" onClick={onLogout}>
+          Sair
+        </Button>
+      }
+    >
+      <p className="sync-gate__lead">
+        Sua DLL está numa versão que não é mais aceita. Para usar o site, atualize para a versão{' '}
+        <strong>v{sync.minDllVersion}</strong> ou mais nova.
+      </p>
+      <ul className="sync-gate__versions">
+        <li>Sua versão: <strong>{formatVersion(sync.dllVersion)}</strong></li>
+        <li>Mínima permitida: <strong>v{sync.minDllVersion}</strong></li>
+        {sync.latestDllVersion && <li>Versão atual: <strong>v{sync.latestDllVersion}</strong></li>}
+      </ul>
+      <ol className="sync-gate__steps">
+        <li>Feche o jogo e baixe a versão atual (botão <strong>Download DLL</strong> abaixo).</li>
+        <li>Extraia o <strong>version.dll</strong> e substitua o antigo na pasta do cliente do RF Online.</li>
+        <li>Abra o jogo e entre com o personagem: o acesso é liberado sozinho em até 1 minuto.</li>
+      </ol>
+    </SyncWindow>
+  )
+}
+
 function formatVersion(version: string | null) {
   return version ? `v${version}` : 'sem versão (DLL antiga)'
 }
@@ -337,6 +376,7 @@ export function SyncAccessGate({ children }: { children: ReactNode }) {
   }, [sync, deadlinePassed, queryClient])
 
   if (blocked) return <SyncBlockedScreen sync={sync} downloadUrl={downloadUrl} onLogout={logout} />
+  if (sync?.dllTooOld) return <DllTooOldScreen sync={sync} downloadUrl={downloadUrl} onLogout={logout} />
 
   const showWarning =
     !!sync &&

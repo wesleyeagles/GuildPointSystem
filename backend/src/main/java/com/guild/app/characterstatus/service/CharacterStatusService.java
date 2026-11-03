@@ -80,7 +80,7 @@ public class CharacterStatusService {
         status.setObservedAt(now);
         status.setUpdatedAt(now);
         statusRepository.save(status);
-        syncAccessService.recordSync(member.getId(), now);
+        syncAccessService.recordSync(member.getId(), now, dllVersion);
 
         // Avisa a dashboard (apos o commit) para atualizar sem recarregar a pagina.
         webSocketPublisher.publishCharacterStatus(toView(status));
