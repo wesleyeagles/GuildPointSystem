@@ -41,7 +41,8 @@ public enum AuditLogType {
     SHOUT,
     RAID_CREATED,
     RAID_DISBANDED,
-    RAID_GAME_INVITE;
+    RAID_GAME_INVITE,
+    RAID_ACCESS_UPDATED;
 
     public boolean isEquipmentPrivate() {
         return this == EQUIPMENT_CHANGED || this == EQUIPMENT_CATALOG_IMPORTED;

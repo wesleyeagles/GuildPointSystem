@@ -1,6 +1,9 @@
 package com.guild.app.raid.controller;
 
 import com.guild.app.common.security.SecurityUtils;
+import com.guild.app.common.enums.Role;
+import com.guild.app.raid.service.RaidAccessService;
+import com.guild.app.raid.service.RaidAccessService.AccessView;
 import com.guild.app.raid.service.RaidLiveService;
 import com.guild.app.raid.service.RaidLiveService.LiveMember;
 import com.guild.app.raid.service.RaidService;
@@ -24,12 +27,25 @@ import java.util.List;
 public class RaidController {
     private final RaidService service;
     private final RaidLiveService live;
+    private final RaidAccessService access;
 
     public record CreateRaidRequest(@NotNull @Size(max = 60) String name) {}
     public record AddRaidMembersRequest(@NotEmpty @Size(max = 200) List<Long> memberIds, @Min(1) Integer group) {}
     public record MoveRaidMemberRequest(@NotNull @Min(1) Integer group) {}
+    public record RaidAccessRequest(@NotNull Role minRole, @Size(max = 500) List<Long> viewerIds) {}
     /** mark: 1..8, ou null para tirar a marca. */
     public record RaidMarkRequest(@Min(1) @Max(8) Integer mark) {}
+
+    /** Se o usuário vê a aba Raid; para Administrador+ também o cargo mínimo e a lista de liberados. */
+    @PreAuthorize("isAuthenticated()")
+    @GetMapping("/access")
+    public AccessView access() { return access.view(SecurityUtils.currentMember()); }
+
+    @PreAuthorize("isAuthenticated()")
+    @PutMapping("/access")
+    public AccessView updateAccess(@Valid @RequestBody RaidAccessRequest body) {
+        return access.update(body.minRole(), body.viewerIds(), SecurityUtils.currentMember());
+    }
 
     @PreAuthorize("isAuthenticated()")
     @GetMapping

@@ -25,6 +25,7 @@ import type { Role } from '@/Domain/types/models'
 import { useEquipmentSubscription } from '@/Domain/Equipment/hooks/useEquipment'
 import { SyncAccessGate } from '@/Features/SyncAccess/SyncAccessGate'
 import { useDllNotice } from '@/Features/SyncAccess/dllNotice'
+import { useRaidAccess } from '@/Domain/Raid/hooks/useRaids'
 import './Layout.styles.scss'
 
 const NAV_ITEMS = [
@@ -89,6 +90,7 @@ export function Layout() {
 function LayoutShell() {
   const { logout, hasRole, user } = useAuthContext()
   const { data: member } = useCurrentMember()
+  const { data: raidAccess } = useRaidAccess()
   const location = useLocation()
   const navigate = useNavigate()
   useEffect(() => {
@@ -208,7 +210,7 @@ function LayoutShell() {
             </button>
           )}
 
-          {NAV_ITEMS.map((item) => (
+          {NAV_ITEMS.filter((item) => item.to !== '/raid' || raidAccess?.canView).map((item) => (
             <Link
               key={item.to}
               to={item.to}

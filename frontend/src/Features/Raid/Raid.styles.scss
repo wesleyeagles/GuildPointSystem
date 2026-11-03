@@ -347,3 +347,69 @@
     }
   }
 }
+
+// Configuração de quem vê a aba Raid (Administrador+).
+.raid-page--settings { margin-top: theme.$spacing-lg; }
+
+.raid-access {
+  &__hint { margin: 0 0 theme.$spacing-md; color: theme.$color-text-muted; }
+
+  &__field {
+    display: flex;
+    flex-direction: column;
+    gap: theme.$spacing-xs;
+    margin-bottom: theme.$spacing-md;
+    max-width: 420px;
+
+    > span { @include theme.field-label; }
+
+    select, input {
+      @include theme.field-input;
+      @include theme.field-control-height;
+    }
+  }
+
+  &__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: theme.$spacing-xs;
+
+    em { color: theme.$color-text-muted; }
+  }
+
+  &__chip {
+    @include theme.tag(theme.$color-text);
+    gap: 4px;
+
+    button {
+      background: transparent;
+      border: none;
+      color: theme.$color-text-muted;
+      cursor: pointer;
+      padding: 0;
+
+      &:hover { color: theme.$color-danger; }
+    }
+  }
+
+  &__suggestions {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border: 1px solid theme.$color-border;
+
+    button {
+      width: 100%;
+      text-align: left;
+      padding: 6px theme.$spacing-sm;
+      background: transparent;
+      border: none;
+      color: theme.$color-text;
+      cursor: pointer;
+
+      &:hover { background: theme.$metal-800; }
+    }
+  }
+
+  &__actions { display: flex; }
+}

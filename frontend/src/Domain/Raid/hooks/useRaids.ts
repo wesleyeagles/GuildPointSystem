@@ -2,6 +2,7 @@ import { useEffect, useState, type CSSProperties } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/Shared/api/client'
 import { onSocketReconnect, subscribeTopicEffect } from '@/Shared/websocket/socketClient'
+import type { Role } from '@/Domain/types/models'
 
 /** Integrantes por subgrupo: cada subgrupo é uma PT do jogo. */
 export const RAID_GROUP_SIZE = 8
@@ -43,7 +44,34 @@ export interface RaidGroupInvite {
 
 export const raidKeys = {
   all: ['raids'] as const,
+  access: ['raids', 'access'] as const,
   invites: (raidId: number) => ['raids', raidId, 'game-invite'] as const,
+}
+
+/** Quem vê a aba Raid. minRole e viewers só vêm para quem pode configurar (Administrador+). */
+export interface RaidAccess {
+  canView: boolean
+  canConfigure: boolean
+  minRole: Role | null
+  viewers: { id: number; nickname: string }[]
+}
+
+export function useRaidAccess() {
+  return useQuery({
+    queryKey: raidKeys.access,
+    queryFn: () => apiClient<RaidAccess>('/raids/access'),
+    staleTime: 60_000,
+    refetchOnWindowFocus: true,
+  })
+}
+
+export function useUpdateRaidAccess() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (body: { minRole: Role; viewerIds: number[] }) =>
+      apiClient<RaidAccess>('/raids/access', { method: 'PUT', body }),
+    onSuccess: (data) => queryClient.setQueryData(raidKeys.access, data),
+  })
 }
 
 export function useRaids() {

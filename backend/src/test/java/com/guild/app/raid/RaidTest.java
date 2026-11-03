@@ -4,6 +4,8 @@ import com.guild.app.auth.security.MemberPrincipal;
 import com.guild.app.common.exception.AppException;
 import com.guild.app.member.repository.MemberRepository;
 import com.guild.app.party.service.PartyGameInviteService;
+import com.guild.app.common.enums.Role;
+import com.guild.app.raid.service.RaidAccessService;
 import com.guild.app.raid.service.RaidService;
 import com.guild.app.raid.service.RaidService.RaidMemberView;
 import com.guild.app.raid.service.RaidService.RaidView;
@@ -34,6 +36,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Transactional
 class RaidTest {
     @Autowired RaidService service;
+    @Autowired RaidAccessService access;
     @Autowired MemberRepository members;
     @Autowired JdbcTemplate jdbc;
     @Autowired MockMvc mvc;
@@ -217,6 +220,29 @@ class RaidTest {
         assertThrows(AppException.class, () -> service.setMark(raid.id(), ids.get(0), 1, as(ids.get(1))));
         assertThrows(AppException.class, () -> service.setMark(raid.id(), ids.get(0), 9, as(leaderId)));
         assertThrows(AppException.class, () -> service.setMark(raid.id(), outsiderId, 1, as(leaderId)));
+    }
+
+    @Test void raidTabCanBeLimitedToARoleAndChosenMembers() {
+        long allowed = member(), moderator = member(nick("Mod"), "MODERADOR", "APROVADO");
+        var raid = service.create("Raid", as(leaderId));
+        // padrão: todo membro aprovado vê
+        assertTrue(access.view(as(outsiderId)).canView());
+        assertThrows(AppException.class, () -> access.update(Role.MODERADOR, List.of(allowed), as(moderator)));  // só Administrador+
+
+        var view = access.update(Role.ADMINISTRADOR, List.of(allowed, allowed), as(adminId));
+        assertEquals(Role.ADMINISTRADOR, view.minRole());
+        assertEquals(List.of(allowed), view.viewers().stream().map(RaidAccessService.Viewer::id).toList());
+        assertFalse(access.view(as(outsiderId)).canView());
+        assertFalse(access.view(as(moderator)).canView());
+        assertFalse(access.view(as(leaderId)).canConfigure());
+        assertTrue(access.view(as(allowed)).canView());
+        assertTrue(access.view(as(adminId)).canView());
+        // sem acesso, as rotas da raid recusam, mesmo para quem lidera uma raid
+        var denied = assertThrows(AppException.class, () -> service.list(as(outsiderId)));
+        assertEquals(HttpStatus.FORBIDDEN, denied.getStatus());
+        assertThrows(AppException.class, () -> service.addMembers(raid.id(), List.of(allowed), null, as(leaderId)));
+        assertEquals(1, service.list(as(allowed)).size());
+        assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM audit_log WHERE type='RAID_ACCESS_UPDATED' AND actor_id=?", Integer.class, adminId));
     }
 
     @Test void apiRequiresLogin() throws Exception {

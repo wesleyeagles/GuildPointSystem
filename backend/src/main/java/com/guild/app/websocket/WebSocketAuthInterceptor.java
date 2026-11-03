@@ -5,6 +5,7 @@ import com.guild.app.auth.security.MemberDetailsService;
 import com.guild.app.auth.security.MemberPrincipal;
 import com.guild.app.common.enums.MemberStatus;
 import com.guild.app.common.enums.Role;
+import com.guild.app.raid.service.RaidAccessService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
@@ -31,6 +32,7 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
 
     private final JwtService jwtService;
     private final MemberDetailsService memberDetailsService;
+    private final RaidAccessService raidAccess;
 
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
@@ -77,13 +79,13 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
             throw new IllegalStateException("Não autorizado.");
     }
 
-    /** Raids and their live HP/FP/SP: approved members, like {@code GET /api/raids}. */
+    /** Raids and their live HP/FP/SP: members who can see the Raid tab, like {@code GET /api/raids}. */
     private void checkRaidSubscription(StompHeaderAccessor accessor) {
         var destination = accessor.getDestination();
         if (destination == null || !destination.startsWith(RAID_TOPIC)) return;
         var member = accessor.getUser() instanceof UsernamePasswordAuthenticationToken auth
                 && auth.getPrincipal() instanceof MemberPrincipal principal ? principal : null;
-        if (member == null || member.getStatus() != MemberStatus.APROVADO) {
+        if (member == null || member.getStatus() != MemberStatus.APROVADO || !raidAccess.canView(member.getId())) {
             throw new IllegalStateException("Não autorizado.");
         }
     }

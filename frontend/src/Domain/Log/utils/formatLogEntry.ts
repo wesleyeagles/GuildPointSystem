@@ -7,6 +7,7 @@ const LOG_TYPE_LABELS: Record<AuditLogType, string> = {
   RAID_CREATED: 'Raid criada',
   RAID_DISBANDED: 'Raid desfeita',
   RAID_GAME_INVITE: 'Raid chamada no jogo',
+  RAID_ACCESS_UPDATED: 'Acesso à Raid alterado',
   DLL_RELEASED: 'Nova versão da DLL',
   PARTY_QUEUE_UPDATED: 'Fila de PT atualizada',
   ROTATION_UPDATED: 'Rotação atualizada',
@@ -80,6 +81,8 @@ export function formatLogDetails(log: AuditLogEntry): string {
     case 'RAID_CREATED':
     case 'RAID_DISBANDED':
       return str(p.name)
+    case 'RAID_ACCESS_UPDATED':
+      return `A partir de ${str(p.minRole)}${Array.isArray(p.viewers) && p.viewers.length ? ` · Liberados: ${p.viewers.join(', ')}` : ''}`
     case 'RAID_GAME_INVITE':
       return Array.isArray(p.groups)
         ? `${str(p.name)} · ${p.groups.map((g: { group?: unknown; leader?: unknown }) => `Subgrupo ${str(g.group)}: ${str(g.leader)}`).join(' · ')}`

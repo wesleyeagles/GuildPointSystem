@@ -35,6 +35,7 @@ public class RaidLiveService {
     private final RaidService raids;
     private final MemberRepository members;
     private final WebSocketPublisher ws;
+    private final RaidAccessService access;
     Clock clock = Clock.systemUTC();
 
     public record Vitals(int level, int hp, int hpMax, int fp, int fpMax, int sp, int spMax) {}
@@ -139,6 +140,7 @@ public class RaidLiveService {
     public List<LiveMember> forRaid(Long raidId, MemberPrincipal actor) {
         Member viewer = members.findById(actor.getId()).orElseThrow(() -> new AppException("Membro não encontrado", HttpStatus.NOT_FOUND));
         if (!RaidService.eligible(viewer)) throw new AppException("Acesso negado", HttpStatus.FORBIDDEN);
+        access.requireView(viewer);
         RaidView raid = roster().byRaid().get(raidId);
         if (raid == null) throw new AppException("Raid não encontrada", HttpStatus.NOT_FOUND);
         return liveMembers(raid, clock.instant());

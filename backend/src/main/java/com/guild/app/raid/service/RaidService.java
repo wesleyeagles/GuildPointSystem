@@ -45,6 +45,7 @@ public class RaidService {
     private final AuditLogService audit;
     private final ObjectMapper json;
     private final WebSocketPublisher ws;
+    private final RaidAccessService access;
     Clock clock = Clock.systemUTC();
     /** Sobe a cada mudança confirmada: quem guarda a escalação em cache (RaidLiveService) recarrega. */
     private final AtomicLong version = new AtomicLong();
@@ -316,9 +317,11 @@ public class RaidService {
 
     private record RaidHead(Long id, String name, Long leaderId) {}
 
+    /** Membro aprovado com acesso à aba Raid (RaidAccessService); todas as rotas do site passam por aqui. */
     private Member approved(MemberPrincipal actor) {
         var member = members.findById(actor.getId()).orElseThrow(() -> new AppException("Membro não encontrado", HttpStatus.NOT_FOUND));
         if (!eligible(member)) throw new AppException("Acesso negado", HttpStatus.FORBIDDEN);
+        access.requireView(member);
         return member;
     }
     static boolean eligible(Member member) {

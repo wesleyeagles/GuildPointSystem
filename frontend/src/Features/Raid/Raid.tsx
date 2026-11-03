@@ -11,6 +11,7 @@ import {
   useRemoveRaidMember,
   useSetRaidGroupLeader,
   useSetRaidMark,
+  useRaidAccess,
   useTransferRaidLeader,
   effectIconStyle,
   effectIconUrl,
@@ -30,6 +31,7 @@ import { ConfirmDialog } from '@/Shared/ui/components/ConfirmDialog/ConfirmDialo
 import { RaidAddMembersModal } from './components/RaidAddMembersModal'
 import { RaidGameInvite } from './components/RaidGameInvite'
 import { RaidMarkIcon, RaidMarkPicker } from './components/RaidMark'
+import { RaidAccessSettings } from './components/RaidAccessSettings'
 import './Raid.styles.scss'
 
 const DRAG_TYPE = 'application/x-raid-member'
@@ -240,7 +242,7 @@ function RaidCard({ raid, myId }: { raid: Raid; myId: number | undefined }) {
   )
 }
 
-export function RaidPage() {
+function RaidBoard() {
   const { user } = useAuthContext()
   const { showToast } = useAppToast()
   const { data: raids = [], isLoading } = useRaids()
@@ -289,5 +291,30 @@ export function RaidPage() {
         ordered.map((raid) => <RaidCard key={raid.id} raid={raid} myId={myId} />)
       )}
     </div>
+  )
+}
+
+/** Guarda da aba Raid: só quem tem acesso (RaidAccessService) carrega a raid e o canal ao vivo. */
+export function RaidPage() {
+  const { data: access, isLoading } = useRaidAccess()
+  if (isLoading) return <p className="raid-page__empty">Carregando...</p>
+  if (!access?.canView) {
+    return (
+      <div className="raid-page">
+        <Panel title="Raid" code="RAID">
+          <p className="raid-page__empty">Você não tem acesso à Raid. Peça a um Administrador para liberar.</p>
+        </Panel>
+      </div>
+    )
+  }
+  return (
+    <>
+      <RaidBoard />
+      {access.canConfigure && (
+        <div className="raid-page raid-page--settings">
+          <RaidAccessSettings key={`${access.minRole}-${access.viewers.map((v) => v.id).join(',')}`} access={access} />
+        </div>
+      )}
+    </>
   )
 }
