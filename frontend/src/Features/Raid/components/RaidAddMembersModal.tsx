@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { useMemberRanking } from '@/Domain/Member/hooks/useMembers'
 import { nextFreeGroup, raidGroups, raidKeys, RAID_GROUP_SIZE, useAddRaidMembers, type Raid } from '@/Domain/Raid/hooks/useRaids'
@@ -9,7 +10,8 @@ import '@/Features/Auth/Auth.styles.scss'
 
 /**
  * Escolhe vários membros de uma vez, sem limite. Fica de fora quem já está em alguma raid.
- * "Automático" põe cada um no primeiro subgrupo com vaga.
+ * "Automático" põe cada um no primeiro subgrupo com vaga. Vai para o body (portal): dentro do
+ * painel da raid, que corta o conteúdo, a sobreposição ficaria presa ao painel.
  */
 export function RaidAddMembersModal({ raid, onClose }: { raid: Raid; onClose: () => void }) {
   const { showToast } = useAppToast()
@@ -54,7 +56,7 @@ export function RaidAddMembersModal({ raid, onClose }: { raid: Raid; onClose: ()
     },
   )
 
-  return (
+  return createPortal(
     <div className="modal-overlay" role="presentation" onClick={onClose}>
       <div className="modal-card raid-add" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
         <div className="auth-window-bar">
@@ -119,6 +121,7 @@ export function RaidAddMembersModal({ raid, onClose }: { raid: Raid; onClose: ()
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
