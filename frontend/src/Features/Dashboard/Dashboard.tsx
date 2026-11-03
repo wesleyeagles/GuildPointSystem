@@ -163,7 +163,11 @@ export function DashboardPage() {
     if (av === null && bv === null) return 0
     if (av === null) return 1 // sem dado por último, independente da direção
     if (bv === null) return -1
-    const diff = bv - av // base: maior primeiro
+    let diff = bv - av // base: maior primeiro
+    // Mesmo level: desempata pela EXP (quem tem mais % fica na frente).
+    if (diff === 0 && sortKey === 'gameLevel') {
+      diff = gameStatusByMember.get(b.id)!.expPercent - gameStatusByMember.get(a.id)!.expPercent
+    }
     return sortDir === 'desc' ? diff : -diff
   })
   const top3 = sortedRanking.slice(0, 3)
