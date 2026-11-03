@@ -6,7 +6,7 @@ import { useAuthContext } from '@/Features/Auth/contexts/AuthContext'
 import { syncAccessKeys, useSyncAccess, type SyncAccessView } from '@/Domain/CharacterStatus/hooks/useSyncAccess'
 import {
   dllDownloadUrl,
-  dllUpdatesItself,
+  dllAutoUpdatePending,
   useDllReleaseSubscription,
   useLatestDll,
   type DllRelease,
@@ -384,8 +384,9 @@ export function SyncAccessGate({ children }: { children: ReactNode }) {
     (dismissedAt === null || navigation.count - dismissedAt >= NAVIGATIONS_BETWEEN_WARNINGS)
 
   const outdated = !!sync?.synced && sync.dllOutdated && !!latestDll
-  // 1.2.0+ só uma versão atrás: a própria DLL troca sozinha. Duas ou mais = a troca falhou, avisa.
-  const autoUpdating = outdated && dllUpdatesItself(sync.dllVersion, latestDll) && sync.dllReleasesBehind <= 1
+  // 1.2.0+ troca sozinha no próximo jogo; o modal só abre sozinho se a troca não aconteceu em 3 dias.
+  const autoUpdating =
+    outdated && dllAutoUpdatePending(sync.dllVersion, latestDll, sync.dllReleasesBehind, serverNow())
   const showDllUpdate =
     outdated &&
     !showWarning &&
