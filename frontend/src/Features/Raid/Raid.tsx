@@ -16,6 +16,7 @@ import {
   useTransferRaidLeader,
   effectIconStyle,
   effectIconUrl,
+  hasSpeedBuff,
   isRaidMemberOnline,
   useNowTick,
   useRaidLive,
@@ -101,6 +102,9 @@ function RaidMemberRow({ raid, member, live, now, onAction, onMark }: {
         )}
         <span className="raid-member__level">L{online && vitals ? vitals.level : member.level}</span>
         {member.mark ? <RaidMarkIcon mark={member.mark} size={14} /> : null}
+        {online && !dead && !hasSpeedBuff(vitals?.effects) && (
+          <span className="raid-member__alert" title="Sem Velocity / Velocity Speed">!</span>
+        )}
         <span className="raid-member__name" title={member.nickname}>{member.nickname}</span>
         {member.raidLeader && <span className="raid-member__badge raid-member__badge--raid" title="Líder da raid">Líder</span>}
         {member.groupLeader && <span className="raid-member__badge" title="Chama este subgrupo no jogo">PT</span>}

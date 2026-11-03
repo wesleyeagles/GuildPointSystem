@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { effectIconStyle, effectIconUrl, effectSlug, isRaidMemberOnline, nextFreeGroup, raidGroups, type Raid, type RaidMember } from './useRaids'
+import { effectIconStyle, effectIconUrl, effectSlug, hasSpeedBuff, isRaidMemberOnline, nextFreeGroup, raidGroups, type Raid, type RaidMember } from './useRaids'
 
 const member = (id: number, group: number): RaidMember => ({
   id, nickname: `M${id}`, className: null, classImageUrl: null, level: 50, group, raidLeader: id === 1, groupLeader: false, mark: null, hidden: false,
@@ -60,5 +60,19 @@ describe('effectIconUrl', () => {
   it('returns null for skills and unknown forces', () => {
     expect(effectIconUrl({ type: 0, index: 3, level: 7, debuff: false, icon: -1, name: 'Tempo' })).toBeNull()
     expect(effectIconUrl({ type: 1, index: 45, level: 1, debuff: false, icon: -1, name: 'Trust' })).toBeNull()
+  })
+})
+
+describe('hasSpeedBuff', () => {
+  const effect = (name: string, debuff = false) => ({ type: 1, index: 1, level: 1, debuff, icon: -1, name })
+  it('accepts Velocity and Velocity Speed, ignoring case', () => {
+    expect(hasSpeedBuff([effect('Focus'), effect('Velocity')])).toBe(true)
+    expect(hasSpeedBuff([effect('VELOCITY SPEED')])).toBe(true)
+  })
+  it('is false without the buff, with only a debuff, or without effects', () => {
+    expect(hasSpeedBuff([effect('Focus')])).toBe(false)
+    expect(hasSpeedBuff([effect('Velocity', true)])).toBe(false)
+    expect(hasSpeedBuff([])).toBe(false)
+    expect(hasSpeedBuff(undefined)).toBe(false)
   })
 })

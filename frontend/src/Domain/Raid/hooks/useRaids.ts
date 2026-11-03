@@ -232,6 +232,11 @@ const FORCE_ICONS = new Set([
   'wind-blast', 'wind-shear',
 ])
 
+/** Buff de velocidade: as forces "Velocity" e "Velocity Speed". Sem ele, a raid mostra um "!" no nick (como a DLL). */
+export function hasSpeedBuff(effects: readonly RaidEffect[] | undefined): boolean {
+  return !!effects?.some((e) => !e.debuff && e.name.toLowerCase().startsWith('velocity'))
+}
+
 export function effectSlug(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 }

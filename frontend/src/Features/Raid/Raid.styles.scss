@@ -156,6 +156,12 @@
     color: theme.$color-cyan;
   }
 
+  &__alert {
+    font-weight: 700;
+    color: theme.$color-warning;
+    cursor: help;
+  }
+
   &__badge {
     @include theme.tag(theme.$color-text-muted);
     padding: 2px 4px;
