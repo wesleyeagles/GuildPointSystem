@@ -6,6 +6,7 @@ import com.guild.app.auth.security.MemberPrincipal;
 import com.guild.app.common.enums.MemberStatus;
 import com.guild.app.common.enums.Role;
 import com.guild.app.raid.service.RaidAccessService;
+import org.springframework.beans.factory.ObjectProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
@@ -32,7 +33,9 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
 
     private final JwtService jwtService;
     private final MemberDetailsService memberDetailsService;
-    private final RaidAccessService raidAccess;
+    // Buscado na hora do uso: a configuração do WebSocket cria este interceptor antes do publicador, e o
+    // serviço de acesso depende (via log de auditoria) do publicador. Injetado direto, fecharia um ciclo.
+    private final ObjectProvider<RaidAccessService> raidAccess;
 
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
@@ -85,12 +88,12 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
         if (destination == null || !destination.startsWith(RAID_TOPIC)) return;
         var member = accessor.getUser() instanceof UsernamePasswordAuthenticationToken auth
                 && auth.getPrincipal() instanceof MemberPrincipal principal ? principal : null;
-        if (member == null || member.getStatus() != MemberStatus.APROVADO || !raidAccess.canView(member.getId())) {
+        if (member == null || member.getStatus() != MemberStatus.APROVADO || !raidAccess.getObject().canView(member.getId())) {
             throw new IllegalStateException("Não autorizado.");
         }
         // Canal com os integrantes ocultos: só o líder da raid e Administrador+.
         var all = java.util.regex.Pattern.compile("^/topic/raids/(\\d+)/live/all$").matcher(destination);
-        if (all.matches() && !raidAccess.canManageRaid(member.getId(), Long.valueOf(all.group(1)))) {
+        if (all.matches() && !raidAccess.getObject().canManageRaid(member.getId(), Long.valueOf(all.group(1)))) {
             throw new IllegalStateException("Não autorizado.");
         }
     }
