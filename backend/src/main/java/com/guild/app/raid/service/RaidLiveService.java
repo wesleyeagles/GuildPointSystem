@@ -113,7 +113,7 @@ public class RaidLiveService {
      * Guarda o status do personagem e devolve a raid dele em texto (vazio = não está em raid).
      * Primeira linha "R<TAB>id<TAB>nome"; depois um integrante por linha:
      * "subgrupo<TAB>nick<TAB>level<TAB>hp<TAB>hpMax<TAB>fp<TAB>fpMax<TAB>sp<TAB>spMax<TAB>marcas<TAB>idade",
-     * marcas = L (líder da raid), P (líder do subgrupo) ou "-"; idade em segundos (-1 = sem envio).
+     * marcas = L (líder da raid), P (líder do subgrupo), 1..8 (marca de raid, só com fx=1) ou "-"; idade em s (-1 = sem envio).
      */
     public Optional<String> report(String character, String body) {
         return report(character, body, false);
@@ -179,7 +179,9 @@ public class RaidLiveService {
         for (var m : raid.members()) {
             Live l = live.get(m.id());
             Vitals v = l != null ? l.vitals() : new Vitals(m.level(), 0, 0, 0, 0, 0, 0);
-            String flags = (m.raidLeader() ? "L" : "") + (m.groupLeader() ? "P" : "");
+            // A marca de raid (1..8) vai junto das marcas, so para a DLL 1.7.0+ (a 1.6.0 recusaria o digito).
+            String flags = (m.raidLeader() ? "L" : "") + (m.groupLeader() ? "P" : "")
+                + (withEffects && m.mark() != null ? String.valueOf(m.mark()) : "");
             long age = l != null ? Duration.between(l.at(), now).toSeconds() : -1;
             out.append(m.group()).append('\t').append(clean(m.nickname())).append('\t').append(v.level())
                 .append('\t').append(v.hp()).append('\t').append(v.hpMax())

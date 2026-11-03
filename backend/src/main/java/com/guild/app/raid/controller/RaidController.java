@@ -7,6 +7,7 @@ import com.guild.app.raid.service.RaidService;
 import com.guild.app.raid.service.RaidService.GroupInviteView;
 import com.guild.app.raid.service.RaidService.RaidView;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -27,6 +28,8 @@ public class RaidController {
     public record CreateRaidRequest(@NotNull @Size(max = 60) String name) {}
     public record AddRaidMembersRequest(@NotEmpty @Size(max = 200) List<Long> memberIds, @Min(1) Integer group) {}
     public record MoveRaidMemberRequest(@NotNull @Min(1) Integer group) {}
+    /** mark: 1..8, ou null para tirar a marca. */
+    public record RaidMarkRequest(@Min(1) @Max(8) Integer mark) {}
 
     @PreAuthorize("isAuthenticated()")
     @GetMapping
@@ -63,6 +66,12 @@ public class RaidController {
     @PutMapping("/{id}/members/{memberId}/group")
     public RaidView move(@PathVariable Long id, @PathVariable Long memberId, @Valid @RequestBody MoveRaidMemberRequest body) {
         return service.moveMember(id, memberId, body.group(), SecurityUtils.currentMember());
+    }
+
+    @PreAuthorize("isAuthenticated()")
+    @PutMapping("/{id}/members/{memberId}/mark")
+    public RaidView mark(@PathVariable Long id, @PathVariable Long memberId, @Valid @RequestBody RaidMarkRequest body) {
+        return service.setMark(id, memberId, body.mark(), SecurityUtils.currentMember());
     }
 
     @PreAuthorize("isAuthenticated()")

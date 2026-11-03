@@ -16,6 +16,8 @@ export interface RaidMember {
   raidLeader: boolean
   /** Quem chama o subgrupo no jogo (a DLL dele envia os convites). */
   groupLeader: boolean
+  /** Marca de raid 1..8 (estrela, círculo, losango, triângulo, lua, quadrado, X, caveira); null = nenhuma. */
+  mark: number | null
 }
 
 export interface Raid {
@@ -87,6 +89,10 @@ export const useMoveRaidMember = () =>
 export const useTransferRaidLeader = () =>
   useRaidMutation((v: { raidId: number; memberId: number }) =>
     apiClient<Raid>(`/raids/${v.raidId}/leader/${v.memberId}`, { method: 'PUT' }))
+
+export const useSetRaidMark = () =>
+  useRaidMutation((v: { raidId: number; memberId: number; mark: number | null }) =>
+    apiClient<Raid>(`/raids/${v.raidId}/members/${v.memberId}/mark`, { method: 'PUT', body: { mark: v.mark } }))
 
 export const useSetRaidGroupLeader = () =>
   useRaidMutation((v: { raidId: number; memberId: number }) =>

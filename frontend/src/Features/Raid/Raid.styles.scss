@@ -308,3 +308,42 @@
 
   &--icon.raid-effect--debuff { outline: 1px solid #e2483e; outline-offset: -1px; }
 }
+
+// Marcas de raid (como no WoW) e o seletor do líder.
+.raid-mark {
+  flex-shrink: 0;
+  --raid-mark-bg: #{theme.$metal-950};
+}
+
+.raid-mark-picker {
+  position: relative;
+  display: inline-flex;
+
+  &__menu {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 4px);
+    z-index: 20;
+    display: flex;
+    gap: 2px;
+    padding: 4px;
+    background: theme.$metal-900;
+    border: 1px solid theme.$color-border-strong;
+    --raid-mark-bg: #{theme.$metal-900};
+
+    button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      padding: 0;
+      background: transparent;
+      border: 1px solid transparent;
+      color: theme.$color-text-muted;
+      cursor: pointer;
+
+      &:hover, &.is-current { border-color: theme.$color-primary; }
+    }
+  }
+}

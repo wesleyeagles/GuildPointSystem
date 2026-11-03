@@ -10,6 +10,7 @@ import {
   useRaids,
   useRemoveRaidMember,
   useSetRaidGroupLeader,
+  useSetRaidMark,
   useTransferRaidLeader,
   effectIconStyle,
   effectIconUrl,
@@ -28,6 +29,7 @@ import { useAppToast } from '@/Shared/ui/components/AppToast/AppToast'
 import { ConfirmDialog } from '@/Shared/ui/components/ConfirmDialog/ConfirmDialog'
 import { RaidAddMembersModal } from './components/RaidAddMembersModal'
 import { RaidGameInvite } from './components/RaidGameInvite'
+import { RaidMarkIcon, RaidMarkPicker } from './components/RaidMark'
 import './Raid.styles.scss'
 
 const DRAG_TYPE = 'application/x-raid-member'
@@ -67,12 +69,13 @@ function EffectList({ effects }: { effects: RaidEffect[] }) {
   )
 }
 
-function RaidMemberRow({ raid, member, live, now, onAction }: {
+function RaidMemberRow({ raid, member, live, now, onAction, onMark }: {
   raid: Raid
   member: RaidMember
   live: RaidLive | undefined
   now: number
   onAction: (action: 'groupLeader' | 'raidLeader' | 'remove', member: RaidMember) => void
+  onMark: (member: RaidMember, mark: number | null) => void
 }) {
   const vitals = live?.members.get(member.id)
   const online = live ? isRaidMemberOnline(vitals, live.receivedAt, now) : false
@@ -94,11 +97,13 @@ function RaidMemberRow({ raid, member, live, now, onAction }: {
           <span className="raid-member__fallback">?</span>
         )}
         <span className="raid-member__level">L{online && vitals ? vitals.level : member.level}</span>
+        {member.mark ? <RaidMarkIcon mark={member.mark} size={14} /> : null}
         <span className="raid-member__name" title={member.nickname}>{member.nickname}</span>
         {member.raidLeader && <span className="raid-member__badge raid-member__badge--raid" title="Líder da raid">Líder</span>}
         {member.groupLeader && <span className="raid-member__badge" title="Chama este subgrupo no jogo">PT</span>}
         {raid.canManage && (
           <span className="raid-member__actions">
+            <RaidMarkPicker current={member.mark} onPick={(mark) => onMark(member, mark)} />
             {!member.groupLeader && (
               <button type="button" title="Tornar líder do subgrupo (chama a PT no jogo)" onClick={() => onAction('groupLeader', member)}>PT</button>
             )}
@@ -129,6 +134,7 @@ function RaidCard({ raid, myId }: { raid: Raid; myId: number | undefined }) {
   const remove = useRemoveRaidMember()
   const groupLeader = useSetRaidGroupLeader()
   const raidLeader = useTransferRaidLeader()
+  const setMark = useSetRaidMark()
   const disband = useDisbandRaid()
   const [adding, setAdding] = useState(false)
   const [dropTarget, setDropTarget] = useState<number | null>(null)
@@ -146,6 +152,9 @@ function RaidCard({ raid, myId }: { raid: Raid; myId: number | undefined }) {
     else if (action === 'raidLeader') raidLeader.mutate(vars, fail('Não foi possível passar a liderança.'))
     else remove.mutate(vars, fail('Não foi possível tirar o membro.'))
   }
+
+  const onMark = (member: RaidMember, mark: number | null) =>
+    setMark.mutate({ raidId: raid.id, memberId: member.id, mark }, fail('Não foi possível marcar o membro.'))
 
   const dropProps = (group: number) => raid.canManage ? {
     onDragOver: (e: DragEvent) => {
@@ -192,7 +201,7 @@ function RaidCard({ raid, myId }: { raid: Raid; myId: number | undefined }) {
               Subgrupo {group} <span>{members.length}/{RAID_GROUP_SIZE}</span>
             </header>
             <ul className="raid-group__list">
-              {members.map((m) => <RaidMemberRow key={m.id} raid={raid} member={m} live={live} now={now} onAction={onAction} />)}
+              {members.map((m) => <RaidMemberRow key={m.id} raid={raid} member={m} live={live} now={now} onAction={onAction} onMark={onMark} />)}
             </ul>
           </section>
         ))}

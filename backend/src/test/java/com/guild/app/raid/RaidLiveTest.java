@@ -136,6 +136,17 @@ class RaidLiveTest {
             healer.effects());
     }
 
+    @Test void markGoesOnlyToDllsThatAskForIt() throws Exception {
+        var raid = raids.create("Raid", as(leaderId));
+        raids.setMark(raid.id(), leaderId, 3, as(leaderId));
+        String withFx = mvc.perform(post("/api/raids/game/status").param("character", leaderNick).param("fx", "1")
+                .contentType(MediaType.TEXT_PLAIN).content("55\t900\t1000\t300\t400\t50\t60"))
+            .andReturn().getResponse().getContentAsString();
+        assertEquals("LP3", withFx.split("\n")[1].split("\t", -1)[9]);
+        String old = report(leaderNick, "55\t900\t1000\t300\t400\t50\t60");
+        assertEquals("LP", old.split("\n")[1].split("\t", -1)[9]);
+    }
+
     @Test void invalidEffectsAreRejected() throws Exception {
         raids.create("Raid", as(leaderId));
         for (String effects : List.of("0,3,7,X,Nome", "0,3", "16,3,7,B,Nome", "0,3,7,B,x,Nome", "0,3,7,B,4096,Nome", "0,3,7,B," + "a".repeat(33), "0,3,7,B,Tab\tNo"))

@@ -49,15 +49,16 @@ public class RaidService {
     /** Sobe a cada mudança confirmada: quem guarda a escalação em cache (RaidLiveService) recarrega. */
     private final AtomicLong version = new AtomicLong();
 
+    /** mark: marca de raid 1..8 (estrela, círculo, losango, triângulo, lua, quadrado, X, caveira); null = nenhuma. */
     public record RaidMemberView(Long id, String nickname, String className, String classImageUrl, int level,
-                                 int group, boolean raidLeader, boolean groupLeader) {}
+                                 int group, boolean raidLeader, boolean groupLeader, Integer mark) {}
     public record RaidView(Long id, String name, Long leaderId, String leader, Instant createdAt,
                            boolean canManage, List<RaidMemberView> members) {}
     public record GroupInviteView(int group, UUID id, String leader, String state, List<String> nicks,
                                   List<String> skipped, Instant createdAt, Instant expiresAt) {}
 
     private record Row(Long raidId, Long memberId, String nickname, String className, String classImageUrl,
-                       int level, int group, boolean groupLeader, Instant joinedAt) {}
+                       int level, int group, boolean groupLeader, Integer mark, Instant joinedAt) {}
 
     // ---- leitura ----
 
@@ -213,6 +214,22 @@ public class RaidService {
         return find(raidId, member);
     }
 
+    /**
+     * Marca de raid num integrante (1..8) ou nenhuma (null). Como no WoW, cada marca fica num integrante só:
+     * marcar outro tira a marca de quem a tinha.
+     */
+    @Transactional
+    public RaidView setMark(Long raidId, Long memberId, Integer mark, MemberPrincipal actor) {
+        Member member = approved(actor);
+        manageable(raidId, member);
+        if (mark != null && (mark < 1 || mark > 8)) throw new AppException("Marca inválida.", HttpStatus.BAD_REQUEST);
+        if (groupOf(raidId, memberId) == null) throw new AppException("Este membro não está na raid.", HttpStatus.NOT_FOUND);
+        if (mark != null) jdbc.update("UPDATE raid_member SET mark=NULL WHERE raid_id=? AND mark=? AND member_id<>?", raidId, mark, memberId);
+        jdbc.update("UPDATE raid_member SET mark=? WHERE raid_id=? AND member_id=?", mark, raidId, memberId);
+        changed();
+        return find(raidId, member);
+    }
+
     // ---- convites pelo jogo ----
 
     /** Um convite por subgrupo com alguém para chamar; substitui os anteriores da raid. */
@@ -358,14 +375,14 @@ public class RaidService {
     private Map<Long, List<Row>> rows(Long raidId) {
         String sql = """
             SELECT rm.raid_id,m.id,m.nickname,c.name class_name,c.image_url,COALESCE(gs.level,m.level,1) AS level,
-                   rm.group_no,rm.group_leader,rm.joined_at
+                   rm.group_no,rm.group_leader,rm.mark,rm.joined_at
             FROM raid_member rm JOIN member m ON m.id=rm.member_id LEFT JOIN character_class c ON c.id=m.class_id
             LEFT JOIN LATERAL (SELECT s.level FROM character_status s WHERE s.member_id=m.id ORDER BY s.updated_at DESC LIMIT 1) gs ON TRUE
             """ + (raidId != null ? "WHERE rm.raid_id=? " : "") + "ORDER BY rm.group_no,rm.joined_at,m.id";
         Object[] args = raidId != null ? new Object[]{raidId} : new Object[0];
         return jdbc.query(sql, (r, n) -> new Row(r.getLong("raid_id"), r.getLong("id"), r.getString("nickname"),
                 r.getString("class_name"), r.getString("image_url"), r.getInt("level"), r.getInt("group_no"),
-                r.getBoolean("group_leader"), r.getTimestamp("joined_at").toInstant()), args)
+                r.getBoolean("group_leader"), (Integer) r.getObject("mark", Integer.class), r.getTimestamp("joined_at").toInstant()), args)
             .stream().collect(Collectors.groupingBy(Row::raidId, LinkedHashMap::new, Collectors.toList()));
     }
 
@@ -380,7 +397,7 @@ public class RaidService {
         for (Row r : rows) leaders.putIfAbsent(r.group(), r.memberId());
         var out = rows.stream()
             .map(r -> new RaidMemberView(r.memberId(), r.nickname(), r.className(), r.classImageUrl(), r.level(), r.group(),
-                r.memberId().equals(leaderId), r.memberId().equals(leaders.get(r.group()))))
+                r.memberId().equals(leaderId), r.memberId().equals(leaders.get(r.group())), r.mark()))
             .sorted(Comparator.comparingInt(RaidMemberView::group).thenComparing(m -> !m.groupLeader()))
             .toList();
         return new RaidView(id, name, leaderId, leader, createdAt, canManage, out);

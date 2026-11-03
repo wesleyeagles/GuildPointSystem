@@ -202,6 +202,23 @@ class RaidTest {
         assertEquals(1, view.members().stream().filter(m -> m.id() == other).findFirst().orElseThrow().level());
     }
 
+    @Test void marksMoveLikeInWowAndOnlyManagersSetThem() {
+        var raid = service.create("Raid", as(leaderId));
+        var ids = many(2);
+        service.addMembers(raid.id(), ids, null, as(leaderId));
+        var view = service.setMark(raid.id(), ids.get(0), 8, as(leaderId));
+        assertEquals(8, view.members().stream().filter(m -> m.id().equals(ids.get(0))).findFirst().orElseThrow().mark());
+        // a caveira passa para o outro: cada marca em um integrante só
+        view = service.setMark(raid.id(), ids.get(1), 8, as(leaderId));
+        assertNull(view.members().stream().filter(m -> m.id().equals(ids.get(0))).findFirst().orElseThrow().mark());
+        assertEquals(8, view.members().stream().filter(m -> m.id().equals(ids.get(1))).findFirst().orElseThrow().mark());
+        assertNull(service.setMark(raid.id(), ids.get(1), null, as(adminId)).members().stream()
+            .filter(m -> m.id().equals(ids.get(1))).findFirst().orElseThrow().mark());
+        assertThrows(AppException.class, () -> service.setMark(raid.id(), ids.get(0), 1, as(ids.get(1))));
+        assertThrows(AppException.class, () -> service.setMark(raid.id(), ids.get(0), 9, as(leaderId)));
+        assertThrows(AppException.class, () -> service.setMark(raid.id(), outsiderId, 1, as(leaderId)));
+    }
+
     @Test void apiRequiresLogin() throws Exception {
         mvc.perform(get("/api/raids")).andExpect(status().is4xxClientError());
     }
