@@ -26,7 +26,7 @@ $drawer-breakpoint: 960px;
   &__brand {
     display: flex;
     align-items: center;
-    gap: theme.$spacing-sm;
+    justify-content: center;
     padding-bottom: theme.$spacing-md;
     border-bottom: 1px solid theme.$color-border;
     position: relative;
@@ -34,7 +34,8 @@ $drawer-breakpoint: 960px;
     &::after {
       content: '';
       position: absolute;
-      left: 0;
+      left: 50%;
+      transform: translateX(-50%);
       bottom: -1px;
       width: 48px;
       height: 1px;
@@ -48,29 +49,6 @@ $drawer-breakpoint: 960px;
     object-fit: contain;
   }
 
-  &__brand-text {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-  }
-
-  &__title {
-    font-family: theme.$font-heading;
-    font-size: theme.$font-size-lg;
-    font-weight: 800;
-    letter-spacing: 1px;
-    line-height: 1;
-    text-transform: uppercase;
-    color: theme.$color-text;
-  }
-
-  &__subtitle {
-    margin-top: 4px;
-    font-family: theme.$font-mono;
-    font-size: theme.$font-size-heading;
-    color: theme.$color-text-faint;
-    text-transform: uppercase;
-  }
 
   // Member sheet
   &__member {

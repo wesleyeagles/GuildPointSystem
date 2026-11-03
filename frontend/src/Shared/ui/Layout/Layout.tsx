@@ -136,11 +136,7 @@ function LayoutShell() {
       {rgPointsOpen && <PartyLocationPointsModal variant="rg" onClose={() => setRgPointsOpen(false)} />}
       <aside className="layout__sidebar">
         <div className="layout__brand">
-          <img src="/Logo-Blacklist.png" alt="" className="layout__logo" />
-          <div className="layout__brand-text">
-            <span className="layout__title">Guild System</span>
-            <span className="layout__subtitle">RF Online · Network</span>
-          </div>
+          <img src="/Logo-Blacklist.png" alt="Guild System" className="layout__logo" />
         </div>
 
         <div className="layout__member">
