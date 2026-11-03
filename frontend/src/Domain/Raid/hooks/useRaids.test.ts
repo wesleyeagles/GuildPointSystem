@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { effectIconUrl, effectSlug, isRaidMemberOnline, nextFreeGroup, raidGroups, type Raid, type RaidMember } from './useRaids'
+import { effectIconStyle, effectIconUrl, effectSlug, isRaidMemberOnline, nextFreeGroup, raidGroups, type Raid, type RaidMember } from './useRaids'
 
 const member = (id: number, group: number): RaidMember => ({
   id, nickname: `M${id}`, className: null, classImageUrl: null, level: 50, group, raidLeader: id === 1, groupLeader: false,
@@ -35,14 +35,30 @@ describe('isRaidMemberOnline', () => {
   })
 })
 
-describe('effectIconUrl', () => {
-  it('uses the force icons the site already has, by name', () => {
-    expect(effectSlug("Air Blast")).toBe('air-blast')
-    expect(effectIconUrl({ type: 2, index: 1, level: 1, debuff: false, name: 'Tempo' })).toBe('/forces/tempo.png')
-    expect(effectIconUrl({ type: 2, index: 1, level: 1, debuff: false, name: 'Chain Lightning' })).toBe('/forces/chain-lightning.png')
+describe('effectIconStyle', () => {
+  it('cuts the game icon from the sheet of the effect type', () => {
+    // Bull's Eye: skill (folha 8x8), célula 16 = linha 2, coluna 0
+    expect(effectIconStyle({ type: 0, index: 15, level: 7, debuff: false, icon: 16, name: "Bull's Eye" }, 18)).toEqual({
+      backgroundImage: 'url(/effect-icons/skill.png)', backgroundSize: '144px 144px', backgroundPosition: '-0px -36px',
+    })
+    // Trust: skill de classe (folha 16x16), célula 12
+    expect(effectIconStyle({ type: 2, index: 45, level: 1, debuff: false, icon: 12, name: 'Trust' }, 18)?.backgroundPosition)
+      .toBe('-216px -0px')
   })
-  it('falls back to the initial for skills and unknown forces', () => {
-    expect(effectIconUrl({ type: 0, index: 3, level: 7, debuff: false, name: 'Tempo' })).toBeNull()
-    expect(effectIconUrl({ type: 2, index: 45, level: 1, debuff: false, name: 'Trust' })).toBeNull()
+  it('returns null without a known icon or outside the sheet', () => {
+    expect(effectIconStyle({ type: 1, index: 2, level: 1, debuff: false, icon: -1, name: 'Tempo' }, 18)).toBeNull()
+    expect(effectIconStyle({ type: 0, index: 1, level: 1, debuff: false, icon: 64, name: 'x' }, 18)).toBeNull()
+    expect(effectIconStyle({ type: 5, index: 1, level: 1, debuff: false, icon: 1, name: 'x' }, 18)).toBeNull()
+  })
+})
+
+describe('effectIconUrl', () => {
+  it('falls back to the force icons the site has, by name', () => {
+    expect(effectSlug('Air Blast')).toBe('air-blast')
+    expect(effectIconUrl({ type: 1, index: 2, level: 1, debuff: false, icon: -1, name: 'Tempo' })).toBe('/forces/tempo.png')
+  })
+  it('returns null for skills and unknown forces', () => {
+    expect(effectIconUrl({ type: 0, index: 3, level: 7, debuff: false, icon: -1, name: 'Tempo' })).toBeNull()
+    expect(effectIconUrl({ type: 1, index: 45, level: 1, debuff: false, icon: -1, name: 'Trust' })).toBeNull()
   })
 })

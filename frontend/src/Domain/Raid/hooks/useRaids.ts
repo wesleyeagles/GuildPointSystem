@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type CSSProperties } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/Shared/api/client'
 import { onSocketReconnect, subscribeTopicEffect } from '@/Shared/websocket/socketClient'
@@ -140,13 +140,38 @@ export interface RaidLiveMember {
   effects: RaidEffect[]
 }
 
-/** type: 0 skill, 1 skill de classe, 2 force (como no jogo). */
+/** type: 0 skill, 1 force, 2 skill de classe (como no jogo). */
 export interface RaidEffect {
   type: number
   index: number
   level: number
   debuff: boolean
+  /** Célula na folha de ícones do tipo (/effect-icons); -1 = desconhecido (DLL sem ícone). */
+  icon: number
   name: string
+}
+
+/**
+ * Folhas de ícones extraídas do cliente (RF-ui: CerberusBags/tools/effect_icons.py), células de 64 px,
+ * da esquerda para a direita e de cima para baixo. Índice = tipo do efeito.
+ */
+const EFFECT_SHEETS = [
+  { url: '/effect-icons/skill.png', columns: 8, rows: 8 },
+  { url: '/effect-icons/force.png', columns: 16, rows: 8 },
+  { url: '/effect-icons/class.png', columns: 16, rows: 16 },
+]
+
+/** Recorte do ícone na folha do jogo, no tamanho pedido; null se o efeito não tem ícone conhecido. */
+export function effectIconStyle(effect: RaidEffect, size: number): CSSProperties | null {
+  const sheet = EFFECT_SHEETS[effect.type]
+  if (!sheet || effect.icon == null || effect.icon < 0 || effect.icon >= sheet.columns * sheet.rows) return null
+  const column = effect.icon % sheet.columns
+  const row = Math.floor(effect.icon / sheet.columns)
+  return {
+    backgroundImage: `url(${sheet.url})`,
+    backgroundSize: `${sheet.columns * size}px ${sheet.rows * size}px`,
+    backgroundPosition: `-${column * size}px -${row * size}px`,
+  }
 }
 
 /** Ícones de force que o site já tem em /forces, pelo nome em minúsculas com hífens. */
@@ -167,10 +192,10 @@ export function effectSlug(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 }
 
-/** Ícone do efeito, se o site tiver (só forces); senão null e a tela mostra a inicial. */
+/** Reserva quando o efeito não traz ícone: a imagem da force pelo nome, se o site tiver; senão null (inicial). */
 export function effectIconUrl(effect: RaidEffect): string | null {
   const slug = effectSlug(effect.name)
-  return effect.type === 2 && FORCE_ICONS.has(slug) ? `/forces/${slug}.png` : null
+  return effect.type === 1 && FORCE_ICONS.has(slug) ? `/forces/${slug}.png` : null
 }
 
 export interface RaidLive {

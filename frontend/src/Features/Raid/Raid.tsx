@@ -11,6 +11,7 @@ import {
   useRemoveRaidMember,
   useSetRaidGroupLeader,
   useTransferRaidLeader,
+  effectIconStyle,
   effectIconUrl,
   isRaidMemberOnline,
   useNowTick,
@@ -44,16 +45,21 @@ function Bar({ kind, value, max }: { kind: 'hp' | 'fp' | 'sp'; value: number; ma
   )
 }
 
+/** Lado do ícone de efeito na página, em px (o CSS de .raid-effect usa o mesmo). */
+const EFFECT_ICON_SIZE = 18
+
 /** Buffs (verde) e debuffs (vermelho), como a fileira de ícones da janela de PT do jogo. */
 function EffectList({ effects }: { effects: RaidEffect[] }) {
   return (
     <span className="raid-effects">
       {effects.map((effect, i) => {
-        const icon = effectIconUrl(effect)
+        const sprite = effectIconStyle(effect, EFFECT_ICON_SIZE)
+        const icon = sprite ? null : effectIconUrl(effect)
         const title = `${effect.name || 'Efeito'}${effect.level ? ` (nível ${effect.level})` : ''}${effect.debuff ? ' — debuff' : ''}`
+        const classes = `raid-effect${effect.debuff ? ' raid-effect--debuff' : ''}${sprite || icon ? ' raid-effect--icon' : ''}`
         return (
-          <span key={`${effect.type}-${effect.index}-${i}`} className={`raid-effect${effect.debuff ? ' raid-effect--debuff' : ''}`} title={title}>
-            {icon ? <img src={icon} alt="" /> : (effect.name[0] ?? '?')}
+          <span key={`${effect.type}-${effect.index}-${i}`} className={classes} title={title} style={sprite ?? undefined}>
+            {sprite ? null : icon ? <img src={icon} alt="" /> : (effect.name[0] ?? '?')}
           </span>
         )
       })}

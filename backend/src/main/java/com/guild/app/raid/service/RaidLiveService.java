@@ -38,8 +38,11 @@ public class RaidLiveService {
     Clock clock = Clock.systemUTC();
 
     public record Vitals(int level, int hp, int hpMax, int fp, int fpMax, int sp, int spMax) {}
-    /** Buff/debuff ativo, lido pela DLL da lista de efeitos do personagem. type: 0 skill, 1 skill de classe, 2 force. */
-    public record Effect(int type, int index, int level, boolean debuff, String name) {}
+    /**
+     * Buff/debuff ativo, lido pela DLL da lista de efeitos do personagem. type: 0 skill, 1 force, 2 skill de classe.
+     * icon: célula na folha de ícones do tipo (/effect-icons/{skill,force,class}.png); -1 = desconhecido.
+     */
+    public record Effect(int type, int index, int level, boolean debuff, int icon, String name) {}
     record Report(Vitals vitals, List<Effect> effects) {}
     private record Live(Vitals vitals, List<Effect> effects, Instant at) {}
     /** Para o site: ageMs = há quanto tempo veio o último envio (-1 = nunca). */
@@ -53,7 +56,8 @@ public class RaidLiveService {
 
     /**
      * Corpo da DLL: "level<TAB>hp<TAB>hpMax<TAB>fp<TAB>fpMax<TAB>sp<TAB>spMax" e, a partir da 1.7.0, uma segunda
-     * linha "E<TAB>efeitos" com "tipo,indice,nivel,B|D,nome" separados por ';' (vazia = nenhum).
+     * linha "E<TAB>efeitos" com "tipo,indice,nivel,B|D,icone,nome" separados por ';' (vazia = nenhum). O nome
+     * nunca tem vírgula, então também vale o formato sem ícone ("tipo,indice,nivel,B|D,nome").
      */
     static Report parse(String body) {
         if (body == null) throw invalid();
@@ -74,12 +78,13 @@ public class RaidLiveService {
         if (items.length > MAX_EFFECTS) throw invalid();
         var out = new ArrayList<Effect>();
         for (String item : items) {
-            String[] f = item.split(",", 5);
-            if (f.length != 5 || !(f[3].equals("B") || f[3].equals("D"))) throw invalid();
+            String[] f = item.split(",", 6);
+            if ((f.length != 5 && f.length != 6) || !(f[3].equals("B") || f[3].equals("D"))) throw invalid();
             int type = number(f[0], 15), index = number(f[1], 0xFFFF), level = number(f[2], 255);
-            String name = f[4];
+            int icon = f.length == 6 ? (f[4].equals("-1") ? -1 : number(f[4], 0xFFF)) : -1;
+            String name = f[f.length - 1];
             if (name.length() > EFFECT_NAME_MAX || !name.chars().allMatch(c -> c >= 0x20 && c < 0x7F)) throw invalid();
-            out.add(new Effect(type, index, level, f[3].equals("D"), name.strip()));
+            out.add(new Effect(type, index, level, f[3].equals("D"), icon, name.strip()));
         }
         return List.copyOf(out);
     }
@@ -186,11 +191,11 @@ public class RaidLiveService {
         }
         return out.toString();
     }
-    /** "tipo,indice,nivel,B|D,nome" separados por ';' (o formato que a DLL envia). */
+    /** "tipo,indice,nivel,B|D,icone,nome" separados por ';' (o formato que a DLL 1.7.0 envia e entende). */
     static String effectsField(List<Effect> effects) {
         var out = new StringJoiner(";");
         for (Effect e : effects)
-            out.add(e.type() + "," + e.index() + "," + e.level() + "," + (e.debuff() ? "D" : "B") + "," + e.name());
+            out.add(e.type() + "," + e.index() + "," + e.level() + "," + (e.debuff() ? "D" : "B") + "," + e.icon() + "," + e.name());
         return out.toString();
     }
     private static String clean(String text) { return text.replaceAll("[\\p{Cntrl}]", " "); }

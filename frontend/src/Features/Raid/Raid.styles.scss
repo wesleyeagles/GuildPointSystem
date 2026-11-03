@@ -282,8 +282,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   font-size: 10px;
   font-weight: 600;
   line-height: 1;
@@ -298,4 +298,13 @@
     background: #962a26;
     border-color: #d65a50;
   }
+
+  // Ícone do jogo: sem fundo nem borda; debuff mantém a borda vermelha.
+  &--icon {
+    background-color: transparent;
+    background-repeat: no-repeat;
+    border: none;
+  }
+
+  &--icon.raid-effect--debuff { outline: 1px solid #e2483e; outline-offset: -1px; }
 }
