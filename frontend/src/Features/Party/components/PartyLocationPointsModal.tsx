@@ -54,6 +54,15 @@ export function PartyLocationPointsModal({ onClose, variant = 'party' }: PartyLo
   // Mapas da guild (GAME_MAPS), com quantos estão lá agora.
   const mapCounts = new Map<string, number>()
   locations.forEach((l) => l.map && mapCounts.set(l.map, (mapCounts.get(l.map) ?? 0) + l.members))
+  // Mais os mapas que a DLL envia e ainda não estão em GAME_MAPS (ex.: Cauldron), com o nome do jogo.
+  const maps = [
+    ...GAME_MAPS,
+    ...[...mapCounts.keys()]
+      .filter((name) => !GAME_MAPS.some((m) => m.value === name))
+      .sort((a, b) => a.localeCompare(b, 'pt-BR'))
+      .map((name) => ({ value: name, label: name })),
+  ]
+  if (map && !maps.some((m) => m.value === map)) maps.push({ value: map, label: map })
   // Regiões já vistas pela DLL nesse mapa (o catálogo cresce conforme a guild joga).
   const regionCounts = new Map<string, number>()
   for (const l of locations) {
@@ -124,7 +133,7 @@ export function PartyLocationPointsModal({ onClose, variant = 'party' }: PartyLo
                 }}
               >
                 <option value={ANY}>Selecione o mapa</option>
-                {GAME_MAPS.map((m) => (
+                {maps.map((m) => (
                   <option key={m.value} value={m.value}>
                     {withCount(m.label, mapCounts.get(m.value))}
                   </option>

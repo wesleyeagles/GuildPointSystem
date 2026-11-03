@@ -9,6 +9,8 @@ export const GAME_MAPS: { value: string; label: string }[] = [
   { value: 'Haram', label: 'Haram' },
   { value: 'Numerus', label: 'Numerus' },
   { value: 'Sette Desert', label: 'Sette Desert' },
+  // Nome interno do jogo (mapa 12, Cauldron01), lido da tabela de mapas do cliente em 03/11/2026.
+  { value: 'Coldron Volcanic Area', label: 'Volcanic Cauldron' },
   { value: 'Elan Plateau', label: 'Elan Plateau' },
   { value: 'Ether of Heaven', label: 'Ether' },
   { value: "Beast's Mountain", label: "Beast's Mountain" },
