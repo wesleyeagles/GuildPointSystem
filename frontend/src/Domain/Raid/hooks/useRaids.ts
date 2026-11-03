@@ -19,6 +19,8 @@ export interface RaidMember {
   groupLeader: boolean
   /** Marca de raid 1..8 (estrela, círculo, losango, triângulo, lua, quadrado, X, caveira); null = nenhuma. */
   mark: number | null
+  /** Oculto: a liderança acompanha o status, mas ele não vê a raid (só aparece para quem gerencia). */
+  hidden: boolean
 }
 
 export interface Raid {
@@ -117,6 +119,10 @@ export const useMoveRaidMember = () =>
 export const useTransferRaidLeader = () =>
   useRaidMutation((v: { raidId: number; memberId: number }) =>
     apiClient<Raid>(`/raids/${v.raidId}/leader/${v.memberId}`, { method: 'PUT' }))
+
+export const useSetRaidHidden = () =>
+  useRaidMutation((v: { raidId: number; memberId: number; hidden: boolean }) =>
+    apiClient<Raid>(`/raids/${v.raidId}/members/${v.memberId}/hidden`, { method: 'PUT', body: { hidden: v.hidden } }))
 
 export const useSetRaidMark = () =>
   useRaidMutation((v: { raidId: number; memberId: number; mark: number | null }) =>
@@ -249,19 +255,20 @@ export function isRaidMemberOnline(member: RaidLiveMember | undefined, receivedA
   return !!member && member.ageMs >= 0 && member.ageMs + (now - receivedAt) < RAID_LIVE_ONLINE_MS
 }
 
-export function useRaidLive(raidId: number) {
+/** full: quem gerencia a raid recebe também os integrantes ocultos (canal /live/all). */
+export function useRaidLive(raidId: number, full = false) {
   const queryClient = useQueryClient()
   const key = ['raids', raidId, 'live'] as const
   useEffect(
     () =>
-      subscribeTopicEffect(`/topic/raids/${raidId}/live`, (message) => {
+      subscribeTopicEffect(`/topic/raids/${raidId}/live${full ? '/all' : ''}`, (message) => {
         try {
           queryClient.setQueryData(['raids', raidId, 'live'], toLive(JSON.parse(message.body) as RaidLiveMember[]))
         } catch {
           // mensagem inválida: espera a próxima
         }
       }),
-    [queryClient, raidId],
+    [queryClient, raidId, full],
   )
   return useQuery({
     queryKey: key,

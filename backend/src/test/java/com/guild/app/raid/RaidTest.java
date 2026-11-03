@@ -222,6 +222,23 @@ class RaidTest {
         assertThrows(AppException.class, () -> service.setMark(raid.id(), outsiderId, 1, as(leaderId)));
     }
 
+    @Test void hiddenMembersAreNeverInvitedNorCallTheirSubgroup() {
+        var raid = service.create("Raid", as(leaderId));
+        var ids = many(4);
+        service.addMembers(raid.id(), ids, 2, as(leaderId));
+        service.setGroupLeader(raid.id(), ids.get(0), as(leaderId));
+        service.setHidden(raid.id(), ids.get(0), true, as(leaderId));   // o líder do subgrupo 2, oculto
+        service.setHidden(raid.id(), ids.get(1), true, as(leaderId));
+        assertThrows(AppException.class, () -> service.setHidden(raid.id(), ids.get(2), true, as(ids.get(2))));
+        var invites = service.callInGame(raid.id(), as(leaderId));
+        assertEquals(1, invites.size());                  // o subgrupo 1 só tem o líder da raid
+        var group2 = invites.getFirst();
+        assertEquals(2, group2.group());
+        assertEquals(nickOf(ids.get(2)), group2.leader());  // chama o primeiro visível
+        assertEquals(List.of(nickOf(ids.get(3))), group2.nicks());
+        assertTrue(group2.skipped().isEmpty());            // ocultos nem aparecem como "fora do chamado"
+    }
+
     @Test void raidTabCanBeLimitedToARoleAndChosenMembers() {
         long allowed = member(), moderator = member(nick("Mod"), "MODERADOR", "APROVADO");
         var raid = service.create("Raid", as(leaderId));

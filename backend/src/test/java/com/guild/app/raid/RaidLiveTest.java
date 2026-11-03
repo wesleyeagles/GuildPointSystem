@@ -147,6 +147,39 @@ class RaidLiveTest {
         assertEquals("LP", old.split("\n")[1].split("\t", -1)[9]);
     }
 
+    @Test void hiddenMembersKeepSendingButNeverSeeTheRaid() throws Exception {
+        var raid = raids.create("Raid", as(leaderId));
+        raids.addMembers(raid.id(), List.of(otherId), null, as(leaderId));
+        raids.setHidden(raid.id(), otherId, true, as(leaderId));
+
+        // DLL 1.7.0 do oculto: "O" (continua a cada 1 s, sem painel); DLL 1.6.0: 204
+        String observed = mvc.perform(post("/api/raids/game/status").param("character", otherNick).param("fx", "1")
+                .contentType(MediaType.TEXT_PLAIN).content("50\t10\t800\t0\t300\t0\t40\nE\t0,3,7,B,4,Rage Range"))
+            .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        assertEquals("O\n", observed);
+        mvc.perform(post("/api/raids/game/status").param("character", otherNick)
+                .contentType(MediaType.TEXT_PLAIN).content("50\t10\t800\t0\t300\t0\t40"))
+            .andExpect(status().isNoContent());
+
+        // o líder (visível) recebe o oculto no painel, com os dados
+        String leaderView = report(leaderNick, "55\t900\t1000\t300\t400\t50\t60");
+        assertTrue(leaderView.contains(otherNick + "\t50\t10\t800"));
+
+        // no site: quem gerencia vê o oculto; os outros não
+        assertTrue(live.forRaid(raid.id(), as(leaderId)).stream().anyMatch(m -> m.memberId() == otherId));
+        assertTrue(live.forRaid(raid.id(), as(outsiderId)).stream().noneMatch(m -> m.memberId() == otherId));
+        assertTrue(raids.list(as(outsiderId)).stream().filter(r -> r.id().equals(raid.id())).findFirst().orElseThrow()
+            .members().stream().noneMatch(m -> m.id() == otherId));
+        assertTrue(raids.list(as(otherId)).stream().filter(r -> r.id().equals(raid.id())).findFirst().orElseThrow()
+            .members().stream().noneMatch(m -> m.id() == otherId));
+
+        // o canal ao vivo sem os ocultos e o completo
+        clearInvocations(ws);
+        live.broadcast();
+        verify(ws).publishRaidLive(eq(raid.id()), argThat(l -> l instanceof List<?> list && list.size() == 1));
+        verify(ws).publishRaidLiveAll(eq(raid.id()), argThat(l -> l instanceof List<?> list && list.size() == 2));
+    }
+
     @Test void invalidEffectsAreRejected() throws Exception {
         raids.create("Raid", as(leaderId));
         for (String effects : List.of("0,3,7,X,Nome", "0,3", "16,3,7,B,Nome", "0,3,7,B,x,Nome", "0,3,7,B,4096,Nome", "0,3,7,B," + "a".repeat(33), "0,3,7,B,Tab\tNo"))

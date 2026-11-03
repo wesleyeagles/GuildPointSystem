@@ -88,6 +88,11 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
         if (member == null || member.getStatus() != MemberStatus.APROVADO || !raidAccess.canView(member.getId())) {
             throw new IllegalStateException("Não autorizado.");
         }
+        // Canal com os integrantes ocultos: só o líder da raid e Administrador+.
+        var all = java.util.regex.Pattern.compile("^/topic/raids/(\\d+)/live/all$").matcher(destination);
+        if (all.matches() && !raidAccess.canManageRaid(member.getId(), Long.valueOf(all.group(1)))) {
+            throw new IllegalStateException("Não autorizado.");
+        }
     }
 
     /** Who is online and where: leadership only, like {@code GET /api/presence}. */

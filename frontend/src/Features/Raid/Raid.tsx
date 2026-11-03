@@ -11,6 +11,7 @@ import {
   useRemoveRaidMember,
   useSetRaidGroupLeader,
   useSetRaidMark,
+  useSetRaidHidden,
   useRaidAccess,
   useTransferRaidLeader,
   effectIconStyle,
@@ -76,7 +77,7 @@ function RaidMemberRow({ raid, member, live, now, onAction, onMark }: {
   member: RaidMember
   live: RaidLive | undefined
   now: number
-  onAction: (action: 'groupLeader' | 'raidLeader' | 'remove', member: RaidMember) => void
+  onAction: (action: 'groupLeader' | 'raidLeader' | 'remove' | 'hide', member: RaidMember) => void
   onMark: (member: RaidMember, mark: number | null) => void
 }) {
   const vitals = live?.members.get(member.id)
@@ -103,9 +104,15 @@ function RaidMemberRow({ raid, member, live, now, onAction, onMark }: {
         <span className="raid-member__name" title={member.nickname}>{member.nickname}</span>
         {member.raidLeader && <span className="raid-member__badge raid-member__badge--raid" title="Líder da raid">Líder</span>}
         {member.groupLeader && <span className="raid-member__badge" title="Chama este subgrupo no jogo">PT</span>}
+        {member.hidden && (
+          <span className="raid-member__badge raid-member__badge--hidden"
+            title="Oculto: não vê a raid no jogo nem no site e não é convidado; a DLL dele continua enviando">Oculto</span>
+        )}
         {raid.canManage && (
           <span className="raid-member__actions">
             <RaidMarkPicker current={member.mark} onPick={(mark) => onMark(member, mark)} />
+            <button type="button" title={member.hidden ? 'Mostrar a raid para ele' : 'Ocultar: acompanhar sem ele ver a raid'}
+              onClick={() => onAction('hide', member)}>{member.hidden ? '◉' : '◌'}</button>
             {!member.groupLeader && (
               <button type="button" title="Tornar líder do subgrupo (chama a PT no jogo)" onClick={() => onAction('groupLeader', member)}>PT</button>
             )}
@@ -137,6 +144,7 @@ function RaidCard({ raid, myId }: { raid: Raid; myId: number | undefined }) {
   const groupLeader = useSetRaidGroupLeader()
   const raidLeader = useTransferRaidLeader()
   const setMark = useSetRaidMark()
+  const setHidden = useSetRaidHidden()
   const disband = useDisbandRaid()
   const [adding, setAdding] = useState(false)
   const [dropTarget, setDropTarget] = useState<number | null>(null)
@@ -144,13 +152,14 @@ function RaidCard({ raid, myId }: { raid: Raid; myId: number | undefined }) {
   const groups = raidGroups(raid)
   const freeGroup = nextFreeGroup(raid)
   const mine = raid.members.some((m) => m.id === myId)
-  const { data: live } = useRaidLive(raid.id)
+  const { data: live } = useRaidLive(raid.id, raid.canManage)
   const now = useNowTick()
   const fail = (fallback: string) => ({ onError: (e: unknown) => showToast(errorMessage(e, fallback), 'error') })
 
-  const onAction = (action: 'groupLeader' | 'raidLeader' | 'remove', member: RaidMember) => {
+  const onAction = (action: 'groupLeader' | 'raidLeader' | 'remove' | 'hide', member: RaidMember) => {
     const vars = { raidId: raid.id, memberId: member.id }
-    if (action === 'groupLeader') groupLeader.mutate(vars, fail('Não foi possível trocar o líder do subgrupo.'))
+    if (action === 'hide') setHidden.mutate({ ...vars, hidden: !member.hidden }, fail('Não foi possível ocultar o membro.'))
+    else if (action === 'groupLeader') groupLeader.mutate(vars, fail('Não foi possível trocar o líder do subgrupo.'))
     else if (action === 'raidLeader') raidLeader.mutate(vars, fail('Não foi possível passar a liderança.'))
     else remove.mutate(vars, fail('Não foi possível tirar o membro.'))
   }

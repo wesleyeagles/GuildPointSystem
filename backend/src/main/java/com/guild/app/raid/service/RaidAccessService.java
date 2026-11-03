@@ -51,6 +51,18 @@ public class RaidAccessService {
         return members.findById(memberId).map(this::canView).orElse(false);
     }
 
+    /** Gerencia a raid (vê os ocultos): o líder dela ou Administrador+. */
+    public boolean canManageRaid(Member member, Long raidLeaderId) {
+        return RaidService.eligible(member) && (member.getId().equals(raidLeaderId) || configurer(member));
+    }
+
+    /** Para o canal ao vivo completo da raid (com os ocultos). */
+    @Transactional(readOnly = true)
+    public boolean canManageRaid(Long memberId, Long raidId) {
+        var leader = jdbc.queryForList("SELECT leader_id FROM raid WHERE id=?", Long.class, raidId);
+        return !leader.isEmpty() && members.findById(memberId).map(m -> canView(m) && canManageRaid(m, leader.getFirst())).orElse(false);
+    }
+
     /** Para as rotas da raid: 403 para quem não vê a aba. */
     public void requireView(Member member) {
         if (!canView(member)) throw new AppException("Você não tem acesso à Raid.", HttpStatus.FORBIDDEN);

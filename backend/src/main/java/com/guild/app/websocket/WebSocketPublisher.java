@@ -89,6 +89,11 @@ public class WebSocketPublisher {
         send("/topic/raids/" + raidId + "/live", payload);
     }
 
+    /** O mesmo com os integrantes ocultos, só para quem gerencia a raid. */
+    public void publishRaidLiveAll(Long raidId, Object payload) {
+        send("/topic/raids/" + raidId + "/live/all", payload);
+    }
+
     /** Account-level notices for one member (e.g. ACCOUNT_DELETED → the client logs out). */
     public void publishAccountNotice(Long memberId, Object payload) {
         send("/topic/account/" + memberId, payload);

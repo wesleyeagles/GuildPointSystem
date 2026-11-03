@@ -30,6 +30,8 @@ public class RaidLiveService {
     static final Duration KEEP = Duration.ofMinutes(2);
     static final int MAX_VALUE = 100_000_000;
     static final int MAX_EFFECTS = 32;
+    /** Resposta à DLL de um integrante oculto: "continue enviando, sem raid para mostrar". */
+    static final String OBSERVED = "O\n";
     static final int EFFECT_NAME_MAX = 32;
 
     private final RaidService raids;
@@ -132,6 +134,10 @@ public class RaidLiveService {
             if (raid == null) continue;
             live.put(member.getId(), new Live(report.vitals(), report.effects(), now));
             dirty.add(raid.id());
+            // Oculto: continua enviando a cada 1 s (DLL 1.7.0+ recebe "O"), mas sem raid para mostrar.
+            // A DLL 1.6.0 recebe 204 e passa a enviar a cada 10 s.
+            boolean hidden = raid.members().stream().anyMatch(m -> m.id().equals(member.getId()) && m.hidden());
+            if (hidden) return withEffects ? Optional.of(OBSERVED) : Optional.empty();
             return Optional.of(render(raid, now, withEffects));
         }
         return Optional.empty();
@@ -143,7 +149,8 @@ public class RaidLiveService {
         access.requireView(viewer);
         RaidView raid = roster().byRaid().get(raidId);
         if (raid == null) throw new AppException("Raid não encontrada", HttpStatus.NOT_FOUND);
-        return liveMembers(raid, clock.instant());
+        var all = liveMembers(raid, clock.instant());
+        return access.canManageRaid(viewer, raid.leaderId()) ? all : visibleOnly(raid, all);
     }
 
     /** Uma mensagem por raid que recebeu envio desde a última rodada. */
@@ -156,7 +163,11 @@ public class RaidLiveService {
             Long raidId = it.next();
             it.remove();
             RaidView raid = current.byRaid().get(raidId);
-            if (raid != null) ws.publishRaidLive(raidId, liveMembers(raid, now));
+            if (raid == null) continue;
+            var all = liveMembers(raid, now);
+            // Tópico de todos sem os ocultos; o completo só para quem gerencia (WebSocketAuthInterceptor).
+            ws.publishRaidLive(raidId, visibleOnly(raid, all));
+            ws.publishRaidLiveAll(raidId, all);
         }
     }
 
@@ -164,6 +175,12 @@ public class RaidLiveService {
     public void prune() {
         Instant limit = clock.instant().minus(KEEP);
         live.values().removeIf(l -> l.at().isBefore(limit));
+    }
+
+    private static List<LiveMember> visibleOnly(RaidView raid, List<LiveMember> all) {
+        var hidden = raid.members().stream().filter(RaidService.RaidMemberView::hidden).map(RaidService.RaidMemberView::id)
+            .collect(java.util.stream.Collectors.toSet());
+        return hidden.isEmpty() ? all : all.stream().filter(m -> !hidden.contains(m.memberId())).toList();
     }
 
     private List<LiveMember> liveMembers(RaidView raid, Instant now) {

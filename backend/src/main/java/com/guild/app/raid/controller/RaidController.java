@@ -33,6 +33,7 @@ public class RaidController {
     public record AddRaidMembersRequest(@NotEmpty @Size(max = 200) List<Long> memberIds, @Min(1) Integer group) {}
     public record MoveRaidMemberRequest(@NotNull @Min(1) Integer group) {}
     public record RaidAccessRequest(@NotNull Role minRole, @Size(max = 500) List<Long> viewerIds) {}
+    public record RaidHiddenRequest(boolean hidden) {}
     /** mark: 1..8, ou null para tirar a marca. */
     public record RaidMarkRequest(@Min(1) @Max(8) Integer mark) {}
 
@@ -82,6 +83,12 @@ public class RaidController {
     @PutMapping("/{id}/members/{memberId}/group")
     public RaidView move(@PathVariable Long id, @PathVariable Long memberId, @Valid @RequestBody MoveRaidMemberRequest body) {
         return service.moveMember(id, memberId, body.group(), SecurityUtils.currentMember());
+    }
+
+    @PreAuthorize("isAuthenticated()")
+    @PutMapping("/{id}/members/{memberId}/hidden")
+    public RaidView hidden(@PathVariable Long id, @PathVariable Long memberId, @RequestBody RaidHiddenRequest body) {
+        return service.setHidden(id, memberId, body.hidden(), SecurityUtils.currentMember());
     }
 
     @PreAuthorize("isAuthenticated()")

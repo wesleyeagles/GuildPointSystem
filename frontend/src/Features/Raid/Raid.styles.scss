@@ -166,6 +166,7 @@
     padding: 2px 4px;
 
     &--raid { color: theme.$color-gold; }
+    &--hidden { color: theme.$color-text-muted; border-style: dashed; }
   }
 
   &__actions {

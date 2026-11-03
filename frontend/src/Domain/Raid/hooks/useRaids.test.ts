@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { effectIconStyle, effectIconUrl, effectSlug, isRaidMemberOnline, nextFreeGroup, raidGroups, type Raid, type RaidMember } from './useRaids'
 
 const member = (id: number, group: number): RaidMember => ({
-  id, nickname: `M${id}`, className: null, classImageUrl: null, level: 50, group, raidLeader: id === 1, groupLeader: false, mark: null,
+  id, nickname: `M${id}`, className: null, classImageUrl: null, level: 50, group, raidLeader: id === 1, groupLeader: false, mark: null, hidden: false,
 })
 const raid = (members: RaidMember[]): Raid => ({
   id: 1, name: 'Raid', leaderId: 1, leader: 'M1', createdAt: '2026-11-02T13:00:00Z', canManage: true, members,

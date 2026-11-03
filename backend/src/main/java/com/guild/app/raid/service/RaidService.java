@@ -52,14 +52,14 @@ public class RaidService {
 
     /** mark: marca de raid 1..8 (estrela, círculo, losango, triângulo, lua, quadrado, X, caveira); null = nenhuma. */
     public record RaidMemberView(Long id, String nickname, String className, String classImageUrl, int level,
-                                 int group, boolean raidLeader, boolean groupLeader, Integer mark) {}
+                                 int group, boolean raidLeader, boolean groupLeader, Integer mark, boolean hidden) {}
     public record RaidView(Long id, String name, Long leaderId, String leader, Instant createdAt,
                            boolean canManage, List<RaidMemberView> members) {}
     public record GroupInviteView(int group, UUID id, String leader, String state, List<String> nicks,
                                   List<String> skipped, Instant createdAt, Instant expiresAt) {}
 
     private record Row(Long raidId, Long memberId, String nickname, String className, String classImageUrl,
-                       int level, int group, boolean groupLeader, Integer mark, Instant joinedAt) {}
+                       int level, int group, boolean groupLeader, Integer mark, boolean hidden, Instant joinedAt) {}
 
     // ---- leitura ----
 
@@ -72,9 +72,16 @@ public class RaidService {
             """, (r, n) -> {
             long id = r.getLong("id");
             long leaderId = r.getLong("leader_id");
-            return view(id, r.getString("name"), leaderId, r.getString("nickname"), r.getTimestamp("created_at").toInstant(),
-                canManage(viewer, leaderId), rows.getOrDefault(id, List.of()));
+            return forViewer(view(id, r.getString("name"), leaderId, r.getString("nickname"), r.getTimestamp("created_at").toInstant(),
+                canManage(viewer, leaderId), rows.getOrDefault(id, List.of())));
         });
+    }
+
+    /** Integrantes ocultos só aparecem para quem gerencia a raid (líder ou Administrador+). */
+    static RaidView forViewer(RaidView raid) {
+        if (raid.canManage()) return raid;
+        return new RaidView(raid.id(), raid.name(), raid.leaderId(), raid.leader(), raid.createdAt(), false,
+            raid.members().stream().filter(m -> !m.hidden()).toList());
     }
 
     /** Todas as raids, sem permissões de quem vê (canManage=false): para o status ao vivo. */
@@ -105,7 +112,12 @@ public class RaidService {
         Member member = approved(actor);
         String clean = name == null ? "" : name.strip();
         if (clean.isEmpty() || clean.length() > 60) throw new AppException("Informe um nome de até 60 caracteres.", HttpStatus.BAD_REQUEST);
-        if (raidOf(member.getId()) != null) throw new AppException("Você já está em uma raid.", HttpStatus.CONFLICT);
+        if (raidOf(member.getId()) != null) {
+            // Oculto não pode saber que está numa raid: mensagem genérica.
+            boolean hidden = Boolean.TRUE.equals(jdbc.queryForObject(
+                "SELECT bool_or(hidden) FROM raid_member WHERE member_id=?", Boolean.class, member.getId()));
+            throw new AppException(hidden ? "Não foi possível criar a raid agora." : "Você já está em uma raid.", HttpStatus.CONFLICT);
+        }
         Long id = jdbc.queryForObject("INSERT INTO raid(name,leader_id) VALUES(?,?) RETURNING id", Long.class, clean, member.getId());
         jdbc.update("INSERT INTO raid_member(raid_id,member_id,group_no) VALUES(?,?,1)", id, member.getId());
         audit.log(AuditLogType.RAID_CREATED, member, member, Map.of("raidId", id, "name", clean));
@@ -231,6 +243,20 @@ public class RaidService {
         return find(raidId, member);
     }
 
+    /**
+     * Integrante oculto: a DLL dele continua enviando o status, mas ele não vê a raid (sem painel no jogo,
+     * fora dos convites e fora da raid no site para quem não gerencia).
+     */
+    @Transactional
+    public RaidView setHidden(Long raidId, Long memberId, boolean hidden, MemberPrincipal actor) {
+        Member member = approved(actor);
+        manageable(raidId, member);
+        if (jdbc.update("UPDATE raid_member SET hidden=? WHERE raid_id=? AND member_id=?", hidden, raidId, memberId) == 0)
+            throw new AppException("Este membro não está na raid.", HttpStatus.NOT_FOUND);
+        changed();
+        return find(raidId, member);
+    }
+
     // ---- convites pelo jogo ----
 
     /** Um convite por subgrupo com alguém para chamar; substitui os anteriores da raid. */
@@ -250,12 +276,15 @@ public class RaidService {
         var created = new ArrayList<Map<String, Object>>();
         jdbc.update("DELETE FROM raid_game_invite WHERE raid_id=?", raidId);
         for (var entry : byGroup.entrySet()) {
-            var lead = entry.getValue().stream().filter(RaidMemberView::groupLeader).findFirst().orElseThrow();
+            // Ocultos ficam de fora: nem são convidados, nem chamam o subgrupo (a DLL deles digitaria os convites).
+            var visible = entry.getValue().stream().filter(m -> !m.hidden()).toList();
+            if (visible.isEmpty()) continue;
+            var lead = visible.stream().filter(RaidMemberView::groupLeader).findFirst().orElse(visible.getFirst());
             Member leader = members.findById(lead.id()).orElseThrow();
             if (!eligible(leader) || !leader.getNickname().matches(NICK)) continue;
             var nicks = new ArrayList<String>();
             var skipped = new ArrayList<String>();
-            for (var m : entry.getValue()) {
+            for (var m : visible) {
                 if (m.id().equals(lead.id())) continue;
                 Member full = members.findById(m.id()).orElseThrow();
                 if (eligible(full) && full.getNickname().matches(NICK)) nicks.add(full.getNickname());
@@ -378,14 +407,15 @@ public class RaidService {
     private Map<Long, List<Row>> rows(Long raidId) {
         String sql = """
             SELECT rm.raid_id,m.id,m.nickname,c.name class_name,c.image_url,COALESCE(gs.level,m.level,1) AS level,
-                   rm.group_no,rm.group_leader,rm.mark,rm.joined_at
+                   rm.group_no,rm.group_leader,rm.mark,rm.hidden,rm.joined_at
             FROM raid_member rm JOIN member m ON m.id=rm.member_id LEFT JOIN character_class c ON c.id=m.class_id
             LEFT JOIN LATERAL (SELECT s.level FROM character_status s WHERE s.member_id=m.id ORDER BY s.updated_at DESC LIMIT 1) gs ON TRUE
             """ + (raidId != null ? "WHERE rm.raid_id=? " : "") + "ORDER BY rm.group_no,rm.joined_at,m.id";
         Object[] args = raidId != null ? new Object[]{raidId} : new Object[0];
         return jdbc.query(sql, (r, n) -> new Row(r.getLong("raid_id"), r.getLong("id"), r.getString("nickname"),
                 r.getString("class_name"), r.getString("image_url"), r.getInt("level"), r.getInt("group_no"),
-                r.getBoolean("group_leader"), (Integer) r.getObject("mark", Integer.class), r.getTimestamp("joined_at").toInstant()), args)
+                r.getBoolean("group_leader"), (Integer) r.getObject("mark", Integer.class), r.getBoolean("hidden"),
+                r.getTimestamp("joined_at").toInstant()), args)
             .stream().collect(Collectors.groupingBy(Row::raidId, LinkedHashMap::new, Collectors.toList()));
     }
 
@@ -400,7 +430,7 @@ public class RaidService {
         for (Row r : rows) leaders.putIfAbsent(r.group(), r.memberId());
         var out = rows.stream()
             .map(r -> new RaidMemberView(r.memberId(), r.nickname(), r.className(), r.classImageUrl(), r.level(), r.group(),
-                r.memberId().equals(leaderId), r.memberId().equals(leaders.get(r.group())), r.mark()))
+                r.memberId().equals(leaderId), r.memberId().equals(leaders.get(r.group())), r.mark(), r.hidden()))
             .sorted(Comparator.comparingInt(RaidMemberView::group).thenComparing(m -> !m.groupLeader()))
             .toList();
         return new RaidView(id, name, leaderId, leader, createdAt, canManage, out);
