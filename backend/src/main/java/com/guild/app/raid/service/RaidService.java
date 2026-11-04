@@ -27,7 +27,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 /**
- * Raid: grupo sem limite de integrantes, dividido em subgrupos de até 8 (o limite da PT do jogo).
+ * Raid: grupo sem limite de integrantes, dividido em subgrupos também sem limite; sem subgrupo escolhido,
+ * quem entra vai para o primeiro com menos de 8 (a PT do jogo).
  * Qualquer membro aprovado cria uma raid e vira o líder; o líder ou um organizador
  * (Administrador+) monta os subgrupos. "Chamar no jogo" cria um convite por subgrupo, que a DLL
  * do líder do subgrupo busca pela mesma rota dos convites de PT e executa com "@party Nick".
@@ -35,7 +36,10 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class RaidService {
+    /** Só para o subgrupo automático: enche de 8 em 8 (a PT do jogo). Escolhendo o subgrupo, não há limite. */
     public static final int GROUP_SIZE = 8;
+    /** Convites por subgrupo no jogo: a PT tem 8 lugares (o líder e mais 7); a DLL recusa mais que isso. */
+    static final int MAX_GAME_INVITES = 7;
     static final int VALID_SECONDS = 120;
     static final int COOLDOWN_SECONDS = 30;
     private static final String NICK = "[A-Za-z0-9_-]{2,16}";
@@ -164,8 +168,6 @@ public class RaidService {
         if (!busy.isEmpty()) throw new AppException("Já estão em outra raid: " + String.join(", ", busy) + ".", HttpStatus.CONFLICT);
         for (Member m : toAdd) {
             int target = group != null ? group : firstFreeGroup(sizes);
-            if (sizes.getOrDefault(target, 0) >= GROUP_SIZE)
-                throw new AppException("O subgrupo " + target + " já tem " + GROUP_SIZE + " integrantes.", HttpStatus.CONFLICT);
             jdbc.update("INSERT INTO raid_member(raid_id,member_id,group_no,hidden) VALUES(?,?,?,?)", raidId, m.getId(), target, hidden);
             sizes.merge(target, 1, Integer::sum);
         }
@@ -202,8 +204,6 @@ public class RaidService {
         Integer current = groupOf(raidId, memberId);
         if (current == null) throw new AppException("Este membro não está na raid.", HttpStatus.NOT_FOUND);
         if (current != group) {
-            if (groupSizes(raidId).getOrDefault(group, 0) >= GROUP_SIZE)
-                throw new AppException("O subgrupo " + group + " já tem " + GROUP_SIZE + " integrantes.", HttpStatus.CONFLICT);
             jdbc.update("UPDATE raid_member SET group_no=?,group_leader=FALSE WHERE raid_id=? AND member_id=?", group, raidId, memberId);
             changed();
         }
@@ -293,7 +293,8 @@ public class RaidService {
             for (var m : visible) {
                 if (m.id().equals(lead.id())) continue;
                 Member full = members.findById(m.id()).orElseThrow();
-                if (eligible(full) && full.getNickname().matches(NICK)) nicks.add(full.getNickname());
+                // Subgrupo maior que a PT do jogo: só os primeiros 7 cabem; o resto fica como não convidado.
+                if (eligible(full) && full.getNickname().matches(NICK) && nicks.size() < MAX_GAME_INVITES) nicks.add(full.getNickname());
                 else skipped.add(full.getNickname());
             }
             if (nicks.isEmpty()) continue;

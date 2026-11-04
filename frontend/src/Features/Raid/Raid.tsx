@@ -2,7 +2,6 @@ import { useState, type DragEvent, type FormEvent } from 'react'
 import { useAuthContext } from '@/Features/Auth/contexts/AuthContext'
 import {
   nextFreeGroup,
-  RAID_GROUP_SIZE,
   raidGroups,
   useCreateRaid,
   useDisbandRaid,
@@ -213,7 +212,7 @@ function RaidCard({ raid, myId }: { raid: Raid; myId: number | undefined }) {
             {...dropProps(group)}
           >
             <header className="raid-group__title">
-              Subgrupo {group} <span>{members.length}/{RAID_GROUP_SIZE}</span>
+              Subgrupo {group} <span>{members.length}</span>
             </header>
             <ul className="raid-group__list">
               {members.map((m) => <RaidMemberRow key={m.id} raid={raid} member={m} live={live} now={now} onAction={onAction} onMark={onMark} />)}

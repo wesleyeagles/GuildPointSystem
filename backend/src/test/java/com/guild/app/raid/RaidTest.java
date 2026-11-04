@@ -106,15 +106,23 @@ class RaidTest {
         assertThrows(AppException.class, () -> service.create("C", as(x)));
     }
 
-    @Test void groupsHoldAtMostEightOnAddAndMove() {
+    @Test void chosenSubgroupsHaveNoLimitAndBiggerOnesInviteOnlySevenInGame() {
         var raid = service.create("Raid", as(leaderId));
         service.addMembers(raid.id(), many(7), 1, false, as(leaderId));
         long extra = member();
-        assertThrows(AppException.class, () -> service.addMembers(raid.id(), List.of(extra), 1, false, as(leaderId)));
         service.addMembers(raid.id(), List.of(extra), 2, false, as(leaderId));
-        assertThrows(AppException.class, () -> service.moveMember(raid.id(), extra, 1, as(leaderId)));
-        var moved = service.moveMember(raid.id(), extra, 5, as(leaderId));
-        assertEquals(5, moved.members().stream().filter(m -> m.id() == extra).findFirst().orElseThrow().group());
+        var view = service.addMembers(raid.id(), many(5), 1, false, as(leaderId));
+        assertEquals(13, groups(view).get(1).size());
+        view = service.moveMember(raid.id(), extra, 1, as(leaderId));
+        assertEquals(14, groups(view).get(1).size());
+        // Automático continua enchendo de 8 em 8: o subgrupo 1 está cheio, vai para o 2.
+        long auto = member();
+        view = service.addMembers(raid.id(), List.of(auto), null, false, as(leaderId));
+        assertEquals(2, view.members().stream().filter(m -> m.id() == auto).findFirst().orElseThrow().group());
+        // A PT do jogo tem 8: o líder convida 7, os outros 6 ficam de fora.
+        var invites = service.callInGame(raid.id(), as(leaderId));
+        assertEquals(7, invites.getFirst().nicks().size());
+        assertEquals(6, invites.getFirst().skipped().size());
     }
 
     @Test void groupLeaderCanBeChosenAndResetsOnMove() {

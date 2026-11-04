@@ -4,9 +4,6 @@ import { apiClient } from '@/Shared/api/client'
 import { onSocketReconnect, subscribeTopicEffect } from '@/Shared/websocket/socketClient'
 import type { Role } from '@/Domain/types/models'
 
-/** Integrantes por subgrupo: cada subgrupo é uma PT do jogo. */
-export const RAID_GROUP_SIZE = 8
-
 export interface RaidMember {
   id: number
   nickname: string

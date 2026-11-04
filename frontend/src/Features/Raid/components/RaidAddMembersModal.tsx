@@ -4,7 +4,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useMemberRanking } from '@/Domain/Member/hooks/useMembers'
 import { useCharacterRanking } from '@/Domain/CharacterStatus/hooks/useCharacterStatus'
 import { dllAtLeast } from '@/Domain/Dll/hooks/useDll'
-import { nextFreeGroup, raidGroups, raidKeys, RAID_GROUP_SIZE, useAddRaidMembers, type Raid } from '@/Domain/Raid/hooks/useRaids'
+import { nextFreeGroup, raidGroups, raidKeys, useAddRaidMembers, type Raid } from '@/Domain/Raid/hooks/useRaids'
 import { Button } from '@/Shared/ui/components/Button/Button'
 import { MemberClassIcon } from '@/Shared/ui/components/MemberClassIcon/MemberClassIcon'
 import { useAppToast } from '@/Shared/ui/components/AppToast/AppToast'
@@ -53,9 +53,8 @@ export function RaidAddMembersModal({ raid, onClose }: { raid: Raid; onClose: ()
     .sort((a, b) => a.nickname.localeCompare(b.nickname, 'pt-BR'))
 
   const groups = raidGroups(raid)
-  const options = [...groups.map((g) => ({ group: g.group, free: RAID_GROUP_SIZE - g.members.length })),
-    { group: nextFreeGroup(raid), free: RAID_GROUP_SIZE }]
-  const chosenFree = group === 'auto' ? Infinity : options.find((o) => o.group === group)?.free ?? 0
+  // Subgrupos sem limite: qualquer um aceita mais gente.
+  const options = [...groups.map((g) => ({ group: g.group, count: g.members.length })), { group: nextFreeGroup(raid), count: 0 }]
 
   const toggle = (id: number) => setSelected((prev) => {
     const next = new Set(prev)
@@ -98,8 +97,8 @@ export function RaidAddMembersModal({ raid, onClose }: { raid: Raid; onClose: ()
             >
               <option value="auto">Subgrupo automático</option>
               {options.map((o) => (
-                <option key={o.group} value={o.group} disabled={o.free <= 0}>
-                  Subgrupo {o.group} ({o.free} vaga{o.free === 1 ? '' : 's'})
+                <option key={o.group} value={o.group}>
+                  Subgrupo {o.group} ({o.count === 0 ? 'novo' : `${o.count} integrante${o.count === 1 ? '' : 's'}`})
                 </option>
               ))}
             </select>
@@ -136,12 +135,9 @@ export function RaidAddMembersModal({ raid, onClose }: { raid: Raid; onClose: ()
             Mostrar a raid para eles (veem o painel no jogo e recebem os convites)
           </label>
           {!visible && <p className="raid-add__hint">Entram ocultos: a liderança acompanha HP e buffs, e eles não veem a raid.</p>}
-          {selected.size > chosenFree && (
-            <p className="raid-add__warn">O subgrupo escolhido só tem {chosenFree} vaga(s).</p>
-          )}
           <div className="raid-add__actions">
             <Button variant="secondary" onClick={onClose}>Fechar</Button>
-            <Button loading={add.isPending} disabled={selected.size === 0 || selected.size > chosenFree} onClick={submit}>
+            <Button loading={add.isPending} disabled={selected.size === 0} onClick={submit}>
               Adicionar {selected.size > 0 ? selected.size : ''}
             </Button>
           </div>
