@@ -13,6 +13,21 @@ export interface ChatGlossaryTerm {
 }
 
 /**
+ * Uso de hoje (dia de Brasília). apiChars é o que conta na cota do MyMemory; dailyLimit 0 = desconhecido.
+ * quotaPausedUntil: a cota acabou e o site só volta a chamar a API depois dessa hora.
+ */
+export interface ChatTranslateUsage {
+  day: string
+  apiChars: number
+  dailyLimit: number
+  apiCalls: number
+  savedHits: number
+  glossaryHits: number
+  failed: number
+  quotaPausedUntil: string | null
+}
+
+/**
  * Tradutor do chat no jogo (DLL). Listas e contagem só vêm para quem pode configurar (Administrador+).
  * savedTranslations = frases que a API já traduziu e ficaram no dicionário (não gastam cota de novo).
  */
@@ -21,6 +36,7 @@ export interface ChatTranslateAccess {
   translators: { id: number; nickname: string }[]
   glossary: ChatGlossaryTerm[]
   savedTranslations: number
+  usage: ChatTranslateUsage | null
 }
 
 export function useChatTranslateAccess() {
@@ -28,6 +44,7 @@ export function useChatTranslateAccess() {
     queryKey: chatTranslateKeys.access,
     queryFn: () => apiClient<ChatTranslateAccess>('/chat-translate/access'),
     staleTime: 60_000,
+    refetchInterval: 60_000, // o uso da cota muda enquanto a página está aberta
   })
 }
 

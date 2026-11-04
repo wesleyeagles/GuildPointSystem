@@ -31,7 +31,9 @@ public class MyMemoryTranslator implements ChatTranslator {
     private final HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
     private final ObjectMapper json;
     private final String email;
+    static final long ANONYMOUS_LIMIT = 5_000, EMAIL_LIMIT = 50_000;
     private volatile Instant pausedUntil = Instant.EPOCH;
+    private volatile Instant quotaPausedUntil = Instant.EPOCH;
     Clock clock = Clock.systemUTC();
 
     public MyMemoryTranslator(ObjectMapper json, @Value("${app.translate.mymemory-email:}") String email) {
@@ -53,6 +55,7 @@ public class MyMemoryTranslator implements ChatTranslator {
             String translated = body.path("responseData").path("translatedText").asText("");
             if (status == 429 || status == 403 || translated.startsWith("MYMEMORY WARNING")) {
                 pause(QUOTA_PAUSE, "cota do MyMemory esgotada");
+                quotaPausedUntil = pausedUntil;
                 return Optional.empty();
             }
             if (status != 200 || translated.isBlank()) {
@@ -67,6 +70,15 @@ public class MyMemoryTranslator implements ChatTranslator {
             pause(ERROR_PAUSE, "falha ao chamar o MyMemory: " + e.getMessage());
             return Optional.empty();
         }
+    }
+
+    @Override
+    public long dailyLimit() { return email.isEmpty() ? ANONYMOUS_LIMIT : EMAIL_LIMIT; }
+
+    @Override
+    public Optional<Instant> quotaPausedUntil() {
+        Instant until = quotaPausedUntil;
+        return clock.instant().isBefore(until) ? Optional.of(until) : Optional.empty();
     }
 
     private void pause(Duration duration, String reason) {

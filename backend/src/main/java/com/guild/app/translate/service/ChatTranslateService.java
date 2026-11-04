@@ -18,6 +18,8 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.*;
 
 /**
@@ -49,8 +51,18 @@ public class ChatTranslateService {
 
     public record Translator(Long id, String nickname) {}
     public record GlossaryTerm(Long id, String source, String translation) {}
+    /**
+     * Uso de hoje (dia de Brasília). apiChars é o que conta na cota do MyMemory (dailyLimit; 0 = desconhecido);
+     * quotaPausedUntil = cota acabou e o site parou de chamar a API até essa hora.
+     */
+    public record Usage(LocalDate day, long apiChars, long dailyLimit, long apiCalls, long savedHits, long glossaryHits,
+                        long failed, Instant quotaPausedUntil) {}
     /** Só vem preenchido para quem pode configurar (Administrador+); savedTranslations = frases no dicionário. */
-    public record AccessView(boolean canConfigure, List<Translator> translators, List<GlossaryTerm> glossary, long savedTranslations) {}
+    public record AccessView(boolean canConfigure, List<Translator> translators, List<GlossaryTerm> glossary,
+                             long savedTranslations, Usage usage) {}
+
+    private static final ZoneId BRASILIA = ZoneId.of("America/Sao_Paulo");
+    private enum Count { API, SAVED, GLOSSARY, FAILED }
 
     private static boolean eligible(Member m) {
         return m.getStatus() == MemberStatus.APROVADO && m.isProfileComplete()
@@ -94,24 +106,58 @@ public class ChatTranslateService {
     private String lookup(String key) {
         if (!ChatText.hasCyrillic(key)) return null;
         String cached = cache.get(key);
-        if (cached != null) return cached;
+        if (cached != null) {
+            count(Count.SAVED, 0);
+            return cached;
+        }
         String replaced = glossary().apply(key);
         String result;
         if (!ChatText.hasCyrillic(replaced)) {
             result = replaced;  // só termos do glossário: não chama a API
+            count(Count.GLOSSARY, 0);
         } else {
             result = jdbc.query("UPDATE chat_translation SET hits=hits+1, used_at=now() WHERE source=? RETURNING translation",
                 (r, n) -> r.getString(1), key).stream().findFirst().orElse(null);
-            if (result == null) {
+            if (result != null) {
+                count(Count.SAVED, 0);
+            } else {
                 result = translator.translate(replaced).map(t -> t.replaceAll("[\\r\\n\\t]+", " ").strip())
                     .filter(t -> !t.isEmpty()).orElse(null);
-                if (result == null) return null;  // falhou ou sem cota: tenta de novo na próxima vez
+                if (result == null) {  // falhou ou sem cota: tenta de novo na próxima vez
+                    count(Count.FAILED, 0);
+                    return null;
+                }
+                count(Count.API, replaced.length());
                 if (result.length() > MAX_TRANSLATION_LENGTH) result = result.substring(0, MAX_TRANSLATION_LENGTH);
                 jdbc.update("INSERT INTO chat_translation(source,translation) VALUES(?,?) ON CONFLICT (source) DO NOTHING", key, result);
             }
         }
         cache.put(key, result);
         return result;
+    }
+
+    private LocalDate today() { return LocalDate.ofInstant(clock.instant(), BRASILIA); }
+
+    private void count(Count what, int chars) {
+        jdbc.update("""
+            INSERT INTO chat_translate_usage(day,api_chars,api_calls,saved_hits,glossary_hits,failed) VALUES(?,?,?,?,?,?)
+            ON CONFLICT (day) DO UPDATE SET
+                api_chars=chat_translate_usage.api_chars+EXCLUDED.api_chars,
+                api_calls=chat_translate_usage.api_calls+EXCLUDED.api_calls,
+                saved_hits=chat_translate_usage.saved_hits+EXCLUDED.saved_hits,
+                glossary_hits=chat_translate_usage.glossary_hits+EXCLUDED.glossary_hits,
+                failed=chat_translate_usage.failed+EXCLUDED.failed""",
+            today(), chars, what == Count.API ? 1 : 0, what == Count.SAVED ? 1 : 0,
+            what == Count.GLOSSARY ? 1 : 0, what == Count.FAILED ? 1 : 0);
+    }
+
+    private Usage usage() {
+        LocalDate day = today();
+        Instant paused = translator.quotaPausedUntil().orElse(null);
+        return jdbc.query("SELECT api_chars,api_calls,saved_hits,glossary_hits,failed FROM chat_translate_usage WHERE day=?",
+                (r, n) -> new Usage(day, r.getLong(1), translator.dailyLimit(), r.getLong(2), r.getLong(3), r.getLong(4), r.getLong(5), paused),
+                day).stream().findFirst()
+            .orElse(new Usage(day, 0, translator.dailyLimit(), 0, 0, 0, 0, paused));
     }
 
     private ChatText.Glossary glossary() {
@@ -142,12 +188,12 @@ public class ChatTranslateService {
     @Transactional(readOnly = true)
     public AccessView view(MemberPrincipal actor) {
         Member member = members.findById(actor.getId()).orElseThrow(() -> new AppException("Membro não encontrado", HttpStatus.NOT_FOUND));
-        return configurer(member) ? full() : new AccessView(false, List.of(), List.of(), 0);
+        return configurer(member) ? full() : new AccessView(false, List.of(), List.of(), 0, null);
     }
 
     private AccessView full() {
         Long saved = jdbc.queryForObject("SELECT count(*) FROM chat_translation", Long.class);
-        return new AccessView(true, translators(), glossaryTerms(), saved == null ? 0 : saved);
+        return new AccessView(true, translators(), glossaryTerms(), saved == null ? 0 : saved, usage());
     }
 
     private List<Translator> translators() {

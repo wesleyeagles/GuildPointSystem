@@ -45,6 +45,7 @@ services:
       LOKI_URL: ${LOKI_URL:-}
       LOKI_USER: ${LOKI_USER:-}
       LOKI_TOKEN: ${LOKI_TOKEN:-}
+      MYMEMORY_EMAIL: ${MYMEMORY_EMAIL:-}
     volumes:
       - uploads_data:/data/uploads
 

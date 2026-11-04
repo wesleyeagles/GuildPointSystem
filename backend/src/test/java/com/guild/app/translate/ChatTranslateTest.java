@@ -114,6 +114,27 @@ class ChatTranslateTest {
         assertEquals(2, jdbc.queryForObject("SELECT count(*) FROM audit_log WHERE type='CHAT_TRANSLATE_GLOSSARY_UPDATED' AND actor_id=?", Integer.class, admin));
     }
 
+    @Test void countsDailyUsageForTheQuota() throws Exception {
+        long admin = member(nick("Adm"), "APROVADO", "ADMINISTRADOR");
+        var before = service.view(as(admin)).usage();
+        when(translator.translate("бегом сюда")).thenReturn(Optional.of("come here"));
+        when(translator.translate("бегом сюда!")).thenReturn(Optional.of("come here!"));
+        when(translator.translate("тест провал")).thenReturn(Optional.empty());
+        when(translator.dailyLimit()).thenReturn(50_000L);
+        ok("бегом сюда\nбегом сюда\nхил плз\nтест провал");
+        service.forgetCaches();
+        ok("Бегом сюда!");                                                   // outra chave: vai para a API
+        ok("бегом сюда");                                                    // do dicionário salvo
+        var after = service.view(as(admin)).usage();
+        assertEquals("бегом сюда".length() + "бегом сюда!".length(), after.apiChars() - before.apiChars());
+        assertEquals(2, after.apiCalls() - before.apiCalls());
+        assertEquals(2, after.savedHits() - before.savedHits());             // memória + banco
+        assertEquals(1, after.glossaryHits() - before.glossaryHits());
+        assertEquals(1, after.failed() - before.failed());
+        assertEquals(50_000L, after.dailyLimit());
+        assertNull(after.quotaPausedUntil());
+    }
+
     @Test void onlyListedApprovedCharactersHaveAccess() throws Exception {
         mvc.perform(get("/api/chat-translate/game/access").param("character", allowedNick)).andExpect(status().isNoContent());
         mvc.perform(get("/api/chat-translate/game/access").param("character", otherNick)).andExpect(status().isNotFound());

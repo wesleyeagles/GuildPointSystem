@@ -156,6 +156,40 @@
   &__actions { display: flex; margin-top: theme.$spacing-md; }
 }
 
+.chat-usage {
+  margin: theme.$spacing-sm 0 theme.$spacing-md;
+  padding: theme.$spacing-sm;
+  border: 1px solid theme.$color-border;
+  display: flex;
+  flex-direction: column;
+  gap: theme.$spacing-xs;
+
+  &__head {
+    display: flex;
+    justify-content: space-between;
+    gap: theme.$spacing-sm;
+    flex-wrap: wrap;
+  }
+
+  &__bar {
+    height: 8px;
+    background: theme.$metal-800;
+
+    span {
+      display: block;
+      height: 100%;
+      background: theme.$color-success;
+    }
+
+    &--full span { background: theme.$color-danger; }
+  }
+
+  &__alert {
+    margin: 0;
+    color: theme.$color-danger;
+  }
+}
+
 .chat-glossary {
   &__form {
     display: flex;

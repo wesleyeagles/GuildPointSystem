@@ -5,6 +5,7 @@ import { Button } from '@/Shared/ui/components/Button/Button'
 import { Panel } from '@/Shared/ui/components/Panel/Panel'
 import { useAppToast } from '@/Shared/ui/components/AppToast/AppToast'
 import { ChatGlossarySettings } from './ChatGlossarySettings'
+import { ChatTranslateUsagePanel } from './ChatTranslateUsagePanel'
 
 /**
  * Administrador+: quem usa o tradutor do chat no jogo. A DLL desses membros mostra, no próprio chat, a
@@ -46,6 +47,7 @@ function ChatTranslatorForm({ access }: { access: ChatTranslateAccess }) {
         A DLL (v1.15.0 ou mais nova) desses membros traduz as mensagens em russo e mostra a tradução em verde no chat do
         jogo, só na tela deles. Mudanças valem em até 1 minuto.
       </p>
+      {access.usage && <ChatTranslateUsagePanel usage={access.usage} />}
       <div className="chat-translator__chips">
         {translators.length === 0 && <em>Ninguém</em>}
         {translators.map((t) => (
