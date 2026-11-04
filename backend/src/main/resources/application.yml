@@ -67,6 +67,9 @@ guild:
     window: 3d
     # Contas criadas depois do prazo geral tem este tempo, a partir do cadastro, para sincronizar.
     new-account-grace: 1d
+  translate:
+    # Tradutor do chat (MyMemory, gratuito). Com um e-mail de contato a cota diaria sobe de ~5 mil para ~50 mil caracteres.
+    mymemory-email: ${MYMEMORY_EMAIL:}
   dll:
     # Chave PUBLICA (BCRYPT_ECCPUBLIC_BLOB em base64) das atualizacoes automaticas da DLL; a
     # mesma embutida em CerberusBags/src/update_key.hpp. A privada fica so no PC de quem publica

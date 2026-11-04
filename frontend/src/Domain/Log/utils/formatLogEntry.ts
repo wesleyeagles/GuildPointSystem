@@ -8,6 +8,8 @@ const LOG_TYPE_LABELS: Record<AuditLogType, string> = {
   RAID_DISBANDED: 'Raid desfeita',
   RAID_GAME_INVITE: 'Raid chamada no jogo',
   RAID_ACCESS_UPDATED: 'Acesso à Raid alterado',
+  CHAT_TRANSLATE_ACCESS_UPDATED: 'Lista do tradutor do chat alterada',
+  CHAT_TRANSLATE_GLOSSARY_UPDATED: 'Glossário do tradutor alterado',
   DLL_RELEASED: 'Nova versão da DLL',
   PARTY_QUEUE_UPDATED: 'Fila de PT atualizada',
   ROTATION_UPDATED: 'Rotação atualizada',
@@ -83,6 +85,10 @@ export function formatLogDetails(log: AuditLogEntry): string {
       return str(p.name)
     case 'RAID_ACCESS_UPDATED':
       return `A partir de ${str(p.minRole)}${Array.isArray(p.viewers) && p.viewers.length ? ` · Liberados: ${p.viewers.join(', ')}` : ''}`
+    case 'CHAT_TRANSLATE_ACCESS_UPDATED':
+      return Array.isArray(p.translators) && p.translators.length ? `Liberados: ${p.translators.join(', ')}` : 'Ninguém'
+    case 'CHAT_TRANSLATE_GLOSSARY_UPDATED':
+      return p.removed ? `Removido: ${str(p.source)}` : `${str(p.source)} → ${str(p.translation)}`
     case 'RAID_GAME_INVITE':
       return Array.isArray(p.groups)
         ? `${str(p.name)} · ${p.groups.map((g: { group?: unknown; leader?: unknown }) => `Subgrupo ${str(g.group)}: ${str(g.leader)}`).join(' · ')}`

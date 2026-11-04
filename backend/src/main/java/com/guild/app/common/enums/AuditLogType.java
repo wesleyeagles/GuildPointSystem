@@ -42,7 +42,9 @@ public enum AuditLogType {
     RAID_CREATED,
     RAID_DISBANDED,
     RAID_GAME_INVITE,
-    RAID_ACCESS_UPDATED;
+    RAID_ACCESS_UPDATED,
+    CHAT_TRANSLATE_ACCESS_UPDATED,
+    CHAT_TRANSLATE_GLOSSARY_UPDATED;
 
     public boolean isEquipmentPrivate() {
         return this == EQUIPMENT_CHANGED || this == EQUIPMENT_CATALOG_IMPORTED;

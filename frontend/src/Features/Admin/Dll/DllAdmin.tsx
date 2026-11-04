@@ -3,6 +3,7 @@ import { dllDownloadUrl, useDllReleases, useMemberDlls, usePublishDll } from '@/
 import { Button } from '@/Shared/ui/components/Button/Button'
 import { Panel } from '@/Shared/ui/components/Panel/Panel'
 import { useAppToast } from '@/Shared/ui/components/AppToast/AppToast'
+import { ChatTranslatorSettings } from './ChatTranslatorSettings'
 import './DllAdmin.styles.scss'
 
 const VERSION_FORMAT = /^\d{1,5}(\.\d{1,5}){0,3}$/
@@ -190,6 +191,8 @@ export function DllAdminPage() {
           </table>
         )}
       </Panel>
+
+      <ChatTranslatorSettings />
 
       <Panel title="Histórico de versões" code={`${releases.length}`}>
         {releasesLoading ? (

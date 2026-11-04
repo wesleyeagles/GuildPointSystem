@@ -86,6 +86,9 @@ public class SecurityConfig {
                         // Shout no jogo pela DLL: ver/enviar so para personagem de membro aprovado (enviar: Lider/Admin).
                         .requestMatchers(HttpMethod.GET, "/api/shout/game", "/api/shout/game/sender").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/shout/game").permitAll()
+                        // Tradutor do chat pela DLL: so responde a personagem de membro aprovado da lista.
+                        .requestMatchers(HttpMethod.GET, "/api/chat-translate/game/access").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/chat-translate/game").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/quests/ingest").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/quests/live/ingest").permitAll()
                         .requestMatchers("/ws/**").permitAll()

@@ -99,3 +99,116 @@
     }
   }
 }
+
+// Quem usa o tradutor do chat (Administrador+).
+.chat-translator {
+  &__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: theme.$spacing-xs;
+    margin-bottom: theme.$spacing-sm;
+
+    em { color: theme.$color-text-muted; }
+  }
+
+  &__chip {
+    @include theme.tag(theme.$color-text);
+    gap: 4px;
+
+    button {
+      background: transparent;
+      border: none;
+      color: theme.$color-text-muted;
+      cursor: pointer;
+      padding: 0;
+
+      &:hover { color: theme.$color-danger; }
+    }
+  }
+
+  &__search {
+    @include theme.field-input;
+    @include theme.field-control-height;
+    max-width: 420px;
+    width: 100%;
+  }
+
+  &__suggestions {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-width: 420px;
+    border: 1px solid theme.$color-border;
+
+    button {
+      width: 100%;
+      text-align: left;
+      padding: 6px theme.$spacing-sm;
+      background: transparent;
+      border: none;
+      color: theme.$color-text;
+      cursor: pointer;
+
+      &:hover { background: theme.$metal-800; }
+    }
+  }
+
+  &__actions { display: flex; margin-top: theme.$spacing-md; }
+}
+
+.chat-glossary {
+  &__form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: theme.$spacing-sm;
+    margin: theme.$spacing-sm 0;
+
+    span { color: theme.$color-text-muted; }
+  }
+
+  &__input {
+    @include theme.field-input;
+    @include theme.field-control-height;
+    flex: 1 1 200px;
+    max-width: 280px;
+  }
+
+  &__filter {
+    display: block;
+    max-width: 420px;
+    width: 100%;
+    margin-bottom: theme.$spacing-sm;
+  }
+
+  &__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: theme.$spacing-xs;
+
+    li {
+      @include theme.tag(theme.$color-text);
+      gap: 4px;
+    }
+
+    button {
+      background: transparent;
+      border: none;
+      padding: 0;
+      cursor: pointer;
+      color: inherit;
+      font: inherit;
+    }
+
+    .chat-glossary__term:hover { text-decoration: underline; }
+
+    .chat-glossary__remove {
+      color: theme.$color-text-muted;
+
+      &:hover { color: theme.$color-danger; }
+    }
+  }
+}
