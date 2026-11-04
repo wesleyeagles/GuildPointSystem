@@ -89,6 +89,8 @@ public class SecurityConfig {
                         // Tradutor do chat pela DLL: so responde a personagem de membro aprovado da lista.
                         .requestMatchers(HttpMethod.GET, "/api/chat-translate/game/access").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/chat-translate/game").permitAll()
+                        // Mapa de recursos pela DLL: so aceita personagem de membro aprovado.
+                        .requestMatchers(HttpMethod.POST, "/api/resources/game").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/quests/ingest").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/quests/live/ingest").permitAll()
                         .requestMatchers("/ws/**").permitAll()

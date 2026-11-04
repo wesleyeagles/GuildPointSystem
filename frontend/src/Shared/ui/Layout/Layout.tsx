@@ -25,6 +25,7 @@ import { useEquipmentSubscription } from '@/Domain/Equipment/hooks/useEquipment'
 import { SyncAccessGate } from '@/Features/SyncAccess/SyncAccessGate'
 import { useDllNotice } from '@/Features/SyncAccess/dllNotice'
 import { useRaidAccess } from '@/Domain/Raid/hooks/useRaids'
+import { useResourceOverview } from '@/Domain/Resource/hooks/useResources'
 import './Layout.styles.scss'
 
 const NAV_ITEMS = [
@@ -32,6 +33,7 @@ const NAV_ITEMS = [
   { to: '/events', label: 'Eventos' },
   { to: '/party', label: 'Party' },
   { to: '/raid', label: 'Raid' },
+  { to: '/resources', label: 'Recursos' },
   { to: '/equipment', label: 'Equipamentos' },
   { to: '/quests', label: 'Quests' },
   { to: '/rotation', label: 'Rotação' },
@@ -93,6 +95,7 @@ function LayoutShell() {
   const { logout, hasRole, user } = useAuthContext()
   const { data: member } = useCurrentMember()
   const { data: raidAccess } = useRaidAccess()
+  const { data: resources } = useResourceOverview()
   const location = useLocation()
   const navigate = useNavigate()
   useEffect(() => {
@@ -196,7 +199,7 @@ function LayoutShell() {
             </button>
           )}
 
-          {NAV_ITEMS.filter((item) => item.to !== '/raid' || raidAccess?.canView).map((item) => (
+          {NAV_ITEMS.filter((item) => (item.to !== '/raid' || raidAccess?.canView) && (item.to !== '/resources' || resources?.canView)).map((item) => (
             <Link
               key={item.to}
               to={item.to}

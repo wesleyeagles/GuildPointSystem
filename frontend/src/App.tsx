@@ -24,6 +24,7 @@ import { ServerInfoListPage } from '@/Features/ServerInfo/ServerInfoListPage'
 import { ServerInfoTopicPage } from '@/Features/ServerInfo/ServerInfoTopicPage'
 import { PartyPage } from '@/Features/Party/Party'
 import { RaidPage } from '@/Features/Raid/Raid'
+import { ResourcesPage } from '@/Features/Resources/Resources'
 import { PresenceReporter } from '@/Features/Presence/PresenceReporter'
 import './App.styles.scss'
 
@@ -61,6 +62,7 @@ function App() {
               <Route path="rotation" element={<RotationPage />} />
               <Route path="party" element={<PartyPage />} />
               <Route path="raid" element={<RaidPage />} />
+              <Route path="resources" element={<ResourcesPage />} />
               <Route path="auctions" element={<AuctionsPage />} />
               <Route path="auctions/:id" element={<AuctionDetailPage />} />
               <Route path="profile" element={<ProfilePage />} />

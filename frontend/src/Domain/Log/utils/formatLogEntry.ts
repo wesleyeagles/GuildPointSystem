@@ -10,6 +10,8 @@ const LOG_TYPE_LABELS: Record<AuditLogType, string> = {
   RAID_ACCESS_UPDATED: 'Acesso à Raid alterado',
   CHAT_TRANSLATE_ACCESS_UPDATED: 'Lista do tradutor do chat alterada',
   CHAT_TRANSLATE_GLOSSARY_UPDATED: 'Glossário do tradutor alterado',
+  RESOURCE_ACCESS_UPDATED: 'Lista do mapa de recursos alterada',
+  RESOURCE_MOB_UPDATED: 'Grau de mob de recurso alterado',
   DLL_RELEASED: 'Nova versão da DLL',
   PARTY_QUEUE_UPDATED: 'Fila de PT atualizada',
   ROTATION_UPDATED: 'Rotação atualizada',
@@ -87,6 +89,10 @@ export function formatLogDetails(log: AuditLogEntry): string {
       return `A partir de ${str(p.minRole)}${Array.isArray(p.viewers) && p.viewers.length ? ` · Liberados: ${p.viewers.join(', ')}` : ''}`
     case 'CHAT_TRANSLATE_ACCESS_UPDATED':
       return Array.isArray(p.translators) && p.translators.length ? `Liberados: ${p.translators.join(', ')}` : 'Ninguém'
+    case 'RESOURCE_ACCESS_UPDATED':
+      return Array.isArray(p.trackers) && p.trackers.length ? `Liberados: ${p.trackers.join(', ')}` : 'Ninguém'
+    case 'RESOURCE_MOB_UPDATED':
+      return `${str(p.name)} → ${Number(p.tier) ? `Grau ${str(p.tier)}` : 'Não é recurso'}`
     case 'CHAT_TRANSLATE_GLOSSARY_UPDATED':
       return p.removed ? `Removido: ${str(p.source)}` : `${str(p.source)} → ${str(p.translation)}`
     case 'RAID_GAME_INVITE':

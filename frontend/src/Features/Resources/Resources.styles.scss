@@ -1,0 +1,248 @@
+// Cores dos graus: as mesmas das bolinhas no mapa do jogo (DLL, resource_map.hpp).
+$tier-colors: (
+  '1': #5ad25a,
+  '2': #4696ff,
+  '3': #ffaa28,
+  'u': #dc5adc,
+);
+
+.resources {
+  display: flex;
+  flex-direction: column;
+  gap: theme.$spacing-lg;
+
+  &__muted {
+    margin: 0 0 theme.$spacing-sm;
+    color: theme.$color-text-muted;
+  }
+
+  &__tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: theme.$spacing-xs;
+  }
+
+  &__tab {
+    @include theme.tag(theme.$color-text-muted);
+    cursor: pointer;
+    font-size: theme.$font-size-ui;
+    padding: 6px theme.$spacing-md;
+    background: theme.$metal-800;
+
+    &--active {
+      color: theme.$color-primary;
+      border-color: theme.$color-primary;
+    }
+  }
+
+  &__filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: theme.$spacing-md;
+    margin-bottom: theme.$spacing-md;
+  }
+
+  &__filter {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+
+    small { color: theme.$color-text-muted; }
+  }
+
+  &__period {
+    @include theme.field-input;
+    margin-left: auto;
+  }
+
+  &__swatch {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 1px solid #000;
+    flex: none;
+  }
+
+  @each $key, $color in $tier-colors {
+    &__filter--t#{$key} &__swatch,
+    &__swatch--t#{$key} { background: $color; }
+
+    &__dot--t#{$key} { fill: $color; }
+  }
+
+  &__body {
+    display: flex;
+    flex-wrap: wrap;
+    gap: theme.$spacing-lg;
+    align-items: flex-start;
+  }
+
+  &__map {
+    position: relative;
+    flex: 1 1 520px;
+    max-width: 720px;
+    aspect-ratio: 1;
+    border: 1px solid theme.$color-border-strong;
+    background: theme.$metal-950;
+
+    svg {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+  }
+
+  &__dot {
+    stroke: #111;
+    stroke-width: 0.8;
+    cursor: pointer;
+
+    &--t3 { stroke: #fff3c4; stroke-width: 1.2; }
+
+    &--hover {
+      stroke: #fff;
+      stroke-width: 2;
+    }
+  }
+
+  &__notice {
+    position: absolute;
+    left: theme.$spacing-md;
+    right: theme.$spacing-md;
+    bottom: theme.$spacing-md;
+    margin: 0;
+    padding: theme.$spacing-sm;
+    background: rgba(0, 0, 0, 0.75);
+    color: theme.$color-warning;
+  }
+
+  &__side {
+    flex: 1 1 260px;
+    min-width: 240px;
+  }
+
+  &__subtitle {
+    margin: 0 0 theme.$spacing-sm;
+    font-family: theme.$font-heading;
+    font-size: theme.$font-size-heading;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: theme.$color-text-muted;
+  }
+
+  &__recent {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 560px;
+    overflow-y: auto;
+
+    li {
+      display: flex;
+      align-items: center;
+      gap: theme.$spacing-sm;
+      padding: 4px theme.$spacing-xs;
+      border-bottom: 1px solid theme.$color-border;
+
+      &:hover { background: theme.$metal-700; }
+    }
+
+    time {
+      margin-left: auto;
+      color: theme.$color-text-muted;
+      font-family: theme.$font-mono;
+      font-size: 13px;
+    }
+  }
+
+  &__recent-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__detail {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 4px theme.$spacing-md;
+    margin: 0;
+
+    dt { color: theme.$color-text-muted; }
+    dd { margin: 0; }
+  }
+
+  &__mobs {
+    width: 100%;
+    max-width: 720px;
+    border-collapse: collapse;
+
+    th, td {
+      text-align: left;
+      padding: 6px theme.$spacing-sm;
+      border-bottom: 1px solid theme.$color-border;
+    }
+
+    th { color: theme.$color-text-muted; font-weight: 500; }
+
+    select { @include theme.field-input; }
+  }
+
+  &__mob--unknown td:first-child { color: map-get($tier-colors, 'u'); font-weight: 600; }
+  &__mob--ignored td { color: theme.$color-text-faint; }
+
+  &__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: theme.$spacing-xs;
+    margin-bottom: theme.$spacing-sm;
+
+    em { color: theme.$color-text-muted; }
+  }
+
+  &__chip {
+    @include theme.tag(theme.$color-text);
+    gap: 4px;
+
+    button {
+      background: transparent;
+      border: none;
+      color: theme.$color-text-muted;
+      cursor: pointer;
+      padding: 0;
+
+      &:hover { color: theme.$color-danger; }
+    }
+  }
+
+  &__search {
+    @include theme.field-input;
+    @include theme.field-control-height;
+    max-width: 420px;
+    width: 100%;
+  }
+
+  &__suggestions {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-width: 420px;
+    border: 1px solid theme.$color-border;
+
+    button {
+      width: 100%;
+      text-align: left;
+      padding: 6px theme.$spacing-sm;
+      background: transparent;
+      border: none;
+      color: theme.$color-text;
+      cursor: pointer;
+
+      &:hover { background: theme.$metal-800; }
+    }
+  }
+
+  &__actions { display: flex; margin-top: theme.$spacing-md; }
+}
