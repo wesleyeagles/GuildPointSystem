@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/Shared/api/client'
+import { serverNow } from '@/Shared/utils/serverClock'
 
 export const resourceKeys = {
   overview: ['resources'] as const,
@@ -54,7 +55,22 @@ export interface ResourceSpawn {
   z: number
   foundAt: string
   foundBy: string | null
+  /** Quando morreu (a DLL de quem estava perto viu o mob sumir); null = vivo ou não se sabe. */
+  diedAt: string | null
+  /** Só no navegador: quando esta página soube da morte (o vermelho de 5 s conta daí, como no jogo). */
+  deathSeenAt?: number
 }
+
+/** Achado no último minuto e ainda vivo: pisca. Morreu enquanto piscava: vermelho piscante por 5 s. */
+export const FRESH_MS = 60_000
+export const DEAD_FLASH_MS = 5_000
+/** Morte mais antiga que isto quando a página soube (abriu depois): só para de piscar, sem vermelho. */
+const DEAD_NEWS_MS = 15_000
+
+export const isFresh = (s: ResourceSpawn, now: number) => !s.diedAt && now - Date.parse(s.foundAt) < FRESH_MS
+export const isDeadFlash = (s: ResourceSpawn, now: number) =>
+  s.deathSeenAt != null && !!s.diedAt && Date.parse(s.diedAt) - Date.parse(s.foundAt) < FRESH_MS &&
+  now - s.deathSeenAt < DEAD_FLASH_MS
 
 export function useResourceOverview() {
   return useQuery({
@@ -65,12 +81,28 @@ export function useResourceOverview() {
 }
 
 export function useResourceSpawns(map: number, enabled: boolean) {
+  const queryClient = useQueryClient()
   return useQuery({
     queryKey: resourceKeys.spawns(map),
-    queryFn: () => apiClient<ResourceSpawn[]>(`/resources/spawns?map=${map}`),
+    queryFn: async () => {
+      const list = await apiClient<ResourceSpawn[]>(`/resources/spawns?map=${map}`)
+      // Guarda quando esta página soube de cada morte (a busca anterior já sabia: mantém a hora).
+      const before = new Map((queryClient.getQueryData<ResourceSpawn[]>(resourceKeys.spawns(map)) ?? []).map((s) => [s.id, s]))
+      const now = serverNow()
+      return list.map((s) => {
+        if (!s.diedAt) return s
+        const known = before.get(s.id)
+        if (known?.diedAt) return { ...s, deathSeenAt: known.deathSeenAt }
+        return now - Date.parse(s.diedAt) < DEAD_NEWS_MS ? { ...s, deathSeenAt: now } : s
+      })
+    },
     enabled,
     staleTime: 30_000,
-    refetchInterval: 15_000, // os membros vão achando recursos; o ponto novo pisca por 1 minuto
+    // Com ponto piscando (achado no último minuto), busca a cada 1 s para ver a morte logo; senão a cada 15 s.
+    refetchInterval: (query) => {
+      const now = serverNow()
+      return query.state.data?.some((s) => now - Date.parse(s.foundAt) < FRESH_MS + 10_000) ? 1_000 : 15_000
+    },
   })
 }
 

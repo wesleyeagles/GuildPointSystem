@@ -1,11 +1,14 @@
 import { useMemo, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import {
+  isDeadFlash,
+  isFresh,
   mapPoint,
   TIER_LABEL,
   useResourceOverview,
   useResourceSpawns,
   type ResourceMap,
+  type ResourceMapScale,
   type ResourceSpawn,
 } from '@/Domain/Resource/hooks/useResources'
 import { mapLabel } from '@/Domain/Location/gameMaps'
@@ -31,8 +34,6 @@ const PERIODS = [
   { key: '30d', label: '30 dias', ms: 30 * 86_400_000 },
 ]
 const RECENT = 40
-/** Achado no último minuto: pisca no mapa (como no jogo). */
-const FRESH_MS = 60_000
 
 function when(iso: string) {
   return new Date(iso).toLocaleString('pt-BR', {
@@ -97,7 +98,6 @@ function ResourceMapPanel({ map }: { map: ResourceMap }) {
     return [...visible].sort((a, b) => rank(a) - rank(b) || a.id - b.id)
   }, [visible])
   const recent = useMemo(() => [...visible].sort((a, b) => b.id - a.id).slice(0, RECENT), [visible])
-  const fresh = useMemo(() => visible.filter((s) => now - Date.parse(s.foundAt) < FRESH_MS), [visible, now])
   const view = map.view
 
   return (
@@ -141,19 +141,7 @@ function ResourceMapPanel({ map }: { map: ResourceMap }) {
                 </circle>
               )
             })}
-            {/* Por cima de tudo: duas ondas saindo do ponto e o ponto piscando. */}
-            {view && fresh.map((s) => {
-              const p = mapPoint(view, s.x, s.z)
-              if (!p) return null
-              const key = tierKey(s.tier)
-              return (
-                <g key={`fresh-${s.id}`} className={`resources__fresh resources__fresh--t${key}`} pointerEvents="none">
-                  <circle className="resources__wave" cx={p.px} cy={p.py} r={RADIUS[key] + 2} />
-                  <circle className="resources__wave resources__wave--late" cx={p.px} cy={p.py} r={RADIUS[key] + 2} />
-                  <circle className="resources__beat" cx={p.px} cy={p.py} r={RADIUS[key] + 1.5} />
-                </g>
-              )
-            })}
+            {view && <ResourcePulses view={view} spawns={visible} />}
           </svg>
           {!view && (
             <p className="resources__notice">
@@ -171,6 +159,7 @@ function ResourceMapPanel({ map }: { map: ResourceMap }) {
               <dt>Grau</dt><dd>{hover.tier ? TIER_LABEL[hover.tier] : 'Desconhecido'}</dd>
               <dt>Achado</dt><dd>{when(hover.foundAt)}</dd>
               <dt>Por</dt><dd>{hover.foundBy ?? '—'}</dd>
+              {hover.diedAt && <><dt>Morreu</dt><dd>{when(hover.diedAt)}</dd></>}
               <dt>Posição</dt><dd>{hover.x}, {hover.z}</dd>
             </dl>
           ) : recent.length === 0 ? (
@@ -189,5 +178,40 @@ function ResourceMapPanel({ map }: { map: ResourceMap }) {
         </div>
       </div>
     </Panel>
+  )
+}
+
+/**
+ * Por cima de tudo. Achado no último minuto e vivo: duas ondas saindo do ponto e o ponto piscando.
+ * Morreu enquanto piscava: vermelho piscante por 5 s. Só esta camada acompanha o relógio de perto.
+ */
+function ResourcePulses({ view, spawns }: { view: ResourceMapScale; spawns: ResourceSpawn[] }) {
+  const now = useServerNow(250)
+  return (
+    <>
+      {spawns.map((s) => {
+        const fresh = isFresh(s, now)
+        const dead = !fresh && isDeadFlash(s, now)
+        if (!fresh && !dead) return null
+        const p = mapPoint(view, s.x, s.z)
+        if (!p) return null
+        const key = tierKey(s.tier)
+        if (dead) {
+          return (
+            <g key={`dead-${s.id}`} className="resources__dead" pointerEvents="none">
+              <circle className="resources__dead-ring" cx={p.px} cy={p.py} r={RADIUS[key] + 5} />
+              <circle className="resources__dead-core" cx={p.px} cy={p.py} r={RADIUS[key] + 2} />
+            </g>
+          )
+        }
+        return (
+          <g key={`fresh-${s.id}`} className={`resources__fresh resources__fresh--t${key}`} pointerEvents="none">
+            <circle className="resources__wave" cx={p.px} cy={p.py} r={RADIUS[key] + 2} />
+            <circle className="resources__wave resources__wave--late" cx={p.px} cy={p.py} r={RADIUS[key] + 2} />
+            <circle className="resources__beat" cx={p.px} cy={p.py} r={RADIUS[key] + 1.5} />
+          </g>
+        )
+      })}
+    </>
   )
 }

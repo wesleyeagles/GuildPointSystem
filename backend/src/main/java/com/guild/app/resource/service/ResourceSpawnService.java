@@ -45,6 +45,8 @@ public class ResourceSpawnService {
     public static final int GAME_TIER1 = 2000, GAME_OTHERS = 5000;
     /** O mesmo serial no mesmo mapa dentro deste tempo é o mesmo mob (visto de novo ou por outro membro). */
     public static final Duration SAME_MOB = Duration.ofHours(12);
+    /** Mortes que vão ao jogo em todo envio (linha K): cobre o minuto em que o ponto pisca. */
+    public static final Duration RECENT_DEATHS = Duration.ofSeconds(90);
     /** Resposta para quem não está na lista: envia, mas não vê pontos. */
     static final String NO_DOTS = "A\t0\n";
 
@@ -61,7 +63,8 @@ public class ResourceSpawnService {
     public record Tracker(Long id, String nickname) {}
     /** canView = canConfigure: a página do site é só de Administrador+. */
     public record Overview(boolean canView, boolean canConfigure, List<MapView> maps, List<MobView> mobs, List<Tracker> trackers) {}
-    public record SpawnView(long id, String name, Integer tier, int x, int z, Instant foundAt, String foundBy) {}
+    /** diedAt: quando morreu (null = vivo ou não se sabe). */
+    public record SpawnView(long id, String name, Integer tier, int x, int z, Instant foundAt, String foundBy, Instant diedAt) {}
 
     private static boolean eligible(Member m) {
         return m.getStatus() == MemberStatus.APROVADO && m.isProfileComplete()
@@ -103,10 +106,31 @@ public class ResourceSpawnService {
         for (String line : lines) {
             String[] f = line.split("\t", -1);
             if (f.length == 5 && f[0].equals("S")) sighting(member, map, f, now);
+            else if (f.length == 3 && f[0].equals("D")) death(map, f, now);
             else if (f.length == 9 && f[0].equals("V")) saveView(map, f, now);
         }
         if (!listed(member.getId())) return NO_DOTS;
-        return "A\t1\n" + dots(map, Math.max(0, since));
+        return "A\t1\n" + dots(map, Math.max(0, since)) + deaths(map, now);
+    }
+
+    /** O mob sumiu da lista com o personagem perto: morreu. Só a primeira notícia vale. */
+    private void death(int map, String[] f, Instant now) {
+        long serial;
+        try { serial = Long.parseLong(f[1]); } catch (NumberFormatException e) { return; }
+        String name = f[2].strip();
+        if (serial < 0 || !validName(name)) return;
+        jdbc.update("UPDATE resource_spawn SET died_at=? WHERE map_code=? AND serial=? AND mob_name=? AND died_at IS NULL AND found_at>?",
+            Timestamp.from(now), map, serial, name, Timestamp.from(now.minus(SAME_MOB)));
+    }
+
+    /** {@code K id epochSegundos} por ponto do mapa que morreu há pouco (o jogo para de piscar / fica vermelho). */
+    private String deaths(int map, Instant now) {
+        StringBuilder sb = new StringBuilder();
+        jdbc.query("SELECT id,died_at FROM resource_spawn WHERE map_code=? AND died_at>? ORDER BY id",
+            r -> { sb.append("K\t").append(r.getLong("id")).append('\t')
+                     .append(r.getTimestamp("died_at").toInstant().getEpochSecond()).append('\n'); },
+            map, Timestamp.from(now.minus(RECENT_DEATHS)));
+        return sb.toString();
     }
 
     private void sighting(Member member, int map, String[] f, Instant now) {
@@ -233,11 +257,14 @@ public class ResourceSpawnService {
         if (!viewer(member(actor))) throw new AppException("Acesso negado", HttpStatus.FORBIDDEN);
         if (!MAPS.containsKey(map)) throw new AppException("Mapa sem recursos.", HttpStatus.BAD_REQUEST);
         return jdbc.query("""
-            SELECT s.id,s.mob_name,m.tier,s.x,s.z,s.found_at,f.nickname FROM resource_spawn s
+            SELECT s.id,s.mob_name,m.tier,s.x,s.z,s.found_at,s.died_at,f.nickname FROM resource_spawn s
             JOIN resource_mob m ON m.name=s.mob_name LEFT JOIN member f ON f.id=s.found_by
             WHERE s.map_code=? AND coalesce(m.tier,-1)<>0 ORDER BY s.id""",
-            (r, n) -> new SpawnView(r.getLong("id"), r.getString("mob_name"), (Integer) r.getObject("tier"), r.getInt("x"), r.getInt("z"),
-                r.getTimestamp("found_at").toInstant(), r.getString("nickname")), map);
+            (r, n) -> {
+                Timestamp died = r.getTimestamp("died_at");
+                return new SpawnView(r.getLong("id"), r.getString("mob_name"), (Integer) r.getObject("tier"), r.getInt("x"), r.getInt("z"),
+                    r.getTimestamp("found_at").toInstant(), r.getString("nickname"), died == null ? null : died.toInstant());
+            }, map);
     }
 
     private Member configurerOrThrow(MemberPrincipal actor) {

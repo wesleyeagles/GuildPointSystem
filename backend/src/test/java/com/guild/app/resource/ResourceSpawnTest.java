@@ -120,6 +120,22 @@ class ResourceSpawnTest {
         assertTrue(next.contains("\t2\t2\t3\t") && !next.contains("\t1\t1\t1\t"), next);
     }
 
+    @Test void deathGoesToViewersOnceAndToTheSite() throws Exception {
+        ok(senderNick, 11, 0, "S\t" + serial + "\t5\t6\tCactus\n");
+        long id = jdbc.queryForObject("SELECT id FROM resource_spawn WHERE serial=?", Long.class, serial);
+        assertFalse(ok(viewerNick, 11, 0, "").contains("K\t"));
+        ok(senderNick, 11, 0, "D\t" + serial + "\tCactus\nD\t" + (serial + 7) + "\tCactus\n");   // o segundo nunca foi visto
+        var died = jdbc.queryForObject("SELECT died_at FROM resource_spawn WHERE id=?", java.sql.Timestamp.class, id);
+        assertNotNull(died);
+        ok(viewerNick, 11, 0, "D\t" + serial + "\tCactus\n");                                     // outro membro: não muda a hora
+        assertEquals(died, jdbc.queryForObject("SELECT died_at FROM resource_spawn WHERE id=?", java.sql.Timestamp.class, id));
+        String reply = ok(viewerNick, 11, id, "");
+        assertTrue(reply.contains("K\t" + id + "\t" + died.toInstant().getEpochSecond() + "\n"), reply);
+        assertEquals("A\t0\n", ok(senderNick, 11, 0, ""));                 // fora da lista: nada
+        assertFalse(ok(viewerNick, 10, 0, "").contains("K\t"));                                   // outro mapa
+        assertEquals(died.toInstant(), service.spawns(11, as(adminId)).get(0).diedAt());
+    }
+
     @Test void mapScaleFromTheGameIsSaved() throws Exception {
         ok(senderNick, 2, 0, "V\t400\t400\t12\t0\t-4000\t4100\t0.05\t0.049\n");
         var crag = service.overview(as(adminId)).maps().stream().filter(m -> m.code() == 2).findFirst().orElseThrow();

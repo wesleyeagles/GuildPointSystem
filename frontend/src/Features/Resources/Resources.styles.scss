@@ -130,6 +130,23 @@ $tier-colors: (
     animation: resources-beat 1.2s ease-in-out infinite;
   }
 
+  // Morreu enquanto piscava: vermelho aceso/apagado a cada 250 ms (como no jogo), por 5 s.
+  &__dead {
+    animation: resources-dead 0.5s steps(1, end) infinite;
+  }
+
+  &__dead-ring {
+    fill: none;
+    stroke: #ff2828;
+    stroke-width: 2;
+  }
+
+  &__dead-core {
+    fill: #ff2828;
+    stroke: #ffebeb;
+    stroke-width: 1.2;
+  }
+
   &__notice {
     position: absolute;
     left: theme.$spacing-md;
@@ -277,4 +294,9 @@ $tier-colors: (
 @keyframes resources-beat {
   0%, 100% { filter: brightness(1); }
   50% { filter: brightness(1.9); }
+}
+
+@keyframes resources-dead {
+  0% { opacity: 1; }
+  50% { opacity: 0.25; }
 }
