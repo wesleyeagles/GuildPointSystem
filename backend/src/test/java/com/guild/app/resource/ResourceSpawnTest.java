@@ -104,7 +104,7 @@ class ResourceSpawnTest {
         assertFalse(ok(viewerNick, 11, 0, "").contains(unknown));
         ok(senderNick, 11, 0, "S\t" + (serial + 2) + "\t5\t6\t" + unknown + "\n");
         assertEquals(1, spawns(unknown));                                               // e nem grava mais
-        assertTrue(service.spawns(11, as(viewerId)).stream().noneMatch(s -> s.name().equals(unknown)));
+        assertTrue(service.spawns(11, as(adminId)).stream().noneMatch(s -> s.name().equals(unknown)));
 
         service.setTier(unknown, 3, as(adminId));
         assertTrue(ok(viewerNick, 11, 0, "").contains("\t3\t4\t3\t"));
@@ -122,25 +122,22 @@ class ResourceSpawnTest {
 
     @Test void mapScaleFromTheGameIsSaved() throws Exception {
         ok(senderNick, 2, 0, "V\t400\t400\t12\t0\t-4000\t4100\t0.05\t0.049\n");
-        var crag = service.overview(as(viewerId)).maps().stream().filter(m -> m.code() == 2).findFirst().orElseThrow();
+        var crag = service.overview(as(adminId)).maps().stream().filter(m -> m.code() == 2).findFirst().orElseThrow();
         assertEquals(-4000, crag.view().minX());
         assertEquals(0.049, crag.view().scaleY(), 1e-9);
         ok(senderNick, 2, 0, "V\t400\t400\t12\t0\t-4000\t4100\t-1\t0.049\n");          // escala absurda: ignorada
-        assertEquals(0.05, service.overview(as(viewerId)).maps().stream().filter(m -> m.code() == 2).findFirst().orElseThrow().view().scaleX(), 1e-9);
+        assertEquals(0.05, service.overview(as(adminId)).maps().stream().filter(m -> m.code() == 2).findFirst().orElseThrow().view().scaleX(), 1e-9);
     }
 
-    @Test void siteAccess() {
-        assertFalse(service.overview(as(senderId)).canView());
-        assertThrows(AppException.class, () -> service.spawns(11, as(senderId)));
-        var viewer = service.overview(as(viewerId));
-        assertTrue(viewer.canView());
-        assertFalse(viewer.canConfigure());
-        assertTrue(viewer.trackers().isEmpty());
+    @Test void siteIsAdminOnly() throws Exception {
+        // Estar na lista libera os pontos no jogo, não a página do site.
+        assertFalse(service.overview(as(viewerId)).canView());
+        assertThrows(AppException.class, () -> service.spawns(11, as(viewerId)));
         assertThrows(AppException.class, () -> service.updateAccess(List.of(senderId), as(viewerId)));
         var admin = service.updateAccess(List.of(senderId), as(adminId));
-        assertTrue(admin.canConfigure());
+        assertTrue(admin.canView() && admin.canConfigure());
         assertEquals(List.of(senderId), admin.trackers().stream().map(t -> t.id()).toList());
-        assertTrue(service.overview(as(senderId)).canView());
-        assertFalse(service.overview(as(viewerId)).canView());
+        assertTrue(ok(senderNick, 11, 0, "").startsWith("A\t1\n"));     // agora vê no jogo
+        assertEquals("A\t0\n", ok(viewerNick, 11, 0, ""));             // saiu da lista
     }
 }

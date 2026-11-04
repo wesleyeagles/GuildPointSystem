@@ -62,7 +62,6 @@ function App() {
               <Route path="rotation" element={<RotationPage />} />
               <Route path="party" element={<PartyPage />} />
               <Route path="raid" element={<RaidPage />} />
-              <Route path="resources" element={<ResourcesPage />} />
               <Route path="auctions" element={<AuctionsPage />} />
               <Route path="auctions/:id" element={<AuctionDetailPage />} />
               <Route path="profile" element={<ProfilePage />} />
@@ -73,6 +72,7 @@ function App() {
               <Route element={<AdminRoute />}>
                 <Route path="admin/online" element={<OnlinePage />} />
                 <Route path="admin/dll" element={<DllAdminPage />} />
+                <Route path="admin/resources" element={<ResourcesPage />} />
               </Route>
             </Route>
           </Route>

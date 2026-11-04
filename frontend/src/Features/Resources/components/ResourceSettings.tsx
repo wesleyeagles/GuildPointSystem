@@ -87,10 +87,10 @@ function ResourceAccess({ overview }: { overview: ResourceOverview }) {
   })
 
   return (
-    <Panel title="Quem vê o mapa de recursos" code={`${overview.trackers.length}`}>
+    <Panel title="Quem vê os recursos no jogo" code={`${overview.trackers.length}`}>
       <p className="resources__muted">
-        Todos os membros com a DLL enviam os recursos que veem. Só os membros desta lista (e Administradores) veem os
-        pontos aqui no site, e só os desta lista veem as bolinhas no mapa do jogo.
+        Todos os membros com a DLL enviam os recursos que veem. Só os membros desta lista veem as bolinhas no mapa do
+        jogo (DLL 1.16.0 ou mais nova). Esta página é só para Administradores.
       </p>
       <div className="resources__chips">
         {trackers.length === 0 && <em>Ninguém</em>}

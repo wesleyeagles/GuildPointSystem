@@ -40,7 +40,7 @@ function when(iso: string) {
 
 /**
  * Mapa de recursos: onde os membros (pela DLL) viram flores, minério e cactos nascerem, com o horário.
- * Só para quem está na lista (liberação aos poucos) e Administrador+.
+ * Só Administrador+ (menu de admin); a lista de liberados vale para as bolinhas no mapa do jogo.
  */
 export function ResourcesPage() {
   const { data: overview, isLoading } = useResourceOverview()

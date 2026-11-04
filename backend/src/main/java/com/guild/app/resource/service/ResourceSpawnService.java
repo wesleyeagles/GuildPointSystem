@@ -26,7 +26,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * nos mapas de recurso, manda todo mob sem "[nível]" no nome (os recursos não têm nível) com a posição
  * DELE no mundo. Cada mob (serial do jogo) vira um ponto, mesmo que vários membros o vejam; os pontos ficam
  * para sempre. Nome novo entra sozinho como desconhecido e a liderança escolhe o grau.
- * Todos enviam; só quem está na lista (resource_tracker) vê os pontos, no jogo e no site (liberação aos poucos).
+ * Todos enviam; só quem está na lista (resource_tracker) vê os pontos no jogo (liberação aos poucos).
+ * A página do site é só de Administrador+.
  * Como os outros envios da DLL, vai pelo nome do personagem (sem login).
  */
 @Service
@@ -58,7 +59,7 @@ public class ResourceSpawnService {
     /** tier: 1..3, 0 = não é recurso (ignorado), null = desconhecido (a liderança ainda não escolheu). */
     public record MobView(String name, int map, Integer tier, long spawns, Instant firstSeenAt) {}
     public record Tracker(Long id, String nickname) {}
-    /** canView: membro da lista ou Administrador+. trackers só para quem configura (Administrador+). */
+    /** canView = canConfigure: a página do site é só de Administrador+. */
     public record Overview(boolean canView, boolean canConfigure, List<MapView> maps, List<MobView> mobs, List<Tracker> trackers) {}
     public record SpawnView(long id, String name, Integer tier, int x, int z, Instant foundAt, String foundBy) {}
 
@@ -70,7 +71,8 @@ public class ResourceSpawnService {
     private boolean listed(Long memberId) {
         return Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM resource_tracker WHERE member_id=?)", Boolean.class, memberId));
     }
-    private boolean viewer(Member m) { return configurer(m) || (eligible(m) && listed(m.getId())); }
+    /** O site (página de recursos) é só de Administrador+; a lista vale para os pontos no jogo. */
+    private boolean viewer(Member m) { return configurer(m); }
 
     /** Membro aprovado que usa este personagem (todos enviam). */
     @Transactional(readOnly = true)

@@ -37,7 +37,7 @@ export interface ResourceMob {
   firstSeenAt: string
 }
 
-/** canView: está na lista ou é Administrador+. trackers só vem para quem configura. */
+/** Página só de Administrador+: canView = canConfigure. trackers = quem vê as bolinhas no jogo. */
 export interface ResourceOverview {
   canView: boolean
   canConfigure: boolean
