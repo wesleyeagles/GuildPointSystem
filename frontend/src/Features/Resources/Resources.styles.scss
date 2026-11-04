@@ -71,6 +71,11 @@ $tier-colors: (
     &__swatch--t#{$key} { background: $color; }
 
     &__dot--t#{$key} { fill: $color; }
+
+    &__fresh--t#{$key} {
+      .resources__wave { stroke: $color; }
+      .resources__beat { fill: $color; }
+    }
   }
 
   &__body {
@@ -106,6 +111,23 @@ $tier-colors: (
       stroke: #fff;
       stroke-width: 2;
     }
+  }
+
+  // Achado no último minuto: ondas crescendo e sumindo + ponto pulsando até quase branco.
+  &__wave {
+    fill: none;
+    stroke-width: 2;
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: resources-wave 1.2s ease-out infinite;
+
+    &--late { animation-delay: -0.6s; }
+  }
+
+  &__beat {
+    stroke: #fff;
+    stroke-width: 1.2;
+    animation: resources-beat 1.2s ease-in-out infinite;
   }
 
   &__notice {
@@ -245,4 +267,14 @@ $tier-colors: (
   }
 
   &__actions { display: flex; margin-top: theme.$spacing-md; }
+}
+
+@keyframes resources-wave {
+  from { transform: scale(1); opacity: 1; }
+  to { transform: scale(4); opacity: 0; }
+}
+
+@keyframes resources-beat {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.9); }
 }

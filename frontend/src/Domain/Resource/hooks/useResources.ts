@@ -70,7 +70,7 @@ export function useResourceSpawns(map: number, enabled: boolean) {
     queryFn: () => apiClient<ResourceSpawn[]>(`/resources/spawns?map=${map}`),
     enabled,
     staleTime: 30_000,
-    refetchInterval: 60_000, // os membros vão achando recursos enquanto a página está aberta
+    refetchInterval: 15_000, // os membros vão achando recursos; o ponto novo pisca por 1 minuto
   })
 }
 

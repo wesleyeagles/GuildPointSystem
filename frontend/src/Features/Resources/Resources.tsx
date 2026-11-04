@@ -31,6 +31,8 @@ const PERIODS = [
   { key: '30d', label: '30 dias', ms: 30 * 86_400_000 },
 ]
 const RECENT = 40
+/** Achado no último minuto: pisca no mapa (como no jogo). */
+const FRESH_MS = 60_000
 
 function when(iso: string) {
   return new Date(iso).toLocaleString('pt-BR', {
@@ -75,7 +77,7 @@ function ResourceMapPanel({ map }: { map: ResourceMap }) {
   const [shown, setShown] = useState<Record<string, boolean>>({ '1': true, '2': true, '3': true, u: true })
   const [period, setPeriod] = useState('all')
   const [hover, setHover] = useState<ResourceSpawn | null>(null)
-  const now = useServerNow(60_000)
+  const now = useServerNow(5_000)
 
   const counts = useMemo(() => {
     const c: Record<string, number> = { '1': 0, '2': 0, '3': 0, u: 0 }
@@ -95,6 +97,7 @@ function ResourceMapPanel({ map }: { map: ResourceMap }) {
     return [...visible].sort((a, b) => rank(a) - rank(b) || a.id - b.id)
   }, [visible])
   const recent = useMemo(() => [...visible].sort((a, b) => b.id - a.id).slice(0, RECENT), [visible])
+  const fresh = useMemo(() => visible.filter((s) => now - Date.parse(s.foundAt) < FRESH_MS), [visible, now])
   const view = map.view
 
   return (
@@ -136,6 +139,19 @@ function ResourceMapPanel({ map }: { map: ResourceMap }) {
                 >
                   <title>{`${s.name} · ${s.tier ? TIER_LABEL[s.tier] : 'grau desconhecido'} · ${when(s.foundAt)}${s.foundBy ? ` · ${s.foundBy}` : ''}`}</title>
                 </circle>
+              )
+            })}
+            {/* Por cima de tudo: duas ondas saindo do ponto e o ponto piscando. */}
+            {view && fresh.map((s) => {
+              const p = mapPoint(view, s.x, s.z)
+              if (!p) return null
+              const key = tierKey(s.tier)
+              return (
+                <g key={`fresh-${s.id}`} className={`resources__fresh resources__fresh--t${key}`} pointerEvents="none">
+                  <circle className="resources__wave" cx={p.px} cy={p.py} r={RADIUS[key] + 2} />
+                  <circle className="resources__wave resources__wave--late" cx={p.px} cy={p.py} r={RADIUS[key] + 2} />
+                  <circle className="resources__beat" cx={p.px} cy={p.py} r={RADIUS[key] + 1.5} />
+                </g>
               )
             })}
           </svg>
