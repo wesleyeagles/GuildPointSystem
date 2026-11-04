@@ -35,6 +35,8 @@ public class RaidLiveService {
     static final int EFFECT_NAME_MAX = 32;
     /** Bandeira no mapa: some sozinha depois disso. */
     static final Duration FLAG_TTL = Duration.ofMinutes(2);
+    /** Seta da raid (alvo marcado pelo líder): some sozinha depois disso, se ninguém tirar antes. */
+    static final Duration MARK_TTL = Duration.ofMinutes(10);
 
     private final RaidService raids;
     private final MemberRepository members;
@@ -52,7 +54,13 @@ public class RaidLiveService {
     public record Position(int map, int x, int z) {}
     /** Pedido de bandeira que veio no envio: colocar (position) ou tirar (position null). */
     record FlagAction(Position position) {}
-    record Report(Vitals vitals, List<Effect> effects, Position position, FlagAction flag) {}
+    /**
+     * Seta da raid pedida no envio (Ctrl+Shift+clique do líder): kind = tipo do objeto no jogo (o do widget de alvo:
+     * jogador, monstro...) e serial dele; null = tirar a seta.
+     */
+    record TargetAction(Integer kind, Long serial) {}
+    record Report(Vitals vitals, List<Effect> effects, Position position, FlagAction flag, TargetAction target) {}
+    private record Mark(int kind, long serial, Instant at) {}
     private record Live(Vitals vitals, List<Effect> effects, Position position, Instant at) {}
     private record Flag(Position position, Instant at) {}
     /** Para o site: ageMs = há quanto tempo veio o último envio (-1 = nunca). */
@@ -63,6 +71,8 @@ public class RaidLiveService {
     private final Map<Long, Live> live = new ConcurrentHashMap<>();
     /** Uma bandeira por integrante (a nova substitui a anterior), só em memória. */
     private final Map<Long, Flag> flags = new ConcurrentHashMap<>();
+    /** Seta da raid: uma por raid (id da raid -> alvo), só em memória. */
+    private final Map<Long, Mark> marks = new ConcurrentHashMap<>();
     private final Set<Long> dirty = ConcurrentHashMap.newKeySet();
     private volatile Roster roster = new Roster(-1, Map.of(), Map.of());
 
@@ -72,15 +82,17 @@ public class RaidLiveService {
      * nunca tem vírgula, então também vale o formato sem ícone ("tipo,indice,nivel,B|D,nome").
      * Depois (DLL com fx=2), uma linha "L<TAB>mapa<TAB>x<TAB>z" com o índice do mapa e a posição no mundo.
      * Só no envio em que o jogador marca (DLL com fx=3), uma linha "F<TAB>mapa<TAB>x<TAB>z" coloca a bandeira
-     * dele no mapa e "F<TAB>-" tira.
+     * dele no mapa e "F<TAB>-" tira. Só no envio em que o líder marca (DLL com fx=4), "T<TAB>tipo<TAB>serial" põe a
+     * seta da raid nesse objeto do jogo e "T<TAB>-" tira.
      */
     static Report parse(String body) {
         if (body == null) throw invalid();
         String[] lines = body.strip().split("\r?\n", -1);
-        if (lines.length > 4) throw invalid();
+        if (lines.length > 5) throw invalid();
         List<Effect> effects = List.of();
         Position position = null;
         FlagAction flag = null;
+        TargetAction target = null;
         for (int i = 1; i < lines.length; i++) {
             String line = lines[i];
             // "E" sozinho: lista vazia (o strip() do corpo leva o TAB final de "E<TAB>").
@@ -88,9 +100,11 @@ public class RaidLiveService {
             else if (line.startsWith("L\t")) position = parsePosition(line.substring(2));
             else if (line.equals("F\t-")) flag = new FlagAction(null);
             else if (line.startsWith("F\t")) flag = new FlagAction(parsePosition(line.substring(2)));
+            else if (line.equals("T\t-")) target = new TargetAction(null, null);
+            else if (line.startsWith("T\t")) target = parseTarget(line.substring(2));
             else throw invalid();
         }
-        return new Report(parseVitals(lines[0]), effects, position, flag);
+        return new Report(parseVitals(lines[0]), effects, position, flag, target);
     }
 
     static Position parsePosition(String text) {
@@ -100,6 +114,17 @@ public class RaidLiveService {
             int map = Integer.parseInt(f[0]), x = Integer.parseInt(f[1]), z = Integer.parseInt(f[2]);
             if (map < 0 || map > 1000 || Math.abs(x) > 1_000_000 || Math.abs(z) > 1_000_000) throw invalid();
             return new Position(map, x, z);
+        } catch (NumberFormatException e) { throw invalid(); }
+    }
+
+    static TargetAction parseTarget(String text) {
+        String[] f = text.split("\t", -1);
+        if (f.length != 2) throw invalid();
+        try {
+            int kind = Integer.parseInt(f[0]);
+            long serial = Long.parseLong(f[1]);
+            if (kind < 0 || kind > 15 || serial < 0 || serial > 0xFFFFFFFEL) throw invalid();
+            return new TargetAction(kind, serial);
         } catch (NumberFormatException e) { throw invalid(); }
     }
 
@@ -144,7 +169,8 @@ public class RaidLiveService {
      * Guarda o status do personagem e devolve a raid dele em texto (vazio = não está em raid).
      * Primeira linha "R<TAB>id<TAB>nome"; depois um integrante por linha:
      * "subgrupo<TAB>nick<TAB>level<TAB>hp<TAB>hpMax<TAB>fp<TAB>fpMax<TAB>sp<TAB>spMax<TAB>marcas<TAB>idade",
-     * marcas = L (líder da raid), P (líder do subgrupo), 1..8 (marca de raid, só com fx=1) ou "-"; idade em s (-1 = sem envio).
+     * marcas = L (líder da raid), P (líder do subgrupo), 1..8 (marca de raid, só com fx=1) ou "-"; idade em s.
+     * Só vai quem está no jogo (enviou nos últimos {@link #ONLINE}): o painel do jogo não mostra quem está fora.
      */
     public Optional<String> report(String character, String body) {
         return report(character, body, false);
@@ -179,6 +205,11 @@ public class RaidLiveService {
             if (report.flag() != null) {
                 if (report.flag().position() == null) flags.remove(member.getId());
                 else flags.put(member.getId(), new Flag(report.flag().position(), now));
+            }
+            // Só o líder da raid põe ou tira a seta (de outro integrante o pedido é ignorado).
+            if (report.target() != null && member.getId().equals(raid.leaderId())) {
+                if (report.target().kind() == null) marks.remove(raid.id());
+                else marks.put(raid.id(), new Mark(report.target().kind(), report.target().serial(), now));
             }
             return Optional.of(render(raid, now, fx));
         }
@@ -217,6 +248,8 @@ public class RaidLiveService {
     public void prune() {
         Instant limit = clock.instant().minus(KEEP);
         live.values().removeIf(l -> l.at().isBefore(limit));
+        Instant markLimit = clock.instant().minus(MARK_TTL);
+        marks.values().removeIf(m -> m.at().isBefore(markLimit));
     }
 
     private static List<LiveMember> visibleOnly(RaidView raid, List<LiveMember> all) {
@@ -240,19 +273,20 @@ public class RaidLiveService {
         var out = new StringBuilder("R\t").append(raid.id()).append('\t').append(clean(raid.name())).append('\n');
         for (var m : raid.members()) {
             Live l = live.get(m.id());
-            Vitals v = l != null ? l.vitals() : new Vitals(m.level(), 0, 0, 0, 0, 0, 0);
+            if (l == null || Duration.between(l.at(), now).compareTo(ONLINE) > 0) continue;  // fora do jogo
+            Vitals v = l.vitals();
             // A marca de raid (1..8) vai junto das marcas, so para a DLL 1.7.0+ (a 1.6.0 recusaria o digito).
             String flags = (m.raidLeader() ? "L" : "") + (m.groupLeader() ? "P" : "")
                 + (withEffects && m.mark() != null ? String.valueOf(m.mark()) : "");
-            long age = l != null ? Duration.between(l.at(), now).toSeconds() : -1;
+            long age = Duration.between(l.at(), now).toSeconds();
             out.append(m.group()).append('\t').append(clean(m.nickname())).append('\t').append(v.level())
                 .append('\t').append(v.hp()).append('\t').append(v.hpMax())
                 .append('\t').append(v.fp()).append('\t').append(v.fpMax())
                 .append('\t').append(v.sp()).append('\t').append(v.spMax())
                 .append('\t').append(flags.isEmpty() ? "-" : flags).append('\t').append(age);
-            if (withEffects) out.append('\t').append(l != null ? effectsField(l.effects()) : "");
+            if (withEffects) out.append('\t').append(effectsField(l.effects()));
             if (fx >= 2) {
-                Position p = l != null ? l.position() : null;
+                Position p = l.position();
                 out.append('\t').append(p != null ? p.map() + "," + p.x() + "," + p.z() : "");
             }
             out.append('\n');
@@ -267,6 +301,15 @@ public class RaidLiveService {
                 Position p = f.position();
                 out.append("F\t").append(clean(m.nickname())).append('\t')
                     .append(p.map()).append(',').append(p.x()).append(',').append(p.z()).append('\t').append(age).append('\n');
+            }
+        }
+        // fx=4: a seta da raid, "T<TAB>tipo<TAB>serial<TAB>idade em segundos" (no máximo uma).
+        if (fx >= 4) {
+            Mark mark = marks.get(raid.id());
+            if (mark != null) {
+                long age = Duration.between(mark.at(), now).toSeconds();
+                if (age >= MARK_TTL.toSeconds()) marks.remove(raid.id(), mark);
+                else out.append("T\t").append(mark.kind()).append('\t').append(mark.serial()).append('\t').append(age).append('\n');
             }
         }
         return out.toString();

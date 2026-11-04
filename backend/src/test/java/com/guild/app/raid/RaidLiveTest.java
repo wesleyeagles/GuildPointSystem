@@ -78,16 +78,28 @@ class RaidLiveTest {
         String text = report(leaderNick.toLowerCase(), "55\t900\t1000\t300\t400\t50\t60\n");
         var lines = text.split("\n");
         assertEquals("R\t" + raid.id() + "\tPB 21h", lines[0]);
-        assertEquals(3, lines.length);
+        assertEquals(2, lines.length);  // quem ainda não enviou (fora do jogo) não vai para o painel do jogo
         var me = lines[1].split("\t");
         assertEquals(List.of("1", leaderNick, "55", "900", "1000", "300", "400", "50", "60", "LP", "0"), List.of(me));
+
+        report(otherNick, "50\t10\t800\t0\t300\t0\t40");
+        lines = report(leaderNick, "55\t900\t1000\t300\t400\t50\t60").split("\n");
+        assertEquals(3, lines.length);
         var other = lines[2].split("\t");
         assertEquals("2", other[0]);
         assertEquals(otherNick, other[1]);
         assertEquals("P", other[9]);
-        assertEquals("-1", other[10]); // ainda sem envio
+        assertEquals("0", other[10]);
 
-        report(otherNick, "50\t10\t800\t0\t300\t0\t40");
+        // Sem envio há mais de 5 s: sai do painel do jogo (o site continua mostrando, como "Fora do jogo").
+        var clock = RaidLiveService.class.getDeclaredField("clock");
+        clock.setAccessible(true);
+        clock.set(live, java.time.Clock.offset(java.time.Clock.systemUTC(), java.time.Duration.ofSeconds(10)));
+        try {
+            assertFalse(report(leaderNick, "55\t900\t1000\t300\t400\t50\t60").contains(otherNick));
+        } finally {
+            clock.set(live, java.time.Clock.systemUTC());
+        }
         List<LiveMember> view = live.forRaid(raid.id(), as(outsiderId));
         var healer = view.stream().filter(m -> m.memberId() == otherId).findFirst().orElseThrow();
         assertEquals(10, healer.hp());
@@ -211,6 +223,36 @@ class RaidLiveTest {
             clock.set(live, java.time.Clock.systemUTC());
         }
         for (String bad : List.of("F\t1\t2", "F\tx", "F\t1\t0\t2000000"))
+            mvc.perform(post("/api/raids/game/status").param("character", leaderNick)
+                    .contentType(MediaType.TEXT_PLAIN).content("55\t900\t1000\t300\t400\t50\t60\n" + bad))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test void onlyTheRaidLeaderSetsTheRaidArrowAndItExpires() throws Exception {
+        var raid = raids.create("Raid", as(leaderId));
+        raids.addMembers(raid.id(), List.of(otherId), null, false, as(leaderId));
+        String vitals = "50\t10\t800\t0\t300\t0\t40";
+        // Integrante comum: o pedido é ignorado.
+        assertFalse(reportFx(otherNick, 4, vitals + "\nT\t1\t16363425").contains("T\t"));
+        // Líder marca um monstro: todos com fx=4 recebem "T tipo serial idade".
+        assertTrue(reportFx(leaderNick, 4, "55\t900\t1000\t300\t400\t50\t60\nT\t1\t16363425").endsWith("T\t1\t16363425\t0\n"));
+        assertTrue(reportFx(otherNick, 4, vitals).contains("T\t1\t16363425\t"));
+        // DLL até fx=3 não recebe a linha (a 1.13.0 recusaria a resposta).
+        assertFalse(reportFx(otherNick, 3, vitals).contains("T\t"));
+        // Nova marca substitui; "T -" tira.
+        assertTrue(reportFx(leaderNick, 4, "55\t900\t1000\t300\t400\t50\t60\nT\t0\t783").contains("T\t0\t783\t"));
+        assertFalse(reportFx(leaderNick, 4, "55\t900\t1000\t300\t400\t50\t60\nT\t-").contains("T\t"));
+        // Expira em 10 minutos.
+        reportFx(leaderNick, 4, "55\t900\t1000\t300\t400\t50\t60\nT\t0\t783");
+        var clock = RaidLiveService.class.getDeclaredField("clock");
+        clock.setAccessible(true);
+        clock.set(live, java.time.Clock.offset(java.time.Clock.systemUTC(), java.time.Duration.ofMinutes(11)));
+        try {
+            assertFalse(reportFx(leaderNick, 4, "55\t900\t1000\t300\t400\t50\t60").contains("T\t"));
+        } finally {
+            clock.set(live, java.time.Clock.systemUTC());
+        }
+        for (String bad : List.of("T\t1", "T\tx\t2", "T\t1\t-5", "T\t99\t1", "T\t1\t99999999999"))
             mvc.perform(post("/api/raids/game/status").param("character", leaderNick)
                     .contentType(MediaType.TEXT_PLAIN).content("55\t900\t1000\t300\t400\t50\t60\n" + bad))
                 .andExpect(status().isBadRequest());
