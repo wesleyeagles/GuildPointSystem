@@ -25,6 +25,8 @@ export interface ChatTranslateUsage {
   glossaryHits: number
   failed: number
   quotaPausedUntil: string | null
+  /** Problema de configuração do tradutor (ex.: e-mail recusado pelo MyMemory). */
+  warning: string | null
 }
 
 /**

@@ -30,39 +30,64 @@ public class MyMemoryTranslator implements ChatTranslator {
 
     private final HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
     private final ObjectMapper json;
-    private final String email;
     static final long ANONYMOUS_LIMIT = 5_000, EMAIL_LIMIT = 50_000;
+    static final String INVALID_EMAIL = "INVALID EMAIL PROVIDED";
+
+    private final String email;
+    /** O MyMemory recusou o e-mail: segue sem ele (cota anônima) e o painel avisa. */
+    private volatile boolean emailRejected;
     private volatile Instant pausedUntil = Instant.EPOCH;
     private volatile Instant quotaPausedUntil = Instant.EPOCH;
     Clock clock = Clock.systemUTC();
 
     public MyMemoryTranslator(ObjectMapper json, @Value("${app.translate.mymemory-email:}") String email) {
         this.json = json;
-        this.email = email == null ? "" : email.strip();
+        this.email = cleanEmail(email);
+    }
+
+    /** Tira espaços, aspas e "Nome <...>" que o painel de deploy às vezes guarda junto (o MyMemory recusa). */
+    static String cleanEmail(String raw) {
+        if (raw == null) return "";
+        String e = raw.strip();
+        int open = e.lastIndexOf('<'), close = e.lastIndexOf('>');
+        if (open >= 0 && close > open) e = e.substring(open + 1, close);
+        return e.replaceAll("[\"'\\s]", "");
+    }
+
+    /** Resposta do MyMemory: texto traduzido, ou o motivo de não ter vindo. */
+    enum Outcome { OK, QUOTA, INVALID_EMAIL, ERROR }
+    record Answer(Outcome outcome, String text, int status) {}
+
+    static Answer parse(JsonNode body, int httpStatus) {
+        int status = body.path("responseStatus").asInt(httpStatus);
+        String translated = body.path("responseData").path("translatedText").asText("").strip();
+        if (translated.startsWith(INVALID_EMAIL) || body.path("responseDetails").asText("").startsWith(INVALID_EMAIL))
+            return new Answer(Outcome.INVALID_EMAIL, null, status);
+        if (status == 429 || body.path("quotaFinished").asBoolean(false) || translated.startsWith("MYMEMORY WARNING"))
+            return new Answer(Outcome.QUOTA, null, status);
+        if (status != 200 || translated.isEmpty()) return new Answer(Outcome.ERROR, null, status);
+        return new Answer(Outcome.OK, translated, status);
     }
 
     @Override
     public Optional<String> translate(String text) {
         if (clock.instant().isBefore(pausedUntil)) return Optional.empty();
-        String url = URL + "?langpair=ru%7Cen&q=" + URLEncoder.encode(text, StandardCharsets.UTF_8)
-            + (email.isEmpty() ? "" : "&de=" + URLEncoder.encode(email, StandardCharsets.UTF_8));
         try {
-            HttpResponse<String> response = http.send(
-                HttpRequest.newBuilder(URI.create(url)).timeout(Duration.ofSeconds(8)).GET().build(),
-                HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
-            JsonNode body = json.readTree(response.body());
-            int status = body.path("responseStatus").asInt(response.statusCode());
-            String translated = body.path("responseData").path("translatedText").asText("");
-            if (status == 429 || status == 403 || translated.startsWith("MYMEMORY WARNING")) {
-                pause(QUOTA_PAUSE, "cota do MyMemory esgotada");
-                quotaPausedUntil = pausedUntil;
-                return Optional.empty();
+            Answer answer = call(text, emailRejected ? "" : email);
+            if (answer.outcome() == Outcome.INVALID_EMAIL && !email.isEmpty() && !emailRejected) {
+                emailRejected = true;
+                log.warn("MyMemory recusou o e-mail de MYMEMORY_EMAIL; traduzindo sem ele (cota anônima)");
+                answer = call(text, "");
             }
-            if (status != 200 || translated.isBlank()) {
-                pause(ERROR_PAUSE, "MyMemory respondeu " + status);
-                return Optional.empty();
+            switch (answer.outcome()) {
+                case OK -> { return Optional.of(answer.text()); }
+                case QUOTA -> {
+                    pause(QUOTA_PAUSE, "cota do MyMemory esgotada");
+                    quotaPausedUntil = pausedUntil;
+                }
+                default -> pause(ERROR_PAUSE, "MyMemory respondeu " + answer.status());
             }
-            return Optional.of(translated.strip());
+            return Optional.empty();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             return Optional.empty();
@@ -72,8 +97,24 @@ public class MyMemoryTranslator implements ChatTranslator {
         }
     }
 
+    private Answer call(String text, String contact) throws Exception {
+        String url = URL + "?langpair=ru%7Cen&q=" + URLEncoder.encode(text, StandardCharsets.UTF_8)
+            + (contact.isEmpty() ? "" : "&de=" + URLEncoder.encode(contact, StandardCharsets.UTF_8));
+        HttpResponse<String> response = http.send(
+            HttpRequest.newBuilder(URI.create(url)).timeout(Duration.ofSeconds(8)).GET().build(),
+            HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+        return parse(json.readTree(response.body()), response.statusCode());
+    }
+
     @Override
-    public long dailyLimit() { return email.isEmpty() ? ANONYMOUS_LIMIT : EMAIL_LIMIT; }
+    public long dailyLimit() { return email.isEmpty() || emailRejected ? ANONYMOUS_LIMIT : EMAIL_LIMIT; }
+
+    @Override
+    public Optional<String> warning() {
+        if (emailRejected) return Optional.of("O MyMemory recusou o e-mail de MYMEMORY_EMAIL; usando a cota anônima (~5 mil).");
+        if (email.isEmpty()) return Optional.of("MYMEMORY_EMAIL não está definido no servidor; usando a cota anônima (~5 mil).");
+        return Optional.empty();
+    }
 
     @Override
     public Optional<Instant> quotaPausedUntil() {

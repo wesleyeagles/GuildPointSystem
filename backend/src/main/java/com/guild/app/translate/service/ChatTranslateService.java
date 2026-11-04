@@ -56,7 +56,7 @@ public class ChatTranslateService {
      * quotaPausedUntil = cota acabou e o site parou de chamar a API até essa hora.
      */
     public record Usage(LocalDate day, long apiChars, long dailyLimit, long apiCalls, long savedHits, long glossaryHits,
-                        long failed, Instant quotaPausedUntil) {}
+                        long failed, Instant quotaPausedUntil, String warning) {}
     /** Só vem preenchido para quem pode configurar (Administrador+); savedTranslations = frases no dicionário. */
     public record AccessView(boolean canConfigure, List<Translator> translators, List<GlossaryTerm> glossary,
                              long savedTranslations, Usage usage) {}
@@ -154,10 +154,12 @@ public class ChatTranslateService {
     private Usage usage() {
         LocalDate day = today();
         Instant paused = translator.quotaPausedUntil().orElse(null);
+        String warning = translator.warning().orElse(null);
+        long limit = translator.dailyLimit();
         return jdbc.query("SELECT api_chars,api_calls,saved_hits,glossary_hits,failed FROM chat_translate_usage WHERE day=?",
-                (r, n) -> new Usage(day, r.getLong(1), translator.dailyLimit(), r.getLong(2), r.getLong(3), r.getLong(4), r.getLong(5), paused),
+                (r, n) -> new Usage(day, r.getLong(1), limit, r.getLong(2), r.getLong(3), r.getLong(4), r.getLong(5), paused, warning),
                 day).stream().findFirst()
-            .orElse(new Usage(day, 0, translator.dailyLimit(), 0, 0, 0, 0, paused));
+            .orElse(new Usage(day, 0, limit, 0, 0, 0, 0, paused, warning));
     }
 
     private ChatText.Glossary glossary() {

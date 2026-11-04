@@ -36,6 +36,7 @@ export function ChatTranslateUsagePanel({ usage }: { usage: ChatTranslateUsage }
           <span style={{ width: `${percent}%` }} />
         </div>
       )}
+      {usage.warning && <p className="chat-usage__alert">{usage.warning}</p>}
       {pausedUntil && (
         <p className="chat-usage__alert">
           A cota do MyMemory acabou. O tradutor volta a pedir traduções às {pausedUntil}; até lá só funciona o que já
@@ -47,7 +48,6 @@ export function ChatTranslateUsagePanel({ usage }: { usage: ChatTranslateUsage }
           ? 'Nenhuma mensagem traduzida hoje.'
           : `${number(messages)} mensagens hoje: ${number(usage.apiCalls)} pela API, ${number(usage.savedHits)} do dicionário e ${number(usage.glossaryHits)} do glossário (${Math.round((free / messages) * 100)}% sem gastar cota).`}
         {usage.failed > 0 && ` ${number(usage.failed)} não traduziram (API fora ou sem cota).`}
-        {usage.dailyLimit > 0 && usage.dailyLimit < 50_000 && ' Com MYMEMORY_EMAIL no servidor a cota sobe para ~50 mil.'}
         {' '}Conta do horário de Brasília; o MyMemory pode virar o dia em outro horário, então o número é aproximado.
       </p>
     </div>

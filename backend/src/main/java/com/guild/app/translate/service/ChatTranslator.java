@@ -12,4 +12,7 @@ public interface ChatTranslator {
 
     /** Até quando o serviço está pausado porque a cota acabou (vazio = não está). */
     default Optional<Instant> quotaPausedUntil() { return Optional.empty(); }
+
+    /** Problema de configuração para mostrar no painel (ex.: e-mail recusado). */
+    default Optional<String> warning() { return Optional.empty(); }
 }
