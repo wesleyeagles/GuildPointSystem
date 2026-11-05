@@ -13,7 +13,7 @@ import { useAppToast } from '@/Shared/ui/components/AppToast/AppToast'
 import '@/Features/Auth/Auth.styles.scss'
 
 /**
- * Escolhe vários membros de uma vez, sem limite. Só aparece quem está no jogo agora (a DLL reenvia o local a
+ * Escolhe vários membros de uma vez, sem limite. Só aparece quem está no jogo agora (a DLL reenvia o status a
  * cada 60 s com o jogo aberto; vale o mesmo prazo do local no ranking) e envia com a DLL 1.7.0 ou mais nova
  * (a primeira com o painel de raid completo: buffs, marcas, oculto). Fica de fora quem já está em alguma raid.
  * "Automático" põe cada um no primeiro subgrupo com vaga. Vai para o body (portal): dentro do
@@ -45,14 +45,16 @@ export function RaidAddMembersModal({ raid, onClose }: { raid: Raid; onClose: ()
   const busy = new Set<number>()
   for (const r of queryClient.getQueryData<Raid[]>(raidKeys.all) ?? [raid]) r.members.forEach((m) => busy.add(m.id))
   // Level e versão da DLL do último status enviado, como na Party; sem status, o level do cadastro.
-  const gameLevel = new Map<number, { level: number; at: string; dll: string | null; locationAt: string | null }>()
+  const gameLevel = new Map<number, { level: number; at: string; dll: string | null }>()
   for (const s of statuses) {
     const current = gameLevel.get(s.memberId)
     if (!current || s.updatedAt > current.at)
-      gameLevel.set(s.memberId, { level: s.level, at: s.updatedAt, dll: s.dllVersion, locationAt: s.locationAt })
+      gameLevel.set(s.memberId, { level: s.level, at: s.updatedAt, dll: s.dllVersion })
   }
+  // Pelo último envio, com ou sem local: em alguns lugares a DLL não lê o mapa (ex.: Elan antes da 1.19.1)
+  // e o membro continua no jogo.
   const inGame = (id: number) => {
-    const at = gameLevel.get(id)?.locationAt
+    const at = gameLevel.get(id)?.at
     return !!at && now - Date.parse(at) <= LOCATION_FRESH_MS
   }
   const free = members.filter((m) => !busy.has(m.id) && inGame(m.id))
