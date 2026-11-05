@@ -284,6 +284,44 @@ $tier-colors: (
   }
 
   &__actions { display: flex; margin-top: theme.$spacing-md; }
+
+  &__respawn-note { flex: 1 1 420px; margin: 0; }
+
+  &__respawn {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: theme.$spacing-md;
+  }
+
+  &__respawn-card {
+    border: 1px solid theme.$color-border;
+    background: theme.$metal-800;
+    padding: theme.$spacing-md;
+
+    h3 { display: flex; align-items: center; gap: 6px; margin: 0 0 theme.$spacing-sm; font-size: theme.$font-size-ui; }
+    h4 { margin: theme.$spacing-md 0 4px; font-size: theme.$font-size-ui; font-weight: 500; color: theme.$color-text-muted; }
+
+    @each $key, $color in $tier-colors {
+      &--t#{$key} .resources__bars span { background: $color; }
+    }
+  }
+
+  &__bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 48px;
+    border-bottom: 1px solid theme.$color-border;
+
+    span { flex: 1; min-height: 1px; opacity: 0.85; }
+  }
+
+  &__bars-axis {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: theme.$color-text-muted;
+  }
 }
 
 @keyframes resources-wave {

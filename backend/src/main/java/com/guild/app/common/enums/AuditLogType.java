@@ -46,7 +46,8 @@ public enum AuditLogType {
     CHAT_TRANSLATE_ACCESS_UPDATED,
     CHAT_TRANSLATE_GLOSSARY_UPDATED,
     RESOURCE_ACCESS_UPDATED,
-    RESOURCE_MOB_UPDATED;
+    RESOURCE_MOB_UPDATED,
+    PB_BOSS_UPDATED;
 
     public boolean isEquipmentPrivate() {
         return this == EQUIPMENT_CHANGED || this == EQUIPMENT_CATALOG_IMPORTED;

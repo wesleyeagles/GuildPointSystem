@@ -136,3 +136,37 @@ export function mapPoint(view: ResourceMapScale, x: number, z: number) {
 }
 
 export const TIER_LABEL: Record<number, string> = { 1: 'Grau 1', 2: 'Grau 2', 3: 'Grau 3' }
+
+/** Estatística de respawn de um grau num mapa (ver ResourceSpawnService.stats). */
+export interface ResourceTierStats {
+  tier: number
+  total: number
+  /** Achados por hora em que alguém com a DLL achou qualquer recurso neste mapa. */
+  perObservedHour: number
+  /** Média do servidor por hora (500 / 50 / 0,33). */
+  expectedPerHour: number | null
+  lastSeenAt: string | null
+  medianGapSeconds: number | null
+  /** Último + intervalo mediano: só uma estimativa (o spawn é aleatório). */
+  nextLikelyAt: string | null
+  /** 12 faixas de 5 min do minuto da hora (Brasília). */
+  byMinute: number[]
+  /** 24 horas do dia (Brasília). */
+  byHour: number[]
+}
+
+export interface ResourceStats {
+  map: number
+  days: number
+  observedHours: number
+  tiers: ResourceTierStats[]
+}
+
+export function useResourceStats(map: number, days: number) {
+  return useQuery({
+    queryKey: ['resources', 'stats', map, days] as const,
+    queryFn: () => apiClient<ResourceStats>(`/resources/stats?map=${map}&days=${days}`),
+    staleTime: 60_000,
+    refetchInterval: 60_000,
+  })
+}

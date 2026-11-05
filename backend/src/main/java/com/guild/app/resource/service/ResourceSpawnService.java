@@ -267,6 +267,57 @@ public class ResourceSpawnService {
             }, map);
     }
 
+    /** Média por hora num mapa, pelas regras do servidor (spawn aleatório): grau 1, 2 e 3. */
+    public static final Map<Integer, Double> EXPECTED_PER_HOUR = Map.of(1, 500.0, 2, 50.0, 3, 0.33);
+
+    /**
+     * byMinute: 12 faixas de 5 min do minuto da hora em que foi achado; byHour: 24 horas (Brasília).
+     * perObservedHour = achados / horas em que alguém com a DLL achou qualquer recurso neste mapa.
+     * nextLikelyAt = último + intervalo mediano entre achados seguidos (só uma estimativa).
+     */
+    public record TierStats(int tier, long total, double perObservedHour, Double expectedPerHour, Instant lastSeenAt,
+                            Long medianGapSeconds, Instant nextLikelyAt, int[] byMinute, int[] byHour) {}
+    public record Stats(int map, int days, long observedHours, List<TierStats> tiers) {}
+
+    /** Estatística de respawn de um mapa nos últimos {@code days} dias (graus 1..3; desconhecidos e ignorados ficam de fora). */
+    @Transactional(readOnly = true)
+    public Stats stats(int map, int days, MemberPrincipal actor) {
+        if (!viewer(member(actor))) throw new AppException("Acesso negado", HttpStatus.FORBIDDEN);
+        if (!MAPS.containsKey(map)) throw new AppException("Mapa sem recursos.", HttpStatus.BAD_REQUEST);
+        int span = Math.max(1, Math.min(days, 90));
+        Timestamp since = Timestamp.from(clock.instant().minus(Duration.ofDays(span)));
+        Long hours = jdbc.queryForObject(
+            "SELECT count(DISTINCT date_trunc('hour', found_at)) FROM resource_spawn WHERE map_code=? AND found_at>?", Long.class, map, since);
+        long observed = hours == null ? 0 : hours;
+        List<TierStats> tiers = new ArrayList<>();
+        for (int tier = 1; tier <= 3; tier++) {
+            int t = tier;
+            int[] byMinute = new int[12], byHour = new int[24];
+            long[] total = {0};
+            jdbc.query("""
+                SELECT (extract(minute FROM s.found_at AT TIME ZONE 'America/Sao_Paulo')::int / 5) AS m5,
+                       extract(hour FROM s.found_at AT TIME ZONE 'America/Sao_Paulo')::int AS h, count(*) AS n
+                FROM resource_spawn s JOIN resource_mob m ON m.name=s.mob_name
+                WHERE s.map_code=? AND m.tier=? AND s.found_at>? GROUP BY 1,2""",
+                r -> { int n = r.getInt("n"); byMinute[r.getInt("m5")] += n; byHour[r.getInt("h")] += n; total[0] += n; },
+                map, t, since);
+            Timestamp last = jdbc.queryForObject("""
+                SELECT max(s.found_at) FROM resource_spawn s JOIN resource_mob m ON m.name=s.mob_name
+                WHERE s.map_code=? AND m.tier=?""", Timestamp.class, map, t);
+            Double gap = jdbc.queryForObject("""
+                SELECT percentile_cont(0.5) WITHIN GROUP (ORDER BY g) FROM (
+                    SELECT extract(epoch FROM s.found_at - lag(s.found_at) OVER (ORDER BY s.found_at)) AS g
+                    FROM resource_spawn s JOIN resource_mob m ON m.name=s.mob_name
+                    WHERE s.map_code=? AND m.tier=? AND s.found_at>?) x WHERE g IS NOT NULL""", Double.class, map, t, since);
+            Long medianGap = gap == null ? null : Math.round(gap);
+            Instant lastAt = last == null ? null : last.toInstant();
+            Instant next = lastAt == null || medianGap == null ? null : lastAt.plusSeconds(medianGap);
+            tiers.add(new TierStats(t, total[0], observed == 0 ? 0 : (double) total[0] / observed, EXPECTED_PER_HOUR.get(t),
+                lastAt, medianGap, next, byMinute, byHour));
+        }
+        return new Stats(map, span, observed, tiers);
+    }
+
     private Member configurerOrThrow(MemberPrincipal actor) {
         Member member = member(actor);
         if (!configurer(member))

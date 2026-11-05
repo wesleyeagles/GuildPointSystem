@@ -25,6 +25,7 @@ import { ServerInfoTopicPage } from '@/Features/ServerInfo/ServerInfoTopicPage'
 import { PartyPage } from '@/Features/Party/Party'
 import { RaidPage } from '@/Features/Raid/Raid'
 import { ResourcesPage } from '@/Features/Resources/Resources'
+import { PbHistoryPage } from '@/Features/PbHistory/PbHistory'
 import { PresenceReporter } from '@/Features/Presence/PresenceReporter'
 import './App.styles.scss'
 
@@ -73,6 +74,7 @@ function App() {
                 <Route path="admin/online" element={<OnlinePage />} />
                 <Route path="admin/dll" element={<DllAdminPage />} />
                 <Route path="admin/resources" element={<ResourcesPage />} />
+                <Route path="admin/pb-history" element={<PbHistoryPage />} />
               </Route>
             </Route>
           </Route>

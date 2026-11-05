@@ -52,6 +52,7 @@ const ADMIN_ITEMS: { to: string; label: string; minRole: Role }[] = [
   { to: '/admin/approvals', label: 'Aprovações', minRole: 'MODERADOR' },
   { to: '/admin/dll', label: 'DLL', minRole: 'ADMINISTRADOR' },
   { to: '/admin/resources', label: 'Recursos', minRole: 'ADMINISTRADOR' },
+  { to: '/admin/pb-history', label: 'Histórico de PB', minRole: 'ADMINISTRADOR' },
 ]
 
 const SOCKET_LABEL: Record<SocketState, string> = {

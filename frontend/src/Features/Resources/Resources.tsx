@@ -16,6 +16,7 @@ import { Panel } from '@/Shared/ui/components/Panel/Panel'
 import { publicAssetUrl } from '@/Shared/utils/publicAssetUrl'
 import { useServerNow } from '@/Shared/utils/useServerNow'
 import { ResourceSettings } from './components/ResourceSettings'
+import { ResourceRespawn } from './components/ResourceRespawn'
 import './Resources.styles.scss'
 
 /** Grau -> chave das cores (iguais às bolinhas do mapa no jogo); null = desconhecido. */
@@ -68,6 +69,7 @@ export function ResourcesPage() {
         ))}
       </div>
       <ResourceMapPanel key={map.code} map={map} />
+      <ResourceRespawn key={`respawn-${map.code}`} map={map.code} />
       {overview.canConfigure && <ResourceSettings overview={overview} />}
     </div>
   )

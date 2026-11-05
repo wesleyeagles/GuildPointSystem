@@ -156,4 +156,28 @@ class ResourceSpawnTest {
         assertTrue(ok(senderNick, 11, 0, "").startsWith("A\t1\n"));     // agora vê no jogo
         assertEquals("A\t0\n", ok(viewerNick, 11, 0, ""));             // saiu da lista
     }
+
+    @Test void respawnStatsPerTier() {
+        // Três Spiky Cactus (grau 2) a cada 20 min, na mesma hora; um Cactus (grau 1) em outra hora.
+        java.time.Instant base = java.time.Instant.now().minus(java.time.Duration.ofHours(3)).truncatedTo(java.time.temporal.ChronoUnit.HOURS);
+        for (int i = 0; i < 3; i++)
+            jdbc.update("INSERT INTO resource_spawn(map_code,mob_name,serial,x,z,found_at) VALUES(11,'Spiky Cactus',?,0,0,?)",
+                serial + i, java.sql.Timestamp.from(base.plusSeconds(i * 1200L + 60)));
+        jdbc.update("INSERT INTO resource_spawn(map_code,mob_name,serial,x,z,found_at) VALUES(11,'Cactus',?,0,0,?)",
+            serial + 9, java.sql.Timestamp.from(base.plusSeconds(3600 + 120)));
+        var stats = service.stats(11, 7, as(adminId));
+        assertEquals(2, stats.observedHours());
+        var g2 = stats.tiers().get(1);
+        assertEquals(2, g2.tier());
+        assertEquals(3, g2.total());
+        assertEquals(1.5, g2.perObservedHour(), 1e-9);
+        assertEquals(50.0, g2.expectedPerHour());
+        assertEquals(1200L, g2.medianGapSeconds());
+        assertEquals(g2.lastSeenAt().plusSeconds(1200), g2.nextLikelyAt());
+        assertEquals(1, g2.byMinute()[0]);   // minuto 1, 21 e 41
+        assertEquals(1, g2.byMinute()[4]);
+        assertEquals(1, g2.byMinute()[8]);
+        assertNull(stats.tiers().get(2).lastSeenAt());
+        assertThrows(AppException.class, () -> service.stats(11, 7, as(viewerId)));
+    }
 }

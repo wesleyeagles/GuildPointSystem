@@ -45,6 +45,12 @@ public class ResourceSpawnController {
     public List<SpawnView> spawns(@RequestParam int map) { return service.spawns(map, SecurityUtils.currentMember()); }
 
     @PreAuthorize("isAuthenticated()")
+    @GetMapping("/stats")
+    public ResourceSpawnService.Stats stats(@RequestParam int map, @RequestParam(defaultValue = "7") int days) {
+        return service.stats(map, days, SecurityUtils.currentMember());
+    }
+
+    @PreAuthorize("isAuthenticated()")
     @PutMapping("/access")
     public Overview updateAccess(@Valid @RequestBody AccessRequest body) {
         return service.updateAccess(body.memberIds(), SecurityUtils.currentMember());
