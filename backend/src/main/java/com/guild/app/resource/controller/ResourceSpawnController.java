@@ -45,6 +45,13 @@ public class ResourceSpawnController {
     public List<SpawnView> spawns(@RequestParam int map) { return service.spawns(map, SecurityUtils.currentMember()); }
 
     @PreAuthorize("isAuthenticated()")
+    @GetMapping("/history")
+    public ResourceSpawnService.HistoryPage history(@RequestParam int map,
+            @RequestParam(defaultValue = "0") long after, @RequestParam(defaultValue = "500") int limit) {
+        return service.history(map, after, limit, SecurityUtils.currentMember());
+    }
+
+    @PreAuthorize("isAuthenticated()")
     @PutMapping("/access")
     public Overview updateAccess(@Valid @RequestBody AccessRequest body) {
         return service.updateAccess(body.memberIds(), SecurityUtils.currentMember());
