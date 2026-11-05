@@ -18,10 +18,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
@@ -155,5 +159,107 @@ class ResourceSpawnTest {
         assertEquals(List.of(senderId), admin.trackers().stream().map(t -> t.id()).toList());
         assertTrue(ok(senderNick, 11, 0, "").startsWith("A\t1\n"));     // agora vê no jogo
         assertEquals("A\t0\n", ok(viewerNick, 11, 0, ""));             // saiu da lista
+    }
+
+    @Test void historyReturnsSerialsAndPaginatesWithoutMixingMaps() throws Exception {
+        ok(senderNick, 11, 0, "S\t" + serial + "\t10\t20\tSpiky Cactus\nS\t" + (serial+1) + "\t10\t20\tSpiky Cactus\n");
+        ok(senderNick, 10, 0, "S\t" + (serial+2) + "\t10\t20\tIcy Flower\n");
+        var first = service.history(11, 0, 1, as(adminId));
+        assertTrue(first.hasMore());
+        assertEquals(serial, first.entries().get(0).serial());
+        var second = service.history(11, first.nextCursor(), 1, as(adminId));
+        assertFalse(second.hasMore());
+        assertEquals(serial+1, second.entries().get(0).serial());
+        assertNotEquals(first.entries().get(0).id(), second.entries().get(0).id());
+        var empty = service.history(11, second.nextCursor(), 1, as(adminId));
+        assertEquals(second.nextCursor(), empty.nextCursor());
+        assertTrue(empty.entries().isEmpty());
+        mvc.perform(get("/api/resources/history").with(user(as(adminId))).param("map","11").param("limit","1"))
+            .andExpect(status().isOk()).andExpect(jsonPath("entries[0].serial").value(serial))
+            .andExpect(jsonPath("hasMore").value(true));
+    }
+
+    @Test void historyCatchesLateDeathOfAnOlderSpawnAfterCursorAdvanced() throws Exception {
+        ok(senderNick, 11, 0, "S\t" + serial + "\t1\t2\tCactus\n");
+        long id = service.history(11, 0, 100, as(adminId)).entries().get(0).id();
+        ok(senderNick, 11, 0, "S\t" + (serial+1) + "\t3\t4\tCactus\n");
+        long cursor = service.history(11, 0, 100, as(adminId)).nextCursor();
+        ok(senderNick, 11, 0, "D\t" + serial + "\tCactus\n");
+        var late = service.history(11, cursor, 100, as(adminId));
+        assertEquals(1, late.entries().size());
+        assertEquals(id, late.entries().get(0).id());
+        assertEquals("DIED", late.entries().get(0).kind());
+        assertNotNull(late.entries().get(0).diedAt());
+        ok(viewerNick, 11, 0, "D\t" + serial + "\tCactus\n");
+        assertTrue(service.history(11, late.nextCursor(), 100, as(adminId)).entries().isEmpty());
+        // Historical deaths remain available even when the game's short-lived notification has expired.
+        jdbc.update("UPDATE resource_spawn SET died_at=now()-interval '1 day' WHERE id=?", id);
+        assertFalse(ok(viewerNick, 11, 0, "").contains("K\t" + id + "\t"));
+        assertNotNull(service.history(11, cursor, 100, as(adminId)).entries().get(0).diedAt());
+    }
+
+    @Test void historyIsAdminOnlyAndRejectsInvalidPaging() throws Exception {
+        mvc.perform(get("/api/resources/history").param("map","11")).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/resources/history").with(user(as(viewerId))).param("map","11"))
+            .andExpect(status().isForbidden());
+        jdbc.update("UPDATE member SET suspended_at=now() WHERE id=?", adminId);
+        assertThrows(AppException.class, () -> service.history(11,0,100,as(adminId)));
+        long activeAdminId = member(nick("Active"), "APROVADO", "ADMINISTRADOR");
+        for (int limit : new int[]{0,1001})
+            mvc.perform(get("/api/resources/history").with(user(as(activeAdminId))).param("map","11").param("limit",String.valueOf(limit)))
+                .andExpect(status().isBadRequest());
+        assertThrows(AppException.class, () -> service.history(12,0,100,as(activeAdminId)));
+        assertThrows(AppException.class, () -> service.history(11,-1,100,as(activeAdminId)));
+    }
+
+    @Test void historyDoesNotCreateEventsOnDuplicateSightingOrEmptyPoll() throws Exception {
+        String sighting="S\t" + serial + "\t1\t2\tCactus\n";
+        ok(senderNick,11,0,sighting);
+        long cursor=service.history(11,0,100,as(adminId)).nextCursor();
+        ok(viewerNick,11,0,sighting);
+        ok(viewerNick,11,0,"");
+        assertTrue(service.history(11,cursor,100,as(adminId)).entries().isEmpty());
+    }
+
+    @Test void historyCursorWaitsForEarlierWriterToCommit() throws Exception {
+        ok(senderNick,11,0,"S\t" + serial + "\t1\t2\tCactus\n");
+        try (var connection = Objects.requireNonNull(jdbc.getDataSource()).getConnection()) {
+            connection.setAutoCommit(false);
+            try (var sql = connection.createStatement()) {
+                sql.execute("SET LOCAL lock_timeout='200ms'");
+                // A different map remains writable while this transaction holds map 11.
+                assertEquals(1, sql.executeUpdate("UPDATE resource_history_cursor SET revision=revision+1 WHERE map_code=10"));
+                var blocked = assertThrows(java.sql.SQLException.class,
+                    () -> sql.executeUpdate("UPDATE resource_history_cursor SET revision=revision+1 WHERE map_code=11"));
+                assertEquals("55P03", blocked.getSQLState());
+            } finally {
+                connection.rollback();
+            }
+        }
+    }
+
+    @Test void historyMigrationBackfillsExistingRowsAndOldDeaths() throws Exception {
+        try (var connection = Objects.requireNonNull(jdbc.getDataSource()).getConnection()) {
+            connection.setAutoCommit(false);
+            try {
+                String schema="history_test_"+UUID.randomUUID().toString().replace("-", "");
+                var sql=connection.createStatement();
+                sql.execute("CREATE SCHEMA "+schema);
+                sql.execute("SET LOCAL search_path TO "+schema);
+                sql.execute("CREATE TABLE resource_spawn(id BIGINT PRIMARY KEY,map_code INT,died_at TIMESTAMPTZ)");
+                sql.execute("INSERT INTO resource_spawn VALUES(20,11,now()-interval '2 days'),(30,11,null),(40,2,null)");
+                sql.execute(new org.springframework.core.io.ClassPathResource("db/migration/V95__resource_history.sql")
+                    .getContentAsString(StandardCharsets.UTF_8));
+                var result=sql.executeQuery("SELECT revision FROM resource_history_cursor WHERE map_code=11");
+                assertTrue(result.next()); assertEquals(2,result.getLong(1));
+                result=sql.executeQuery("SELECT count(*) FROM resource_spawn_change h JOIN resource_spawn s ON s.id=h.spawn_id WHERE h.kind='SNAPSHOT' AND s.died_at IS NOT NULL");
+                assertTrue(result.next()); assertEquals(1,result.getInt(1));
+                sql.execute("UPDATE resource_spawn SET died_at=now() WHERE id=30");
+                result=sql.executeQuery("SELECT kind FROM resource_spawn_change WHERE map_code=11 AND revision=3");
+                assertTrue(result.next()); assertEquals("DIED",result.getString(1));
+            } finally {
+                connection.rollback();
+            }
+        }
     }
 }
