@@ -17,6 +17,8 @@ import { publicAssetUrl } from '@/Shared/utils/publicAssetUrl'
 import { useServerNow } from '@/Shared/utils/useServerNow'
 import { ResourceSettings } from './components/ResourceSettings'
 import { ResourceRespawn } from './components/ResourceRespawn'
+import { SpotLayer, SpotSide } from './components/ResourceSpots'
+import { groupSpawnSpots, type SpawnSpot } from '@/Domain/Resource/spawnSpots'
 import './Resources.styles.scss'
 
 /** Grau -> chave das cores (iguais às bolinhas do mapa no jogo); null = desconhecido. */
@@ -35,6 +37,8 @@ const PERIODS = [
   { key: '30d', label: '30 dias', ms: 30 * 86_400_000 },
 ]
 const RECENT = 40
+/** Achados a até isto (em pixels do mapa de 400) um do outro, no mesmo grau, são o mesmo ponto de respawn. */
+const SPOT_PX = 4
 
 function when(iso: string) {
   return new Date(iso).toLocaleString('pt-BR', {
@@ -84,6 +88,10 @@ function ResourceMapPanel({ map }: { map: ResourceMap }) {
   const [selected, setSelected] = useState<ResourceSpawn | null>(null)
   const marked = hover ?? selected
   const now = useServerNow(5_000)
+  // Achados (cada nascimento) ou pontos de respawn (nascimentos agrupados por lugar).
+  const [mode, setMode] = useState<'finds' | 'spots'>('finds')
+  const [spotHover, setSpotHover] = useState<SpawnSpot | null>(null)
+  const [spotSelected, setSpotSelected] = useState<SpawnSpot | null>(null)
 
   const counts = useMemo(() => {
     const c: Record<string, number> = { '1': 0, '2': 0, '3': 0, u: 0 }
@@ -104,6 +112,15 @@ function ResourceMapPanel({ map }: { map: ResourceMap }) {
   }, [visible])
   const recent = useMemo(() => [...visible].sort((a, b) => b.id - a.id).slice(0, RECENT), [visible])
   const view = map.view
+  const spots = useMemo(
+    () => groupSpawnSpots(visible.filter((s) => s.tier != null), view ? SPOT_PX / Math.max(view.scaleX, 1e-6) : 40),
+    [visible, view],
+  )
+  // O ponto aberto acompanha os dados novos (mesma chave = mesmo primeiro achado).
+  const openSpot = spotSelected ? spots.find((s) => s.key === spotSelected.key) ?? null : null
+  const switchMode = (next: 'finds' | 'spots') => {
+    setMode(next); setHover(null); setSelected(null); setSpotHover(null); setSpotSelected(null)
+  }
 
   return (
     <Panel title={mapLabel(map.name)} code={`${visible.length} de ${spawns.length}`} className="resources__panel">
@@ -119,6 +136,16 @@ function ResourceMapPanel({ map }: { map: ResourceMap }) {
             {t.label} <small>({counts[t.key]})</small>
           </label>
         ))}
+        <div className="resources__modes" role="tablist" aria-label="Mostrar no mapa">
+          <button type="button" role="tab" aria-selected={mode === 'finds'}
+            className={`resources__mode${mode === 'finds' ? ' resources__mode--active' : ''}`} onClick={() => switchMode('finds')}>
+            Achados
+          </button>
+          <button type="button" role="tab" aria-selected={mode === 'spots'}
+            className={`resources__mode${mode === 'spots' ? ' resources__mode--active' : ''}`} onClick={() => switchMode('spots')}>
+            Pontos de respawn
+          </button>
+        </div>
         <select className="resources__period" value={period} onChange={(e) => setPeriod(e.target.value)} aria-label="Período">
           {PERIODS.map((p) => <option key={p.key} value={p.key}>{p.label}</option>)}
         </select>
@@ -128,7 +155,11 @@ function ResourceMapPanel({ map }: { map: ResourceMap }) {
         <div className="resources__map">
           <svg viewBox={`0 0 ${view?.areaW ?? 400} ${view?.areaH ?? 400}`} role="img" aria-label={`Mapa ${mapLabel(map.name)}`}>
             <image href={publicAssetUrl(`/resource-maps/${map.code}.png`)} x="0" y="0" width={view?.areaW ?? 400} height={view?.areaH ?? 400} />
-            {view && ordered.map((s) => {
+            {view && mode === 'spots' && (
+              <SpotLayer view={view} spots={spots} marked={spotHover ?? openSpot}
+                onHover={setSpotHover} onSelect={(s) => { setSpotHover(null); setSpotSelected(s) }} />
+            )}
+            {view && mode === 'finds' && ordered.map((s) => {
               const p = mapPoint(view, s.x, s.z)
               if (!p) return null
               const key = tierKey(s.tier)
@@ -148,7 +179,7 @@ function ResourceMapPanel({ map }: { map: ResourceMap }) {
               )
             })}
             {view && <ResourcePulses view={view} spawns={visible} />}
-            {view && marked && <ResourceMarker view={view} spawn={marked} />}
+            {view && mode === 'finds' && marked && <ResourceMarker view={view} spawn={marked} />}
           </svg>
           {!view && (
             <p className="resources__notice">
@@ -159,8 +190,12 @@ function ResourceMapPanel({ map }: { map: ResourceMap }) {
         </div>
 
         <div className="resources__side">
-          <h3 className="resources__subtitle">{selected ? 'Ponto' : 'Achados recentes'}</h3>
-          {selected ? (
+          <h3 className="resources__subtitle">
+            {mode === 'spots' ? (openSpot ? 'Ponto de respawn' : `Pontos de respawn (${spots.length})`) : selected ? 'Achado' : 'Achados recentes'}
+          </h3>
+          {mode === 'spots' ? (
+            <SpotSide spots={spots} selected={openSpot} now={now} onHover={setSpotHover} onSelect={setSpotSelected} />
+          ) : selected ? (
             <>
               <dl className="resources__detail">
                 <dt>Mob</dt><dd>{selected.name}</dd>

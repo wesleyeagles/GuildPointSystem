@@ -376,3 +376,47 @@ $tier-colors: (
   from { transform: scale(0.6); opacity: 1; }
   to { transform: scale(1.4); opacity: 0; }
 }
+
+// Achados x pontos de respawn
+.resources__modes { display: inline-flex; gap: 2px; }
+
+.resources__mode {
+  @include theme.tag(theme.$color-text-muted);
+  cursor: pointer;
+  font-size: theme.$font-size-ui;
+  padding: 4px theme.$spacing-sm;
+  background: theme.$metal-800;
+
+  &--active { color: theme.$color-primary; border-color: theme.$color-primary; }
+}
+
+.resources__spot {
+  cursor: pointer;
+
+  circle { fill-opacity: 0.55; stroke: #111; stroke-width: 1; }
+
+  text {
+    fill: #fff;
+    font-size: 8px;
+    font-weight: 700;
+    text-anchor: middle;
+    pointer-events: none;
+    paint-order: stroke;
+    stroke: #000;
+    stroke-width: 2px;
+  }
+
+  @each $key, $color in (('1', #5ad25a), ('2', #4696ff), ('3', #ffaa28), ('u', #dc5adc)) {
+    &--t#{$key} circle { fill: $color; }
+  }
+
+  &--hover circle { fill-opacity: 0.9; stroke: #fff; stroke-width: 2; }
+}
+
+.resources__subtitle--small { font-size: theme.$font-size-ui; margin-top: theme.$spacing-md; }
+
+.resources__recent--plain li {
+  display: flex;
+  gap: theme.$spacing-sm;
+  padding: 4px theme.$spacing-xs;
+}
