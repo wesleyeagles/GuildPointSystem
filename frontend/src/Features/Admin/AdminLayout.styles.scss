@@ -1,0 +1,56 @@
+// Mesmo visual das abas de Leilões / Itens (Items.styles.scss).
+.admin-layout {
+  display: flex;
+  flex-direction: column;
+
+  &__body {
+    border-top: 1px solid theme.$color-border;
+    padding-top: theme.$spacing-lg;
+  }
+}
+
+.admin-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding-left: theme.$spacing-md;
+  margin-bottom: -1px;
+  position: relative;
+  z-index: 1;
+
+  &__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 100%, 0 100%);
+    padding: 8px 26px 6px;
+    font-family: theme.$font-heading;
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    text-decoration: none;
+    color: theme.$color-text-muted;
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid theme.$color-border;
+    border-bottom: 0;
+    cursor: pointer;
+    transition: color 0.12s, background 0.12s;
+
+    &:hover { color: theme.$color-text; }
+
+    &--active {
+      color: theme.$color-primary;
+      background:
+        linear-gradient(180deg, rgba(theme.$color-primary, 0.14), transparent),
+        theme.$metal-700;
+      border-color: theme.$color-border-strong;
+    }
+  }
+
+  @media (max-width: 720px) {
+    padding-left: 0;
+
+    &__btn { padding: 6px 14px 4px; font-size: 15px; }
+  }
+}

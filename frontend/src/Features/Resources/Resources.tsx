@@ -79,7 +79,10 @@ function ResourceMapPanel({ map }: { map: ResourceMap }) {
   const { data: spawns = [], isLoading } = useResourceSpawns(map.code, true)
   const [shown, setShown] = useState<Record<string, boolean>>({ '1': true, '2': true, '3': true, u: true })
   const [period, setPeriod] = useState('all')
+  // Mouse em cima (no mapa ou na lista): só destaca o ponto no mapa. Clique: abre os detalhes ao lado.
   const [hover, setHover] = useState<ResourceSpawn | null>(null)
+  const [selected, setSelected] = useState<ResourceSpawn | null>(null)
+  const marked = hover ?? selected
   const now = useServerNow(5_000)
 
   const counts = useMemo(() => {
@@ -132,18 +135,20 @@ function ResourceMapPanel({ map }: { map: ResourceMap }) {
               return (
                 <circle
                   key={s.id}
-                  className={`resources__dot resources__dot--t${key}${hover?.id === s.id ? ' resources__dot--hover' : ''}`}
+                  className={`resources__dot resources__dot--t${key}${marked?.id === s.id ? ' resources__dot--hover' : ''}`}
                   cx={p.px}
                   cy={p.py}
                   r={RADIUS[key]}
                   onMouseEnter={() => setHover(s)}
                   onMouseLeave={() => setHover((h) => (h?.id === s.id ? null : h))}
+                  onClick={() => setSelected(s)}
                 >
                   <title>{`${s.name} · ${s.tier ? TIER_LABEL[s.tier] : 'grau desconhecido'} · ${when(s.foundAt)}${s.foundBy ? ` · ${s.foundBy}` : ''}`}</title>
                 </circle>
               )
             })}
             {view && <ResourcePulses view={view} spawns={visible} />}
+            {view && marked && <ResourceMarker view={view} spawn={marked} />}
           </svg>
           {!view && (
             <p className="resources__notice">
@@ -154,25 +159,38 @@ function ResourceMapPanel({ map }: { map: ResourceMap }) {
         </div>
 
         <div className="resources__side">
-          <h3 className="resources__subtitle">{hover ? 'Ponto' : 'Achados recentes'}</h3>
-          {hover ? (
-            <dl className="resources__detail">
-              <dt>Mob</dt><dd>{hover.name}</dd>
-              <dt>Grau</dt><dd>{hover.tier ? TIER_LABEL[hover.tier] : 'Desconhecido'}</dd>
-              <dt>Achado</dt><dd>{when(hover.foundAt)}</dd>
-              <dt>Por</dt><dd>{hover.foundBy ?? '—'}</dd>
-              {hover.diedAt && <><dt>Morreu</dt><dd>{when(hover.diedAt)}</dd></>}
-              <dt>Posição</dt><dd>{hover.x}, {hover.z}</dd>
-            </dl>
+          <h3 className="resources__subtitle">{selected ? 'Ponto' : 'Achados recentes'}</h3>
+          {selected ? (
+            <>
+              <dl className="resources__detail">
+                <dt>Mob</dt><dd>{selected.name}</dd>
+                <dt>Grau</dt><dd>{selected.tier ? TIER_LABEL[selected.tier] : 'Desconhecido'}</dd>
+                <dt>Achado</dt><dd>{when(selected.foundAt)}</dd>
+                <dt>Por</dt><dd>{selected.foundBy ?? '—'}</dd>
+                {selected.diedAt && <><dt>Morreu</dt><dd>{when(selected.diedAt)}</dd></>}
+                <dt>Posição</dt><dd>{selected.x}, {selected.z}</dd>
+              </dl>
+              <button type="button" className="resources__back" onClick={() => setSelected(null)}>← Voltar à lista</button>
+            </>
           ) : recent.length === 0 ? (
             <p className="resources__muted">Nenhum recurso achado {period === 'all' ? 'ainda' : 'nesse período'}.</p>
           ) : (
             <ul className="resources__recent">
               {recent.map((s) => (
-                <li key={s.id} onMouseEnter={() => setHover(s)} onMouseLeave={() => setHover(null)}>
-                  <span className={`resources__swatch resources__swatch--t${tierKey(s.tier)}`} />
-                  <span className="resources__recent-name">{s.name}</span>
-                  <time>{when(s.foundAt)}</time>
+                <li key={s.id}>
+                  <button
+                    type="button"
+                    onMouseEnter={() => setHover(s)}
+                    onMouseLeave={() => setHover((h) => (h?.id === s.id ? null : h))}
+                    onFocus={() => setHover(s)}
+                    onBlur={() => setHover((h) => (h?.id === s.id ? null : h))}
+                    onClick={() => { setHover(null); setSelected(s) }}
+                    title="Ver detalhes"
+                  >
+                    <span className={`resources__swatch resources__swatch--t${tierKey(s.tier)}`} />
+                    <span className="resources__recent-name">{s.name}</span>
+                    <time>{when(s.foundAt)}</time>
+                  </button>
                 </li>
               ))}
             </ul>
@@ -180,6 +198,19 @@ function ResourceMapPanel({ map }: { map: ResourceMap }) {
         </div>
       </div>
     </Panel>
+  )
+}
+
+/** Anel em volta do ponto destacado (mouse na lista ou no mapa, ou o aberto nos detalhes), por cima de tudo. */
+function ResourceMarker({ view, spawn }: { view: ResourceMapScale; spawn: ResourceSpawn }) {
+  const p = mapPoint(view, spawn.x, spawn.z)
+  if (!p) return null
+  const r = RADIUS[tierKey(spawn.tier)]
+  return (
+    <g className="resources__marker" pointerEvents="none">
+      <circle cx={p.px} cy={p.py} r={r + 6} />
+      <circle cx={p.px} cy={p.py} r={r + 10} className="resources__marker-wave" />
+    </g>
   )
 }
 

@@ -17,6 +17,7 @@ import { AuctionsPage } from '@/Features/Auction/AuctionsPage'
 import { AuctionDetailPage } from '@/Features/Auction/AuctionDetail'
 import { ApprovalsPage } from '@/Features/Admin/Approvals/Approvals'
 import { OnlinePage } from '@/Features/Admin/Online/Online'
+import { AdminIndex, AdminLayout } from '@/Features/Admin/AdminLayout'
 import { DllAdminPage } from '@/Features/Admin/Dll/DllAdmin'
 import { ProfilePage } from '@/Features/Profile/Profile'
 import { GuildLeagueRagPage } from '@/Features/GuildLeagueRag/GuildLeagueRagPage'
@@ -67,14 +68,18 @@ function App() {
               <Route path="auctions/:id" element={<AuctionDetailPage />} />
               <Route path="profile" element={<ProfilePage />} />
               <Route path="profile/:id" element={<ProfilePage />} />
+              {/* Administração: um item no menu, uma aba por página (cada aba mantém o próprio endereço). */}
               <Route element={<ModeratorRoute />}>
-                <Route path="admin/approvals" element={<ApprovalsPage />} />
-              </Route>
-              <Route element={<AdminRoute />}>
-                <Route path="admin/online" element={<OnlinePage />} />
-                <Route path="admin/dll" element={<DllAdminPage />} />
-                <Route path="admin/resources" element={<ResourcesPage />} />
-                <Route path="admin/pb-history" element={<PbHistoryPage />} />
+                <Route path="admin" element={<AdminLayout />}>
+                  <Route index element={<AdminIndex />} />
+                  <Route path="approvals" element={<ApprovalsPage />} />
+                  <Route element={<AdminRoute />}>
+                    <Route path="online" element={<OnlinePage />} />
+                    <Route path="dll" element={<DllAdminPage />} />
+                    <Route path="resources" element={<ResourcesPage />} />
+                    <Route path="pb-history" element={<PbHistoryPage />} />
+                  </Route>
+                </Route>
               </Route>
             </Route>
           </Route>

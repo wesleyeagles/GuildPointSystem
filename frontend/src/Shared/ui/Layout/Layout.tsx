@@ -48,12 +48,8 @@ const HIDDEN_ITEMS = [
   { to: '/donate', label: 'Doar Disena' },
 ]
 
-const ADMIN_ITEMS: { to: string; label: string; minRole: Role }[] = [
-  { to: '/admin/approvals', label: 'Aprovações', minRole: 'MODERADOR' },
-  { to: '/admin/dll', label: 'DLL', minRole: 'ADMINISTRADOR' },
-  { to: '/admin/resources', label: 'Recursos', minRole: 'ADMINISTRADOR' },
-  { to: '/admin/pb-history', label: 'Histórico de PB', minRole: 'ADMINISTRADOR' },
-]
+/** Um item só no menu: as páginas de admin são abas dentro de /admin (AdminLayout). */
+const ADMIN_ITEM: { to: string; label: string; minRole: Role } = { to: '/admin', label: 'Administração', minRole: 'MODERADOR' }
 
 const SOCKET_LABEL: Record<SocketState, string> = {
   connected: 'Online',
@@ -120,9 +116,9 @@ function LayoutShell() {
   useGuildEmojisSubscription()
   useEquipmentSubscription()
 
-  const adminItems = ADMIN_ITEMS.filter((item) => hasRole(item.minRole))
+  const adminItems = hasRole(ADMIN_ITEM.minRole) ? [ADMIN_ITEM] : []
   const currentLabel =
-    [...NAV_ITEMS, PROFILE_ITEM, ...HIDDEN_ITEMS, ...ADMIN_ITEMS].find((item) => isActive(location.pathname, item.to))?.label ??
+    [...NAV_ITEMS, PROFILE_ITEM, ...HIDDEN_ITEMS, ADMIN_ITEM].find((item) => isActive(location.pathname, item.to))?.label ??
     'Terminal'
   const availableRatio =
     member && member.points > 0
@@ -219,7 +215,7 @@ function LayoutShell() {
                   className={`layout__nav-link layout__nav-link--admin${isActive(location.pathname, item.to) ? ' layout__nav-link--active' : ''}`}
                 >
                   <span className="layout__nav-label">{item.label}</span>
-                  {item.to === '/admin/approvals' && <ApprovalsNavBadge />}
+                  {item.to === ADMIN_ITEM.to && <ApprovalsNavBadge />}
                 </Link>
               ))}
             </div>
