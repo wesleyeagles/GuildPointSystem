@@ -249,18 +249,15 @@ function LayoutShell() {
           <h1 className="layout__page-title">{currentLabel}</h1>
           <EventHeaderTimers now={now} />
           <div className="layout__status-right">
-            {dllNotice.outdated && (
+            {/* Só quando é preciso trocar a DLL à mão: a que se atualiza sozinha não ganha aviso. */}
+            {dllNotice.outdated && !dllNotice.autoUpdating && (
               <button
                 type="button"
                 className="layout__dll-outdated"
-                title={
-                  dllNotice.autoUpdating
-                    ? `A DLL vai se atualizar sozinha para a v${dllNotice.latestVersion}`
-                    : `Atualize para a v${dllNotice.latestVersion}`
-                }
+                title={`Atualize para a v${dllNotice.latestVersion}`}
                 onClick={dllNotice.open}
               >
-                {dllNotice.autoUpdating ? 'Atualização pendente' : 'DLL desatualizada'}
+                DLL desatualizada
               </button>
             )}
             <span className={`layout__socket layout__socket--${socket}`} title={SOCKET_LABEL[socket]}>
