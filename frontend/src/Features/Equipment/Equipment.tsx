@@ -86,6 +86,32 @@ export function EquipmentPage() {
   const reviewAction = useEquipmentReviewAction()
   const ownReview = reviews.find(r => r.memberId === user?.memberId)
   const { showToast } = useAppToast()
+  const canPrepareMail = admin && !!user?.nickname && (
+    window.location.origin === 'https://blacklist.guildsystem.com.br' ||
+    (import.meta.env.DEV && import.meta.env.VITE_GAME_MAIL_PREVIEW === 'true')
+  )
+  const mailBusy = useRef(false)
+  const [preparingMail, setPreparingMail] = useState(false)
+  async function prepareMail(recipient: string) {
+    if (!canPrepareMail || !user?.nickname || mailBusy.current) return
+    mailBusy.current = true
+    setPreparingMail(true)
+    try {
+      const request: RequestInit & { targetAddressSpace: 'loopback' } = {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sender: user.nickname, recipient }), signal: AbortSignal.timeout(30_000),
+        credentials: 'omit', redirect: 'error', targetAddressSpace: 'loopback',
+      }
+      const response = await fetch('http://127.0.0.1:15183/prepare-letter', request)
+      const result: { message?: string } = await response.json()
+      showToast(result.message ?? 'Não foi possível confirmar o preparo da carta.', response.ok ? 'success' : 'error')
+    } catch {
+      showToast('Confira a ponte de cartas e a permissão de acesso local do navegador. Se a carta já abriu no jogo, revise-a antes de tentar novamente.', 'error')
+    } finally {
+      mailBusy.current = false
+      setPreparingMail(false)
+    }
+  }
   const transferMutation = useEquipmentOperation()
   const slotMutation = useEquipmentSlotEdit()
   const mutateSlots = slotMutation.mutateAsync
@@ -258,7 +284,7 @@ export function EquipmentPage() {
       {error && <p role="alert">{error.message}</p>}
       {failedEdit && <div role="alert">{slotMutation.error?.message ?? 'Não foi possível concluir a alteração.'}<Button onClick={() => void editSlots(failedEdit.request, failedEdit.direction)}>Tentar novamente</Button><Button onClick={() => setFailedEdit(null)}>Fechar aviso</Button></div>}
     </div>}
-    <div className={`equipment-workspace${managing && inspected ? ' equipment-workspace--split' : ''}`}>
+    <div className={`equipment-workspace${managing && inspected ? ' equipment-workspace--split' : ''}${canPrepareMail ? ' equipment-workspace--mail' : ''}`}>
     {managing && <Panel className="equipment-workspace__roster" title="Personagens" code={`${members.length} PERSONAGENS`}>
       <div className="equipment-toolbar">
         <label>Pesquisar personagem<input value={search} onChange={e => setSearch(e.target.value)} placeholder="Nick do personagem" /></label>
@@ -312,7 +338,12 @@ export function EquipmentPage() {
               </button>{current && (admin || member.memberId === user?.memberId) && <button type="button" className="equipment-mini-remove" aria-label={`Remover ${slotDescription(slot)} de ${member.nickname}`} title="Remover equipamento" disabled={slotMutation.isPending || !!failedEdit} onClick={() => removeItems(member, slot)}>×</button>}</div>
             })}</div>
           </div>)}
-          <div className="equipment-roster__actions">{admin && <Button size="sm" variant="secondary" aria-label={`Registrar entrega para ${member.nickname}`} onClick={() => registerDelivery(member)}>Registrar entrega</Button>}{(admin || member.memberId === user?.memberId) && <Button size="sm" variant="danger" aria-label={`Limpar equipamentos de ${member.nickname}`} disabled={!member.slots.some(s => s.assignment) || slotMutation.isPending || !!failedEdit} onClick={() => removeItems(member)}>Limpar</Button>}<Button size="sm" variant="secondary" aria-label={`Inspecionar ${member.nickname}`} onClick={() => inspect(member.memberId)}>Ver</Button></div>
+          <div className="equipment-roster__actions">
+            {admin && <Button size="sm" variant="secondary" aria-label={`Registrar entrega para ${member.nickname}`} onClick={() => registerDelivery(member)}>Registrar entrega</Button>}
+            {canPrepareMail && <Button className="equipment-roster__mail" size="sm" variant="secondary" aria-label={`Preparar carta para ${member.nickname}`} title="Preparar carta" disabled={preparingMail} onClick={() => void prepareMail(member.nickname)}>✉</Button>}
+            {(admin || member.memberId === user?.memberId) && <Button size="sm" variant="danger" aria-label={`Limpar equipamentos de ${member.nickname}`} disabled={!member.slots.some(s => s.assignment) || slotMutation.isPending || !!failedEdit} onClick={() => removeItems(member)}>Limpar</Button>}
+            <Button size="sm" variant="secondary" aria-label={`Inspecionar ${member.nickname}`} onClick={() => inspect(member.memberId)}>Ver</Button>
+          </div>
         </li>)}</ul>
         {filtered.length === 0 && <p>Nenhum personagem encontrado com esses filtros.</p>}
       </>}
