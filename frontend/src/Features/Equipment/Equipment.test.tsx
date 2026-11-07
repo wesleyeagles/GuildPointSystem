@@ -29,7 +29,7 @@ vi.mock('@/Domain/Equipment/hooks/useEquipment', () => ({
   useEquipmentOperation: () => ({ mutateAsync: state.mutate, isPending: false }),
 }))
 beforeEach(() => { state.className = ''; state.profileLoading = false; state.profileError = null; state.profileQuery.mockClear(); state.reviews = []; state.reviewAction.mockReset(); state.admin = true; state.userId = 2; state.historyQuery.mockClear(); state.multiEffects = false; state.current = false; state.currentSlot = 'Weapon'; state.currentLevel = 25; state.currentGrade = 0; state.extraMember = false; state.transferTarget = false; state.targetEmpty = false; state.catalogGrade = 1; state.catalogTotal = 1; state.effectsNote = ''; state.history = []; state.slotEdit.mockReset(); state.slotEdit.mockImplementation(async (request) => ({ operationId: request.operationId, memberId: request.memberId, slots: request.slots.map((s: { slot: EquipmentSlot; expectedVersion: number }) => ({ slot: s.slot, version: s.expectedVersion + 1, assignment: null })) })); state.mutate.mockReset(); state.mutate.mockResolvedValue(record); state.catalog.mockClear() })
-afterEach(() => { cleanup(); vi.unstubAllEnvs(); vi.unstubAllGlobals() })
+afterEach(() => { cleanup(); localStorage.removeItem('equipment-mail-sender'); vi.unstubAllEnvs(); vi.unstubAllGlobals() })
 function render(element: React.ReactElement) { const result = rawRender(element); if (state.admin && element.type === EquipmentPage) fireEvent.click(screen.getByRole('button', { name: 'Gerenciar players' })); return result }
 function inspect() { if (!state.admin) return; fireEvent.click(screen.getByRole('button', { name: 'Player local' })) }
 function openEditor(slot = 'Weapon') {
@@ -55,9 +55,24 @@ describe('Equipamentos', () => {
     expect(request).toHaveBeenCalledTimes(1)
     expect(request.mock.calls[0][0]).toBe('http://127.0.0.1:15183/prepare-letter')
     expect(request.mock.calls[0][1]).toMatchObject({ credentials: 'omit', redirect: 'error', targetAddressSpace: 'loopback' })
-    expect(JSON.parse(request.mock.calls[0][1].body)).toEqual({ sender: 'Admin local', recipient: 'Destinatário local' })
+    expect(screen.getByLabelText('Personagem remetente')).toHaveValue('boi')
+    expect(JSON.parse(request.mock.calls[0][1].body)).toEqual({ sender: 'boi', recipient: 'Destinatário local' })
     expect(state.mutate).not.toHaveBeenCalled()
     expect(state.slotEdit).not.toHaveBeenCalled()
+  })
+  it('uses the selected mail sender and remembers it when the list is reopened', async () => {
+    vi.stubEnv('VITE_GAME_MAIL_PREVIEW', 'true')
+    const request = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ message: 'Carta preparada no jogo.' }) })
+    vi.stubGlobal('fetch', request)
+    state.transferTarget = true
+    const view = render(<EquipmentPage />)
+    fireEvent.change(screen.getByLabelText('Personagem remetente'), { target: { value: 'Admin local' } })
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Preparar carta para Destinatário local' })) })
+    expect(JSON.parse(request.mock.calls[0][1].body)).toEqual({ sender: 'Admin local', recipient: 'Destinatário local' })
+    expect(localStorage.getItem('equipment-mail-sender')).toBe('Admin local')
+    view.unmount()
+    render(<EquipmentPage />)
+    expect(screen.getByLabelText('Personagem remetente')).toHaveValue('Admin local')
   })
   it.each([true, false])('restricts relic editing to admins even on their own inventory (admin=%s)', admin => {
     state.admin = admin; state.userId = 1

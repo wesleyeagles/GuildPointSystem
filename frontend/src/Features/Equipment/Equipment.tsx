@@ -92,6 +92,9 @@ export function EquipmentPage() {
   )
   const mailBusy = useRef(false)
   const [preparingMail, setPreparingMail] = useState(false)
+  const [mailSender, setMailSender] = useState(() => localStorage.getItem('equipment-mail-sender') || 'boi')
+  const mailSenders = [...new Set(['boi', mailSender, ...(user?.nickname ? [user.nickname] : []), ...members.map(member => member.nickname)])]
+    .sort((a, b) => a.localeCompare(b, 'pt-BR'))
   async function prepareMail(recipient: string) {
     if (!canPrepareMail || !user?.nickname || mailBusy.current) return
     mailBusy.current = true
@@ -99,7 +102,7 @@ export function EquipmentPage() {
     try {
       const request: RequestInit & { targetAddressSpace: 'loopback' } = {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sender: user.nickname, recipient }), signal: AbortSignal.timeout(30_000),
+        body: JSON.stringify({ sender: mailSender, recipient }), signal: AbortSignal.timeout(30_000),
         credentials: 'omit', redirect: 'error', targetAddressSpace: 'loopback',
       }
       const response = await fetch('http://127.0.0.1:15183/prepare-letter', request)
@@ -287,6 +290,10 @@ export function EquipmentPage() {
     <div className={`equipment-workspace${managing && inspected ? ' equipment-workspace--split' : ''}${canPrepareMail ? ' equipment-workspace--mail' : ''}`}>
     {managing && <Panel className="equipment-workspace__roster" title="Personagens" code={`${members.length} PERSONAGENS`}>
       <div className="equipment-toolbar">
+        {canPrepareMail && <label>Personagem remetente<select value={mailSender} disabled={preparingMail} onChange={e => {
+          setMailSender(e.target.value)
+          localStorage.setItem('equipment-mail-sender', e.target.value)
+        }}>{mailSenders.map(nickname => <option key={nickname} value={nickname}>{nickname}</option>)}</select></label>}
         <label>Pesquisar personagem<input value={search} onChange={e => setSearch(e.target.value)} placeholder="Nick do personagem" /></label>
         <div className="equipment-player-classes" role="group" aria-label="Classe do personagem"><span>Classe</span><div>{(['MELEE', 'RANGER', 'FORCE'] as const).map(value => <Button key={value} size="sm" variant="secondary" aria-pressed={playerClass === value} onClick={() => setPlayerClass(current => current === value ? '' : value)}>{value}</Button>)}</div></div>
         <label>Ordenar jogadores<select value={sort} onChange={e => setSort(e.target.value)}><option value="name">Nome · A–Z</option><option value="name-desc">Nome · Z–A</option><option value="gs-desc">Gear score decrescente</option><option value="gs-asc">Gear score crescente</option><option value="level-asc">Nível crescente</option><option value="level-desc">Nível decrescente</option></select></label>
