@@ -96,6 +96,35 @@
     @include theme.tag(theme.$color-success);
     border-color: rgba(theme.$color-success, 0.4);
   }
+
+  &__claim {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: theme.$spacing-sm;
+    margin-top: theme.$spacing-sm;
+
+    input {
+      @include theme.field-input;
+      @include theme.field-control-height;
+      width: 110px;
+      font-family: theme.$font-mono;
+      letter-spacing: 6px;
+      text-align: center;
+      color: theme.$color-amber;
+    }
+
+    > .btn {
+      @include theme.field-control-height;
+    }
+  }
+
+  &__claim-error {
+    flex-basis: 100%;
+    margin: 0;
+    color: theme.$color-danger;
+    font-size: theme.$font-size-heading;
+  }
 }
 
 .events-confirm-overlay {
