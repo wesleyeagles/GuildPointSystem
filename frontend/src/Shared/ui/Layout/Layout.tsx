@@ -7,6 +7,8 @@ import { useMemberLogNotifications } from '@/Domain/Log/hooks/useLogs'
 import { useGuildEmojisSubscription } from '@/Domain/Emoji/hooks/useGuildEmojis'
 import { EventToastProvider } from '@/Features/Events/components/EventToast/EventToast'
 import { EventCreateModal } from '@/Features/Events/components/EventCreateModal/EventCreateModal'
+import { PartyLocationPointsModal } from '@/Features/Party/components/PartyLocationPointsModal'
+import { ProximityPointsModal } from '@/Features/Party/components/ProximityPointsModal'
 import { AppToastProvider } from '@/Shared/ui/components/AppToast/AppToast'
 import { getSocketState, type SocketState } from '@/Shared/websocket/socketClient'
 import { serverNow } from '@/Shared/utils/serverClock'
@@ -109,6 +111,8 @@ function LayoutShell() {
   const drawerOpen = drawerPath === location.pathname
   const setDrawerOpen = (open: boolean) => setDrawerPath(open ? location.pathname : null)
   const [eventModalOpen, setEventModalOpen] = useState(false)
+  const [rgPointsOpen, setRgPointsOpen] = useState(false)
+  const [proximityOpen, setProximityOpen] = useState(false)
 
   usePointsSubscription(user?.memberId)
   useMemberLogNotifications(user?.memberId)
@@ -132,6 +136,8 @@ function LayoutShell() {
       <PartyGameInviteListener />
       {hasRole('MODERADOR') && <ApprovalsListener />}
       {eventModalOpen && <EventCreateModal onClose={() => setEventModalOpen(false)} />}
+      {rgPointsOpen && <PartyLocationPointsModal variant="rg" onClose={() => setRgPointsOpen(false)} />}
+      {proximityOpen && <ProximityPointsModal onClose={() => setProximityOpen(false)} />}
       <aside className="layout__sidebar">
         <div className="layout__brand">
           <img src="/Logo-Blacklist.png" alt="Guild System" className="layout__logo" />
@@ -179,8 +185,31 @@ function LayoutShell() {
             </button>
           )}
 
-          {/* "+ Pontos de RG" e "+ Pontos por aproximação" fora do ar até a entrega ficar 100% confiável
-              (PartyLocationPointsModal variant="rg" e ProximityPointsModal continuam no código). */}
+          {hasRole('MODERADOR') && (
+            <button
+              type="button"
+              className="layout__nav-link layout__quick-event"
+              onClick={() => {
+                setDrawerOpen(false)
+                setRgPointsOpen(true)
+              }}
+            >
+              <span className="layout__nav-label">+ Pontos de RG</span>
+            </button>
+          )}
+
+          {hasRole('MODERADOR') && (
+            <button
+              type="button"
+              className="layout__nav-link layout__quick-event"
+              onClick={() => {
+                setDrawerOpen(false)
+                setProximityOpen(true)
+              }}
+            >
+              <span className="layout__nav-label">+ Pontos por aproximação</span>
+            </button>
+          )}
 
           {NAV_ITEMS.filter((item) => item.to !== '/raid' || raidAccess?.canView).map((item) => (
             <Link
