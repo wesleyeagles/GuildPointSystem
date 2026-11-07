@@ -159,7 +159,8 @@ export const HEADER_SCHEDULED_EVENTS: ScheduledEvent[] = [
     kind: 'multiDaily',
     id: 'pb-middle',
     label: 'PB Middle',
-    hours: [2, 14],
+    // 00:00 / 12:00 Moscou.
+    hours: [6, 18],
     minute: 0,
     timeZone: SCHEDULE_TIME_ZONE,
   },
