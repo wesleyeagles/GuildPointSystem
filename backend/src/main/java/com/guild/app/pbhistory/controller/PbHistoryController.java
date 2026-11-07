@@ -45,6 +45,10 @@ public class PbHistoryController {
     }
 
     @PreAuthorize("isAuthenticated()")
+    @GetMapping("/map-bounds")
+    public List<PbHistoryService.MapBounds> mapBounds() { return service.mapBounds(SecurityUtils.currentMember()); }
+
+    @PreAuthorize("isAuthenticated()")
     @GetMapping("/attendance")
     public Attendance attendance(@RequestParam(defaultValue = "30") int days) {
         return service.attendance(days, SecurityUtils.currentMember());

@@ -5,6 +5,7 @@ import {
   useIgnorePbCandidate,
   usePbAttendance,
   usePbKills,
+  usePbMapBounds,
   usePbOverview,
   useRemovePbBoss,
   useSavePbBoss,
@@ -13,6 +14,8 @@ import {
   type PbOverview,
 } from '@/Domain/PbHistory/hooks/usePbHistory'
 import { mapLabel } from '@/Domain/Location/gameMaps'
+import { gameMapPoint } from '@/Domain/Location/gameMapPoint'
+import { publicAssetUrl } from '@/Shared/utils/publicAssetUrl'
 import { Button } from '@/Shared/ui/components/Button/Button'
 import { Panel } from '@/Shared/ui/components/Panel/Panel'
 import { useAppToast } from '@/Shared/ui/components/AppToast/AppToast'
@@ -102,6 +105,33 @@ function KillsPanel({ overview }: { overview: PbOverview }) {
   )
 }
 
+/** Última posição em que o boss foi visto, nas coordenadas do mundo do jogo. */
+function coordinates(kill: PbKill) {
+  return `X ${kill.x} · Z ${kill.z}`
+}
+
+/** Mapa do jogo com a bolinha onde o boss foi visto por último (qualquer mapa com imagem e limites conhecidos). */
+function BossMap({ kill }: { kill: PbKill }) {
+  const { data: bounds } = usePbMapBounds()
+  const live = bounds?.find((b) => b.map === kill.mapCode) ?? null
+  const placement = gameMapPoint(kill.mapCode, kill.x, kill.z, live)
+  if (!placement) return null
+  const { geometry, px, py } = placement
+  // A bolinha acompanha o tamanho da imagem (o mapa de Elan tem 1400 px; o de Sette, 400).
+  const r = Math.max(geometry.width, geometry.height) / 70
+  return (
+    <figure className="pb-history__map">
+      <svg viewBox={`0 0 ${geometry.width} ${geometry.height}`} role="img" aria-label={`${bossName(kill)} em ${geometry.name}`}>
+        <image href={publicAssetUrl(geometry.image)} x="0" y="0" width={geometry.width} height={geometry.height}
+          preserveAspectRatio="none" />
+        <circle className="pb-history__map-pulse" cx={px} cy={py} r={r * 1.8} strokeWidth={r / 2.5} />
+        <circle className="pb-history__map-dot" cx={px} cy={py} r={r} strokeWidth={r / 3.5} />
+      </svg>
+      <figcaption>{kill.mapName ? mapLabel(kill.mapName) : geometry.name} · {coordinates(kill)}</figcaption>
+    </figure>
+  )
+}
+
 function KillRow({ kill }: { kill: PbKill }) {
   const [open, setOpen] = useState(false)
   const present = kill.members.filter((m) => m.present)
@@ -113,7 +143,10 @@ function KillRow({ kill }: { kill: PbKill }) {
           {bossName(kill)}
           <small className={`pb-history__kind pb-history__kind--${kill.kind.toLowerCase()}`}>{PB_KIND_LABEL[kill.kind]}</small>
         </span>
-        <span>{kill.mapName ? mapLabel(kill.mapName) : '—'}</span>
+        <span className="pb-history__where">
+          {kill.mapName ? mapLabel(kill.mapName) : '—'}
+          <small>{coordinates(kill)}</small>
+        </span>
         <time>{when(kill.diedAt ?? kill.firstSeenAt)}</time>
         <span>{kill.diedAt ? `Luta: ${duration(kill.firstSeenAt, kill.diedAt)}` : 'Sem morte registrada'}</span>
         <span className="pb-history__count">{present.length} presente{present.length === 1 ? '' : 's'}</span>
@@ -122,9 +155,11 @@ function KillRow({ kill }: { kill: PbKill }) {
         <div className="pb-history__kill-body">
           <dl className="pb-history__detail">
             <dt>Visto pela 1ª vez</dt><dd>{when(kill.firstSeenAt)}</dd>
+            <dt>Onde</dt><dd>{kill.mapName ? mapLabel(kill.mapName) : '—'} · {coordinates(kill)}</dd>
             <dt>Morreu</dt><dd>{kill.diedAt ? when(kill.diedAt) : '—'}</dd>
             {!kill.diedAt && kill.minHp != null && <><dt>Menor HP visto</dt><dd>{kill.minHp}%</dd></>}
           </dl>
+          <BossMap kill={kill} />
           <h4>Presentes na morte</h4>
           <Chips names={present.map((m) => m.nickname)} empty="Ninguém" />
           {seen.length > 0 && (

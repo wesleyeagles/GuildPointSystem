@@ -70,6 +70,20 @@
     @media (max-width: 720px) { grid-template-columns: 1fr 1fr; }
   }
 
+  // Mapa e, embaixo, a última posição vista (X · Z do mundo do jogo).
+  &__where {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+
+    small {
+      font-family: theme.$font-mono;
+      font-size: theme.$font-size-heading;
+      color: theme.$color-text-muted;
+      white-space: nowrap;
+    }
+  }
+
   &__kill-name {
     display: inline-flex;
     align-items: center;
@@ -160,4 +174,45 @@
   }
 
   &__actions { display: flex; margin-top: theme.$spacing-md; }
+}
+
+// Mapa do jogo no detalhe do boss: imagem do mapa e a bolinha da última posição vista.
+.pb-history__map {
+  margin: theme.$spacing-sm 0 theme.$spacing-md;
+  width: min(320px, 100%);
+
+  svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    border: 1px solid theme.$color-border-strong;
+    background: theme.$color-bg;
+  }
+
+  figcaption {
+    margin-top: theme.$spacing-xs;
+    font-family: theme.$font-mono;
+    font-size: theme.$font-size-heading;
+    color: theme.$color-text-muted;
+  }
+
+  &-dot {
+    fill: theme.$color-danger;
+    stroke: #fff;
+
+  }
+
+  &-pulse {
+    fill: none;
+    stroke: theme.$color-danger;
+
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: pb-history-map-pulse 1.4s ease-out infinite;
+  }
+}
+
+@keyframes pb-history-map-pulse {
+  from { opacity: 0.9; transform: scale(0.6); }
+  to   { opacity: 0; transform: scale(2.2); }
 }

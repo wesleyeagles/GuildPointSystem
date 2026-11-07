@@ -52,9 +52,14 @@ public class PbHistoryService {
     public record Candidate(String name, String mapName, int seenCount, Instant lastSeenAt) {}
     public record Overview(boolean canView, List<Boss> bosses, List<Candidate> candidates) {}
     public record Presence(long memberId, String nickname, Instant firstSeenAt, Instant lastSeenAt, boolean present) {}
-    /** diedAt null = ninguém viu a morte (sumiu longe, ou ainda vivo). minHp = menor HP visto (null = não leu). */
-    public record Kill(long id, String boss, String label, String kind, String mapName, Instant firstSeenAt,
+    /**
+     * diedAt null = ninguém viu a morte (sumiu longe, ou ainda vivo). minHp = menor HP visto (null = não leu).
+     * x/z = última posição em que foi visto, no mundo do jogo (as mesmas unidades da posição da raid).
+     */
+    public record Kill(long id, String boss, String label, String kind, int mapCode, String mapName, int x, int z, Instant firstSeenAt,
                        Instant diedAt, Integer minHp, List<Presence> members) {}
+    /** Limites do mapa no mundo, como a janela do mapa do jogo usa (a DLL envia na linha "G"). */
+    public record MapBounds(int map, int minX, int minZ, int maxX, int maxZ) {}
     public record AttendanceRow(long memberId, String nickname, long present, long seen) {}
     public record Attendance(int days, long kills, List<AttendanceRow> rows) {}
 
@@ -107,6 +112,7 @@ public class PbHistoryService {
             if (f.length == 2 && f[0].equals("C")) candidate(f[1].strip(), mapName, bosses, now);
             else if (f.length == 6 && f[0].equals("P")) alive(member, map, mapName, f, bosses, now);
             else if (f.length == 3 && f[0].equals("D")) death(member, map, f, bosses, now);
+            else if (f.length == 5 && f[0].equals("G")) bounds(map, f, now);
         }
         StringBuilder sb = new StringBuilder("A\t1\n");
         jdbc.queryForList("SELECT name FROM pb_boss ORDER BY name", String.class)
@@ -218,6 +224,30 @@ public class PbHistoryService {
     /** Presente = estava perto na morte (avisou a morte ou foi visto vivo até 15 s antes dela). */
     private static final String PRESENT = "(p.saw_death OR (k.died_at IS NOT NULL AND p.last_seen_at >= k.died_at - interval '15 seconds'))";
 
+    /** "G minX minZ maxX maxZ": limites do mapa atual lidos da janela do mapa do jogo. Inválido = ignorado. */
+    private void bounds(int map, String[] f, Instant now) {
+        int minX, minZ, maxX, maxZ;
+        try {
+            minX = Integer.parseInt(f[1].strip()); minZ = Integer.parseInt(f[2].strip());
+            maxX = Integer.parseInt(f[3].strip()); maxZ = Integer.parseInt(f[4].strip());
+        } catch (NumberFormatException e) { return; }
+        // A janela guarda os limites em 16 bits (caixa do .bsp).
+        for (int v : new int[] {minX, minZ, maxX, maxZ}) if (v < Short.MIN_VALUE || v > Short.MAX_VALUE) return;
+        if (minX >= maxX || minZ >= maxZ) return;
+        jdbc.update("""
+            INSERT INTO game_map_bounds(map_code,min_x,min_z,max_x,max_z,updated_at) VALUES(?,?,?,?,?,?)
+            ON CONFLICT (map_code) DO UPDATE SET min_x=EXCLUDED.min_x, min_z=EXCLUDED.min_z, max_x=EXCLUDED.max_x,
+                max_z=EXCLUDED.max_z, updated_at=EXCLUDED.updated_at""", map, minX, minZ, maxX, maxZ, Timestamp.from(now));
+    }
+
+    /** Limites dos mapas que alguma DLL já enviou (para a bolinha do boss no mapa). */
+    @Transactional(readOnly = true)
+    public List<MapBounds> mapBounds(MemberPrincipal actor) {
+        adminOrThrow(actor);
+        return jdbc.query("SELECT map_code,min_x,min_z,max_x,max_z FROM game_map_bounds ORDER BY map_code",
+            (r, n) -> new MapBounds(r.getInt("map_code"), r.getInt("min_x"), r.getInt("min_z"), r.getInt("max_x"), r.getInt("max_z")));
+    }
+
     /** Do mais novo ao mais antigo; before = id do último já mostrado (paginação). */
     @Transactional(readOnly = true)
     public List<Kill> kills(String boss, Long memberId, Long before, int limit, MemberPrincipal actor) {
@@ -229,14 +259,14 @@ public class PbHistoryService {
         if (memberId != null) { where.append(" AND EXISTS (SELECT 1 FROM pb_presence x WHERE x.kill_id=k.id AND x.member_id=?)"); args.add(memberId); }
         if (before != null) { where.append(" AND k.id<?"); args.add(before); }
         args.add(size);
-        record Row(long id, String boss, String label, String kind, String mapName, Instant first, Instant died, Integer minHp) {}
+        record Row(long id, String boss, String label, String kind, int mapCode, String mapName, int x, int z, Instant first, Instant died, Integer minHp) {}
         List<Row> rows = jdbc.query("""
-            SELECT k.id,k.boss_name,b.label,coalesce(b.kind,'EXTRA') AS kind,k.map_name,k.first_seen_at,k.died_at,k.min_hp
+            SELECT k.id,k.boss_name,b.label,coalesce(b.kind,'EXTRA') AS kind,k.map_code,k.map_name,k.x,k.z,k.first_seen_at,k.died_at,k.min_hp
             FROM pb_kill k LEFT JOIN pb_boss b ON b.name=k.boss_name
             """ + where + " ORDER BY k.id DESC LIMIT ?",
             (r, n) -> { Timestamp d = r.getTimestamp("died_at");
-                return new Row(r.getLong("id"), r.getString("boss_name"), r.getString("label"), r.getString("kind"), r.getString("map_name"),
-                    r.getTimestamp("first_seen_at").toInstant(), d == null ? null : d.toInstant(), (Integer) r.getObject("min_hp")); },
+                return new Row(r.getLong("id"), r.getString("boss_name"), r.getString("label"), r.getString("kind"), r.getInt("map_code"), r.getString("map_name"),
+                    r.getInt("x"), r.getInt("z"), r.getTimestamp("first_seen_at").toInstant(), d == null ? null : d.toInstant(), (Integer) r.getObject("min_hp")); },
             args.toArray());
         if (rows.isEmpty()) return List.of();
         Map<Long, List<Presence>> byKill = new HashMap<>();
@@ -247,7 +277,7 @@ public class PbHistoryService {
             r -> { byKill.computeIfAbsent(r.getLong("kill_id"), k -> new ArrayList<>()).add(new Presence(r.getLong("member_id"),
                 r.getString("nickname"), r.getTimestamp("first_seen_at").toInstant(), r.getTimestamp("last_seen_at").toInstant(),
                 r.getBoolean("present"))); });
-        return rows.stream().map(r -> new Kill(r.id(), r.boss(), r.label(), r.kind(), r.mapName(), r.first(), r.died(), r.minHp(),
+        return rows.stream().map(r -> new Kill(r.id(), r.boss(), r.label(), r.kind(), r.mapCode(), r.mapName(), r.x(), r.z(), r.first(), r.died(), r.minHp(),
             byKill.getOrDefault(r.id(), List.of()))).toList();
     }
 

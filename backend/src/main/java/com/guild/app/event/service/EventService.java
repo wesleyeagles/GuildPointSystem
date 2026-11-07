@@ -83,35 +83,45 @@ public class EventService {
 
     @Transactional
     public EventResponse claim(Long eventId, ClaimEventRequest request, MemberPrincipal actor) {
+        claimFor(eventId, request.password(), actor.getId(), false);
+        return toResponse(guildEventRepository.findById(eventId).orElseThrow(), actor.getId());
+    }
+
+    /**
+     * Resgate pelo membro {@code memberId} (o próprio membro: site ou DLL do jogo). Mesmas regras nos dois
+     * caminhos; {@code fromGame} só marca a origem no log.
+     */
+    @Transactional
+    public EventClaim claimFor(Long eventId, String password, Long memberId, boolean fromGame) {
         var event = guildEventRepository.findById(eventId)
                 .orElseThrow(() -> new AppException("Evento não encontrado.", HttpStatus.NOT_FOUND));
 
         if (!event.isActive() || event.getExpiresAt().isBefore(Instant.now())) {
             throw new AppException("Evento expirado", HttpStatus.BAD_REQUEST);
         }
-        if (!event.getPassword().equals(request.password())) {
+        if (!event.getPassword().equals(password)) {
             throw new AppException("Senha inválida", HttpStatus.BAD_REQUEST);
         }
 
         // Lock the member before the checks: concurrent claims by the same member (double click, or two
         // events of one LIMITADO objective) are serialized, so the daily cap can't be exceeded.
-        var member = memberRepository.findByIdForUpdate(actor.getId())
+        var member = memberRepository.findByIdForUpdate(memberId)
                 .orElseThrow(() -> new AppException("Membro não encontrado.", HttpStatus.NOT_FOUND));
 
-        if (eventClaimRepository.existsByEventIdAndMemberId(eventId, actor.getId())) {
+        if (eventClaimRepository.existsByEventIdAndMemberId(eventId, memberId)) {
             throw new AppException("Você já resgatou este evento", HttpStatus.CONFLICT);
         }
 
         var objective = event.getObjective();
         if (objective.getType() == ObjectiveType.LIMITADO) {
             long todayClaims = eventClaimRepository.countDailyClaims(
-                    actor.getId(), objective.getId());
+                    memberId, objective.getId());
             if (todayClaims >= objective.getDailyLimit()) {
                 throw new AppException("Limite diário deste objetivo atingido", HttpStatus.BAD_REQUEST);
             }
         }
 
-        var actorEntity = memberRepository.getReferenceById(actor.getId());
+        var actorEntity = member;
 
         pointsService.adjustPoints(member, actorEntity, objective.getPoints(), PointsModality.EVENTO, "Event claim");
 
@@ -122,15 +132,17 @@ public class EventService {
         claim.setPoints(objective.getPoints());
         claim = eventClaimRepository.save(claim);
 
-        auditLogService.log(AuditLogType.EVENT_CLAIMED, actorEntity, member, Map.of(
-                "claimId", claim.getId(),
-                "eventId", eventId,
-                "objectiveName", objective.getName(),
-                "points", objective.getPoints()));
+        var details = new java.util.LinkedHashMap<String, Object>();
+        details.put("claimId", claim.getId());
+        details.put("eventId", eventId);
+        details.put("objectiveName", objective.getName());
+        details.put("points", objective.getPoints());
+        if (fromGame) details.put("source", "GAME");
+        auditLogService.log(AuditLogType.EVENT_CLAIMED, actorEntity, member, details);
 
         // No /topic/events broadcast: a claim changes nothing in the event itself, and with hundreds of
         // members claiming at once every broadcast would fan out to every client. The log goes out instead.
-        return toResponse(event, actor.getId());
+        return claim;
     }
 
     @Transactional

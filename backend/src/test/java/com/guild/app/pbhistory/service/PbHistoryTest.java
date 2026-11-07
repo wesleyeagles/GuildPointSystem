@@ -156,4 +156,21 @@ class PbHistoryTest {
         assertThrows(AppException.class, () -> service.saveBoss("X", null, "EXTRA", as(aId)));
         assertThrows(AppException.class, () -> service.saveBoss("Ok Name", null, "OUTRO", as(adminId)));
     }
+
+    @Test void killHasMapAndPositionAndMapBoundsComeFromTheDll() throws Exception {
+        ok(aNick, alive(100));
+        var kill = service.kills(null, null, null, 10, as(adminId)).get(0);
+        assertEquals(1, kill.mapCode());
+        assertEquals(100, kill.x());
+        assertEquals(200, kill.z());
+
+        jdbc.update("DELETE FROM game_map_bounds WHERE map_code IN (1, 7)");
+        ok(aNick, "G\t-13570\t-11420\t14006\t18866\n");
+        ok(aNick, "G\t-13000\t-11000\t14000\t18000\n");          // o mais novo vale
+        send(aNick, 7, "G\t5\t5\t5\t9\nG\tx\t1\t2\t3\nG\t-40000\t0\t1\t1\n").andExpect(status().isOk());  // invalidos
+        var bounds = service.mapBounds(as(adminId)).stream().filter(b -> b.map() == 1 || b.map() == 7).toList();
+        assertEquals(1, bounds.size());
+        assertEquals(new PbHistoryService.MapBounds(1, -13000, -11000, 14000, 18000), bounds.get(0));
+        assertThrows(AppException.class, () -> service.mapBounds(as(aId)));
+    }
 }

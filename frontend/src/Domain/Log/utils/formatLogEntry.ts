@@ -137,7 +137,7 @@ export function formatLogDetails(log: AuditLogEntry): string {
     case 'EVENT_CREATED':
       return `${str(p.objectiveName)} · ${str(p.durationMinutes)} min`
     case 'EVENT_CLAIMED':
-      return `${str(p.objectiveName)} · +${str(p.points)} pts`
+      return `${str(p.objectiveName)} · +${str(p.points)} pts${p.source === 'GAME' ? ' · pelo jogo' : ''}`
     case 'EVENT_DENIED': {
       const reason = str(p.reason)
       const points = str(p.pointsReverted)

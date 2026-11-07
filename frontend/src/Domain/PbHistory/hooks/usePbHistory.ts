@@ -42,7 +42,12 @@ export interface PbKill {
   boss: string
   label: string | null
   kind: PbBossKind
+  /** Índice do mapa no jogo (o mesmo do mapa de recursos). */
+  mapCode: number
   mapName: string | null
+  /** Última posição em que foi visto, no mundo do jogo (X e Z). */
+  x: number
+  z: number
   firstSeenAt: string
   /** null = ninguém viu a morte (sumiu longe, ou ainda vivo). */
   diedAt: string | null
@@ -63,6 +68,17 @@ export const pbKeys = {
   overview: ['pb-history'] as const,
   kills: (boss: string, memberId: number | null) => ['pb-history', 'kills', boss, memberId] as const,
   attendance: (days: number) => ['pb-history', 'attendance', days] as const,
+  mapBounds: ['pb-history', 'map-bounds'] as const,
+}
+
+/** Limites de cada mapa que alguma DLL já enviou (bolinha do boss no mapa). */
+export function usePbMapBounds() {
+  return useQuery({
+    queryKey: pbKeys.mapBounds,
+    queryFn: () =>
+      apiClient<{ map: number; minX: number; minZ: number; maxX: number; maxZ: number }[]>('/pb-history/map-bounds'),
+    staleTime: 10 * 60_000,
+  })
 }
 
 export function usePbOverview() {
