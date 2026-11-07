@@ -129,7 +129,7 @@ export function ProfilePage() {
     try {
       await deleteMember.mutateAsync(profile.id)
       showToast(`Conta de ${profile.nickname} excluída.`, 'success')
-      navigate('/')
+      navigate('/dashboard')
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Não foi possível excluir a conta.', 'error')
       setConfirmDelete(false)
@@ -182,7 +182,7 @@ export function ProfilePage() {
   return (
     <div className="profile-page">
       {!isOwn && (
-        <Link to="/" className="profile-page__back">
+        <Link to="/dashboard" className="profile-page__back">
           ← Voltar ao ranking
         </Link>
       )}

@@ -417,3 +417,23 @@ export interface Page<T> {
   number: number
   size: number
 }
+
+export interface Phrase {
+  id: number
+  text: string
+  memberId: number | null
+  memberNickname: string | null
+  memberAvatarUrl: string | null
+  /** Linked member's nickname, or the name it was noted with. */
+  author: string | null
+  saidAt: string | null
+  votes: number
+  /** Nicknames of who voted, oldest vote first. */
+  voters: string[]
+}
+
+export interface PhraseBoard {
+  maxVotes: number
+  myVotes: number[]
+  phrases: Phrase[]
+}

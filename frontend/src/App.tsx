@@ -7,6 +7,7 @@ import { LoginPage } from '@/Features/Auth/LoginPage'
 import { RegisterPage } from '@/Features/Auth/RegisterPage'
 import { DiscordCallbackPage } from '@/Features/Auth/DiscordCallbackPage'
 import { DashboardPage } from '@/Features/Dashboard/Dashboard'
+import { PhrasesPage } from '@/Features/Phrases/Phrases'
 import { DonationPage } from '@/Features/Donation/Donation'
 import { LogsPage } from '@/Features/Logs/Logs'
 import { EventsPage } from '@/Features/Events/Events'
@@ -53,7 +54,9 @@ function App() {
 
           <Route element={<ProtectedRoute />}>
             <Route element={<Layout />}>
-              <Route index element={<DashboardPage />} />
+              {/* Home: votação das frases da guild. */}
+              <Route index element={<PhrasesPage />} />
+              <Route path="dashboard" element={<DashboardPage />} />
               <Route path="donate" element={<DonationPage />} />
               <Route path="logs" element={<LogsPage />} />
               <Route path="objectives" element={<Navigate to="/events?tab=objectives" replace />} />

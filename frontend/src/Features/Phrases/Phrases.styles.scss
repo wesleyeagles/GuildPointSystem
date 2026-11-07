@@ -1,0 +1,256 @@
+// ── Home: frases da guild (pódio + votação) ─────────────────────────────────
+$bronze: #c27c4a;
+
+.phrases {
+  display: flex;
+  flex-direction: column;
+  gap: theme.$spacing-lg;
+
+  &__empty {
+    color: theme.$color-text-muted;
+    font-size: theme.$font-size-base;
+    text-align: center;
+    padding: theme.$spacing-lg;
+  }
+
+  // ── Podium ──
+  &__podium {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: end;
+    gap: theme.$spacing-md;
+    padding-top: theme.$spacing-md;
+  }
+
+  &__step {
+    display: flex;
+    flex-direction: column;
+    gap: theme.$spacing-sm;
+    min-width: 0;
+
+    --step-color: #{theme.$color-silver};
+    --step-height: 70px;
+
+    &--1 {
+      --step-color: #{theme.$color-gold};
+      --step-height: 110px;
+    }
+
+    &--3 {
+      --step-color: #{$bronze};
+      --step-height: 45px;
+    }
+  }
+
+  &__step-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    text-align: center;
+    padding: theme.$spacing-sm;
+    border: 1px solid var(--step-color);
+    background: rgba(0, 0, 0, 0.35);
+  }
+
+  &__medal {
+    font-size: 2rem;
+    line-height: 1;
+  }
+
+  &__step-text {
+    margin: 0;
+    font-size: theme.$font-size-ui;
+    color: theme.$color-text;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
+
+  &__step-author {
+    color: var(--step-color);
+    font-family: theme.$font-heading;
+    text-transform: uppercase;
+    font-size: theme.$font-size-base;
+  }
+
+  &__step-votes {
+    color: theme.$color-text-muted;
+    font-family: theme.$font-mono;
+    font-size: theme.$font-size-base;
+  }
+
+  &__step-base {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: var(--step-height);
+    background: linear-gradient(180deg, var(--step-color), rgba(0, 0, 0, 0.4));
+    color: theme.$metal-950;
+    font-family: theme.$font-heading;
+    font-size: theme.$font-size-heading;
+    font-weight: 700;
+  }
+
+  // ── List ──
+  &__toolbar {
+    display: flex;
+    align-items: center;
+    gap: theme.$spacing-md;
+  }
+
+  &__votes-left {
+    font-family: theme.$font-mono;
+    font-size: theme.$font-size-base;
+    color: theme.$color-primary;
+
+    &--out {
+      color: theme.$color-amber;
+    }
+  }
+
+  &__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: theme.$spacing-sm;
+  }
+
+  &__card {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: theme.$spacing-md;
+    align-items: center;
+    padding: theme.$spacing-sm theme.$spacing-md;
+    border: 1px solid theme.$color-border;
+    background: rgba(0, 0, 0, 0.25);
+    transition: border-color 0.15s;
+
+    &--voted {
+      border-color: rgba(theme.$color-primary, 0.6);
+      background: rgba(theme.$color-primary, 0.06);
+    }
+  }
+
+  &__number {
+    font-family: theme.$font-mono;
+    color: theme.$color-text-faint;
+    font-size: theme.$font-size-base;
+    min-width: 2.5em;
+  }
+
+  &__body {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  &__text {
+    margin: 0;
+    font-size: theme.$font-size-ui;
+    color: theme.$color-text;
+    overflow-wrap: anywhere;
+  }
+
+  &__meta,
+  &__voters {
+    margin: 0;
+    font-size: theme.$font-size-base;
+    color: theme.$color-text-muted;
+  }
+
+  &__voters {
+    color: theme.$color-text-faint;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__author {
+    color: theme.$color-amber;
+    font-weight: 600;
+
+    &--unlinked {
+      color: theme.$color-text-muted;
+      font-style: italic;
+    }
+  }
+
+  &__warn {
+    color: theme.$color-warning;
+  }
+
+  &__side {
+    display: flex;
+    align-items: center;
+    gap: theme.$spacing-sm;
+  }
+
+  &__count {
+    font-family: theme.$font-mono;
+    color: theme.$color-text;
+    min-width: 5em;
+    text-align: right;
+  }
+
+  &__admin {
+    display: flex;
+    gap: 4px;
+  }
+
+  @media (max-width: theme.$mobile-breakpoint) {
+    &__podium {
+      gap: theme.$spacing-xs;
+    }
+
+    &__card {
+      grid-template-columns: auto minmax(0, 1fr);
+    }
+
+    &__side {
+      grid-column: 1 / -1;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+    }
+  }
+}
+
+.phrase-editor {
+  max-width: 560px;
+  width: 100%;
+
+  &__body {
+    display: flex;
+    flex-direction: column;
+    gap: theme.$spacing-md;
+  }
+
+  &__field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    > span { @include theme.field-label; }
+
+    > input,
+    > select {
+      @include theme.field-input;
+      @include theme.field-control-height;
+    }
+
+    > textarea {
+      @include theme.field-input;
+      resize: vertical;
+      font-family: inherit;
+      padding: theme.$spacing-sm;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: theme.$spacing-sm;
+  }
+}
