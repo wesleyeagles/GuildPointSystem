@@ -80,18 +80,24 @@ public class MemberRosterService {
                     .max(Comparator.naturalOrder()).orElse(null);
             boolean online = last != null && last.getObservedAt().isAfter(now.minus(ONLINE));
             boolean located = online && last.getLocationAt() != null && last.getLocationAt().isAfter(now.minus(ONLINE));
-            Instant still = located ? (last.getStillSince() != null ? last.getStillSince() : last.getLocationAt()) : null;
+            // Parado = mesma coordenada e sem EXP; sem coordenada (DLL antiga) fica -1 e nunca vira AFK.
+            Instant still = located ? last.idleSince() : null;
             rows.add(new Row(m.getNickname(), online,
                     located ? last.getMapName() : null,
                     located ? last.getRegionName() : null,
                     ago(still, now), last == null ? -1 : ago(last.getObservedAt(), now), ago(expAt, now)));
         }
         // Online primeiro (por nome); depois quem foi visto ha menos tempo; nunca visto por ultimo.
-        rows.sort(Comparator.comparing((Row r) -> !r.online())
-                .thenComparingLong(r -> r.online() ? 0 : (r.seenSeconds() < 0 ? Long.MAX_VALUE : r.seenSeconds()))
-                .thenComparing(Row::nick, String.CASE_INSENSITIVE_ORDER));
+        rows.sort(ORDER);
+        // Mesmo nick em duas contas (conta compartilhada): uma linha so, a primeira na ordem (online / mais recente).
+        var seen = new java.util.HashSet<String>();
+        rows.removeIf(r -> !seen.add(r.nick().toLowerCase(java.util.Locale.ROOT)));
         return List.copyOf(rows);
     }
+
+    private static final Comparator<Row> ORDER = Comparator.comparing((Row r) -> !r.online())
+                .thenComparingLong(r -> r.online() ? 0 : (r.seenSeconds() < 0 ? Long.MAX_VALUE : r.seenSeconds()))
+                .thenComparing(Row::nick, String.CASE_INSENSITIVE_ORDER);
 
     private static long ago(Instant at, Instant now) {
         return at == null ? -1 : Math.max(0, Duration.between(at, now).getSeconds());

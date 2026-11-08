@@ -70,8 +70,9 @@ export function PartyLocationPointsModal({ onClose, variant = 'party', tabs }: P
     const id = window.setInterval(() => setNow(Date.now()), 1000)
     return () => window.clearInterval(id)
   }, [rg])
+  // -1 = sem coordenada (DLL antes da 1.26.2): não dá para saber se está parado, nunca vira AFK.
   const stillFor = (m: (typeof matches)[number]) =>
-    m.stillSeconds + Math.max(0, (now - preview.dataUpdatedAt) / 1000)
+    m.stillSeconds < 0 ? -1 : m.stillSeconds + Math.max(0, (now - preview.dataUpdatedAt) / 1000)
   const isAfk = (m: (typeof matches)[number]) => rg && stillFor(m) > AFK_SECONDS
 
   // AFK sai desmarcado; o moderador pode marcar de volta (vale só para aquela coordenada).
@@ -225,11 +226,10 @@ export function PartyLocationPointsModal({ onClose, variant = 'party', tabs }: P
                       </span>
                       <span className="party-location-points__where">
                         {[m.region, mapLabel(m.map)].filter(Boolean).join(' · ')}
-                          {m.mapX != null && m.mapY != null ? ` (${m.mapX}, ${m.mapY})` : ''}
                       </span>
                       {rg && (
-                        <span className="party-location-points__still" title="Tempo parado nessa coordenada">
-                          {formatStill(stillFor(m))}
+                        <span className="party-location-points__still" title="Tempo parado no mesmo lugar e sem ganhar EXP">
+                          {stillFor(m) < 0 ? '—' : formatStill(stillFor(m))}
                         </span>
                       )}
                       {isAfk(m) && <span className="party-location-points__afk">AFK</span>}

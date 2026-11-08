@@ -149,6 +149,23 @@ class LocationPointsServiceTest {
         assertTrue(stillSeconds(elsewhere) < 5);
     }
 
+    @Test void withoutCoordinatesItIsNeverAfk() {
+        long charGid = gid++;
+        statusService.ingest(new CharacterStatusIngestRequest(charGid, nick(elsewhere), 50, 1f, 10, 10, 1, 1, 1, 1,
+                "Coldron Volcanic Area", "Evil Horn", null, null), "1.26.1");
+        assertEquals(-1, stillSeconds(elsewhere));  // DLL sem X/Y: so a regiao nao diz se esta parado
+    }
+
+    @Test void gainingExpInPlaceIsNotIdle() {
+        long charGid = gid++;
+        send(charGid, elsewhere, 10, 20);
+        jdbc.update("UPDATE character_status SET still_since = now() - interval '5 minutes' WHERE gid=?", charGid);
+        em.clear();
+        statusService.ingest(new CharacterStatusIngestRequest(charGid, nick(elsewhere), 50, 2f, 10, 10, 1, 1, 1, 1,
+                "Coldron Volcanic Area", "Evil Horn", 10, 20), "1.26.2");  // mesma coordenada, mas ganhou EXP
+        assertTrue(stillSeconds(elsewhere) < 5);
+    }
+
     @Test void membersCannotUseIt() {
         loginAs(notInQueue);
         assertThrows(AppException.class, () -> service.locations());

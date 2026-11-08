@@ -103,6 +103,23 @@ class MemberRosterTest {
         assertTrue(body.indexOf(offline + "\t") < body.indexOf(never + "\t"));
     }
 
+    @Test void sameNickTwiceIsListedOnce() throws Exception {
+        String twin = tag + "Twin";
+        jdbc.update("INSERT INTO member(nickname,role,status,profile_complete) VALUES(?,?,?,true)", twin, "MEMBRO", "APROVADO");
+        jdbc.update("INSERT INTO member(nickname,role,status,profile_complete) VALUES(?,?,?,true)", twin, "MEMBRO", "APROVADO");
+        send(gid++, twin, 50, 10f);
+        String body = roster(admin);
+        assertEquals(1, Arrays.stream(body.split("\n")).filter(l -> l.startsWith(twin + "\t")).count());
+        assertEquals("1", line(body, twin)[1]);  // fica a linha online
+    }
+
+    @Test void oldDllWithoutCoordinatesIsNeverAfk() throws Exception {
+        String old = member("MEMBRO", "APROVADO");
+        statusService.ingest(new CharacterStatusIngestRequest(gid++, old, 50, 1f, 10, 10, 1, 1, 1, 1,
+                "Cora HQ", "Cora HQ", null, null), "1.25.0");
+        assertEquals("-1", line(roster(admin), old)[4]);
+    }
+
     @Test void deathDoesNotCountAsExp() throws Exception {
         long g = gid++;
         String dead = member("MEMBRO", "APROVADO");

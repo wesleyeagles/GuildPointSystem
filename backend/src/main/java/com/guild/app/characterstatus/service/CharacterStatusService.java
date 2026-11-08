@@ -102,13 +102,16 @@ public class CharacterStatusService {
         boolean known = map != null || region != null;
         Integer x = known ? request.mapX() : null;
         Integer y = known ? request.mapY() : null;
-        boolean samePlace = known
+        // So conta "parado" com coordenada: sem X/Y (DLL antes da 1.26.2) seria so "na mesma regiao", e quem
+        // anda e mata mob pela regiao inteira viraria AFK.
+        boolean coords = known && x != null && y != null;
+        boolean samePlace = coords
                 && status.getStillSince() != null
                 && Objects.equals(map, status.getMapName())
                 && Objects.equals(region, status.getRegionName())
                 && Objects.equals(x, status.getMapX())
                 && Objects.equals(y, status.getMapY());
-        if (!samePlace) status.setStillSince(known ? now : null);
+        if (!samePlace) status.setStillSince(coords ? now : null);
         status.setMapName(map);
         status.setRegionName(region);
         status.setMapX(known ? request.mapX() : null);

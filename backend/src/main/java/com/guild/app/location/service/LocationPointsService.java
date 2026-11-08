@@ -169,10 +169,10 @@ public class LocationPointsService {
         return latest;
     }
 
-    /** Linhas de antes da coluna still_since contam a partir do ultimo envio. */
+    /** Segundos sem fazer nada (parado e sem EXP); -1 = nao da para saber (DLL sem coordenada): nunca AFK. */
     private static long stillSeconds(CharacterStatus s, Instant now) {
-        Instant since = s.getStillSince() != null ? s.getStillSince() : s.getLocationAt();
-        return since == null ? 0 : Math.max(0, Duration.between(since, now).getSeconds());
+        Instant since = s.idleSince();
+        return since == null ? -1 : Math.max(0, Duration.between(since, now).getSeconds());
     }
 
     private static String placeLabel(String map, String region) {

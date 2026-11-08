@@ -76,7 +76,7 @@ public class CharacterStatus {
     @Column(name = "location_at")
     private Instant locationAt;
 
-    /** Desde quando esta na mesma coordenada (mapa, regiao e X/Y). Null = sem local. */
+    /** Desde quando esta na mesma coordenada (mapa, regiao e X/Y). Null = sem local ou sem X/Y (DLL antiga). */
     @Column(name = "still_since")
     private Instant stillSince;
 
@@ -90,4 +90,13 @@ public class CharacterStatus {
 
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt = Instant.now();
+
+    /**
+     * Desde quando esta sem fazer nada: parado na mesma coordenada E sem ganhar EXP (quem mata parado no
+     * lugar nao e AFK). Null = nao da para saber (sem coordenada).
+     */
+    public Instant idleSince() {
+        if (stillSince == null) return null;
+        return expGainedAt != null && expGainedAt.isAfter(stillSince) ? expGainedAt : stillSince;
+    }
 }
