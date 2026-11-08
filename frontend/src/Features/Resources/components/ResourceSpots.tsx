@@ -1,7 +1,7 @@
 import { mapPoint, TIER_LABEL, type ResourceMapScale } from '@/Domain/Resource/hooks/useResources'
 import type { SpawnSpot } from '@/Domain/Resource/spawnSpots'
 
-const tierKey = (tier: number | null) => (tier && tier >= 1 && tier <= 3 ? String(tier) : 'u')
+const tierKey = (tier: number | null) => (tier && tier >= 1 && tier <= 4 ? String(tier) : 'u')
 const LIST = 40
 
 function when(ms: number) {

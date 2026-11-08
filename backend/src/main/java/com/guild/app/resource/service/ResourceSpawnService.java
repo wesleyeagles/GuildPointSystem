@@ -58,7 +58,7 @@ public class ResourceSpawnService {
 
     public record View(int areaW, int areaH, int offX, int offY, int minX, int maxZ, double scaleX, double scaleY) {}
     public record MapView(int code, String name, View view) {}
-    /** tier: 1..3, 0 = não é recurso (ignorado), null = desconhecido (a liderança ainda não escolheu). */
+    /** tier: 1..3 = grau, 4 = Tower Rift Metal, 0 = não é recurso (ignorado), null = desconhecido (a liderança ainda não escolheu). */
     public record MobView(String name, int map, Integer tier, long spawns, Instant firstSeenAt) {}
     public record Tracker(Long id, String nickname) {}
     /** canView = canConfigure: a página do site é só de Administrador+. */
@@ -340,11 +340,11 @@ public class ResourceSpawnService {
         return overview(actor);
     }
 
-    /** Administrador+: grau de um mob (1..3) ou 0 = não é recurso. */
+    /** Administrador+: grau de um mob (1..3), 4 = Tower Rift Metal ou 0 = não é recurso. */
     @Transactional
     public Overview setTier(String name, int tier, MemberPrincipal actor) {
         Member member = configurerOrThrow(actor);
-        if (tier < 0 || tier > 3) throw new AppException("Grau inválido.", HttpStatus.BAD_REQUEST);
+        if (tier < 0 || tier > 4) throw new AppException("Grau inválido.", HttpStatus.BAD_REQUEST);
         if (jdbc.update("UPDATE resource_mob SET tier=? WHERE name=?", tier, name) == 0)
             throw new AppException("Mob não encontrado", HttpStatus.NOT_FOUND);
         audit.log(AuditLogType.RESOURCE_MOB_UPDATED, member, member, Map.of("name", name, "tier", tier));

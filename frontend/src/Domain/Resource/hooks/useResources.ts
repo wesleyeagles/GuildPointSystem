@@ -29,7 +29,7 @@ export interface ResourceMap {
   view: ResourceMapScale | null
 }
 
-/** tier 1..3 = grau; 0 = não é recurso (ignorado); null = desconhecido (a liderança ainda não escolheu). */
+/** tier 1..3 = grau; 4 = Tower Rift Metal; 0 = não é recurso (ignorado); null = desconhecido (a liderança ainda não escolheu). */
 export interface ResourceMob {
   name: string
   map: number
@@ -135,7 +135,8 @@ export function mapPoint(view: ResourceMapScale, x: number, z: number) {
   return { px, py }
 }
 
-export const TIER_LABEL: Record<number, string> = { 1: 'Grau 1', 2: 'Grau 2', 3: 'Grau 3' }
+/** 4 = Tower Rift Metal (Crag Mind Field): rastreado como recurso, com categoria própria. */
+export const TIER_LABEL: Record<number, string> = { 1: 'Grau 1', 2: 'Grau 2', 3: 'Grau 3', 4: 'Tower Rift Metal' }
 
 /** Estatística de respawn de um grau num mapa (ver ResourceSpawnService.stats). */
 export interface ResourceTierStats {

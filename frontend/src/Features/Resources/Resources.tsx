@@ -22,14 +22,16 @@ import { groupSpawnSpots, type SpawnSpot } from '@/Domain/Resource/spawnSpots'
 import './Resources.styles.scss'
 
 /** Grau -> chave das cores (iguais às bolinhas do mapa no jogo); null = desconhecido. */
-const tierKey = (tier: number | null) => (tier && tier >= 1 && tier <= 3 ? String(tier) : 'u')
+/** 1..3 = grau, 4 = Tower Rift Metal (Crag Mind Field); null/0 = desconhecido. */
+const tierKey = (tier: number | null) => (tier && tier >= 1 && tier <= 4 ? String(tier) : 'u')
 const TIERS: { key: string; label: string }[] = [
   { key: '1', label: TIER_LABEL[1] },
   { key: '2', label: TIER_LABEL[2] },
   { key: '3', label: TIER_LABEL[3] },
+  { key: '4', label: TIER_LABEL[4] },
   { key: 'u', label: 'Desconhecido' },
 ]
-const RADIUS: Record<string, number> = { '1': 2.2, '2': 3.6, '3': 5.5, u: 3.6 }
+const RADIUS: Record<string, number> = { '1': 2.2, '2': 3.6, '3': 5.5, '4': 4.4, u: 3.6 }
 const PERIODS = [
   { key: 'all', label: 'Tudo', ms: 0 },
   { key: '1d', label: '24 horas', ms: 86_400_000 },
@@ -81,7 +83,7 @@ export function ResourcesPage() {
 
 function ResourceMapPanel({ map }: { map: ResourceMap }) {
   const { data: spawns = [], isLoading } = useResourceSpawns(map.code, true)
-  const [shown, setShown] = useState<Record<string, boolean>>({ '1': true, '2': true, '3': true, u: true })
+  const [shown, setShown] = useState<Record<string, boolean>>({ '1': true, '2': true, '3': true, '4': true, u: true })
   const [period, setPeriod] = useState('all')
   // Mouse em cima (no mapa ou na lista): só destaca o ponto no mapa. Clique: abre os detalhes ao lado.
   const [hover, setHover] = useState<ResourceSpawn | null>(null)
@@ -94,7 +96,7 @@ function ResourceMapPanel({ map }: { map: ResourceMap }) {
   const [spotSelected, setSpotSelected] = useState<SpawnSpot | null>(null)
 
   const counts = useMemo(() => {
-    const c: Record<string, number> = { '1': 0, '2': 0, '3': 0, u: 0 }
+    const c: Record<string, number> = { '1': 0, '2': 0, '3': 0, '4': 0, u: 0 }
     for (const s of spawns) c[tierKey(s.tier)]++
     return c
   }, [spawns])

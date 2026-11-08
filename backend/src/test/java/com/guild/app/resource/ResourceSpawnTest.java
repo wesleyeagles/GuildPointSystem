@@ -110,6 +110,14 @@ class ResourceSpawnTest {
         assertTrue(ok(viewerNick, 11, 0, "").contains("\t3\t4\t3\t"));
     }
 
+    @Test void towerRiftMetalGoesToTheGameAsTier4() throws Exception {
+        ok(senderNick, 2, 0, "S\t" + serial + "\t-700\t-1800\tTower Rift Metal\n");
+        String reply = ok(viewerNick, 2, 0, "");
+        assertTrue(reply.contains("\t-700\t-1800\t4\t") && reply.contains("Tower Rift Metal"), reply);
+        assertEquals(4, service.spawns(2, as(adminId)).get(0).tier());
+        assertThrows(AppException.class, () -> service.setTier("Tower Rift Metal", 5, as(adminId)));
+    }
+
     @Test void incrementalDotsAfterSince() throws Exception {
         ok(senderNick, 10, 0, "S\t" + serial + "\t1\t1\tIcy Flower\n");
         String first = ok(viewerNick, 10, 0, "");
