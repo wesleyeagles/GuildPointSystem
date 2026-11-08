@@ -30,6 +30,7 @@ const NAV_ITEMS = [
   { to: '/', label: 'Frases' },
   { to: '/dashboard', label: 'Dashboard' },
   { to: '/events', label: 'Eventos' },
+  { to: '/cw', label: 'CW' },
   { to: '/party', label: 'Party' },
   { to: '/raid', label: 'Raid' },
   { to: '/equipment', label: 'Equipamentos' },

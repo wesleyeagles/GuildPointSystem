@@ -1,10 +1,13 @@
 package com.guild.app.cw;
 
 import com.guild.app.auth.security.MemberPrincipal;
+import com.guild.app.characterstatus.dto.CharacterStatusIngestRequest;
+import com.guild.app.characterstatus.service.CharacterStatusService;
 import com.guild.app.common.exception.AppException;
 import com.guild.app.cw.service.CwAttendanceService;
 import com.guild.app.member.repository.MemberRepository;
 import com.guild.app.websocket.WebSocketPublisher;
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -17,10 +20,8 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Clock;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.ZoneOffset;
+import java.sql.Timestamp;
+import java.time.*;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -30,95 +31,179 @@ import static org.junit.jupiter.api.Assertions.*;
 @Transactional
 class CwAttendanceTest {
     @Autowired CwAttendanceService service;
+    @Autowired CharacterStatusService statusService;
     @Autowired MemberRepository members;
     @Autowired JdbcTemplate jdbc;
+    @Autowired EntityManager em;
     @MockitoBean WebSocketPublisher ws;
 
     static final String CRAG = "Crag Mind Field";
-    /** 14:00 em Moscou (UTC+3): começo da CW2. */
+    static final String END = "[631] : Due to the result of Chip War, Contribution Point has 0 changed.";
+    /** 14:00 em Moscou (UTC+3) de 08/11/2026: começo da CW2 (não é dia de PB Major). */
     final Instant t0 = Instant.parse("2026-11-08T11:00:00Z");
-    long a, admin;
+    long a, b, c, admin;
+    long gid = 5000;
 
     long member(String role) {
         return jdbc.queryForObject("INSERT INTO member(nickname,role,status,profile_complete) VALUES(?,?,'APROVADO',true) RETURNING id",
                 Long.class, "Cw" + UUID.randomUUID().toString().replace("-", "").substring(0, 8), role);
     }
+    String nick(long id) { return members.findById(id).orElseThrow().getNickname(); }
+    long points(long id) { em.flush(); return jdbc.queryForObject("SELECT points FROM member WHERE id=?", Long.class, id); }
     void loginAs(long id) {
         var p = new MemberPrincipal(members.findById(id).orElseThrow());
         SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(p, null, p.getAuthorities()));
     }
-    Instant at(int seconds) { return t0.plusSeconds(seconds); }
-    /** Andando: parado desde agora. */
-    void moving(int seconds, String map) { service.record(a, "Fulano", map, at(seconds), at(seconds)); }
-    int[] times() {
-        return jdbc.queryForObject("SELECT active_seconds, afk_seconds FROM cw_attendance WHERE member_id=?",
-                (r, n) -> new int[]{r.getInt(1), r.getInt(2)}, a);
+    void clock(Instant at) { service.useClock(Clock.fixed(at, ZoneOffset.UTC)); }
+    Instant at(Instant base, int seconds) { return base.plusSeconds(seconds); }
+    /** Envios a cada 60 s, de {@code from} a {@code to} segundos depois de {@code base}, andando (parado desde agora). */
+    void walk(long id, Instant base, int from, int to, String map) {
+        for (int s = from; s <= to; s += 60) service.record(id, nick(id), map, at(base, s), at(base, s));
+    }
+    void objective(String name, long points) {
+        jdbc.update("INSERT INTO objective(name,points,type,created_by_id) VALUES(?,?,'NORMAL',?)", name, points, admin);
     }
 
     @BeforeEach void setup() {
-        jdbc.update("DELETE FROM cw_attendance");
+        jdbc.update("DELETE FROM cw_award");
+        jdbc.update("DELETE FROM cw_session");
+        jdbc.update("DELETE FROM cw_sample");
         a = member("MEMBRO");
+        b = member("MEMBRO");
+        c = member("MEMBRO");
         admin = member("ADMINISTRADOR");
-        service.useClock(Clock.fixed(at(3600), ZoneOffset.UTC));
+        objective("CW", 15);
+        objective("CW Major", 30);
     }
     @AfterEach void clear() {
         SecurityContextHolder.clearContext();
         service.useClock(Clock.systemUTC());
     }
 
-    @Test void windowsAreServerTime() {
+    @Test void windowsAreServerTimeAndPbMajorEveryFourDays() {
         assertEquals(2, CwAttendanceService.slotAt(t0).orElseThrow().window().slot());
         assertTrue(CwAttendanceService.slotAt(t0.minusSeconds(1)).isEmpty());                    // 13:59 Moscou
-        assertEquals(1, CwAttendanceService.slotAt(Instant.parse("2026-11-08T04:59:00Z")).orElseThrow().window().slot());
         var cw3 = CwAttendanceService.slotAt(Instant.parse("2026-11-08T20:59:00Z")).orElseThrow();  // 23:59 Moscou
         assertEquals(3, cw3.window().slot());
         assertEquals(LocalDate.of(2026, 11, 8), cw3.date());
-        assertEquals(Instant.parse("2026-11-08T21:00:00Z"), cw3.endsAt());
-        assertTrue(CwAttendanceService.slotAt(Instant.parse("2026-11-08T21:00:00Z")).isEmpty());   // 00:00 Moscou
+        assertFalse(cw3.major());
+        assertTrue(CwAttendanceService.Slot.of(LocalDate.of(2026, 11, 10), 1).major());           // 27/09 + 44 dias
+        assertTrue(CwAttendanceService.Slot.of(LocalDate.of(2026, 11, 10), 3).major());
+        assertFalse(CwAttendanceService.Slot.of(LocalDate.of(2026, 11, 11), 2).major());
     }
 
-    @Test void countsTimeBetweenSendsInTheMap() {
-        moving(0, CRAG);
-        moving(60, CRAG);
-        moving(120, CRAG);
-        assertArrayEquals(new int[]{120, 0}, times());
-    }
+    @Test void cwPointsGoToWhoStayed60PercentWithoutAfk() {
+        walk(a, t0, -120, 1260, CRAG);                     // a CW inteira (20 min) andando
+        walk(b, t0, 0, 600, CRAG);                         // só metade
+        for (int s = -120; s <= 1260; s += 60) service.record(c, nick(c), CRAG, t0.minusSeconds(120), at(t0, s));  // parado: AFK
+        long before = points(a);
 
-    @Test void afkTimeIsSeparate() {
-        for (int s = 0; s <= 300; s += 60) service.record(a, "Fulano", CRAG, at(0), at(s));   // parado desde 0
-        // 0-180 s ainda não é AFK (3 min); 240 e 300 chegam com mais de 3 min parado.
-        assertArrayEquals(new int[]{180, 120}, times());
-    }
+        clock(at(t0, 200));
+        service.gameEnded(nick(b), END);                   // menos de 5 min: aviso atrasado da CW anterior, ignora
+        clock(at(t0, 1200));
+        assertTrue(service.gameEnded(nick(b), END));
+        assertFalse(service.gameEnded(nick(a), END));     // já fechada
+        clock(at(t0, 1260));
+        service.tick();                                    // ainda esperando os últimos envios
+        assertEquals(before, points(a));
+        clock(at(t0, 1330));
+        service.tick();
+        service.tick();                                    // não pontua duas vezes
+        assertEquals(before + 15, points(a));
+        assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM event_claim WHERE member_id=?", Integer.class, a));
+        assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM cw_award WHERE member_id IN (?,?)", Integer.class, b, c));
 
-    @Test void timeOutsideTheMapAndLongGapsDoNotCount() {
-        moving(0, CRAG);
-        moving(60, "Cora HQ");       // voltou para a base
-        moving(120, CRAG);           // 60-120 foi fora: não conta
-        moving(180, CRAG);           // conta 60
-        moving(500, CRAG);           // 320 s sem envio (DLL fechou?): não conta
-        moving(560, CRAG);           // conta 60
-        assertArrayEquals(new int[]{120, 0}, times());
-        assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM cw_attendance WHERE member_id=? AND NOT in_map", Integer.class, a));
-    }
-
-    @Test void outsideTheCwNothingIsRecorded() {
-        service.record(a, "Fulano", CRAG, null, t0.minusSeconds(60));
-        assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM cw_attendance", Integer.class));
-    }
-
-    @Test void overviewIsForAdministrators() {
-        moving(0, CRAG);
-        moving(60, CRAG);
-        loginAs(a);
-        assertThrows(AppException.class, () -> service.overview(7));
+        loginAs(c);                                        // qualquer membro vê a tabela; só Admin marca o fim
+        assertFalse(service.overview(7).canManage());
         loginAs(admin);
-        var overview = service.overview(7);
-        assertEquals(1, overview.cws().size());
-        var cw = overview.cws().get(0);
+        assertTrue(service.overview(7).canManage());
+        var cw = service.overview(7).cws().get(0);
         assertEquals("CW2", cw.label());
-        assertEquals(t0, cw.startsAt());
-        assertEquals(1, cw.members().size());
-        assertEquals(60, cw.members().get(0).activeSeconds());
-        assertEquals(at(60), cw.members().get(0).lastSeenAt());
+        assertEquals(at(t0, 1200), cw.endedAt());
+        assertEquals("GAME", cw.endSource());
+        assertEquals("CW", cw.objectiveName());
+        var rowA = cw.members().stream().filter(m -> m.memberId() == a).findFirst().orElseThrow();
+        assertEquals(1200, rowA.activeSeconds());
+        assertEquals(100, rowA.percent());
+        assertTrue(rowA.awarded());
+        var rowB = cw.members().stream().filter(m -> m.memberId() == b).findFirst().orElseThrow();
+        assertEquals(50, rowB.percent());
+        var rowC = cw.members().stream().filter(m -> m.memberId() == c).findFirst().orElseThrow();
+        assertEquals(0, rowC.activeSeconds());
+        assertEquals(1200, rowC.afkSeconds());
+    }
+
+    @Test void pbMajorDayGivesCwMajor() {
+        Instant major = Instant.parse("2026-11-10T03:00:00Z");   // CW1 de 10/11 (00:00 em Brasília)
+        walk(a, major, -60, 900, CRAG);
+        clock(at(major, 900));
+        assertTrue(service.gameEnded(nick(a), END));
+        long before = points(a);
+        clock(at(major, 1100));
+        service.tick();
+        assertEquals(before + 30, points(a));
+    }
+
+    @Test void afkCountsFromTheMomentItStoppedAndTimeOutsideDoesNot() {
+        walk(a, t0, -60, 300, CRAG);
+        for (int s = 360; s <= 780; s += 60) service.record(a, nick(a), CRAG, at(t0, 300), at(t0, s));  // parou em 300
+        walk(a, t0, 840, 840, "Cora HQ");                                                            // voltou para a base
+        walk(a, t0, 900, 1200, CRAG);
+        clock(at(t0, 1200));
+        loginAs(admin);
+        var row = service.overview(1).cws().get(0).members().get(0);
+        // 0-300 andando + 300-360 (o envio de 360 ainda não é AFK, mas o trecho parado vai todo para AFK)
+        // 360-780 AFK; 780-900 fora (Cora); 900-1200 andando.
+        assertEquals(600, row.activeSeconds());
+        assertEquals(480, row.afkSeconds());
+    }
+
+    @Test void inTheCwAfkIsOneMinuteThirty() {
+        walk(a, t0, -60, 300, CRAG);
+        service.record(a, nick(a), CRAG, at(t0, 300), at(t0, 360));   // 60 s parado: ainda não
+        service.record(a, nick(a), CRAG, at(t0, 300), at(t0, 420));   // 120 s parado: AFK desde 300
+        walk(a, t0, 480, 600, CRAG);
+        clock(at(t0, 600));
+        loginAs(admin);
+        var row = service.overview(1).cws().get(0).members().get(0);
+        assertEquals(480, row.activeSeconds());   // 0-300 e 420-600
+        assertEquals(120, row.afkSeconds());      // 300-420
+    }
+
+    @Test void preBonusTenMinutesBeforeForWhoIsInCrag() {
+        statusService.ingest(new CharacterStatusIngestRequest(gid++, nick(a), 50, 1f, 10, 10, 1, 1, 1, 1, CRAG, "Mine", 10, 10), "1.27.1");
+        statusService.ingest(new CharacterStatusIngestRequest(gid++, nick(b), 50, 1f, 10, 10, 1, 1, 1, 1, "Cora HQ", "Cora HQ", 10, 10), "1.27.1");
+        Instant bonus = t0.minus(Duration.ofMinutes(10));
+        jdbc.update("UPDATE character_status SET location_at=? WHERE member_id IN (?,?)", Timestamp.from(bonus.minusSeconds(40)), a, b);
+        long beforeA = points(a), beforeB = points(b);
+        clock(bonus.plusSeconds(10));
+        service.tick();
+        service.tick();
+        assertEquals(beforeA + 2, points(a));
+        assertEquals(beforeB, points(b));
+    }
+
+    @Test void withoutEndMessageAnAdministratorEndsIt() {
+        walk(a, t0, -60, 900, CRAG);
+        clock(Instant.parse("2026-11-08T14:00:30Z"));       // 17:00:30 Moscou: janela da CW2 acabou
+        service.tick();
+        loginAs(admin);
+        var cw = service.overview(1).cws().get(0);
+        assertTrue(cw.closed());
+        assertNull(cw.awardedAt());
+        loginAs(a);
+        assertThrows(AppException.class, () -> service.adminEnd(LocalDate.of(2026, 11, 8), 2, at(t0, 900), 1));
+        loginAs(admin);
+        long before = points(a);
+        service.adminEnd(LocalDate.of(2026, 11, 8), 2, at(t0, 900), 1);
+        service.tick();
+        assertEquals(before + 15, points(a));
+        assertThrows(AppException.class, () -> service.adminEnd(LocalDate.of(2026, 11, 8), 2, at(t0, 900), 1));  // já pontuada
+    }
+
+    @Test void unknownCharacterCannotEndIt() {
+        clock(at(t0, 1200));
+        assertThrows(AppException.class, () -> service.gameEnded("NinguemAqui", END));
+        assertThrows(AppException.class, () -> service.gameEnded(nick(a), "outra coisa"));
     }
 }

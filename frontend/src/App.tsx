@@ -62,6 +62,7 @@ function App() {
               <Route path="logs" element={<LogsPage />} />
               <Route path="objectives" element={<Navigate to="/events?tab=objectives" replace />} />
               <Route path="events" element={<EventsPage />} />
+              <Route path="cw" element={<CwAttendancePage />} />
               <Route path="items" element={<Navigate to="/auctions?tab=items" replace />} />
               <Route path="equipment" element={<EquipmentRoute />} />
               <Route path="quests" element={<QuestsPage />} />
@@ -82,7 +83,7 @@ function App() {
                     <Route path="dll" element={<DllAdminPage />} />
                     <Route path="resources" element={<ResourcesPage />} />
                     <Route path="pb-history" element={<PbHistoryPage />} />
-                    <Route path="cw" element={<CwAttendancePage />} />
+                    <Route path="cw" element={<Navigate to="/cw" replace />} />
                   </Route>
                 </Route>
               </Route>

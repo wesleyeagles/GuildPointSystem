@@ -10,7 +10,19 @@
 
   &__filters select { @include theme.field-input; }
 
-  &__afk { color: theme.$color-warning; }
+  &__warn { color: theme.$color-warning; }
+  &__ok { color: theme.$color-success; }
+  &__line { margin: 0 0 theme.$spacing-sm; }
+
+  &__end {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: theme.$spacing-sm;
+    margin-bottom: theme.$spacing-md;
+
+    input { @include theme.field-input; width: auto; }
+  }
 
   &__table {
     width: 100%;
@@ -37,7 +49,9 @@
     span {
       display: block;
       height: 100%;
-      background: theme.$color-primary;
+      background: theme.$color-text-muted;
     }
+
+    .cw-attendance__bar--ok { background: theme.$color-success; }
   }
 }

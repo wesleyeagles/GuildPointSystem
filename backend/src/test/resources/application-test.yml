@@ -19,3 +19,6 @@ guild:
     expiration-ms: 3600000
   upload:
     base-path: ./target/test-uploads
+  cw:
+    # Testes chamam tick() com relogio fixo; o agendador de verdade ficaria pontuando no meio.
+    scheduler: false
