@@ -24,6 +24,8 @@ export interface LocationMatch {
   mapY: number | null
   locationAt: string
   inQueue: boolean
+  /** Segundos parado na mesma coordenada, na hora da busca. */
+  stillSeconds: number
 }
 
 export interface LocationFilter {

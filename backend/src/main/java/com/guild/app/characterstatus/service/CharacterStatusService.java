@@ -16,6 +16,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -91,6 +92,15 @@ public class CharacterStatusService {
         String map = trimToNull(request.map());
         String region = trimToNull(request.region());
         boolean known = map != null || region != null;
+        Integer x = known ? request.mapX() : null;
+        Integer y = known ? request.mapY() : null;
+        boolean samePlace = known
+                && status.getStillSince() != null
+                && Objects.equals(map, status.getMapName())
+                && Objects.equals(region, status.getRegionName())
+                && Objects.equals(x, status.getMapX())
+                && Objects.equals(y, status.getMapY());
+        if (!samePlace) status.setStillSince(known ? now : null);
         status.setMapName(map);
         status.setRegionName(region);
         status.setMapX(known ? request.mapX() : null);

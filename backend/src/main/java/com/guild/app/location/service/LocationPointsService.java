@@ -141,6 +141,7 @@ public class LocationPointsService {
         Set<Long> queue = partyLfgRepository.findAll().stream()
                 .map(PartyLfg::getMemberId)
                 .collect(Collectors.toSet());
+        Instant now = Instant.now();
         return currentByMember().values().stream()
                 .filter(s -> wantedMap == null || wantedMap.equalsIgnoreCase(s.getMapName()))
                 .filter(s -> wantedRegion == null || wantedRegion.equalsIgnoreCase(s.getRegionName()))
@@ -148,7 +149,8 @@ public class LocationPointsService {
                 .map(s -> new LocationMatch(
                         s.getMember().getId(), s.getMember().getNickname(), s.getCharacterName(),
                         s.getMapName(), s.getRegionName(), s.getMapX(), s.getMapY(), s.getLocationAt(),
-                        queue.contains(s.getMember().getId())))
+                        queue.contains(s.getMember().getId()),
+                        stillSeconds(s, now)))
                 .sorted(Comparator.comparing(LocationMatch::nickname, String.CASE_INSENSITIVE_ORDER))
                 .toList();
     }
@@ -165,6 +167,12 @@ public class LocationPointsService {
                     (a, b) -> a.getLocationAt().isAfter(b.getLocationAt()) ? a : b);
         }
         return latest;
+    }
+
+    /** Linhas de antes da coluna still_since contam a partir do ultimo envio. */
+    private static long stillSeconds(CharacterStatus s, Instant now) {
+        Instant since = s.getStillSince() != null ? s.getStillSince() : s.getLocationAt();
+        return since == null ? 0 : Math.max(0, Duration.between(since, now).getSeconds());
     }
 
     private static String placeLabel(String map, String region) {

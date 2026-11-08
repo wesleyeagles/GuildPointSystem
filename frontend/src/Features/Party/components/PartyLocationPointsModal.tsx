@@ -23,6 +23,18 @@ interface PartyLocationPointsModalProps {
 
 const ANY = ''
 
+/** RG: parado na mesma coordenada por mais que isso = AFK (sai marcado como desmarcado). */
+const AFK_SECONDS = 3 * 60
+
+/** "45s", "2m 05s", "1h 03m". */
+function formatStill(seconds: number) {
+  const s = Math.floor(seconds)
+  if (s < 60) return `${s}s`
+  const m = Math.floor(s / 60)
+  if (m < 60) return `${m}m ${String(s % 60).padStart(2, '0')}s`
+  return `${Math.floor(m / 60)}h ${String(m % 60).padStart(2, '0')}m`
+}
+
 /** "Vapor Lake · 3" quando há gente lá agora. */
 function withCount(name: string, members: number | undefined) {
   return members ? `${name} · ${members}` : name
@@ -49,7 +61,24 @@ export function PartyLocationPointsModal({ onClose, variant = 'party' }: PartyLo
   const filter = useMemo(() => ({ map: map || null, region: region || null, scope }), [map, region, scope])
   const preview = useLocationPreview(filter)
   const matches = preview.data ?? []
-  const selected = matches.filter((m) => !unchecked.has(m.memberId))
+  // RG: relógio de 1s para o "parado há" andar entre as buscas (o servidor manda os segundos na hora da busca).
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    if (!rg) return
+    const id = window.setInterval(() => setNow(Date.now()), 1000)
+    return () => window.clearInterval(id)
+  }, [rg])
+  const stillFor = (m: (typeof matches)[number]) =>
+    m.stillSeconds + Math.max(0, (now - preview.dataUpdatedAt) / 1000)
+  const isAfk = (m: (typeof matches)[number]) => rg && stillFor(m) > AFK_SECONDS
+
+  // AFK sai desmarcado; o moderador pode marcar de volta (vale só para aquela coordenada).
+  // Se voltar a andar, volta ao normal (marcado, a menos que tenha sido desmarcado à mão).
+  const [afkChecked, setAfkChecked] = useState<Set<string>>(new Set())
+  const afkKey = (m: (typeof matches)[number]) => `${m.memberId}:${m.map}:${m.region}:${m.mapX}:${m.mapY}`
+  const isChecked = (m: (typeof matches)[number]) =>
+    isAfk(m) ? afkChecked.has(afkKey(m)) : !unchecked.has(m.memberId)
+  const selected = matches.filter(isChecked)
 
   // Mapas da guild (GAME_MAPS), com quantos estão lá agora.
   const mapCounts = new Map<string, number>()
@@ -82,13 +111,16 @@ export function PartyLocationPointsModal({ onClose, variant = 'party' }: PartyLo
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
 
-  const toggle = (memberId: number) =>
-    setUnchecked((prev) => {
-      const next = new Set(prev)
-      if (next.has(memberId)) next.delete(memberId)
-      else next.add(memberId)
-      return next
-    })
+  const flip = <T,>(set: Set<T>, value: T) => {
+    const next = new Set(set)
+    if (next.has(value)) next.delete(value)
+    else next.add(value)
+    return next
+  }
+  const toggle = (m: (typeof matches)[number]) => {
+    if (isAfk(m)) setAfkChecked((prev) => flip(prev, afkKey(m)))
+    else setUnchecked((prev) => flip(prev, m.memberId))
+  }
 
   const submit = (e: FormEvent) => {
     e.preventDefault()
@@ -184,14 +216,21 @@ export function PartyLocationPointsModal({ onClose, variant = 'party' }: PartyLo
                 {matches.map((m) => (
                   <li key={m.memberId}>
                     <label className="party-location-points__item">
-                      <input type="checkbox" checked={!unchecked.has(m.memberId)} onChange={() => toggle(m.memberId)} />
+                      <input type="checkbox" checked={isChecked(m)} onChange={() => toggle(m)} />
                       <span className="party-location-points__name" title={m.characterName}>
                         {m.nickname}
                       </span>
                       <span className="party-location-points__where">
                         {[m.region, mapLabel(m.map)].filter(Boolean).join(' · ')}
-                        {m.mapX != null && m.mapY != null ? ` (${m.mapX}, ${m.mapY})` : ''}
-                      </span>                    </label>
+                          {m.mapX != null && m.mapY != null ? ` (${m.mapX}, ${m.mapY})` : ''}
+                      </span>
+                      {rg && (
+                        <span className="party-location-points__still" title="Tempo parado nessa coordenada">
+                          {formatStill(stillFor(m))}
+                        </span>
+                      )}
+                      {isAfk(m) && <span className="party-location-points__afk">AFK</span>}
+                    </label>
                   </li>
                 ))}
               </ul>

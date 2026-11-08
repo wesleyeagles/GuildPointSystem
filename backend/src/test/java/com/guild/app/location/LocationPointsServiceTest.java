@@ -129,6 +129,26 @@ class LocationPointsServiceTest {
         assertEquals(0, option.members());
     }
 
+    long stillSeconds(long id) {
+        return service.preview(new PreviewRequest("Coldron Volcanic Area", null, Scope.ALL)).stream()
+                .filter(m -> m.memberId() == id).findFirst().orElseThrow().stillSeconds();
+    }
+    void send(long gid, long id, int x, int y) {
+        statusService.ingest(new CharacterStatusIngestRequest(gid, nick(id), 50, 1f, 10, 10, 1, 1, 1, 1,
+                "Coldron Volcanic Area", "Evil Horn", x, y), "1.1.0");
+    }
+
+    @Test void stillTimeKeepsCountingOnSameCoordinateAndResetsWhenMoving() {
+        long charGid = gid++;
+        send(charGid, elsewhere, 10, 20);
+        jdbc.update("UPDATE character_status SET still_since = now() - interval '5 minutes' WHERE gid=?", charGid);
+        em.clear();
+        send(charGid, elsewhere, 10, 20); // mesma coordenada: continua contando
+        assertTrue(stillSeconds(elsewhere) >= 290);
+        send(charGid, elsewhere, 11, 20); // andou: zera
+        assertTrue(stillSeconds(elsewhere) < 5);
+    }
+
     @Test void membersCannotUseIt() {
         loginAs(notInQueue);
         assertThrows(AppException.class, () -> service.locations());

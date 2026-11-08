@@ -76,6 +76,10 @@ public class CharacterStatus {
     @Column(name = "location_at")
     private Instant locationAt;
 
+    /** Desde quando esta na mesma coordenada (mapa, regiao e X/Y). Null = sem local. */
+    @Column(name = "still_since")
+    private Instant stillSince;
+
     /** Quando o cliente observou (recebido) e quando o servidor gravou. */
     @Column(name = "observed_at", nullable = false)
     private Instant observedAt = Instant.now();

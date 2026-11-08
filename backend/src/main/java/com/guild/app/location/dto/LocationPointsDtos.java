@@ -29,7 +29,9 @@ public final class LocationPointsDtos {
             Integer mapX,
             Integer mapY,
             Instant locationAt,
-            boolean inQueue
+            boolean inQueue,
+            /** Segundos parado na mesma coordenada (calculado no servidor, sem depender do relogio do navegador). */
+            long stillSeconds
     ) {}
 
     public record PreviewRequest(
