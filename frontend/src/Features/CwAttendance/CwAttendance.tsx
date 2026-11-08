@@ -33,13 +33,6 @@ export function CwAttendancePage() {
           {DAYS.map((d) => <option key={d} value={d}>{d === 1 ? 'Hoje' : `Últimos ${d} dias`}</option>)}
         </select>
       </div>
-      <p className="cw-attendance__muted">
-        A CW começa no horário (CW1 00h, CW2 08h, CW3 16h, Brasília) e acaba quando a DLL de algum membro vê a
-        mensagem de fim no chat. 2 min depois, quem ficou {data?.thresholdPercent ?? 60}% da CW em Crag Mind Field sem
-        AFK recebe "CW" (ou "CW Major" em dia de PB Major) sozinho. AFK = parado no mesmo lugar há mais de 1 min 30 s sem
-        ganhar EXP (o trecho parado inteiro não conta). 10 min antes de cada CW, quem está em Crag recebe{' '}
-        {data?.preBonusPoints ?? 2} pontos, AFK ou não. Só conta quem está com a DLL aberta.
-      </p>
       {isLoading || !data ? <p className="cw-attendance__muted">Carregando…</p> : data.cws.length === 0 ? (
         <p className="cw-attendance__muted">Nenhuma CW com membros em Crag Mind Field nesse período.</p>
       ) : (
