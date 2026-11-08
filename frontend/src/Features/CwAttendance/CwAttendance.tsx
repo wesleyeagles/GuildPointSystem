@@ -42,6 +42,9 @@ export function CwAttendancePage() {
   )
 }
 
+/** O fim só pode ser marcado 5 min depois do início (como no servidor). */
+const canEnd = (cw: Cw) => Date.now() >= Date.parse(cw.startsAt) + 5 * 60_000
+
 function status(cw: Cw) {
   if (cw.endedAt) {
     const length = minutes((Date.parse(cw.endedAt) - Date.parse(cw.startsAt)) / 1000)
@@ -50,7 +53,7 @@ function status(cw: Cw) {
   }
   if (cw.closed) return `${hour(cw.startsAt)} · sem aviso de fim (aguardando um Admin)`
   if (Date.now() < Date.parse(cw.startsAt)) return `começa às ${hour(cw.startsAt)}`
-  return `${hour(cw.startsAt)} · em andamento`
+  return `${hour(cw.startsAt)} · em andamento (nenhuma DLL avisou o fim)`
 }
 
 function CwPanel({ cw, data, days }: { cw: Cw; data: CwAttendance; days: number }) {
@@ -75,7 +78,8 @@ function CwPanel({ cw, data, days }: { cw: Cw; data: CwAttendance; days: number 
           Bônus de 10 min antes ({data.preBonusPoints} pts): {cw.preBonus.join(', ')}
         </p>
       )}
-      {data.canManage && !cw.awardedAt && (cw.closed || cw.endedAt) && <EndForm cw={cw} days={days} />}
+      {/* Admin marca o fim também com a CW "em andamento": se nenhuma DLL avisou, ela seguiria até o fim da janela. */}
+      {data.canManage && !cw.awardedAt && canEnd(cw) && <EndForm cw={cw} days={days} />}
       {cw.members.length > 0 && (
         <table className="cw-attendance__table">
           <thead>
