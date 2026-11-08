@@ -28,6 +28,7 @@ import { PartyPage } from '@/Features/Party/Party'
 import { RaidPage } from '@/Features/Raid/Raid'
 import { ResourcesPage } from '@/Features/Resources/Resources'
 import { PbHistoryPage } from '@/Features/PbHistory/PbHistory'
+import { CwAttendancePage } from '@/Features/CwAttendance/CwAttendance'
 import { PresenceReporter } from '@/Features/Presence/PresenceReporter'
 import './App.styles.scss'
 
@@ -81,6 +82,7 @@ function App() {
                     <Route path="dll" element={<DllAdminPage />} />
                     <Route path="resources" element={<ResourcesPage />} />
                     <Route path="pb-history" element={<PbHistoryPage />} />
+                    <Route path="cw" element={<CwAttendancePage />} />
                   </Route>
                 </Route>
               </Route>

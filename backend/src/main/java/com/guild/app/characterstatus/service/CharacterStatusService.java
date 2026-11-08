@@ -4,6 +4,7 @@ import com.guild.app.characterstatus.dto.CharacterStatusIngestRequest;
 import com.guild.app.characterstatus.dto.CharacterStatusView;
 import com.guild.app.characterstatus.entity.CharacterStatus;
 import com.guild.app.characterstatus.repository.CharacterStatusRepository;
+import com.guild.app.cw.service.CwAttendanceService;
 import com.guild.app.location.repository.GameRegionRepository;
 import com.guild.app.member.entity.Member;
 import com.guild.app.member.repository.MemberRepository;
@@ -27,6 +28,7 @@ public class CharacterStatusService {
     private final WebSocketPublisher webSocketPublisher;
     private final SyncAccessService syncAccessService;
     private final GameRegionRepository gameRegionRepository;
+    private final CwAttendanceService cwAttendanceService;
 
     // ---- Ingestao (sem autenticacao; associada pelo nome do personagem) ----
     // Todas as contas com esse nick recebem o envio (personagem compartilhado).
@@ -83,6 +85,8 @@ public class CharacterStatusService {
         status.setUpdatedAt(now);
         statusRepository.save(status);
         syncAccessService.recordSync(member.getId(), now, dllVersion);
+        // Durante a CW: tempo no mapa da CW (sem contar AFK), para a aba Presença em CW.
+        cwAttendanceService.record(member.getId(), request.character(), status.getMapName(), status.idleSince(), now);
 
         // Avisa a dashboard (apos o commit) para atualizar sem recarregar a pagina.
         webSocketPublisher.publishCharacterStatus(toView(status));
