@@ -182,7 +182,7 @@ export function EquipmentPage() {
   const tooltipItem = tooltip ? members.find(m => m.memberId === tooltip.memberId)?.slots.find(s => s.slot === tooltip.slot)?.assignment : null
   const [search, setSearch] = useState('')
   const [filled, setFilled] = useState(false)
-  const [sort, setSort] = useState('gs-desc')
+  const [sort, setSort] = useState('level-desc')
   const [playerClass, setPlayerClass] = useState('')
   const [historyId, setHistoryId] = useState(0)
   const [selectedSlot, setSelectedSlot] = useState<EquipmentSlot>('Weapon')
@@ -207,7 +207,12 @@ export function EquipmentPage() {
   const canEdit = admin || inspected?.memberId === user?.memberId
   const filteringSelection = onlySelected && selectedMembers.size > 0
   const filtered = members.filter(m => m.nickname.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()) && (!playerClass || playerClassForEquipmentList(m.className ?? undefined) === playerClass) && (!filled || m.slots.some(s => s.assignment)) && (!filteringSelection || selectedMembers.has(m.memberId)))
-    .sort((a, b) => (sort === 'gs-asc' ? (a.gearScore?.total ?? 0) - (b.gearScore?.total ?? 0) : sort === 'gs-desc' ? (b.gearScore?.total ?? 0) - (a.gearScore?.total ?? 0) : sort === 'name-desc' ? b.nickname.localeCompare(a.nickname, 'pt-BR', { sensitivity: 'base' }) : sort === 'level-asc' ? a.level - b.level : sort === 'level-desc' ? b.level - a.level : 0) || a.nickname.localeCompare(b.nickname, 'pt-BR', { sensitivity: 'base' }) || a.memberId - b.memberId)
+    .sort((a, b) => (sort === 'gs-asc' ? (a.gearScore?.total ?? 0) - (b.gearScore?.total ?? 0)
+      : sort === 'gs-desc' ? (b.gearScore?.total ?? 0) - (a.gearScore?.total ?? 0)
+      : sort === 'name-desc' ? b.nickname.localeCompare(a.nickname, 'pt-BR', { sensitivity: 'base' })
+      : sort === 'level-asc' ? a.level - b.level || (a.expPercent ?? 0) - (b.expPercent ?? 0)
+      : sort === 'level-desc' ? b.level - a.level || (b.expPercent ?? 0) - (a.expPercent ?? 0)
+      : 0) || a.nickname.localeCompare(b.nickname, 'pt-BR', { sensitivity: 'base' }) || a.memberId - b.memberId)
   const acceptsDrop = (memberId: number, slot?: EquipmentSlot, source = dragged) => !!(admin && source && source.memberId !== memberId && !transferMutation.isPending && (!slot || slot === source.position.slot ||
     (['RING', 'AMULET'].includes(SLOT_CATEGORY[source.position.slot]) && SLOT_CATEGORY[slot] === SLOT_CATEGORY[source.position.slot])))
   const sendTransfer = async (request: DragTransfer) => {
@@ -296,7 +301,7 @@ export function EquipmentPage() {
         }}>{mailSenders.map(nickname => <option key={nickname} value={nickname}>{nickname}</option>)}</select></label>}
         <label>Pesquisar personagem<input value={search} onChange={e => setSearch(e.target.value)} placeholder="Nick do personagem" /></label>
         <div className="equipment-player-classes" role="group" aria-label="Classe do personagem"><span>Classe</span><div>{(['MELEE', 'RANGER', 'FORCE'] as const).map(value => <Button key={value} size="sm" variant="secondary" aria-pressed={playerClass === value} onClick={() => setPlayerClass(current => current === value ? '' : value)}>{value}</Button>)}</div></div>
-        <label>Ordenar jogadores<select value={sort} onChange={e => setSort(e.target.value)}><option value="name">Nome · A–Z</option><option value="name-desc">Nome · Z–A</option><option value="gs-desc">Gear score decrescente</option><option value="gs-asc">Gear score crescente</option><option value="level-asc">Nível crescente</option><option value="level-desc">Nível decrescente</option></select></label>
+        <label>Ordenar jogadores<select value={sort} onChange={e => setSort(e.target.value)}><option value="name">Nome · A–Z</option><option value="name-desc">Nome · Z–A</option><option value="gs-desc">Gear score decrescente</option><option value="gs-asc">Gear score crescente</option><option value="level-asc">Nível e XP crescentes</option><option value="level-desc">Nível e XP decrescentes</option></select></label>
         <label className="equipment-check"><input type="checkbox" checked={filled} onChange={e => setFilled(e.target.checked)} />Somente com equipamento informado</label>
         <label className="equipment-check"><input type="checkbox" checked={filteringSelection} disabled={selectedMembers.size === 0} onChange={e => setOnlySelected(e.target.checked)} />Somente selecionados ({selectedMembers.size})</label>
         {selectedMembers.size > 0 && <Button size="sm" variant="secondary" onClick={() => { setSelectedMembers(new Set()); setOnlySelected(false) }}>Limpar seleção</Button>}
