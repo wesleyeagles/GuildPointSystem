@@ -67,6 +67,7 @@ public class CharacterStatusService {
                     return created;
                 });
 
+        if (gainedExp(status, request)) status.setExpGainedAt(now);
         status.setCharacterName(request.character());
         status.setDllVersion(dllVersion);
         status.setLevel(request.level());
@@ -85,6 +86,13 @@ public class CharacterStatusService {
 
         // Avisa a dashboard (apos o commit) para atualizar sem recarregar a pagina.
         webSocketPublisher.publishCharacterStatus(toView(status));
+    }
+
+    /** Level ou % maior que no envio anterior deste personagem (morte, que tira EXP, nao conta). */
+    private static boolean gainedExp(CharacterStatus status, CharacterStatusIngestRequest request) {
+        if (status.getId() == null || status.getLevel() == null || status.getExpPercent() == null) return false;
+        int level = request.level();
+        return level > status.getLevel() || (level == status.getLevel() && request.expPercent() > status.getExpPercent());
     }
 
     /** Envio sem mapa nem regiao (DLL antiga ou tela de carregamento) apaga o local: nunca fica um local velho. */

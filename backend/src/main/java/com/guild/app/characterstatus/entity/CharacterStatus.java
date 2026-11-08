@@ -80,6 +80,10 @@ public class CharacterStatus {
     @Column(name = "still_since")
     private Instant stillSince;
 
+    /** Ultima vez que ganhou EXP (level ou % subiu entre dois envios). Null = ainda nao visto. */
+    @Column(name = "exp_gained_at")
+    private Instant expGainedAt;
+
     /** Quando o cliente observou (recebido) e quando o servidor gravou. */
     @Column(name = "observed_at", nullable = false)
     private Instant observedAt = Instant.now();

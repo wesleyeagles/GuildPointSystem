@@ -86,6 +86,8 @@ public class SecurityConfig {
                         // Shout no jogo pela DLL: ver/enviar so para personagem de membro aprovado (enviar: Lider/Admin).
                         .requestMatchers(HttpMethod.GET, "/api/shout/game", "/api/shout/game/sender").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/shout/game").permitAll()
+                        // Lista de membros no jogo pela DLL: so personagem de Lider/Admin (mesma regra do shout).
+                        .requestMatchers(HttpMethod.GET, "/api/members/game/roster").permitAll()
                         // Card de evento no jogo pela DLL: so responde/resgata para personagem de membro aprovado.
                         .requestMatchers(HttpMethod.GET, "/api/events/game").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/events/game/*/claim").permitAll()
