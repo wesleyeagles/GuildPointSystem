@@ -7,6 +7,29 @@
   }
 }
 
+.logs-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: theme.$spacing-md;
+  padding: theme.$spacing-md theme.$spacing-lg;
+  border-bottom: 1px solid theme.$color-border;
+
+  label {
+    display: flex;
+    flex-direction: column;
+    gap: theme.$spacing-xs;
+    flex: 1 1 180px;
+    min-width: 0;
+    @include theme.field-label;
+  }
+
+  select {
+    @include theme.field-input;
+    @include theme.field-control-height;
+  }
+}
+
 // Console feed
 .logs-list {
   list-style: none;

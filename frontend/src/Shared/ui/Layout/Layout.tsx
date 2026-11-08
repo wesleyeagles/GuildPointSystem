@@ -6,9 +6,7 @@ import { usePointsSubscription } from '@/Domain/Auction/hooks/useAuction'
 import { useMemberLogNotifications } from '@/Domain/Log/hooks/useLogs'
 import { useGuildEmojisSubscription } from '@/Domain/Emoji/hooks/useGuildEmojis'
 import { EventToastProvider } from '@/Features/Events/components/EventToast/EventToast'
-import { EventCreateModal } from '@/Features/Events/components/EventCreateModal/EventCreateModal'
-import { PartyLocationPointsModal } from '@/Features/Party/components/PartyLocationPointsModal'
-import { ProximityPointsModal } from '@/Features/Party/components/ProximityPointsModal'
+import { QuickCreateModal } from '@/Features/QuickCreate/QuickCreateModal'
 import { AppToastProvider } from '@/Shared/ui/components/AppToast/AppToast'
 import { getSocketState, type SocketState } from '@/Shared/websocket/socketClient'
 import { serverNow } from '@/Shared/utils/serverClock'
@@ -38,6 +36,7 @@ const NAV_ITEMS = [
   { to: '/quests', label: 'Quests' },
   { to: '/rotation', label: 'Rotação' },
   { to: '/auctions', label: 'Leilões' },
+  { to: '/logs', label: 'Logs' },
 ]
 
 /** Reached from the member card at the top of the sidebar, not from the nav list. */
@@ -46,7 +45,6 @@ const PROFILE_ITEM = { to: '/profile', label: 'Perfil' }
 /** Reachable only by URL; listed so the header still shows the page title. */
 // Fora do menu, mas com título no cabeçalho se alguém abrir pelo endereço.
 const HIDDEN_ITEMS = [
-  { to: '/logs', label: 'Logs' },
   { to: '/donate', label: 'Doar Disena' },
 ]
 
@@ -110,9 +108,7 @@ function LayoutShell() {
   const [drawerPath, setDrawerPath] = useState<string | null>(null)
   const drawerOpen = drawerPath === location.pathname
   const setDrawerOpen = (open: boolean) => setDrawerPath(open ? location.pathname : null)
-  const [eventModalOpen, setEventModalOpen] = useState(false)
-  const [rgPointsOpen, setRgPointsOpen] = useState(false)
-  const [proximityOpen, setProximityOpen] = useState(false)
+  const [quickCreateOpen, setQuickCreateOpen] = useState(false)
 
   usePointsSubscription(user?.memberId)
   useMemberLogNotifications(user?.memberId)
@@ -135,9 +131,7 @@ function LayoutShell() {
       <AccountDeletedListener />
       <PartyGameInviteListener />
       {hasRole('MODERADOR') && <ApprovalsListener />}
-      {eventModalOpen && <EventCreateModal onClose={() => setEventModalOpen(false)} />}
-      {rgPointsOpen && <PartyLocationPointsModal variant="rg" onClose={() => setRgPointsOpen(false)} />}
-      {proximityOpen && <ProximityPointsModal onClose={() => setProximityOpen(false)} />}
+      {quickCreateOpen && <QuickCreateModal onClose={() => setQuickCreateOpen(false)} />}
       <aside className="layout__sidebar">
         <div className="layout__brand">
           <img src="/Logo-Blacklist.png" alt="Guild System" className="layout__logo" />
@@ -172,42 +166,17 @@ function LayoutShell() {
         </div>
 
         <nav className="layout__nav">
-          {hasRole('ADMINISTRADOR') && (
-            <button
-              type="button"
-              className="layout__nav-link layout__quick-event"
-              onClick={() => {
-                setDrawerOpen(false)
-                setEventModalOpen(true)
-              }}
-            >
-              <span className="layout__nav-label">+ Criar evento</span>
-            </button>
-          )}
-
+          {/* Evento (admin), Pontos de RG e Aproximação (moderador+): abas de um modal só. */}
           {hasRole('MODERADOR') && (
             <button
               type="button"
               className="layout__nav-link layout__quick-event"
               onClick={() => {
                 setDrawerOpen(false)
-                setRgPointsOpen(true)
+                setQuickCreateOpen(true)
               }}
             >
-              <span className="layout__nav-label">+ Pontos de RG</span>
-            </button>
-          )}
-
-          {hasRole('MODERADOR') && (
-            <button
-              type="button"
-              className="layout__nav-link layout__quick-event"
-              onClick={() => {
-                setDrawerOpen(false)
-                setProximityOpen(true)
-              }}
-            >
-              <span className="layout__nav-label">+ Pontos por aproximação</span>
+              <span className="layout__nav-label">+ Criar</span>
             </button>
           )}
 

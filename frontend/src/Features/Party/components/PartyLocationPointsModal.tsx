@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import {
   useAwardLocationPoints,
   useCurrentLocations,
@@ -19,6 +19,8 @@ interface PartyLocationPointsModalProps {
    * rg: atalho do menu, pontos gerais para todos no local.
    */
   variant?: 'party' | 'rg'
+  /** Abas do modal "+ Criar" (QuickCreateModal), no topo do card. */
+  tabs?: ReactNode
 }
 
 const ANY = ''
@@ -44,7 +46,7 @@ function withCount(name: string, members: number | undefined) {
  * Moderador+: escolhe o mapa e, se quiser, a região (o nome do topo do mini-mapa), confere quem
  * a DLL viu lá nos últimos 3 minutos e dá pontos a quem continuar marcado.
  */
-export function PartyLocationPointsModal({ onClose, variant = 'party' }: PartyLocationPointsModalProps) {
+export function PartyLocationPointsModal({ onClose, variant = 'party', tabs }: PartyLocationPointsModalProps) {
   const rg = variant === 'rg'
   const { showToast } = useAppToast()
   const { data: locations = [] } = useCurrentLocations()
@@ -149,6 +151,7 @@ export function PartyLocationPointsModal({ onClose, variant = 'party' }: PartyLo
         onClick={(e) => e.stopPropagation()}
         onSubmit={submit}
       >
+        {tabs}
         <div className="auth-window-bar">
           <span>{rg ? 'Pontos de RG' : 'Pontos por local'}</span>
           <span className="auth-window-bar__code">{rg ? 'RG' : 'LOC'}</span>

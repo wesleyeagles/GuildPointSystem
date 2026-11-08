@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import {
   useCreateProximityPoints,
   useProximityAnchors,
@@ -14,7 +14,7 @@ import './PartyLocationPointsModal.styles.scss'
  * Moderador+: escolhe os membros de referência e os pontos. A DLL de cada referência lê quem está perto
  * dele no jogo (até 900 de distância) e o site dá os pontos a cada membro aprovado da lista.
  */
-export function ProximityPointsModal({ onClose }: { onClose: () => void }) {
+export function ProximityPointsModal({ onClose, tabs }: { onClose: () => void; tabs?: ReactNode }) {
   const { showToast } = useAppToast()
   const { data: anchors = [], isLoading } = useProximityAnchors()
   const create = useCreateProximityPoints()
@@ -71,6 +71,7 @@ export function ProximityPointsModal({ onClose }: { onClose: () => void }) {
         onClick={(e) => e.stopPropagation()}
         onSubmit={submit}
       >
+        {tabs}
         <div className="auth-window-bar">
           <span>Pontos por aproximação</span>
           <span className="auth-window-bar__code">PROX</span>

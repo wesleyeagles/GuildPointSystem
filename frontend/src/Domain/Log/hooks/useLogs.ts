@@ -1,24 +1,58 @@
 import { useAuthContext } from '@/Features/Auth/contexts/AuthContext'
 import { useEffect, useRef } from 'react'
-import { useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/Shared/api/client'
 import { onSocketReconnect, subscribeTopic, subscribeTopicEffect } from '@/Shared/websocket/socketClient'
 import { eventKeys, mergeEventIntoCache } from '@/Domain/Event/hooks/useEvents'
 import { memberKeys } from '@/Domain/Member/hooks/useMembers'
 import { getPayloadClaimId, markClaimDeniedInPage } from '@/Domain/Log/utils/logClaimUtils'
 import { useAppToast } from '@/Shared/ui/components/AppToast/AppToast'
-import type { AuditLogEntry, GuildEvent, Page } from '@/Domain/types/models'
+import type { AuditLogEntry, AuditLogType, GuildEvent, Page } from '@/Domain/types/models'
 
 const logKeys = {
   all: ['logs'] as const,
+  objectives: ['log-objectives'] as const,
 }
 
-export function useLogs(page = 0, size = 50) {
+/** Filtros da aba Logs; null = sem filtro. memberId casa com quem fez ou com quem recebeu. */
+export interface LogFilters {
+  type: AuditLogType | null
+  memberId: number | null
+  objective: string | null
+}
+
+export const NO_LOG_FILTERS: LogFilters = { type: null, memberId: null, objective: null }
+
+function matchesFilters(log: AuditLogEntry, f: LogFilters | undefined) {
+  if (!f) return true
+  if (f.type && log.type !== f.type) return false
+  if (f.memberId && log.actorId !== f.memberId && log.targetId !== f.memberId) return false
+  if (f.objective && log.payload.objectiveName !== f.objective) return false
+  return true
+}
+
+export function useLogs(page = 0, size = 50, filters: LogFilters = NO_LOG_FILTERS) {
   const { hasRole } = useAuthContext()
   const audience = hasRole('ADMINISTRADOR') ? 'admin' : 'public'
   return useQuery({
-    queryKey: [...logKeys.all, audience, page, size],
-    queryFn: () => apiClient<Page<AuditLogEntry>>(`/logs?page=${page}&size=${size}`),
+    queryKey: [...logKeys.all, audience, page, size, filters],
+    queryFn: () => {
+      const params = new URLSearchParams({ page: String(page), size: String(size) })
+      if (filters.type) params.set('type', filters.type)
+      if (filters.memberId) params.set('memberId', String(filters.memberId))
+      if (filters.objective) params.set('objective', filters.objective)
+      return apiClient<Page<AuditLogEntry>>(`/logs?${params}`)
+    },
+    placeholderData: keepPreviousData,
+  })
+}
+
+/** Nomes de evento (objetivo) que já apareceram nos logs, para o filtro "Evento". */
+export function useLogObjectives() {
+  return useQuery({
+    queryKey: logKeys.objectives,
+    queryFn: () => apiClient<string[]>('/logs/objectives'),
+    staleTime: 60_000,
   })
 }
 
@@ -27,7 +61,12 @@ export function useLogs(page = 0, size = 50) {
  * on every log would turn each claim into one GET /logs per connected client.
  */
 function applyLogToCache(queryClient: QueryClient, log: AuditLogEntry) {
-  queryClient.setQueriesData<Page<AuditLogEntry>>({ queryKey: logKeys.all }, (old) => {
+  // Cada lista só recebe o log se ele passar nos filtros dela (5º item da chave).
+  const matching = {
+    queryKey: logKeys.all,
+    predicate: (q: { queryKey: readonly unknown[] }) => matchesFilters(log, q.queryKey[5] as LogFilters | undefined),
+  }
+  queryClient.setQueriesData<Page<AuditLogEntry>>(matching, (old) => {
     if (!old || old.number !== 0 || old.content.some((l) => l.id === log.id)) return old
     const totalElements = old.totalElements + 1
     return {

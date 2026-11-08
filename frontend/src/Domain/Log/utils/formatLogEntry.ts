@@ -69,6 +69,14 @@ function str(value: unknown): string {
   return String(value)
 }
 
+/** Tipos para o filtro da aba Logs, em ordem alfabética do nome. Equipamento só aparece para admin. */
+export function getLogTypeOptions(isAdmin: boolean): { value: AuditLogType; label: string }[] {
+  return (Object.entries(LOG_TYPE_LABELS) as [AuditLogType, string][])
+    .filter(([type]) => isAdmin || (type !== 'EQUIPMENT_CHANGED' && type !== 'EQUIPMENT_CATALOG_IMPORTED'))
+    .map(([value, label]) => ({ value, label }))
+    .sort((a, b) => a.label.localeCompare(b.label, 'pt-BR'))
+}
+
 export function getLogTypeLabel(type: AuditLogType): string {
   return LOG_TYPE_LABELS[type] ?? type
 }

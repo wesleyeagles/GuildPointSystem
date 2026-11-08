@@ -1,0 +1,38 @@
+// Mesma largura em todas as abas: o card não pula de tamanho ao trocar.
+.modal-card:has(> .quick-create-tabs) {
+  max-width: 620px;
+  width: 100%;
+}
+
+.quick-create-tabs {
+  display: flex;
+  gap: 4px;
+  padding: theme.$spacing-sm theme.$spacing-md 0;
+  border-bottom: 1px solid theme.$color-border;
+  background: rgba(0, 0, 0, 0.35);
+
+  &__btn {
+    flex: 1 1 0;
+    clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 100%, 0 100%);
+    padding: 8px 14px 6px;
+    font-family: theme.$font-heading;
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: theme.$color-text-muted;
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid theme.$color-border;
+    border-bottom: 0;
+    cursor: pointer;
+    transition: color 0.12s, background 0.12s;
+
+    &:hover { color: theme.$color-text; }
+
+    &--active {
+      color: theme.$color-amber;
+      background: linear-gradient(180deg, rgba(theme.$color-amber, 0.16), rgba(0, 0, 0, 0.2));
+      border-color: rgba(theme.$color-amber, 0.5);
+    }
+  }
+}
