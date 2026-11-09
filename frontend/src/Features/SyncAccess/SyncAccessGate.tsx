@@ -140,11 +140,19 @@ function SyncWindow({
   )
 }
 
+/** "nas últimas 6 horas" / "no último dia" / "nos últimos 3 dias". */
+function syncWindowText(sync: SyncAccessView) {
+  const hours = sync.windowHours ?? sync.windowDays * 24
+  if (hours < 24 || hours % 24 !== 0) return hours === 1 ? 'na última hora' : `nas últimas ${hours} horas`
+  const days = hours / 24
+  return days === 1 ? 'no último dia' : `nos últimos ${days} dias`
+}
+
 function SyncStatusLine({ sync }: { sync: SyncAccessView }) {
   return (
     <p className="sync-gate__status">
-      Última sincronização: <strong>{formatLastSync(sync.lastSyncAt)}</strong> · é preciso ter sincronizado nos
-      últimos {sync.windowDays} dias.
+      Última sincronização: <strong>{formatLastSync(sync.lastSyncAt)}</strong> · é preciso ter sincronizado{' '}
+      {syncWindowText(sync)}.
     </p>
   )
 }

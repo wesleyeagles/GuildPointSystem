@@ -13,6 +13,8 @@ export interface SyncAccessView {
   newAccount: boolean
   blocked: boolean
   windowDays: number
+  /** Janela em horas (6 h hoje); o texto usa esta. */
+  windowHours: number
   /** Versão da DLL no último envio (null = nunca ou cliente sem versão). */
   dllVersion: string | null
   /** Versão mais recente publicada no site (null = nenhuma). */

@@ -62,9 +62,10 @@ guild:
       roles: ${DISCORD_MEMBER_ROLES:Leader,Cerberus}
   sync:
     # Depois deste instante, so acessa o site quem sincronizou a DLL nos ultimos `window`.
+    # 6 h (era 3 d): um envio antigo de outra pessoa no mesmo personagem libera o perfil por menos tempo.
     # Prazo: fim de 31/10/2026 (horario de Brasilia).
     enforce-from: 2026-10-31T12:00:00-03:00
-    window: 3d
+    window: ${GUILD_SYNC_WINDOW:6h}
     # Contas criadas depois do prazo geral tem este tempo, a partir do cadastro, para sincronizar.
     new-account-grace: 1d
   translate:
