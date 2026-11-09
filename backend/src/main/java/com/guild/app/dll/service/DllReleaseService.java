@@ -99,6 +99,25 @@ public class DllReleaseService {
         return releaseRepository.findUpdateManifests().stream().findFirst();
     }
 
+    /** Guarda a última versão com atualização automática por {@link #ANNOUNCE_TTL_MS}: o shout pergunta a cada 5 s por jogador. */
+    static final long ANNOUNCE_TTL_MS = 15_000;
+    private volatile String announced = "";
+    private volatile long announcedAt;
+
+    /**
+     * Versão com atualização automática mais recente ("" = nenhuma), para o cabeçalho X-Cerberus-Latest das
+     * respostas que a DLL consulta toda hora (shout): quem tem versão anterior se atualiza na hora, sem
+     * esperar a verificação de 30 min. Sem consulta ao banco a cada pedido.
+     */
+    public String announcedVersion() {
+        long now = System.currentTimeMillis();
+        if (now - announcedAt > ANNOUNCE_TTL_MS) {
+            announced = releaseRepository.findUpdateManifests().stream().findFirst().map(DllUpdateManifest::version).orElse("");
+            announcedAt = now;
+        }
+        return announced;
+    }
+
     /** version.dll assinado de uma versao com atualizacao automatica. */
     @Transactional(readOnly = true)
     public Optional<byte[]> updateFile(String version) {
@@ -165,6 +184,7 @@ public class DllReleaseService {
         release.setFileSize(release.getFileData().length);
         release.setPublishedBy(memberRepository.getReferenceById(actor.getId()));
         release = releaseRepository.save(release);
+        announcedAt = 0;   // a DLL fica sabendo da versão nova no próximo shout (ver announcedVersion)
 
         DllReleaseView view = new DllReleaseView(release.getId(), release.getVersion(), release.getNotes(),
                 release.getFileName(), release.getFileSize(), actor.getNickname(), release.getPublishedAt(), hasDll);
