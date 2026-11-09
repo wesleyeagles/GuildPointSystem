@@ -12,6 +12,17 @@ const BRT = SCHEDULE_TIME_ZONE
 const hour = (iso: string) => new Date(iso).toLocaleTimeString('pt-BR', { timeZone: BRT, hour: '2-digit', minute: '2-digit' })
 const day = (iso: string) => new Date(iso).toLocaleDateString('pt-BR', { timeZone: BRT, day: '2-digit', month: '2-digit' })
 
+/** AFK com segundos: "0 s", "45 s", "2 min 05 s", "1 h 02 min 10 s". */
+function withSeconds(seconds: number) {
+  const total = Math.max(0, Math.round(seconds))
+  const h = Math.floor(total / 3600)
+  const m = Math.floor((total % 3600) / 60)
+  const s = total % 60
+  if (h > 0) return `${h} h ${String(m).padStart(2, '0')} min ${String(s).padStart(2, '0')} s`
+  if (m > 0) return `${m} min ${String(s).padStart(2, '0')} s`
+  return `${s} s`
+}
+
 function minutes(seconds: number) {
   const m = Math.round(seconds / 60)
   return m >= 60 ? `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')} min` : `${m} min`
@@ -107,7 +118,7 @@ function CwPanel({ cw, data, days }: { cw: Cw; data: CwAttendance; days: number 
                     <span className="cw-attendance__muted"> · já pontuou em 2 CWs hoje</span>
                   )}
                 </td>
-                <td className={m.afkSeconds > 0 ? 'cw-attendance__warn' : 'cw-attendance__muted'}>{minutes(m.afkSeconds)}</td>
+                <td className={m.afkSeconds > 0 ? 'cw-attendance__warn' : 'cw-attendance__muted'}>{withSeconds(m.afkSeconds)}</td>
                 <td>{hour(m.firstSeenAt)}</td>
                 <td>{hour(m.lastSeenAt)}</td>
               </tr>
