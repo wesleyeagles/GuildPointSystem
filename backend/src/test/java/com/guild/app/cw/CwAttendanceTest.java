@@ -5,6 +5,7 @@ import com.guild.app.characterstatus.dto.CharacterStatusIngestRequest;
 import com.guild.app.characterstatus.service.CharacterStatusService;
 import com.guild.app.common.exception.AppException;
 import com.guild.app.cw.service.CwAttendanceService;
+import com.guild.app.shout.service.ShoutService;
 import com.guild.app.member.repository.MemberRepository;
 import com.guild.app.websocket.WebSocketPublisher;
 import jakarta.persistence.EntityManager;
@@ -31,6 +32,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @Transactional
 class CwAttendanceTest {
     @Autowired CwAttendanceService service;
+    @Autowired ShoutService shouts;
     @Autowired CharacterStatusService statusService;
     @Autowired MemberRepository members;
     @Autowired JdbcTemplate jdbc;
@@ -205,5 +207,74 @@ class CwAttendanceTest {
         clock(at(t0, 1200));
         assertThrows(AppException.class, () -> service.gameEnded("NinguemAqui", END));
         assertThrows(AppException.class, () -> service.gameEnded(nick(a), "outra coisa"));
+    }
+
+    @Test void atMostTwoCwsAndTwoPreBonusesPerDay() {
+        statusService.ingest(new CharacterStatusIngestRequest(gid++, nick(a), 50, 1f, 10, 10, 1, 1, 1, 1, CRAG, "Mine", 10, 10), "1.27.1");
+        long before = points(a);
+        // CW1, CW2 e CW3 de 08/11 (Moscou 06h, 14h, 22h): presente nas três, e em Crag 10 min antes de cada uma.
+        for (Instant start : new Instant[] { Instant.parse("2026-11-08T03:00:00Z"), t0, Instant.parse("2026-11-08T19:00:00Z") }) {
+            Instant bonus = start.minus(Duration.ofMinutes(10));
+            jdbc.update("UPDATE character_status SET location_at=? WHERE member_id=?", Timestamp.from(bonus), a);
+            clock(bonus.plusSeconds(10));
+            service.tick();
+            walk(a, start, -60, 900, CRAG);
+            clock(at(start, 900));
+            assertTrue(service.gameEnded(nick(a), END));
+            clock(at(start, 1100));
+            service.tick();
+        }
+        assertEquals(before + 2 * 2 + 2 * 15, points(a));
+        assertEquals(2, jdbc.queryForObject("SELECT count(*) FROM cw_award WHERE member_id=? AND kind='CW'", Integer.class, a));
+        assertEquals(2, jdbc.queryForObject("SELECT count(*) FROM cw_award WHERE member_id=? AND kind='PRE'", Integer.class, a));
+    }
+
+    @Test void twoCharactersOnlineCountsTheOneInCrag() {
+        // Mesmo membro com dois clientes: o personagem em Crag e outro na base, envios alternados.
+        for (int s = -60; s <= 600; s += 60) {
+            service.record(a, "NoChip", CRAG, at(t0, s), at(t0, s));
+            service.record(a, "NaBase", "Cora HQ", at(t0, s + 30), at(t0, s + 30));
+        }
+        clock(at(t0, 600));
+        loginAs(admin);
+        var row = service.overview(1).cws().get(0).members().get(0);
+        assertEquals(600, row.activeSeconds());
+        assertEquals("NoChip", row.character());
+    }
+
+    @Test void standingStillButUsingSkillsOrTakingHitsIsNotAfk() {
+        long g = gid++;
+        // Parado no mesmo lugar (sem EXP): FP cai (skill) a cada envio -> ativo agora.
+        statusService.ingest(new CharacterStatusIngestRequest(g, nick(a), 50, 1f, 100, 100, 100, 100, 100, 100, CRAG, "Chip", 10, 10), "1.28.0");
+        jdbc.update("UPDATE character_status SET still_since=now()-interval '10 minutes', active_at=NULL WHERE gid=?", g);
+        statusService.ingest(new CharacterStatusIngestRequest(g, nick(a), 50, 1f, 100, 100, 80, 100, 100, 100, CRAG, "Chip", 10, 10), "1.28.0");
+        em.flush(); em.clear();
+        var still = jdbc.queryForObject("SELECT EXTRACT(EPOCH FROM now()-active_at) FROM character_status WHERE gid=?", Double.class, g);
+        assertTrue(still < 5, "FP caiu: ativo agora");
+        // Regenerando (FP sobe) não conta como atividade.
+        jdbc.update("UPDATE character_status SET active_at=now()-interval '10 minutes' WHERE gid=?", g);
+        statusService.ingest(new CharacterStatusIngestRequest(g, nick(a), 50, 1f, 100, 100, 90, 100, 100, 100, CRAG, "Chip", 10, 10), "1.28.0");
+        em.flush(); em.clear();
+        still = jdbc.queryForObject("SELECT EXTRACT(EPOCH FROM now()-active_at) FROM character_status WHERE gid=?", Double.class, g);
+        assertTrue(still > 500, "regeneração não é atividade");
+        // DLL 1.30.0: última tecla/câmera há 20 s.
+        statusService.ingest(new CharacterStatusIngestRequest(g, nick(a), 50, 1f, 100, 100, 90, 100, 100, 100, CRAG, "Chip", 10, 10, 20), "1.30.0");
+        em.flush(); em.clear();
+        still = jdbc.queryForObject("SELECT EXTRACT(EPOCH FROM now()-active_at) FROM character_status WHERE gid=?", Double.class, g);
+        assertTrue(still > 10 && still <= 20.5, "tecla há 20 s");  // now() é o início da transação
+    }
+
+    @Test void rgShoutsFifteenAndTwelveMinutesBefore() {
+        clock(t0.minus(Duration.ofMinutes(15)).plusSeconds(5));
+        service.tick();
+        var first = shouts.forGame(nick(a)).orElseThrow();
+        assertEquals(ShoutService.SYSTEM_AUTHOR, first.author());
+        assertEquals("RG CW - Pontos de RG serão distribuidos automaticamente em 5 minutos.", first.message());
+        clock(t0.minus(Duration.ofMinutes(15)).plusSeconds(35));
+        service.tick();                                            // não repete
+        assertEquals(first.id(), shouts.forGame(nick(a)).orElseThrow().id());
+        clock(t0.minus(Duration.ofMinutes(12)).plusSeconds(5));
+        service.tick();
+        assertEquals("RG CW - Pontos de RG serão distribuidos automaticamente em 2 minutos.", shouts.forGame(nick(a)).orElseThrow().message());
     }
 }

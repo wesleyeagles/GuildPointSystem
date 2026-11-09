@@ -18,6 +18,7 @@ import com.guild.app.objective.entity.Objective;
 import com.guild.app.objective.repository.ObjectiveRepository;
 import com.guild.app.points.service.PointsService;
 import com.guild.app.schedule.GameEventDefinitions;
+import com.guild.app.shout.service.ShoutService;
 import com.guild.app.websocket.WebSocketPublisher;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -41,6 +42,7 @@ import java.util.*;
  *       (ou quando um Admin marca o fim). 2 min depois do fim, quem ficou 60% da CW em Crag sem AFK recebe o
  *       objetivo "CW" ou, em dia de PB Major, "CW Major" (os pontos entram sozinhos).</li>
  *   <li>10 min antes de cada CW, quem está em Crag (AFK ou não) recebe 2 pontos.</li>
+ *   <li>Cada membro pontua em no máximo 2 CWs por dia (e recebe o bônus de 10 min antes no máximo 2 vezes).</li>
  * </ul>
  * O local vem da DLL sem login (como no resto da sincronização): a guilda aceitou esse risco.
  * A tabela de CWs (com a % de cada um) é de todos os membros; marcar o fim à mão é de Administrador+.
@@ -74,6 +76,16 @@ public class CwAttendanceService {
     public static final LocalDate PB_MAJOR_ANCHOR = LocalDate.of(2026, 9, 27);
     public static final int PB_MAJOR_EVERY_DAYS = 4;
     public static final String END_MESSAGE = "Due to the result of Chip War";
+    /** Shouts no jogo antes do bônus de 10 min antes (minutos antes da CW → minutos até os pontos). */
+    public static final Map<Integer, Integer> RG_SHOUTS = Map.of(15, 5, 12, 2);
+    static String rgShout(int minutesToPoints) {
+        return "RG CW - Pontos de RG serão distribuidos automaticamente em " + minutesToPoints + " minutos.";
+    }
+    /**
+     * No máximo isso de pontos de CW por membro por dia, e o mesmo para o bônus de 10 min antes. As 3 CWs de um
+     * dia do servidor (00h, 08h e 16h em Brasília) caem no mesmo dia de Brasília, então conta por cw_date.
+     */
+    public static final int PER_DAY = 2;
 
     /**
      * Janelas máximas das CWs no horário do servidor (Moscou), já com o "palco 1.1". O fim real vem da DLL;
@@ -95,6 +107,9 @@ public class CwAttendanceService {
     private final AuditLogService audit;
     private final WebSocketPublisher webSocketPublisher;
     private final CharacterStatusRepository statusRepository;
+    private final ShoutService shoutService;
+    /** Shouts já dados ("data|cw|minutos"): uma vez cada, mesmo com o tick a cada 30 s. */
+    private final Set<String> shouted = java.util.concurrent.ConcurrentHashMap.newKeySet();
     private Clock clock = Clock.systemUTC();
 
     /** Testes: relógio fixo. */
@@ -116,6 +131,14 @@ public class CwAttendanceService {
     public static Optional<Slot> slotAt(Instant instant) {
         return slotsAround(instant).stream()
                 .filter(s -> !instant.isBefore(s.startsAt()) && instant.isBefore(s.windowEndsAt()))
+                .findFirst();
+    }
+
+    /** CW que começa daqui a no máximo {@code before} (o instante está entre o início − before e o início). */
+    public static Optional<Slot> startingWithin(Instant instant, Duration before) {
+        Instant limit = instant.plus(before);
+        return slotsAround(limit).stream()
+                .filter(s -> s.startsAt().isAfter(instant) && !s.startsAt().isAfter(limit))
                 .findFirst();
     }
 
@@ -154,6 +177,24 @@ public class CwAttendanceService {
 
     record Sample(Instant at, boolean inMap, Instant idleSince, String character) {
         boolean afk() { return idleSince != null && Duration.between(idleSince, at).compareTo(AFK_AFTER) > 0; }
+    }
+
+    /**
+     * Presença do membro: calculada por personagem, fica a do personagem com mais tempo ativo. Com dois personagens
+     * online (um em Crag, outro fora) as amostras alternariam dentro/fora do mapa e nenhum intervalo contaria.
+     * Retorna [ativo, AFK] e o personagem.
+     */
+    record Best(long active, long afk, String character) {}
+    static Best best(List<Sample> samples, Instant from, Instant to) {
+        var byCharacter = new LinkedHashMap<String, List<Sample>>();
+        for (Sample s : samples) byCharacter.computeIfAbsent(Objects.toString(s.character(), ""), k -> new ArrayList<>()).add(s);
+        Best best = null;
+        for (var e : byCharacter.entrySet()) {
+            long[] p = presence(e.getValue(), from, to);
+            if (best == null || p[0] > best.active() || (p[0] == best.active() && p[1] < best.afk()))
+                best = new Best(p[0], p[1], e.getKey().isEmpty() ? null : e.getKey());
+        }
+        return best == null ? new Best(0, 0, null) : best;
     }
 
     /** Segundos em Crag sem AFK e AFK, entre {@code from} e {@code to}, de uma lista de amostras em ordem. */
@@ -230,6 +271,14 @@ public class CwAttendanceService {
     public void tick() {
         Instant now = now();
         for (Slot slot : slotsAround(now)) {
+            for (var shout : RG_SHOUTS.entrySet()) {
+                Instant at = slot.startsAt().minus(Duration.ofMinutes(shout.getKey()));
+                if (!now.isBefore(at) && now.isBefore(at.plus(Duration.ofMinutes(1)))
+                        && shouted.add(slot.date() + "|" + slot.window().slot() + "|" + shout.getKey())) {
+                    shoutService.system(rgShout(shout.getValue()));
+                }
+            }
+            shouted.removeIf(k -> k.compareTo(slot.date().minusDays(2).toString()) < 0);
             Instant bonusAt = slot.startsAt().minus(PRE_BONUS_BEFORE);
             if (!now.isBefore(bonusAt) && now.isBefore(bonusAt.plus(Duration.ofMinutes(3)))) preBonus(slot, now);
             if (!now.isBefore(slot.windowEndsAt()) && now.isBefore(slot.windowEndsAt().plus(Duration.ofHours(1))))
@@ -258,6 +307,7 @@ public class CwAttendanceService {
         for (Long id : inMap) {
             Member member = members.findByIdForUpdate(id).orElse(null);
             if (member == null || !eligible(member)) continue;
+            if (awardsToday(date, id, "PRE") >= PER_DAY) continue;
             pointsService.adjustPoints(member, member, PRE_BONUS_POINTS, PointsModality.EVENTO, reason);
             jdbc.update("INSERT INTO cw_award(cw_date,cw_slot,member_id,kind,points) VALUES(?,?,?,'PRE',?) ON CONFLICT DO NOTHING",
                     date, number, id, PRE_BONUS_POINTS);
@@ -281,11 +331,12 @@ public class CwAttendanceService {
         if (length <= 0) return;
         String reason = slot.window().label() + " " + brtDay(slot);
         for (var entry : new TreeMap<>(samplesByMember(slot)).entrySet()) {
-            long[] p = presence(entry.getValue(), slot.startsAt(), endedAt);
-            int percent = (int) Math.min(100, p[0] * 100 / length);
-            if (p[0] < THRESHOLD * length) continue;
+            Best p = best(entry.getValue(), slot.startsAt(), endedAt);
+            int percent = (int) Math.min(100, p.active() * 100 / length);
+            if (p.active() < THRESHOLD * length) continue;
             Member member = members.findByIdForUpdate(entry.getKey()).orElse(null);
             if (member == null || !eligible(member)) continue;
+            if (awardsToday(date, member.getId(), "CW") >= PER_DAY) continue;
             if (objective.getType() == ObjectiveType.LIMITADO
                     && claims.countDailyClaims(member.getId(), objective.getId()) >= objective.getDailyLimit()) continue;
             pointsService.adjustPoints(member, member, objective.getPoints(), PointsModality.EVENTO, reason);
@@ -305,6 +356,13 @@ public class CwAttendanceService {
             audit.log(AuditLogType.EVENT_CLAIMED, member, member, details);
             publishPoints(member.getId());
         }
+    }
+
+    /** Quantos pontos desse tipo (CW ou PRE) o membro já recebeu nas CWs do dia. */
+    private int awardsToday(Date date, long memberId, String kind) {
+        Integer n = jdbc.queryForObject("SELECT count(*) FROM cw_award WHERE cw_date=? AND member_id=? AND kind=?",
+                Integer.class, date, memberId, kind);
+        return n == null ? 0 : n;
     }
 
     private void publishPoints(Long memberId) {
@@ -390,10 +448,10 @@ public class CwAttendanceService {
             samplesByMember(slot).forEach((id, samples) -> {
                 var seen = samples.stream().filter(Sample::inMap).filter(s -> !s.at().isBefore(slot.startsAt())).toList();
                 if (seen.isEmpty()) return;
-                long[] p = presence(samples, slot.startsAt(), until);
+                Best p = best(samples, slot.startsAt(), until);
                 String nick = nicknames.computeIfAbsent(id, k -> members.findById(k).map(Member::getNickname).orElse("?"));
-                rows.add(new CwMember(id, nick, samples.get(samples.size() - 1).character(), p[0], p[1],
-                        (int) Math.min(100, p[0] * 100 / length), seen.get(0).at(), seen.get(seen.size() - 1).at(),
+                rows.add(new CwMember(id, nick, p.character() != null ? p.character() : samples.get(samples.size() - 1).character(),
+                        p.active(), p.afk(), (int) Math.min(100, p.active() * 100 / length), seen.get(0).at(), seen.get(seen.size() - 1).at(),
                         awards.getOrDefault("CW", Set.of()).contains(id), awards.getOrDefault("PRE", Set.of()).contains(id)));
             });
             rows.sort(Comparator.comparingLong(CwMember::activeSeconds).reversed().thenComparing(CwMember::nickname, String.CASE_INSENSITIVE_ORDER));

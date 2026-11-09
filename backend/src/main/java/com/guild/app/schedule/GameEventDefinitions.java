@@ -13,6 +13,13 @@ public final class GameEventDefinitions {
     /** Cerberus server time (Moscow, UTC+3): 00:00 there = 18:00 in Brasília. */
     public static final ZoneId SERVER_ZONE = ZoneId.of("Europe/Moscow");
     public static final long TEN_MINUTE_WARNING_MS = 10 * 60 * 1000L;
+    /** CW avisa (som e banner do site) 15 min antes; os outros eventos, 10 min. */
+    public static final long CW_WARNING_MS = 15 * 60 * 1000L;
+
+    /** Antecedência do aviso do evento (ids cw1/cw2/cw3: 15 min; o resto: 10 min). */
+    public static long warningMs(String eventId) {
+        return eventId != null && eventId.startsWith("cw") ? CW_WARNING_MS : TEN_MINUTE_WARNING_MS;
+    }
 
     private GameEventDefinitions() {}
 

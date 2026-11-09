@@ -70,6 +70,8 @@ public class CharacterStatusService {
                 });
 
         if (gainedExp(status, request)) status.setExpGainedAt(now);
+        Instant active = activeAt(status, request, now);
+        if (active != null && (status.getActiveAt() == null || active.isAfter(status.getActiveAt()))) status.setActiveAt(active);
         status.setCharacterName(request.character());
         status.setDllVersion(dllVersion);
         status.setLevel(request.level());
@@ -97,6 +99,21 @@ public class CharacterStatusService {
         if (status.getId() == null || status.getLevel() == null || status.getExpPercent() == null) return false;
         int level = request.level();
         return level > status.getLevel() || (level == status.getLevel() && request.expPercent() > status.getExpPercent());
+    }
+
+    /** A DLL so conta tecla/clique dos ultimos minutos; mais que isso e so "parado ha muito tempo". */
+    static final int MAX_IDLE_SEC = 24 * 3600;
+
+    /**
+     * Quando fez algo pela ultima vez, mesmo parado no lugar: HP, FP ou SP menor que no envio anterior (usou skill
+     * ou apanhou; regeneracao e pocao so sobem) ou a ultima tecla/clique/camera que a DLL viu. Null = nada novo.
+     */
+    private static Instant activeAt(CharacterStatus status, CharacterStatusIngestRequest request, Instant now) {
+        Instant at = null;
+        if (status.getId() != null && status.getHp() != null && status.getFp() != null && status.getSp() != null
+                && (request.hp() < status.getHp() || request.fp() < status.getFp() || request.sp() < status.getSp())) at = now;
+        if (at == null && request.idleSec() != null && request.idleSec() <= MAX_IDLE_SEC) at = now.minusSeconds(request.idleSec());
+        return at;
     }
 
     /** Envio sem mapa nem regiao (DLL antiga ou tela de carregamento) apaga o local: nunca fica um local velho. */

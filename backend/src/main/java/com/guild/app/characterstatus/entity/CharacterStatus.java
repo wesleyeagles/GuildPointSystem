@@ -84,6 +84,13 @@ public class CharacterStatus {
     @Column(name = "exp_gained_at")
     private Instant expGainedAt;
 
+    /**
+     * Ultima vez que fez algo mesmo parado: HP/FP/SP caiu entre dois envios (skill, apanhando) ou a DLL viu
+     * tecla/clique/roda/camera no jogo. Null = ainda nao visto.
+     */
+    @Column(name = "active_at")
+    private Instant activeAt;
+
     /** Quando o cliente observou (recebido) e quando o servidor gravou. */
     @Column(name = "observed_at", nullable = false)
     private Instant observedAt = Instant.now();
@@ -92,11 +99,15 @@ public class CharacterStatus {
     private Instant updatedAt = Instant.now();
 
     /**
-     * Desde quando esta sem fazer nada: parado na mesma coordenada E sem ganhar EXP (quem mata parado no
-     * lugar nao e AFK). Null = nao da para saber (sem coordenada).
+     * Desde quando esta sem fazer nada: parado na mesma coordenada, sem ganhar EXP (quem mata parado no lugar
+     * nao e AFK) e sem atividade (skill, apanhando, tecla, camera: quem bate no chip parado nao e AFK).
+     * Null = nao da para saber (sem coordenada).
      */
     public Instant idleSince() {
         if (stillSince == null) return null;
-        return expGainedAt != null && expGainedAt.isAfter(stillSince) ? expGainedAt : stillSince;
+        Instant since = stillSince;
+        if (expGainedAt != null && expGainedAt.isAfter(since)) since = expGainedAt;
+        if (activeAt != null && activeAt.isAfter(since)) since = activeAt;
+        return since;
     }
 }

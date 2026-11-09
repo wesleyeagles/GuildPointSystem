@@ -115,6 +115,9 @@ export function getMsUntilScheduledEvent(event: ScheduledEvent, now: Date): numb
 }
 
 export const TEN_MINUTE_WARNING_MS = 10 * 60 * 1000
+/** CW avisa 15 min antes; os outros eventos, 10 min (como no servidor). */
+export const CW_WARNING_MS = 15 * 60 * 1000
+export const warningMs = (eventId: string) => (eventId.startsWith('cw') ? CW_WARNING_MS : TEN_MINUTE_WARNING_MS)
 
 function devTestScheduleEvent(): IntervalScheduledEvent | null {
   if (!import.meta.env.DEV) return null

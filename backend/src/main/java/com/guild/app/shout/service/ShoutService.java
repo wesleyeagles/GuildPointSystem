@@ -67,6 +67,26 @@ public class ShoutService {
         return shout;
     }
 
+    /** Autor dos shouts automáticos do site (sem personagem por trás). */
+    public static final String SYSTEM_AUTHOR = "Sistema";
+
+    /**
+     * Shout automático do site (ex.: aviso de RG antes da CW): aparece no jogo de todos os membros com a DLL,
+     * como o shout de um Líder, sem o intervalo mínimo entre shouts.
+     */
+    public synchronized Shout system(String text) {
+        String message = clean(text);
+        if (message.isEmpty() || message.length() > MAX_LENGTH)
+            throw new IllegalArgumentException("Shout do sistema inválido: " + text);
+        Instant now = clock.instant();
+        Shout previous = current.get();
+        long id = Math.max(previous == null ? 0 : previous.id() + 1, now.toEpochMilli());
+        Shout shout = new Shout(id, SYSTEM_AUTHOR, message, now);
+        current.set(shout);
+        audit.log(AuditLogType.SHOUT, (Member) null, null, Map.of("message", message, "source", "SYSTEM"));
+        return shout;
+    }
+
     /** Shout ativo para a DLL do personagem; vazio se não há shout ou o personagem não é de membro aprovado. */
     public Optional<Shout> forGame(String character) {
         Shout shout = current.get();

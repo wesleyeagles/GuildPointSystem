@@ -43,7 +43,8 @@ public class GameEventScheduleAlertScheduler {
             var event = guildEvent.get();
             ZonedDateTime next = calculator.nextOccurrence(event, now);
             long msUntil = calculator.millisUntil(event, now);
-            if (msUntil > TEN_MINUTE_WARNING_MS || msUntil <= 0) {
+            long warning = GameEventDefinitions.warningMs(event.id());
+            if (msUntil > warning || msUntil <= 0) {
                 continue;
             }
             String dedupeKey = event.id() + "|" + next.toInstant();
@@ -54,7 +55,7 @@ public class GameEventScheduleAlertScheduler {
                     "SCHEDULE_TEN_MINUTE",
                     event.id(),
                     event.label(),
-                    10,
+                    (int) (warning / 60_000),
                     next.toInstant().toString()));
         }
         checkTestAlert(now);
