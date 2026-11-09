@@ -161,18 +161,68 @@ class CwAttendanceTest {
         assertEquals(before + 30, points(a));
     }
 
-    @Test void afkCountsFromTheMomentItStoppedAndTimeOutsideDoesNot() {
+    @Test void afkCountsFromTheMomentItStopped() {
         walk(a, t0, -60, 300, CRAG);
         for (int s = 360; s <= 780; s += 60) service.record(a, nick(a), CRAG, at(t0, 300), at(t0, s));  // parou em 300
-        walk(a, t0, 840, 840, "Cora HQ");                                                            // voltou para a base
+        walk(a, t0, 840, 840, "Cora HQ");                                                            // nasceu na base
         walk(a, t0, 900, 1200, CRAG);
         clock(at(t0, 1200));
         loginAs(admin);
         var row = service.overview(1).cws().get(0).members().get(0);
         // 0-300 andando + 300-360 (o envio de 360 ainda não é AFK, mas o trecho parado vai todo para AFK)
-        // 360-780 AFK; 780-900 fora (Cora); 900-1200 andando.
-        assertEquals(600, row.activeSeconds());
-        assertEquals(480, row.afkSeconds());
+        // 360-840 AFK (ainda deitado em Crag até sair); 840-900 fora, voltou em 1 min: conta; 900-1200 andando.
+        assertEquals(660, row.activeSeconds());
+        assertEquals(540, row.afkSeconds());
+        assertEquals(0, row.outsideSeconds());
+    }
+
+    /** Envios a cada 60 s de -60 a 1200: fora de Crag (Cora HQ) entre {@code outFrom} e {@code outTo}. */
+    void cwWithTrip(long id, int outFrom, int outTo) {
+        for (int s = -60; s <= 1200; s += 60)
+            service.record(id, nick(id), s >= outFrom && s <= outTo ? "Cora HQ" : CRAG, at(t0, s), at(t0, s));
+    }
+    CwAttendanceService.CwMember row(long id) {
+        return service.overview(1).cws().get(0).members().stream().filter(m -> m.memberId() == id).findFirst().orElseThrow();
+    }
+
+    @Test void diedAndBackToCragWithinTwoMinutesLosesNothing() {
+        cwWithTrip(a, 540, 600);   // fora em 540 e 600, de volta em 660: 2 min
+        cwWithTrip(b, 540, 660);   // de volta em 720: 3 min, o tempo fora (540-720) é "Fora da CW"
+        for (int s = -60; s <= 600; s += 60) service.record(c, nick(c), CRAG, at(t0, s), at(t0, s));
+        for (int s = 660; s <= 1200; s += 60) service.record(c, nick(c), "Cora HQ", at(t0, s), at(t0, s));   // não voltou
+        clock(at(t0, 1200));
+        loginAs(admin);
+        assertEquals(1200, row(a).activeSeconds());
+        assertEquals(0, row(a).afkSeconds());
+        assertEquals(0, row(a).outsideSeconds());     // os 2 min fora não contam como fora
+        assertEquals(1020, row(b).activeSeconds());
+        assertEquals(0, row(b).afkSeconds());
+        assertEquals(180, row(b).outsideSeconds());
+        assertEquals(CRAG, row(b).map());
+        assertEquals(660, row(c).activeSeconds());     // até o primeiro envio fora
+        assertEquals(540, row(c).outsideSeconds());
+        assertEquals("Cora HQ", row(c).map());
+    }
+
+    @Test void arrivingLateFromAnotherMapIsOutside() {
+        for (int s = -60; s <= 300; s += 60) service.record(a, nick(a), "Cora HQ", at(t0, s), at(t0, s));
+        walk(a, t0, 360, 1200, CRAG);
+        clock(at(t0, 1200));
+        loginAs(admin);
+        assertEquals(840, row(a).activeSeconds());
+        assertEquals(360, row(a).outsideSeconds());
+    }
+
+    @Test void cwEndsWhileOutsideWithinTwoMinutes() {
+        cwWithTrip(a, 1140, 1200);   // saiu em 1140, a CW acabou em 1200
+        for (int s = 1260; s <= 1500; s += 60) service.record(a, nick(a), "Cora HQ", at(t0, s), at(t0, s));
+        clock(at(t0, 1200));
+        assertTrue(service.gameEnded(nick(a), END));
+        clock(at(t0, 1500));
+        loginAs(admin);
+        assertEquals(1200, row(a).activeSeconds());
+        assertEquals(0, row(a).outsideSeconds());
+        assertEquals(100, row(a).percent());
     }
 
     @Test void inTheCwAfkIsOneMinuteThirty() {

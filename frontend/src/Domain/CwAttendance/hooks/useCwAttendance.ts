@@ -8,6 +8,10 @@ export interface CwMember {
   character: string | null
   activeSeconds: number
   afkSeconds: number
+  /** Em outro mapa durante a CW (os 2 min de tolerância depois de sair de Crag não contam). */
+  outsideSeconds: number
+  /** Último mapa visto durante a CW. */
+  map: string | null
   percent: number
   /** Primeiro e último envio da DLL em Crag durante a CW. */
   firstSeenAt: string

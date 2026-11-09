@@ -94,7 +94,7 @@ function CwPanel({ cw, data, days }: { cw: Cw; data: CwAttendance; days: number 
       {cw.members.length > 0 && (
         <table className="cw-attendance__table">
           <thead>
-            <tr><th>Membro</th><th>Em Crag (sem AFK)</th><th>% da CW</th><th>AFK</th><th>Primeira vez</th><th>Última vez</th></tr>
+            <tr><th>Membro</th><th>Em Crag (sem AFK)</th><th>% da CW</th><th>AFK</th><th>Fora da CW</th><th>Mapa</th><th>Primeira vez</th><th>Última vez</th></tr>
           </thead>
           <tbody>
             {cw.members.map((m) => (
@@ -119,6 +119,8 @@ function CwPanel({ cw, data, days }: { cw: Cw; data: CwAttendance; days: number 
                   )}
                 </td>
                 <td className={m.afkSeconds > 0 ? 'cw-attendance__warn' : 'cw-attendance__muted'}>{withSeconds(m.afkSeconds)}</td>
+                <td className={m.outsideSeconds > 0 ? 'cw-attendance__warn' : 'cw-attendance__muted'}>{withSeconds(m.outsideSeconds)}</td>
+                <td className={m.map ? undefined : 'cw-attendance__muted'}>{m.map ?? '—'}</td>
                 <td>{hour(m.firstSeenAt)}</td>
                 <td>{hour(m.lastSeenAt)}</td>
               </tr>

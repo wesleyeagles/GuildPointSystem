@@ -38,6 +38,8 @@ import java.util.*;
  *   <li>Cada envio de status da DLL perto e durante a CW vira uma amostra (está em Crag Mind Field? parado desde?).</li>
  *   <li>O tempo entre duas amostras seguidas em Crag conta como presença; se o personagem estava AFK (parado na
  *       mesma coordenada há mais de 1 min 30 s sem EXP), o trecho parado inteiro vai para AFK, desde o começo.</li>
+ *   <li>Saiu de Crag (morreu e nasceu em outro mapa, TP) e voltou em até 2 min: não perde nada. Mais que isso, o
+ *       tempo em outro mapa vai todo para "Fora da CW".</li>
  *   <li>A CW começa no horário fixo e acaba quando a DLL de algum membro vê "Due to the result of Chip War" no chat
  *       (ou quando um Admin marca o fim). 2 min depois do fim, quem ficou 60% da CW em Crag sem AFK recebe o
  *       objetivo "CW" ou, em dia de PB Major, "CW Major" (os pontos entram sozinhos).</li>
@@ -57,6 +59,11 @@ public class CwAttendanceService {
     public static final Duration AFK_AFTER = Duration.ofSeconds(90);
     /** Amostras mais distantes que isso (DLL fechou, caiu, carregando): o intervalo não conta. */
     public static final Duration MAX_GAP = Duration.ofSeconds(150);
+    /**
+     * Saiu de Crag (morreu e nasceu em outro mapa) e voltou em até isso, do primeiro envio fora ao primeiro de
+     * volta: o tempo fora conta como presença. Mais que isso: o tempo fora inteiro é "Fora da CW".
+     */
+    public static final Duration OUTSIDE_GRACE = Duration.ofMinutes(2);
     /** Amostras guardadas a partir de um pouco antes do início, para o primeiro minuto da CW contar. */
     public static final Duration SAMPLE_LEAD = Duration.ofMinutes(5);
     /** Aviso de fim só vale depois disso (um aviso de CW anterior atrasado não fecha a nova). */
@@ -169,22 +176,27 @@ public class CwAttendanceService {
         if (slot.isEmpty()) return;
         boolean inMap = map != null && CW_MAP.equalsIgnoreCase(map.strip());
         jdbc.update("""
-                INSERT INTO cw_sample(member_id,at,cw_date,cw_slot,in_map,idle_since,character_name) VALUES(?,?,?,?,?,?,?)
+                INSERT INTO cw_sample(member_id,at,cw_date,cw_slot,in_map,idle_since,character_name,map_name) VALUES(?,?,?,?,?,?,?,?)
                 ON CONFLICT (member_id,at) DO NOTHING""",
                 memberId, Timestamp.from(now), Date.valueOf(slot.get().date()), slot.get().window().slot(), inMap,
-                idleSince == null ? null : Timestamp.from(idleSince), character);
+                idleSince == null ? null : Timestamp.from(idleSince), character, mapName(map));
     }
 
-    record Sample(Instant at, boolean inMap, Instant idleSince, String character) {
-        boolean afk() { return idleSince != null && Duration.between(idleSince, at).compareTo(AFK_AFTER) > 0; }
+    private static String mapName(String map) {
+        if (map == null || map.isBlank()) return null;
+        String m = map.strip();
+        return m.length() > 80 ? m.substring(0, 80) : m;
+    }
+
+    record Sample(Instant at, boolean inMap, Instant idleSince, String character, String map) {        boolean afk() { return idleSince != null && Duration.between(idleSince, at).compareTo(AFK_AFTER) > 0; }
     }
 
     /**
      * Presença do membro: calculada por personagem, fica a do personagem com mais tempo ativo. Com dois personagens
      * online (um em Crag, outro fora) as amostras alternariam dentro/fora do mapa e nenhum intervalo contaria.
-     * Retorna [ativo, AFK] e o personagem.
+     * Retorna ativo, AFK, fora (em outro mapa) e o personagem.
      */
-    record Best(long active, long afk, String character) {}
+    record Best(long active, long afk, long outside, String character) {}
     static Best best(List<Sample> samples, Instant from, Instant to) {
         var byCharacter = new LinkedHashMap<String, List<Sample>>();
         for (Sample s : samples) byCharacter.computeIfAbsent(Objects.toString(s.character(), ""), k -> new ArrayList<>()).add(s);
@@ -192,29 +204,67 @@ public class CwAttendanceService {
         for (var e : byCharacter.entrySet()) {
             long[] p = presence(e.getValue(), from, to);
             if (best == null || p[0] > best.active() || (p[0] == best.active() && p[1] < best.afk()))
-                best = new Best(p[0], p[1], e.getKey().isEmpty() ? null : e.getKey());
+                best = new Best(p[0], p[1], p[2], e.getKey().isEmpty() ? null : e.getKey());
         }
-        return best == null ? new Best(0, 0, null) : best;
+        return best == null ? new Best(0, 0, 0, null) : best;
     }
 
-    /** Segundos em Crag sem AFK e AFK, entre {@code from} e {@code to}, de uma lista de amostras em ordem. */
+    /**
+     * Segundos [em Crag sem AFK, AFK, fora (em outro mapa)] entre {@code from} e {@code to}, de uma lista de
+     * amostras em ordem. Saída de Crag (morreu e nasceu em outro mapa, TP) e volta: até {@link #OUTSIDE_GRACE}
+     * fora não perde nada; mais que isso, o tempo fora inteiro vai para "fora".
+     */
     static long[] presence(List<Sample> samples, Instant from, Instant to) {
-        long active = 0, afk = 0;
+        long[] out = {0, 0, 0};   // [ativo, AFK, fora]
         Instant afkFrom = null;   // começo do trecho parado de uma amostra AFK mais adiante
         for (int i = samples.size() - 1; i >= 1; --i) {
             Sample b = samples.get(i), a = samples.get(i - 1);
             if (b.afk()) afkFrom = b.idleSince();
             else if (afkFrom != null && !afkFrom.equals(b.idleSince())) afkFrom = null;
-            if (!a.inMap() || !b.inMap()) continue;
-            Duration gap = Duration.between(a.at(), b.at());
-            if (gap.isNegative() || gap.isZero() || gap.compareTo(MAX_GAP) > 0) continue;
+            if (!a.inMap() || !b.inMap() || !near(a, b)) continue;
             Instant lo = max(a.at(), from), hi = min(b.at(), to);
             if (!hi.isAfter(lo)) continue;
             Instant cut = afkFrom == null ? hi : max(lo, min(hi, afkFrom));   // [lo,cut) presente, [cut,hi) AFK
-            active += Duration.between(lo, cut).getSeconds();
-            afk += Duration.between(cut, hi).getSeconds();
+            add(out, 0, lo, cut, from, to);
+            add(out, 1, cut, hi, from, to);
         }
-        return new long[]{active, afk};
+        for (int i = 0; i + 1 < samples.size(); ++i) {
+            Sample a = samples.get(i), left = samples.get(i + 1);
+            if (a.inMap() && left.inMap() || !near(a, left)) continue;
+            if (!a.inMap()) {                     // em outro mapa (ainda não tinha chegado em Crag, ou chegando)
+                add(out, 2, a.at(), left.at(), from, to);
+                continue;
+            }
+            // Saiu de Crag: a = último envio em Crag, left = primeiro fora.
+            int j = i + 1;
+            while (j + 1 < samples.size() && !samples.get(j + 1).inMap() && near(samples.get(j), samples.get(j + 1))) ++j;
+            Sample lastOut = samples.get(j);
+            Sample back = j + 1 < samples.size() && near(lastOut, samples.get(j + 1)) ? samples.get(j + 1) : null;
+            // A CW acabou com ele ainda fora, dentro do prazo (a DLL seguia enviando): também não perde.
+            boolean endedOutside = left.at().isBefore(to)
+                    && !Duration.between(left.at(), to).minus(OUTSIDE_GRACE).isPositive()
+                    && (back != null || !Duration.between(lastOut.at(), to).minus(MAX_GAP).isPositive());
+            boolean grace = endedOutside
+                    || (back != null && !Duration.between(left.at(), back.at()).minus(OUTSIDE_GRACE).isPositive());
+            Instant end = back != null ? back.at() : grace ? to : lastOut.at();
+            add(out, a.afk() ? 1 : 0, a.at(), left.at(), from, to);   // ainda em Crag até sair
+            add(out, grace ? 0 : 2, left.at(), end, from, to);
+            i = j;
+        }
+        return out;
+    }
+
+    /** Dois envios seguidos sem buraco (DLL fechada, caiu). */
+    private static boolean near(Sample a, Sample b) {
+        Duration gap = Duration.between(a.at(), b.at());
+        return gap.isPositive() && gap.compareTo(MAX_GAP) <= 0;
+    }
+
+    /** Soma em {@code out[idx]} os segundos de [lo,hi) dentro de [from,to). */
+    private static void add(long[] out, int idx, Instant lo, Instant hi, Instant from, Instant to) {
+        lo = max(lo, from);
+        hi = min(hi, to);
+        if (hi.isAfter(lo)) out[idx] += Duration.between(lo, hi).getSeconds();
     }
 
     private static Instant max(Instant a, Instant b) { return a.isAfter(b) ? a : b; }
@@ -378,12 +428,12 @@ public class CwAttendanceService {
 
     private Map<Long, List<Sample>> samplesByMember(Slot slot) {
         var out = new HashMap<Long, List<Sample>>();
-        jdbc.query("SELECT member_id,at,in_map,idle_since,character_name FROM cw_sample WHERE cw_date=? AND cw_slot=? ORDER BY member_id,at",
+        jdbc.query("SELECT member_id,at,in_map,idle_since,character_name,map_name FROM cw_sample WHERE cw_date=? AND cw_slot=? ORDER BY member_id,at",
                 rs -> {
                     Timestamp idle = rs.getTimestamp("idle_since");
                     out.computeIfAbsent(rs.getLong("member_id"), k -> new ArrayList<>()).add(new Sample(
                             rs.getTimestamp("at").toInstant(), rs.getBoolean("in_map"),
-                            idle == null ? null : idle.toInstant(), rs.getString("character_name")));
+                            idle == null ? null : idle.toInstant(), rs.getString("character_name"), rs.getString("map_name")));
                 }, Date.valueOf(slot.date()), slot.window().slot());
         return out;
     }
@@ -404,8 +454,10 @@ public class CwAttendanceService {
 
     // ---- Leitura (Administrador+) ----
 
+    /** outsideSeconds = em outro mapa (fora os 2 min de tolerância); map = último mapa visto durante a CW. */
     public record CwMember(long memberId, String nickname, String character, long activeSeconds, long afkSeconds,
-                           int percent, Instant firstSeenAt, Instant lastSeenAt, boolean awarded, boolean preBonus) {}
+                           long outsideSeconds, String map, int percent, Instant firstSeenAt, Instant lastSeenAt,
+                           boolean awarded, boolean preBonus) {}
     /**
      * Uma CW. endedAt = fim real (null = ainda não acabou ou ninguém avisou); closed = a janela passou sem aviso.
      * objectiveName/objectivePoints = o que vale (CW ou CW Major); objectiveMissing = o objetivo não existe.
@@ -451,9 +503,13 @@ public class CwAttendanceService {
                         .filter(s -> !s.at().isBefore(slot.startsAt()) && !s.at().isAfter(until)).toList();
                 if (seen.isEmpty()) return;
                 Best p = best(samples, slot.startsAt(), until);
+                // Mapa: último envio durante a CW (até o fim), do personagem que contou.
+                String map = samples.stream()
+                        .filter(s -> !s.at().isAfter(until) && (p.character() == null || p.character().equals(s.character())))
+                        .reduce((x, y) -> y).map(s -> s.inMap() ? CW_MAP : s.map()).orElse(null);
                 String nick = nicknames.computeIfAbsent(id, k -> members.findById(k).map(Member::getNickname).orElse("?"));
                 rows.add(new CwMember(id, nick, p.character() != null ? p.character() : samples.get(samples.size() - 1).character(),
-                        p.active(), p.afk(), (int) Math.min(100, p.active() * 100 / length), seen.get(0).at(), seen.get(seen.size() - 1).at(),
+                        p.active(), p.afk(), p.outside(), map, (int) Math.min(100, p.active() * 100 / length), seen.get(0).at(), seen.get(seen.size() - 1).at(),
                         awards.getOrDefault("CW", Set.of()).contains(id), awards.getOrDefault("PRE", Set.of()).contains(id)));
             });
             rows.sort(Comparator.comparingLong(CwMember::activeSeconds).reversed().thenComparing(CwMember::nickname, String.CASE_INSENSITIVE_ORDER));
