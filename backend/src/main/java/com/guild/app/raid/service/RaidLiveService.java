@@ -1,6 +1,7 @@
 package com.guild.app.raid.service;
 
 import com.guild.app.auth.security.MemberPrincipal;
+import com.guild.app.common.enums.Role;
 import com.guild.app.common.exception.AppException;
 import com.guild.app.member.entity.Member;
 import com.guild.app.member.repository.MemberRepository;
@@ -35,6 +36,8 @@ public class RaidLiveService {
     static final int EFFECT_NAME_MAX = 32;
     /** Bandeira no mapa: some sozinha depois disso. */
     static final Duration FLAG_TTL = Duration.ofMinutes(2);
+    /** Ponto de membro no mapa (fx=5): posição enviada há no máximo isso (fora de raid a DLL envia a cada 3 s). */
+    static final Duration GUILD_ONLINE = Duration.ofSeconds(15);
     /** Seta da raid (alvo marcado pelo líder): some sozinha depois disso, se ninguém tirar antes. */
     static final Duration MARK_TTL = Duration.ofMinutes(10);
 
@@ -63,6 +66,8 @@ public class RaidLiveService {
     private record Mark(int kind, long serial, Instant at) {}
     private record Live(Vitals vitals, List<Effect> effects, Position position, Instant at) {}
     private record Flag(Position position, Instant at) {}
+    /** Último lugar de cada membro (em raid ou não), para os pontos de todos no mapa (fx=5). */
+    private record Seen(String nickname, Position position, Instant at) {}
     /** Para o site: ageMs = há quanto tempo veio o último envio (-1 = nunca). */
     public record LiveMember(Long memberId, int level, int hp, int hpMax, int fp, int fpMax, int sp, int spMax, long ageMs,
                              List<Effect> effects) {}
@@ -71,6 +76,10 @@ public class RaidLiveService {
     private final Map<Long, Live> live = new ConcurrentHashMap<>();
     /** Uma bandeira por integrante (a nova substitui a anterior), só em memória. */
     private final Map<Long, Flag> flags = new ConcurrentHashMap<>();
+    /** Posição de cada membro aprovado que enviou status (em raid ou não), só em memória. */
+    private final Map<Long, Seen> seen = new ConcurrentHashMap<>();
+    /** Bandeira da guild: Administrador/Líder fora de raid; todos os membros veem (fx=5). Uma por membro. */
+    private final Map<Long, Flag> guildFlags = new ConcurrentHashMap<>();
     /** Seta da raid: uma por raid (id da raid -> alvo), só em memória. */
     private final Map<Long, Mark> marks = new ConcurrentHashMap<>();
     private final Set<Long> dirty = ConcurrentHashMap.newKeySet();
@@ -184,6 +193,8 @@ public class RaidLiveService {
      * fx: o que a DLL entende na resposta. 1 (1.7.0+): marca de raid e 12a coluna com os efeitos;
      * 2: também a 13a coluna com o mapa e a posição de cada integrante ("mapa,x,z"; vazia = sem posição).
      * 3 (1.8.1+): também as linhas "F" das bandeiras no mapa, depois dos integrantes.
+     * 5 (1.34.0+): também os pontos de todos os membros no mapa ("G") e as bandeiras da guild ("B"), em raid ou
+     * não; fora de raid a resposta é "N" (sem raid) seguida dessas linhas, em vez de 204.
      */
     public Optional<String> report(String character, String body, int fx) {
         boolean withEffects = fx >= 1;
@@ -193,14 +204,24 @@ public class RaidLiveService {
         var current = roster();
         for (Member member : members.findByGameCharacter(character)) {
             if (!RaidService.eligible(member)) continue;
+            if (report.position() != null) seen.put(member.getId(), new Seen(member.getNickname(), report.position(), now));
+            else seen.remove(member.getId());
             RaidView raid = current.byMember().get(member.getId());
-            if (raid == null) continue;
+            if (raid == null) {
+                // Fora de raid: Administrador e Líder põem ou tiram a bandeira da guild (de outro, ignorado).
+                if (report.flag() != null && member.getRole().isAtLeast(Role.ADMINISTRADOR)) {
+                    if (report.flag().position() == null) guildFlags.remove(member.getId());
+                    else guildFlags.put(member.getId(), new Flag(report.flag().position(), now));
+                }
+                if (fx < 5) continue;
+                return Optional.of("N\n" + guildLines(now));
+            }
             live.put(member.getId(), new Live(report.vitals(), report.effects(), report.position(), now));
             dirty.add(raid.id());
             // Oculto: continua enviando a cada 1 s (DLL 1.7.0+ recebe "O"), mas sem raid para mostrar.
             // A DLL 1.6.0 recebe 204 e passa a enviar a cada 10 s.
             boolean hidden = raid.members().stream().anyMatch(m -> m.id().equals(member.getId()) && m.hidden());
-            if (hidden) return withEffects ? Optional.of(OBSERVED) : Optional.empty();
+            if (hidden) return withEffects ? Optional.of(fx >= 5 ? OBSERVED + guildLines(now) : OBSERVED) : Optional.empty();
             // Oculto não marca o mapa (nem vê a raid); qualquer outro integrante coloca ou tira a própria bandeira.
             if (report.flag() != null) {
                 if (report.flag().position() == null) flags.remove(member.getId());
@@ -211,9 +232,36 @@ public class RaidLiveService {
                 if (report.target().kind() == null) marks.remove(raid.id());
                 else marks.put(raid.id(), new Mark(report.target().kind(), report.target().serial(), now));
             }
-            return Optional.of(render(raid, now, fx));
+            return Optional.of(fx >= 5 ? render(raid, now, fx) + guildLines(now) : render(raid, now, fx));
         }
         return Optional.empty();
+    }
+
+    /**
+     * fx=5: "G<TAB>nick<TAB>mapa,x,z<TAB>idade" de cada membro com posição recente (todos, em raid ou não; a DLL
+     * pula o próprio) e "B<TAB>nick<TAB>mapa,x,z<TAB>idade" de cada bandeira da guild.
+     */
+    private String guildLines(Instant now) {
+        var out = new StringBuilder();
+        for (Seen s : seen.values()) {
+            long age = Duration.between(s.at(), now).toSeconds();
+            if (age < 0 || age > GUILD_ONLINE.toSeconds()) continue;
+            Position p = s.position();
+            out.append("G\t").append(clean(s.nickname())).append('\t')
+                .append(p.map()).append(',').append(p.x()).append(',').append(p.z()).append('\t').append(age).append('\n');
+        }
+        for (var e : guildFlags.entrySet()) {
+            Flag f = e.getValue();
+            long age = Duration.between(f.at(), now).toSeconds();
+            if (age >= FLAG_TTL.toSeconds()) { guildFlags.remove(e.getKey(), f); continue; }
+            Seen who = seen.get(e.getKey());
+            String nick = who != null ? who.nickname() : members.findById(e.getKey()).map(Member::getNickname).orElse(null);
+            if (nick == null) continue;
+            Position p = f.position();
+            out.append("B\t").append(clean(nick)).append('\t')
+                .append(p.map()).append(',').append(p.x()).append(',').append(p.z()).append('\t').append(age).append('\n');
+        }
+        return out.toString();
     }
 
     public List<LiveMember> forRaid(Long raidId, MemberPrincipal actor) {
@@ -248,6 +296,7 @@ public class RaidLiveService {
     public void prune() {
         Instant limit = clock.instant().minus(KEEP);
         live.values().removeIf(l -> l.at().isBefore(limit));
+        seen.values().removeIf(l -> l.at().isBefore(limit));
         Instant markLimit = clock.instant().minus(MARK_TTL);
         marks.values().removeIf(m -> m.at().isBefore(markLimit));
     }
