@@ -19,6 +19,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.*;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -169,5 +170,43 @@ class LocationPointsServiceTest {
     @Test void membersCannotUseIt() {
         loginAs(notInQueue);
         assertThrows(AppException.class, () -> service.locations());
+    }
+
+    @Test void atMostTwoRgPerDayInTheHalfHourBeforeCw() {
+        var actor = new MemberPrincipal(members.findById(moderator).orElseThrow());
+        Runnable rg = () -> service.award(new AwardRequest(null, "Vapor Lake", Scope.ALL, PointsType.GENERAL, 5,
+                List.of(inQueue), "RG", null), actor);
+        try {
+            // 13:00 Moscou (07:00 Brasilia): fora da janela, sem limite.
+            service.useClock(Clock.fixed(Instant.parse("2026-11-08T10:00:00Z"), ZoneOffset.UTC));
+            for (int i = 0; i < 3; i++) rg.run();
+            assertEquals(15, points(inQueue));
+            assertEquals(0, service.preview(new PreviewRequest(null, "Vapor Lake", Scope.ALL)).stream()
+                    .filter(m -> m.memberId() == inQueue).findFirst().orElseThrow().rgToday());
+            // 13:35 Moscou (07:35 Brasilia): 25 min antes da CW2, conta.
+            service.useClock(Clock.fixed(Instant.parse("2026-11-08T10:35:00Z"), ZoneOffset.UTC));
+            rg.run();
+            // 21:40 Moscou (15:40 Brasilia): antes da CW3, mesmo dia.
+            service.useClock(Clock.fixed(Instant.parse("2026-11-08T18:40:00Z"), ZoneOffset.UTC));
+            rg.run();
+            assertEquals(2, service.preview(new PreviewRequest(null, "Vapor Lake", Scope.ALL)).stream()
+                    .filter(m -> m.memberId() == inQueue).findFirst().orElseThrow().rgToday());
+            var third = service.award(new AwardRequest(null, "Vapor Lake", Scope.ALL, PointsType.GENERAL, 5,
+                    List.of(inQueue, notInQueue), "RG", null), actor);
+            assertEquals(List.of(nick(inQueue)), third.limited());
+            assertEquals(1, third.awarded());
+            assertEquals(25, points(inQueue));
+            assertEquals(5, points(notInQueue));
+            assertThrows(AppException.class, rg::run);
+            // Depois do inicio da CW3: sem limite de novo.
+            service.useClock(Clock.fixed(Instant.parse("2026-11-08T19:05:00Z"), ZoneOffset.UTC));
+            rg.run();
+            assertEquals(30, points(inQueue));
+            // Prioridade da Party (nao e RG) nao tem limite.
+            service.award(new AwardRequest(null, "Vapor Lake", Scope.QUEUE, PointsType.PRIORITY, 1, List.of(inQueue), null, null), actor);
+            assertEquals(1, priority(inQueue));
+        } finally {
+            service.useClock(Clock.systemUTC());
+        }
     }
 }

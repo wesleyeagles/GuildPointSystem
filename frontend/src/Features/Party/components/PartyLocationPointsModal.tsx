@@ -3,6 +3,7 @@ import {
   useAwardLocationPoints,
   useCurrentLocations,
   useLocationPreview,
+  RG_PER_DAY,
   type LocationPointsType,
   type LocationScope,
 } from '@/Domain/Location/hooks/useLocationPoints'
@@ -79,8 +80,10 @@ export function PartyLocationPointsModal({ onClose, variant = 'party', tabs }: P
   // Se voltar a andar, volta ao normal (marcado, a menos que tenha sido desmarcado à mão).
   const [afkChecked, setAfkChecked] = useState<Set<string>>(new Set())
   const afkKey = (m: (typeof matches)[number]) => `${m.memberId}:${m.map}:${m.region}:${m.mapX}:${m.mapY}`
+  // RG nos 30 min antes de uma CW: quem já recebeu 2 nessas janelas no dia não recebe de novo (o servidor também recusa).
+  const isLimited = (m: (typeof matches)[number]) => rg && m.rgToday >= RG_PER_DAY
   const isChecked = (m: (typeof matches)[number]) =>
-    isAfk(m) ? afkChecked.has(afkKey(m)) : !unchecked.has(m.memberId)
+    isLimited(m) ? false : isAfk(m) ? afkChecked.has(afkKey(m)) : !unchecked.has(m.memberId)
   const selected = matches.filter(isChecked)
 
   // Mapas da guild (GAME_MAPS), com quantos estão lá agora.
@@ -134,7 +137,8 @@ export function PartyLocationPointsModal({ onClose, variant = 'party', tabs }: P
         onSuccess: (result) => {
           const given = pointsType === 'PRIORITY' ? `+${amount} de prioridade` : `+${amount} pontos`
           const left = result.skipped.length ? ` Saíram do local e não receberam: ${result.skipped.join(', ')}.` : ''
-          showToast(`${given} para ${result.awarded} membro(s).${left}`, 'success')
+          const limited = result.limited?.length ? ` Já tinham ${RG_PER_DAY} RG antes de CW hoje: ${result.limited.join(', ')}.` : ''
+          showToast(`${given} para ${result.awarded} membro(s).${left}${limited}`, 'success')
           onClose()
         },
         onError: (err) => showToast(err instanceof Error ? err.message : 'Não foi possível dar os pontos.', 'error'),
@@ -220,7 +224,7 @@ export function PartyLocationPointsModal({ onClose, variant = 'party', tabs }: P
                 {matches.map((m) => (
                   <li key={m.memberId}>
                     <label className="party-location-points__item">
-                      <input type="checkbox" checked={isChecked(m)} onChange={() => toggle(m)} />
+                      <input type="checkbox" checked={isChecked(m)} disabled={isLimited(m)} onChange={() => toggle(m)} />
                       <span className="party-location-points__name" title={m.characterName}>
                         {m.nickname}
                       </span>
@@ -232,7 +236,15 @@ export function PartyLocationPointsModal({ onClose, variant = 'party', tabs }: P
                           {stillFor(m) < 0 ? '—' : formatStill(stillFor(m))}
                         </span>
                       )}
-                      {isAfk(m) && <span className="party-location-points__afk">AFK</span>}
+                      {rg && m.rgToday > 0 && (
+                        <span
+                          className={isLimited(m) ? 'party-location-points__afk' : 'party-location-points__still'}
+                          title={`RG antes de CW recebidos hoje (máximo ${RG_PER_DAY} por dia, só nos 30 min antes da CW)`}
+                        >
+                          RG {m.rgToday}/{RG_PER_DAY}
+                        </span>
+                      )}
+                      {isAfk(m) && !isLimited(m) && <span className="party-location-points__afk">AFK</span>}
                     </label>
                   </li>
                 ))}

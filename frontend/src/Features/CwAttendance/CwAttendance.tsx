@@ -102,6 +102,10 @@ function CwPanel({ cw, data, days }: { cw: Cw; data: CwAttendance; days: number 
                   </span>
                   {m.percent}%
                   {m.awarded && <span className="cw-attendance__ok"> ✓ pontuado</span>}
+                  {/* Passou dos 60% mas não recebeu: já tinha pontuado em 2 CWs nesse dia. */}
+                  {!m.awarded && cw.awardedAt && !cw.objectiveMissing && m.percent >= data.thresholdPercent && (
+                    <span className="cw-attendance__muted"> · já pontuou em 2 CWs hoje</span>
+                  )}
                 </td>
                 <td className={m.afkSeconds > 0 ? 'cw-attendance__warn' : 'cw-attendance__muted'}>{minutes(m.afkSeconds)}</td>
                 <td>{hour(m.firstSeenAt)}</td>

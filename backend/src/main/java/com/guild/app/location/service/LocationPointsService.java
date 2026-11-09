@@ -21,11 +21,15 @@ import com.guild.app.points.service.PointsService;
 import com.guild.app.websocket.WebSocketPublisher;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.Clock;
+import java.time.LocalDate;
+import com.guild.app.cw.service.CwAttendanceService;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -40,6 +44,16 @@ public class LocationPointsService {
 
     /** A DLL envia o local a cada minuto: 3 min sem envio = saiu do jogo ou do local. */
     static final Duration FRESH = Duration.ofMinutes(3);
+    /**
+     * Pontos de RG (pontos gerais) dados nos {@link #RG_BEFORE_CW} antes de uma CW: no maximo isso por membro por
+     * dia. RG fora dessa janela nao tem limite.
+     */
+    public static final int RG_PER_DAY = 2;
+    public static final Duration RG_BEFORE_CW = Duration.ofMinutes(30);
+    private Clock clock = Clock.systemUTC();
+
+    /** So para testes. */
+    public void useClock(Clock clock) { this.clock = clock; }
 
     private final CharacterStatusRepository statusRepository;
     private final MemberRepository memberRepository;
@@ -49,6 +63,7 @@ public class LocationPointsService {
     private final PartyBoardBroadcaster partyBoardBroadcaster;
     private final WebSocketPublisher webSocketPublisher;
     private final GameRegionRepository gameRegionRepository;
+    private final JdbcTemplate jdbc;
 
     /**
      * Regioes conhecidas (catalogo game_region, com 0 membros) mais onde ha gente agora,
@@ -93,6 +108,10 @@ public class LocationPointsService {
 
         var awarded = new ArrayList<String>();
         var skipped = new ArrayList<String>();
+        var limited = new ArrayList<String>();
+        // Limite so nos 30 min antes de uma CW (conta pelo dia da CW).
+        Optional<CwAttendanceService.Slot> cw = request.pointsType() == PointsType.GENERAL
+                ? CwAttendanceService.startingWithin(clock.instant(), RG_BEFORE_CW) : Optional.empty();
         boolean priorityChanged = false;
         // Ordem fixa de ids: dois moderadores confirmando juntos travam as linhas na mesma ordem.
         for (Long memberId : new TreeSet<>(request.memberIds())) {
@@ -103,6 +122,15 @@ public class LocationPointsService {
             }
             Member member = memberRepository.findByIdForUpdate(memberId).orElseThrow();
             if (request.pointsType() == PointsType.GENERAL) {
+                // Linha do membro travada acima: duas confirmacoes juntas nao passam do limite.
+                if (cw.isPresent()) {
+                    if (rgToday(memberId, cw.get().date()) >= RG_PER_DAY) {
+                        limited.add(member.getNickname());
+                        continue;
+                    }
+                    jdbc.update("INSERT INTO rg_award(member_id,day,cw_slot,points,actor_id) VALUES(?,?,?,?,?)",
+                            memberId, cw.get().date(), cw.get().window().slot(), request.amount(), actor.getId());
+                }
                 pointsService.adjustPoints(member, actorEntity, request.amount(), PointsModality.AJUSTE, reason);
                 auditLogService.log(AuditLogType.POINTS_ADJUSTED, actorEntity, member, Map.of(
                         "amount", request.amount(),
@@ -126,10 +154,13 @@ public class LocationPointsService {
             awarded.add(member.getNickname());
         }
         if (awarded.isEmpty()) {
+            if (!limited.isEmpty()) {
+                throw new AppException("Todos os marcados já receberam " + RG_PER_DAY + " RG hoje.", HttpStatus.CONFLICT);
+            }
             throw new AppException("Ninguém marcado ainda está nesse local. Atualize a prévia.", HttpStatus.CONFLICT);
         }
         if (priorityChanged) partyBoardBroadcaster.boardChanged();
-        return new AwardResult(awarded.size(), awarded, skipped);
+        return new AwardResult(awarded.size(), awarded, skipped, limited);
     }
 
     private List<LocationMatch> matches(String map, String region, Scope scope) {
@@ -142,6 +173,9 @@ public class LocationPointsService {
                 .map(PartyLfg::getMemberId)
                 .collect(Collectors.toSet());
         Instant now = Instant.now();
+        // Contagem so aparece (e so limita) nos 30 min antes de uma CW.
+        Map<Long, Integer> rg = CwAttendanceService.startingWithin(clock.instant(), RG_BEFORE_CW)
+                .map(slot -> rgTodayByMember(slot.date())).orElse(Map.of());
         return currentByMember().values().stream()
                 .filter(s -> wantedMap == null || wantedMap.equalsIgnoreCase(s.getMapName()))
                 .filter(s -> wantedRegion == null || wantedRegion.equalsIgnoreCase(s.getRegionName()))
@@ -150,9 +184,22 @@ public class LocationPointsService {
                         s.getMember().getId(), s.getMember().getNickname(), s.getCharacterName(),
                         s.getMapName(), s.getRegionName(), s.getMapX(), s.getMapY(), s.getLocationAt(),
                         queue.contains(s.getMember().getId()),
-                        stillSeconds(s, now)))
+                        stillSeconds(s, now),
+                        rg.getOrDefault(s.getMember().getId(), 0)))
                 .sorted(Comparator.comparing(LocationMatch::nickname, String.CASE_INSENSITIVE_ORDER))
                 .toList();
+    }
+
+    private int rgToday(Long memberId, LocalDate day) {
+        Integer n = jdbc.queryForObject("SELECT count(*) FROM rg_award WHERE member_id=? AND day=?", Integer.class, memberId, day);
+        return n == null ? 0 : n;
+    }
+
+    private Map<Long, Integer> rgTodayByMember(LocalDate day) {
+        var out = new HashMap<Long, Integer>();
+        jdbc.query("SELECT member_id, count(*) FROM rg_award WHERE day=? GROUP BY member_id",
+                rs -> { out.put(rs.getLong(1), rs.getInt(2)); }, day);
+        return out;
     }
 
     /**
