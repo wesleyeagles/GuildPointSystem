@@ -446,7 +446,9 @@ public class CwAttendanceService {
             long length = Math.max(1, Duration.between(slot.startsAt(), until).getSeconds());
             var rows = new ArrayList<CwMember>();
             samplesByMember(slot).forEach((id, samples) -> {
-                var seen = samples.stream().filter(Sample::inMap).filter(s -> !s.at().isBefore(slot.startsAt())).toList();
+                // Só o que foi visto durante a CW: a DLL segue enviando até a janela fechar, mesmo depois do fim.
+                var seen = samples.stream().filter(Sample::inMap)
+                        .filter(s -> !s.at().isBefore(slot.startsAt()) && !s.at().isAfter(until)).toList();
                 if (seen.isEmpty()) return;
                 Best p = best(samples, slot.startsAt(), until);
                 String nick = nicknames.computeIfAbsent(id, k -> members.findById(k).map(Member::getNickname).orElse("?"));

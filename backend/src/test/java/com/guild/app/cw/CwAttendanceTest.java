@@ -135,6 +135,21 @@ class CwAttendanceTest {
         assertEquals(1200, rowC.afkSeconds());
     }
 
+    @Test void afterTheEndNobodyShowsUpAndLastSeenStopsAtTheEnd() {
+        walk(a, t0, -60, 2400, CRAG);                      // ficou em Crag depois do fim
+        walk(b, t0, 1500, 2400, CRAG);                     // só chegou depois do fim
+        clock(at(t0, 1200));
+        assertTrue(service.gameEnded(nick(a), END));
+        clock(at(t0, 2400));
+        loginAs(admin);
+        var cw = service.overview(1).cws().get(0);
+        assertEquals(1, cw.members().size());
+        var row = cw.members().get(0);
+        assertEquals(a, row.memberId());
+        assertEquals(at(t0, 1200), row.lastSeenAt());
+        assertEquals(1200, row.activeSeconds());
+    }
+
     @Test void pbMajorDayGivesCwMajor() {
         Instant major = Instant.parse("2026-11-10T03:00:00Z");   // CW1 de 10/11 (00:00 em Brasília)
         walk(a, major, -60, 900, CRAG);
