@@ -49,6 +49,8 @@ public class LocationPointsService {
      * dia. RG fora dessa janela nao tem limite.
      */
     public static final int RG_PER_DAY = 2;
+    /** Nome no filtro "Evento" dos logs para os pontos dados pelo "Pontos de RG". */
+    public static final String RG_OBJECTIVE = "RG";
     public static final Duration RG_BEFORE_CW = Duration.ofMinutes(30);
     private Clock clock = Clock.systemUTC();
 
@@ -103,7 +105,7 @@ public class LocationPointsService {
         String shownMap = trimToNull(request.mapLabel()) != null ? request.mapLabel().trim() : request.map();
         String place = placeLabel(shownMap, request.region());
         String reason = request.reason() == null || request.reason().isBlank()
-                ? "Pontos por local: " + place
+                ? (request.pointsType() == PointsType.GENERAL ? "Pontos de RG: " : "Pontos por local: ") + place
                 : request.reason().trim() + " (" + place + ")";
 
         var awarded = new ArrayList<String>();
@@ -135,7 +137,10 @@ public class LocationPointsService {
                 auditLogService.log(AuditLogType.POINTS_ADJUSTED, actorEntity, member, Map.of(
                         "amount", request.amount(),
                         "modality", PointsModality.AJUSTE.name(),
-                        "reason", reason));
+                        "reason", reason,
+                        // Pontos gerais por local so saem do "Pontos de RG": aparecem no filtro "Evento" dos logs como RG.
+                        "objectiveName", RG_OBJECTIVE,
+                        "source", "RG"));
                 webSocketPublisher.publishPointsUpdate(memberId, () -> Map.of(
                         "memberId", memberId,
                         "availablePoints", pointsService.getAvailablePoints(memberId)));

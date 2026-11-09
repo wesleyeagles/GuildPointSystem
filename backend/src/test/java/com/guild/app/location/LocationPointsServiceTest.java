@@ -101,6 +101,11 @@ class LocationPointsServiceTest {
         assertEquals(List.of(nick(notInQueue)), result.skipped());
         assertEquals(5, points(inQueue));
         assertEquals(0, points(notInQueue));
+        // Log: tipo "Pontos ajustados" com o evento "RG" (filtro Evento da aba Logs).
+        var log = jdbc.queryForMap("SELECT payload->>'objectiveName' AS objective, payload->>'reason' AS reason FROM audit_log "
+                + "WHERE type='POINTS_ADJUSTED' AND target_id=? ORDER BY id DESC LIMIT 1", inQueue);
+        assertEquals("RG", log.get("objective"));
+        assertEquals("Pontos de RG: Vapor Lake", log.get("reason"));
     }
 
     @Test void priorityPointsGoToTheQueue() {
