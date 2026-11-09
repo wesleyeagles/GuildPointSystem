@@ -94,6 +94,9 @@ public class SecurityConfig {
                         // Pontos por aproximacao pela DLL da referencia: so responde a personagem de membro aprovado.
                         .requestMatchers(HttpMethod.GET, "/api/proximity-points/game").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/proximity-points/game/*").permitAll()
+                        // Check de "Pronto?" da PT pela DLL: o lider (membro aprovado) inicia, a PT responde.
+                        .requestMatchers(HttpMethod.GET, "/api/ready-check/game").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/ready-check/game/start", "/api/ready-check/game/*/answer").permitAll()
                         // Tradutor do chat pela DLL: so responde a personagem de membro aprovado da lista.
                         .requestMatchers(HttpMethod.GET, "/api/chat-translate/game/access").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/chat-translate/game").permitAll()
