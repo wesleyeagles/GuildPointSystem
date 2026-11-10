@@ -213,3 +213,55 @@ export function useEventSubscription(onEvent?: (event: GuildEvent) => void) {
 }
 
 export type { AuditLogEntry }
+
+/** Uma rodada de pontos da guild, sem jogador (GET /logs/recent-points). */
+export interface RecentPointsEntry {
+  kind: 'EVENT' | 'RG' | 'CW' | 'PROXIMITY' | string
+  name: string
+  /** Local do RG; null nos outros. */
+  detail: string | null
+  members: number
+  /** Pontos de cada um (o maior, se variou). */
+  points: number
+  total: number
+  at: string
+  /** O membro logado recebeu. */
+  received: boolean
+  /** Quanto ele recebeu; null se não recebeu. */
+  myPoints: number | null
+  /** Não recebeu porque já estava no limite do dia (evento limitado ou RG). */
+  limited: boolean
+}
+
+const recentPointsKey = ['recent-points'] as const
+/** Tipos de log que mudam as rodadas de pontos. */
+const POINTS_LOG_TYPES = new Set<AuditLogType>(['EVENT_CLAIMED', 'EVENT_DENIED', 'POINTS_ADJUSTED'])
+/** Vários resgates em sequência viram uma busca só. */
+const RECENT_POINTS_DEBOUNCE_MS = 3000
+
+export function useRecentPoints(limit = 15) {
+  const queryClient = useQueryClient()
+  const timer = useRef<number | undefined>(undefined)
+
+  useEffect(() => {
+    const refresh = () => {
+      window.clearTimeout(timer.current)
+      timer.current = window.setTimeout(() => queryClient.invalidateQueries({ queryKey: recentPointsKey }), RECENT_POINTS_DEBOUNCE_MS)
+    }
+    const stopLogs = subscribeTopicEffect('/topic/logs', (message) => {
+      try {
+        if (POINTS_LOG_TYPES.has((JSON.parse(message.body) as AuditLogEntry).type)) refresh()
+      } catch {
+        refresh()
+      }
+    })
+    const stopReconnect = onSocketReconnect(refresh)
+    return () => { stopLogs(); stopReconnect(); window.clearTimeout(timer.current) }
+  }, [queryClient])
+
+  return useQuery({
+    queryKey: [...recentPointsKey, limit],
+    queryFn: () => apiClient<RecentPointsEntry[]>(`/logs/recent-points?limit=${limit}`),
+    staleTime: 30_000,
+  })
+}

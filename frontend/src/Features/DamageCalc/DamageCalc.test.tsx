@@ -12,6 +12,9 @@ vi.mock('./data/kbase.json', () => ({ default: {
 
 afterEach(() => { cleanup(); localStorage.clear() })
 
+/** A página carrega a kbase com import(); com a suíte toda rodando, passa de 1 s. */
+const KBASE_LOAD = { timeout: 10_000 }
+
 const sword: KbWeapon = { c: 'x', n: 'Sword', l: 65, t: 'sword', r: '11111', atk: [1000, 2000], e: { a: 10 } }
 
 describe('calcDamage', () => {
@@ -43,7 +46,7 @@ describe('Calculadora de dano', () => {
     // fechado não mostra lista; clicar abre
     expect(screen.queryByRole('listbox')).toBeNull()
     fireEvent.click(screen.getByRole('combobox', { name: 'Arma' }))
-    fireEvent.click(await screen.findByRole('option', { name: /Saint Beam Sword/ }))
+    fireEvent.click(await screen.findByRole('option', { name: /Saint Beam Sword/ }, KBASE_LOAD))
     expect(screen.getByRole('combobox', { name: 'Arma' })).toHaveValue('Saint Beam Sword')
     fireEvent.change(screen.getByRole('combobox', { name: 'Talics Keen' }), { target: { value: '7' } })
     // o próprio campo é a busca
@@ -62,7 +65,7 @@ describe('Calculadora de dano', () => {
   it('lists only Cora buffs and one adrena at a time', async () => {
     localStorage.setItem('damageCalc.v1', JSON.stringify({ weapon: 'iwswa65', buffs: ['howl'], adrena: 'custom' }))
     render(<DamageCalcPage />)
-    await screen.findByText('2.000')
+    await screen.findByText('2.000', undefined, KBASE_LOAD)
     const buffs = within(screen.getByRole('group', { name: 'Buffs' }))
     expect(buffs.queryByText('Howl')).toBeNull() // buff de outra raça salvo antes não soma
     fireEvent.click(buffs.getByRole('checkbox', { name: /Focus/ }))

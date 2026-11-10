@@ -13,7 +13,7 @@
     min-height: 0;
   }
 
-  // Right column: next PBs on top (only as tall as their content), news fills the rest.
+  // Right column: últimos pontos, da altura do ranking.
   &__side {
     display: flex;
     flex-direction: column;
@@ -30,11 +30,6 @@
       flex-direction: column;
       min-height: 0;
     }
-
-    // Next PBs (next + 1) take only their height; news gets the remaining space.
-    > .dashboard__col--bosses {
-      flex: 0 0 auto;
-    }
   }
 
   &__empty {
@@ -47,50 +42,82 @@
   }
 }
 
-// ── Podium: three metal pedestals ────────────────────────────────────────────
+// ── Podium: três cartões lado a lado, o 1º em destaque ───────────────────────
 .podium {
-  --rank-color: #{theme.$color-silver};
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  gap: theme.$spacing-md;
-  margin: theme.$spacing-sm 0 theme.$spacing-lg;
-
-  &__slot {
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    flex: 1;
-    min-width: 0;
-    max-width: 190px;
-    text-align: center;
-
-    &--1 { order: 2; --rank-color: #{theme.$color-gold};   --pedestal: 76px; }
-    &--2 { order: 1; --rank-color: #{theme.$color-silver}; --pedestal: 52px; }
-    &--3 { order: 3; --rank-color: #{theme.$color-bronze}; --pedestal: 36px; }
-  }
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: theme.$spacing-sm;
+  margin: theme.$spacing-sm 0 theme.$spacing-md;
 
   &__card {
+    --rank-color: #{theme.$color-silver};
     display: flex;
-    flex-direction: column;
     align-items: center;
-    gap: 4px;
-    padding: 0 theme.$spacing-sm theme.$spacing-sm;
+    gap: 14px;
     min-width: 0;
+    padding: 14px 16px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid theme.$color-border;
+    border-radius: 10px;
+    transition: border-color 0.12s;
 
-    .member-class-icon { margin-bottom: 4px; }
+    &:hover { border-color: theme.$color-border-strong; }
+
+    &--1 {
+      --rank-color: #{theme.$color-gold};
+      padding: 18px 16px;
+      border-color: rgba(theme.$color-gold, 0.75);
+      background: linear-gradient(135deg, rgba(theme.$color-primary, 0.1), rgba(theme.$color-primary, 0.02) 70%);
+      box-shadow: 0 0 18px rgba(theme.$color-gold, 0.1);
+
+      &:hover { border-color: theme.$color-gold; }
+    }
+
+    &--2 { --rank-color: #{theme.$color-silver}; }
+    &--3 { --rank-color: #{theme.$color-bronze}; }
   }
 
-  // Class icon wrapper so the "blocked for sale" padlock sits on its top-right corner.
+  // Ícone da classe num quadro da cor da posição; o cadeado fica no canto.
   &__class {
     position: relative;
-    display: inline-flex;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    border: 2px solid var(--rank-color);
+    border-radius: 8px;
+    padding: 2px;
+    background: rgba(0, 0, 0, 0.3);
+
+    .podium__card--1 & {
+      width: 60px;
+      height: 60px;
+    }
+  }
+
+  &__avatar {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 6px;
+  }
+
+  &__avatar--initial {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: theme.$font-heading;
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--rank-color);
   }
 
   &__lock {
     position: absolute;
-    top: -6px;
-    right: -6px;
+    top: -8px;
+    right: -8px;
     display: inline-flex;
     padding: 3px;
     font-size: 12px;
@@ -101,6 +128,34 @@
     pointer-events: auto;
   }
 
+  &__info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  &__rank {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: theme.$font-heading;
+    font-size: 15px;
+    font-weight: 800;
+    line-height: 1.1;
+    color: var(--rank-color);
+  }
+
+  &__me {
+    padding: 1px 7px;
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: theme.$color-primary;
+    border: 1px solid theme.$color-primary;
+    border-radius: 8px;
+  }
+
   &__name {
     max-width: 100%;
     font-family: theme.$font-heading;
@@ -109,86 +164,50 @@
     letter-spacing: 0.5px;
     color: theme.$color-text;
     text-transform: uppercase;
+    text-decoration: none;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    transition: color 0.12s;
 
-    &--link {
-      text-decoration: none;
-      transition: color 0.12s;
+    &:hover { color: theme.$color-primary; text-decoration: none; }
 
-      &:hover { color: theme.$color-primary; }
-    }
+    .podium__card--1 & { font-size: 21px; }
   }
 
-  &__level {
+  &__meta {
     font-family: theme.$font-mono;
-    font-size: theme.$font-size-heading;
+    font-size: 12px;
     color: theme.$color-text-muted;
-  }
-
-  &__gs {
-    font-family: theme.$font-mono;
-    font-size: theme.$font-size-heading;
-    color: theme.$color-text-muted;
+    white-space: nowrap;
   }
 
   // Mapa · região onde o personagem está agora (DLL).
   &__where {
     max-width: 100%;
-    font-size: theme.$font-size-heading;
+    font-size: 12px;
     color: theme.$color-cyan;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
-  &__discord {
-    max-width: 100%;
-    margin-top: -4px;
-    font-size: theme.$font-size-heading;
-    font-weight: 600;
-    color: theme.$color-text-muted;
-    text-decoration: none;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-
-    &:hover { text-decoration: underline; }
-  }
-
   &__points {
     @include theme.readout;
+    margin-top: 2px;
     font-size: 18px;
+    font-weight: 700;
+    color: theme.$color-primary;
 
     &::after {
       content: ' pts';
+      margin-left: 4px;
+      font-size: 12px;
+      font-weight: 400;
       color: theme.$color-text-muted;
-      font-size: theme.$font-size-heading;
     }
-  }
 
-  &__pedestal {
-    height: var(--pedestal);
-    position: relative;
-    display: flex;
-    align-items: flex-start;
-    justify-content: center;
-    padding-top: 6px;
-    clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 100%, 0 100%);
-    background:
-      linear-gradient(180deg, var(--rank-color) 0 3px, transparent 3px),
-      repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.025) 0 1px, transparent 1px 6px),
-      theme.metal-surface(theme.$metal-600, theme.$metal-900);
-    box-shadow: inset 0 -12px 20px rgba(0, 0, 0, 0.5);
-  }
-
-  &__place {
-    font-family: theme.$font-heading;
-    font-size: 30px;
-    font-weight: 800;
-    line-height: 1;
-    color: var(--rank-color);
+    .podium__card--1 & { font-size: 22px; }
   }
 }
 
@@ -269,6 +288,27 @@
 
 .ranking-list__head-icon {
   display: block;
+}
+
+// Foto do Discord na linha do ranking (32 px, a coluna do antigo ícone de classe).
+.ranking-list__avatar {
+  display: block;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  object-fit: cover;
+  border: 1px solid theme.$color-border-strong;
+
+  &--initial {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: theme.$font-heading;
+    font-size: 15px;
+    font-weight: 800;
+    color: theme.$color-text-muted;
+    background: rgba(0, 0, 0, 0.3);
+  }
 }
 
 .ranking-list {
@@ -397,105 +437,88 @@
   }
 }
 
-// ── Next PBs (rotation) ──────────────────────────────────────────────────────
-.next-bosses {
+// ── Últimos pontos (eventos, RG, CW — sem jogador) ───────────────────────────
+.recent-points {
+  list-style: none;
+  margin: 0;
+  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: theme.$spacing-sm;
+  gap: 4px;
 
-  &__next {
+  // Área das linhas: ocupa o painel; o que não cabe vai para a próxima página.
+  &__viewport {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  // Cópia invisível da lista, só para medir a altura de cada linha.
+  &--measure {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  &__row {
     @include theme.card;
-    display: flex;
-    flex-direction: column;
-    gap: theme.$spacing-sm;
-    padding: theme.$spacing-sm theme.$spacing-md theme.$spacing-md;
-    border-left: 3px solid theme.$color-amber;
-
-    &--live {
-      border-left-color: theme.$color-success;
-    }
-  }
-
-  &__head {
-    display: flex;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-rows: auto auto auto;
+    column-gap: theme.$spacing-sm;
     align-items: baseline;
-    flex-wrap: wrap;
-    gap: theme.$spacing-sm;
+    padding: 6px theme.$spacing-sm;
+    border-left: 3px solid var(--points-color, #{theme.$color-amber});
+
+    &--rg { --points-color: #{theme.$color-primary}; }
+    &--cw { --points-color: #{theme.$color-success}; }
+    &--proximity { --points-color: #{theme.$color-text-muted}; }
   }
 
-  &__time {
-    font-family: theme.$font-mono;
-    font-size: 28px;
-    color: theme.$color-text;
-  }
-
-  &__server {
-    font-family: theme.$font-mono;
-    font-size: theme.$font-size-base;
-    color: theme.$color-text-muted;
-  }
-
-  &__countdown {
-    @include theme.readout;
-    margin-left: auto;
-    font-size: theme.$font-size-heading;
-    color: theme.$color-amber;
-  }
-
-  &__next--live &__countdown {
-    color: theme.$color-success;
-  }
-
-  &__area {
-    display: flex;
-    gap: theme.$spacing-sm;
-    font-size: theme.$font-size-base;
-    color: theme.$color-text;
-  }
-
-  &__area-label {
-    flex-shrink: 0;
+  &__kind {
+    @include theme.tag(var(--points-color, #{theme.$color-amber}));
+    grid-row: span 2;
+    align-self: center;
     min-width: 64px;
-    font-family: theme.$font-heading;
-    font-weight: 800;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-    color: theme.$color-amber;
+    text-align: center;
   }
 
-  &__later {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-
-    li {
-      display: flex;
-      gap: theme.$spacing-sm;
-      padding: 6px theme.$spacing-md;
-      border: 1px solid theme.$color-border;
-      background: rgba(0, 0, 0, 0.25);
-      font-size: theme.$font-size-base;
-    }
-  }
-
-  &__later-time {
-    flex-shrink: 0;
-    font-family: theme.$font-mono;
+  &__name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     color: theme.$color-text;
   }
 
-  &__later-bosses {
-    color: theme.$color-text-muted;
-    min-width: 0;
+  &__points {
+    font-family: theme.$font-mono;
+    font-size: 18px;
+    color: var(--points-color, #{theme.$color-amber});
   }
 
-  &__note {
-    margin: 0;
-    font-size: theme.$font-size-ui;
+  &__meta {
+    grid-column: 2 / 4;
+    font-family: theme.$font-mono;
+    font-size: 13px;
     color: theme.$color-text-muted;
+  }
+
+  &__row--mine {
+    background: rgba(theme.$color-success, 0.06);
+  }
+
+  &__mine {
+    grid-column: 1 / 4;
+    margin-top: 4px;
+    font-size: 13px;
+    font-weight: 600;
+
+    &--got { color: theme.$color-success; }
+    &--limit { color: theme.$color-warning; }
   }
 }
 
@@ -565,8 +588,10 @@
     flex: none;
   }
 
-  .dashboard__side > .dashboard__col--bosses > .panel__body {
-    max-height: 480px;
+  // Empilhado não há altura para acompanhar: área fixa e paginação.
+  .recent-points__viewport {
+    flex: none;
+    height: 480px;
   }
 }
 
@@ -575,24 +600,9 @@
     gap: theme.$spacing-md;
   }
 
+  // No celular os três cartões empilham.
   .podium {
-    gap: theme.$spacing-xs;
-
-    &__card {
-      padding: 0 2px theme.$spacing-xs;
-    }
-
-    &__name {
-      font-size: 14px;
-    }
-
-    &__points {
-      font-size: 15px;
-    }
-
-    &__place {
-      font-size: 24px;
-    }
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .ranking-search {

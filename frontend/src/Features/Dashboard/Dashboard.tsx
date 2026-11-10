@@ -2,8 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useFitRows } from '@/Shared/utils/useFitRows'
 import { useMatchBottom } from '@/Shared/utils/useMatchBottom'
-import { NewsPanel } from '@/Features/News/NewsPanel'
-import { NextBossesPanel } from '@/Features/Dashboard/components/NextBossesPanel'
+import { Pagination } from '@/Features/Dashboard/components/Pagination'
+import { RecentPointsPanel } from '@/Features/Dashboard/components/RecentPointsPanel'
 import {
   MemberContextMenu,
   SellLock,
@@ -23,7 +23,6 @@ import { useEquipment } from '@/Domain/Equipment/hooks/useEquipment'
 import { currentLocation } from '@/Domain/Location/gameMaps'
 import { useDiscordMembers, type DiscordMember } from '@/Domain/Discord/hooks/useDiscordMembers'
 import { discordProfileUrl, openInDiscordApp } from '@/Shared/utils/discordLink'
-import { MemberClassIcon } from '@/Shared/ui/components/MemberClassIcon/MemberClassIcon'
 import { Panel } from '@/Shared/ui/components/Panel/Panel'
 import './Dashboard.styles.scss'
 
@@ -32,35 +31,15 @@ type SortKey = 'points' | 'gameLevel' | 'gameExp' | 'gearScore'
 const RANK_ROW_HEIGHT = 47
 const PAGINATION_HEIGHT = 46
 
-interface PaginationProps {
-  page: number
-  total: number
-  onChange: (page: number) => void
-  ref?: React.Ref<HTMLDivElement>
-}
-
-function Pagination({ page, total, onChange, ref }: PaginationProps) {
-  if (total <= 1) return null
-  return (
-    <div className="dash-pagination" ref={ref}>
-      <button
-        className="dash-pagination__btn"
-        onClick={() => onChange(Math.max(0, page - 1))}
-        disabled={page === 0}
-      >
-        ‹
-      </button>
-      <span className="dash-pagination__info">
-        {page + 1} <span className="dash-pagination__sep">/</span> {total}
-      </span>
-      <button
-        className="dash-pagination__btn"
-        onClick={() => onChange(Math.min(total - 1, page + 1))}
-        disabled={page === total - 1}
-      >
-        ›
-      </button>
-    </div>
+/** Foto do Discord (ou o avatar do perfil); sem nenhuma, a inicial do nick. A classe fica no tooltip. */
+function MemberAvatar({ member, discord, className }: { member: Member; discord?: DiscordMember; className: string }) {
+  const url = discord?.avatarUrl || member.avatarUrl
+  return url ? (
+    <img className={className} src={url} alt="" loading="lazy" title={member.className ?? undefined} />
+  ) : (
+    <span className={`${className} ${className}--initial`} title={member.className ?? undefined} aria-hidden="true">
+      {member.nickname.charAt(0).toUpperCase()}
+    </span>
   )
 }
 
@@ -118,7 +97,7 @@ export function DashboardPage() {
   discord?.groups.forEach((g) =>
     g.members.forEach((m) => m.siteMemberId && discordBySiteId.set(m.siteMemberId, m)),
   )
-  const { hasRole } = useAuthContext()
+  const { hasRole, user } = useAuthContext()
   const canManageMembers = hasRole('ADMINISTRADOR') // Líder ranks above Administrador
   // Right-click on a member: Discord shortcuts for everyone; Discord link and sale block for staff.
   const [memberMenu, setMemberMenu] = useState<MemberMenuState | null>(null)
@@ -152,7 +131,7 @@ export function DashboardPage() {
   const sortArrow = (key: SortKey) =>
     sortKey === key ? (sortDir === 'desc' ? ' ▼' : ' ▲') : ''
 
-  // Side columns end exactly where the ranking panel ends; next PBs take their height, news the rest.
+  // Side column ends exactly where the ranking panel ends; últimos pontos fills it.
   const sideRef = useRef<HTMLDivElement>(null)
   const rankingRef = useRef<HTMLDivElement>(null)
   const sideHeight = useMatchBottom(sideRef, rankingRef, !isLoading)
@@ -252,44 +231,41 @@ export function DashboardPage() {
       >
         {!filtering && (
           <div className="podium">
-            {[1, 0, 2].map((rankIdx) => {
-              const member = top3[rankIdx]
-              if (!member) return null
-              const place = rankIdx + 1
+            {top3.map((member, index) => {
+              const place = index + 1
+              const status = gameStatusByMember.get(member.id)
+              const gearScore = gearScoreByMember.get(member.id)
+              const isMe = member.id === user?.memberId
               return (
-                <div key={member.id} className={`podium__slot podium__slot--${place}`}>
-                  <div className="podium__card" onContextMenu={(e) => openMemberMenu(e, member)}>
-                    <span className="podium__class">
-                      <MemberClassIcon
-                        classImageUrl={member.classImageUrl}
-                        classLabel={member.className}
-                        size="md"
-                      />
-                      {sellBlockedUntil(member) && <SellLock className="podium__lock" until={sellBlockedUntil(member)!} />}
+                <div
+                  key={member.id}
+                  className={`podium__card podium__card--${place}${isMe ? ' podium__card--me' : ''}`}
+                  onContextMenu={(e) => openMemberMenu(e, member)}
+                >
+                  <span className="podium__class" title={member.className ?? undefined}>
+                    <MemberAvatar member={member} discord={discordBySiteId.get(member.id)} className="podium__avatar" />
+                    {sellBlockedUntil(member) && <SellLock className="podium__lock" until={sellBlockedUntil(member)!} />}
+                  </span>
+                  <div className="podium__info">
+                    <span className="podium__rank">
+                      #{place}
+                      {isMe && <span className="podium__me">Você</span>}
                     </span>
-                    <Link to={`/profile/${member.id}`} className="podium__name podium__name--link">
+                    <Link to={`/profile/${member.id}`} className="podium__name">
                       {member.nickname}
                     </Link>
-                    <DiscordTag member={discordBySiteId.get(member.id)} className="podium__discord" />
-                    <span className="podium__level">
-                      {gameStatusByMember.has(member.id)
-                        ? `Lv ${gameStatusByMember.get(member.id)!.level} · ${gameStatusByMember
-                            .get(member.id)!
-                            .expPercent.toFixed(2)}%`
-                        : '—'}
+                    <span
+                      className="podium__meta"
+                      title={status ? `EXP ${status.expPercent.toFixed(2)}%` : undefined}
+                    >
+                      {status ? `Lv ${status.level}` : 'Lv —'} · GS {gearScore != null ? gearScore.toLocaleString('pt-BR') : '—'}
                     </span>
                     {locationOf(member.id) && (
                       <span className="podium__where" title="Mapa e região no jogo agora">
                         {locationOf(member.id)}
                       </span>
                     )}
-                    <span className="podium__gs" title="GearScore">
-                      {gearScoreByMember.has(member.id) ? `GS ${gearScoreByMember.get(member.id)}` : 'GS —'}
-                    </span>
-                    <span className="podium__points">{member.points}</span>
-                  </div>
-                  <div className="podium__pedestal">
-                    <span className="podium__place">{place}</span>
+                    <span className="podium__points">{member.points.toLocaleString('pt-BR')}</span>
                   </div>
                 </div>
               )
@@ -342,12 +318,7 @@ export function DashboardPage() {
             >
               {pagedRest.map(({ member: m }) => (
                 <li key={m.id} onContextMenu={(e) => openMemberMenu(e, m)}>
-                  {m.classImageUrl && m.className ? (
-                    <MemberClassIcon classImageUrl={m.classImageUrl} classLabel={m.className} />
-                  ) : (
-                    // Keep the icon column even without a class, or the row's cells shift left.
-                    <span className="ranking-list__empty-icon" aria-hidden="true" />
-                  )}
+                  <MemberAvatar member={m} discord={discordBySiteId.get(m.id)} className="ranking-list__avatar" />
                   <span className="ranking-list__member">
                     <span className="ranking-list__who">
                       <Link to={`/profile/${m.id}`} className="ranking-list__name">
@@ -392,11 +363,9 @@ export function DashboardPage() {
       </Panel>
       </div>
 
-      {/* ── Right: Next PBs (next + 1) + News (rest of the column) ─────── */}
+      {/* ── Right: últimos pontos, da altura do ranking (pagina quando não cabe) ─── */}
       <div className="dashboard__side" ref={sideRef} style={sideHeight ? { height: sideHeight } : undefined}>
-      <NextBossesPanel className="dashboard__col dashboard__col--bosses" />
-
-      <NewsPanel className="dashboard__col dashboard__col--news" />
+        <RecentPointsPanel className="dashboard__col dashboard__col--points" />
       </div>
 
       {memberMenu && (

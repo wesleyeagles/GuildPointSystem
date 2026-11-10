@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuthContext } from '@/Features/Auth/contexts/AuthContext'
 import { useCurrentMember } from '@/Domain/Member/hooks/useMembers'
+import { useDiscordBySiteMember } from '@/Domain/Discord/hooks/useDiscordMembers'
 import { usePointsSubscription } from '@/Domain/Auction/hooks/useAuction'
 import { useMemberLogNotifications } from '@/Domain/Log/hooks/useLogs'
 import { useGuildEmojisSubscription } from '@/Domain/Emoji/hooks/useGuildEmojis'
@@ -24,20 +25,31 @@ import { useEquipmentSubscription } from '@/Domain/Equipment/hooks/useEquipment'
 import { SyncAccessGate } from '@/Features/SyncAccess/SyncAccessGate'
 import { useDllNotice } from '@/Features/SyncAccess/dllNotice'
 import { LanguageSwitcher } from '@/Shared/ui/components/LanguageSwitcher/LanguageSwitcher'
+import { useSidebarTooltip } from '@/Shared/ui/Layout/SidebarTooltip'
+import { NavIcon, type NavIconName } from '@/Shared/ui/Layout/NavIcons'
 import './Layout.styles.scss'
 
-const NAV_ITEMS = [
-  { to: '/dashboard', label: 'Dashboard' },
-  { to: '/events', label: 'Eventos' },
-  { to: '/cw', label: 'CW' },
-  { to: '/party', label: 'Party' },
-  { to: '/equipment', label: 'Equipamentos' },
-  { to: '/quests', label: 'Quests' },
-  { to: '/rotation', label: 'Rotação' },
-  { to: '/damage', label: 'Calculadora de dano' },
-  { to: '/auctions', label: 'Leilões' },
-  { to: '/logs', label: 'Logs' },
+/** Grupos do menu (só ícones); o nome aparece no tooltip e no título da página. */
+const NAV_GROUPS: { to: string; label: string; icon: NavIconName }[][] = [
+  [
+    { to: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
+    { to: '/events', label: 'Eventos', icon: 'calendar' },
+    { to: '/cw', label: 'CW', icon: 'swords' },
+    { to: '/party', label: 'Party', icon: 'users' },
+  ],
+  [
+    { to: '/equipment', label: 'Equipamentos', icon: 'box' },
+    { to: '/quests', label: 'Quests', icon: 'checklist' },
+    { to: '/rotation', label: 'Rotação', icon: 'rotation' },
+    { to: '/damage', label: 'Calculadora de dano', icon: 'calculator' },
+  ],
+  [
+    { to: '/auctions', label: 'Leilões', icon: 'tag' },
+    { to: '/logs', label: 'Logs', icon: 'file' },
+  ],
 ]
+
+const NAV_ITEMS = NAV_GROUPS.flat()
 
 /** Reached from the member card at the top of the sidebar, not from the nav list. */
 const PROFILE_ITEM = { to: '/profile', label: 'Perfil' }
@@ -92,6 +104,8 @@ export function Layout() {
 function LayoutShell() {
   const { logout, hasRole, user } = useAuthContext()
   const { data: member } = useCurrentMember()
+  const discordBySite = useDiscordBySiteMember()
+  const avatarUrl = member?.avatarUrl ?? (user?.memberId != null ? discordBySite.get(user.memberId)?.avatarUrl : undefined)
   const location = useLocation()
   const navigate = useNavigate()
   useEffect(() => {
@@ -116,6 +130,19 @@ function LayoutShell() {
   useGuildEmojisSubscription()
   useEquipmentSubscription()
 
+  const sidebarTooltip = useSidebarTooltip((kind) =>
+    kind === 'profile' && member ? (
+      <span className="sidebar-tooltip__points">
+        <span>
+          Total <b>{member.points}</b>
+        </span>
+        <span>
+          Disponível <b className="sidebar-tooltip__points--cyan">{member.availablePoints}</b>
+        </span>
+      </span>
+    ) : null,
+  )
+
   const adminItems = hasRole(ADMIN_ITEM.minRole) ? [ADMIN_ITEM] : []
   const currentLabel =
     [...NAV_ITEMS, PROFILE_ITEM, ...HIDDEN_ITEMS, ADMIN_ITEM].find((item) => isActive(location.pathname, item.to))?.label ??
@@ -133,38 +160,38 @@ function LayoutShell() {
       <PartyGameInviteListener />
       {hasRole('MODERADOR') && <ApprovalsListener />}
       {quickCreateOpen && <QuickCreateModal onClose={() => setQuickCreateOpen(false)} />}
-      <aside className="layout__sidebar">
+      <aside className="layout__sidebar" {...sidebarTooltip.handlers}>
+        {sidebarTooltip.tooltip}
         <div className="layout__brand">
           <img src="/Logo-Blacklist.png" alt="Guild System" className="layout__logo" />
         </div>
 
-        <div className="layout__member">
-          <Link
-            to={PROFILE_ITEM.to}
-            className={`layout__member-head${location.pathname === PROFILE_ITEM.to ? ' layout__member-head--active' : ''}`}
-            title="Abrir meu perfil"
-          >
-            <span className="layout__member-name">{user?.nickname ?? 'Membro'}</span>
-          </Link>
-
-          {member && (
-            <div className="layout__gauge">
-              <div className="layout__gauge-row">
-                <span className="layout__gauge-label">Total</span>
-                <span className="layout__gauge-value">{member.points}</span>
-              </div>
-              <div className="layout__gauge-row">
-                <span className="layout__gauge-label">Disponível</span>
-                <span className="layout__gauge-value layout__gauge-value--cyan">
-                  {member.availablePoints}
-                </span>
-              </div>
-              <div className="layout__gauge-bar" aria-hidden="true">
-                <span style={{ width: `${availableRatio * 100}%` }} />
-              </div>
-            </div>
+        {/* Perfil: inicial do nick + pontos disponíveis; o resto fica no tooltip e no /profile. */}
+        <Link
+          to={PROFILE_ITEM.to}
+          className={`layout__member${location.pathname === PROFILE_ITEM.to ? ' layout__member--active' : ''}`}
+          data-tooltip={user?.nickname ?? 'Membro'}
+          data-tooltip-kind="profile"
+          aria-label="Abrir meu perfil"
+        >
+          {avatarUrl ? (
+            <img className="layout__member-avatar" src={avatarUrl} alt="" aria-hidden="true" />
+          ) : (
+            <span className="layout__member-avatar" aria-hidden="true">
+              {(user?.nickname ?? 'M').charAt(0).toUpperCase()}
+            </span>
           )}
-        </div>
+          {member && (
+            <span className="layout__member-points">
+              {member.availablePoints}
+            </span>
+          )}
+          {member && (
+            <span className="layout__gauge-bar" aria-hidden="true">
+              <span style={{ width: `${availableRatio * 100}%` }} />
+            </span>
+          )}
+        </Link>
 
         <nav className="layout__nav">
           {/* Evento (admin), Pontos de RG e Aproximação (moderador+): abas de um modal só. */}
@@ -172,47 +199,49 @@ function LayoutShell() {
             <button
               type="button"
               className="layout__nav-link layout__quick-event"
+              data-tooltip="Criar"
+              aria-label="Criar"
               onClick={() => {
                 setDrawerOpen(false)
                 setQuickCreateOpen(true)
               }}
             >
-              <span className="layout__nav-label">+ Criar</span>
+              <NavIcon name="plus" />
             </button>
           )}
 
-          {NAV_ITEMS.map((item) => (
-            <Link
-              key={item.to}
-              to={item.to}
-              className={`layout__nav-link${isActive(location.pathname, item.to) ? ' layout__nav-link--active' : ''}`}
-            >
-              <span className="layout__nav-label">{item.label}</span>
-              {item.to === '/auctions' && <AuctionNavBadge />}
-            </Link>
-          ))}
-
-          {adminItems.length > 0 && (
-            <div className="layout__admin">
-              <span className="layout__admin-strip" aria-hidden="true" />
-              {adminItems.map((item) => (
+          {NAV_GROUPS.map((group, index) => (
+            <div key={index} className="layout__nav-group">
+              {group.map((item) => (
                 <Link
                   key={item.to}
                   to={item.to}
-                  className={`layout__nav-link layout__nav-link--admin${isActive(location.pathname, item.to) ? ' layout__nav-link--active' : ''}`}
+                  data-tooltip={item.label}
+                  aria-label={item.label}
+                  className={`layout__nav-link${isActive(location.pathname, item.to) ? ' layout__nav-link--active' : ''}`}
                 >
-                  <span className="layout__nav-label">{item.label}</span>
-                  {item.to === ADMIN_ITEM.to && <ApprovalsNavBadge />}
+                  <NavIcon name={item.icon} />
+                  {item.to === '/auctions' && <AuctionNavBadge />}
                 </Link>
               ))}
             </div>
-          )}
+          ))}
+
+          {adminItems.map((item) => (
+            <Link
+              key={item.to}
+              to={item.to}
+              data-tooltip={item.label}
+              aria-label={item.label}
+              className={`layout__nav-link layout__nav-link--admin${isActive(location.pathname, item.to) ? ' layout__nav-link--active' : ''}`}
+            >
+              <NavIcon name="shield" />
+              {item.to === ADMIN_ITEM.to && <ApprovalsNavBadge />}
+            </Link>
+          ))}
         </nav>
 
         <LanguageSwitcher />
-        <button type="button" className="layout__logout" onClick={logout}>
-          Sair
-        </button>
       </aside>
 
       <button
@@ -248,9 +277,8 @@ function LayoutShell() {
                 DLL desatualizada
               </button>
             )}
-            <span className={`layout__socket layout__socket--${socket}`} title={SOCKET_LABEL[socket]}>
-              <span className="layout__socket-text">{SOCKET_LABEL[socket]}</span>
-            </span>
+            {/* Só o losango: a cor mostra o estado; o nome fica no tooltip. */}
+            <span className={`layout__socket layout__socket--${socket}`} title={SOCKET_LABEL[socket]} role="img" aria-label={SOCKET_LABEL[socket]} />
             <span className="layout__clock layout__clock--server" title="Horário do servidor Cerberus (Moscou, UTC+3)">
               <span className="layout__clock-label">Server</span>
               {now.toLocaleTimeString('pt-BR', { timeZone: SERVER_TIME_ZONE, hour12: false })}
@@ -259,6 +287,9 @@ function LayoutShell() {
               <span className="layout__clock-label">Brasília</span>
               {now.toLocaleTimeString('pt-BR', { timeZone: SCHEDULE_TIME_ZONE, hour12: false })}
             </span>
+            <button type="button" className="layout__logout" onClick={logout}>
+              Sair
+            </button>
           </div>
         </div>
         <main className="layout__main">
