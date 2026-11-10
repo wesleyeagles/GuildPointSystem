@@ -23,6 +23,7 @@ import type { Role } from '@/Domain/types/models'
 import { useEquipmentSubscription } from '@/Domain/Equipment/hooks/useEquipment'
 import { SyncAccessGate } from '@/Features/SyncAccess/SyncAccessGate'
 import { useDllNotice } from '@/Features/SyncAccess/dllNotice'
+import { LanguageSwitcher } from '@/Shared/ui/components/LanguageSwitcher/LanguageSwitcher'
 import './Layout.styles.scss'
 
 const NAV_ITEMS = [
@@ -206,6 +207,7 @@ function LayoutShell() {
           )}
         </nav>
 
+        <LanguageSwitcher />
         <button type="button" className="layout__logout" onClick={logout}>
           Sair
         </button>

@@ -1,0 +1,33 @@
+.language-switcher {
+  display: flex;
+  gap: theme.$spacing-sm;
+  margin-bottom: theme.$spacing-sm;
+
+  &__flag {
+    display: flex;
+    padding: 3px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid theme.$color-border;
+    cursor: pointer;
+    opacity: 0.45;
+    filter: grayscale(0.6);
+    transition: opacity 0.12s, filter 0.12s, border-color 0.12s;
+
+    svg {
+      display: block;
+      width: 28px;
+      height: 20px;
+    }
+
+    &:hover {
+      opacity: 0.85;
+      filter: none;
+    }
+
+    &--active {
+      opacity: 1;
+      filter: none;
+      border-color: theme.$color-primary;
+    }
+  }
+}
