@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { setLanguage, translateText } from './i18n'
+import { EN } from './translations.en'
+import { RU } from './translations.ru'
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0))
 
@@ -30,6 +32,17 @@ describe('i18n', () => {
     expect(translateText('Atualize para a v1.35.3')).toBe('Обновите до v1.35.3')
     setLanguage('pt')
     expect(document.getElementById('a')!.textContent).toBe('Leilões')
+  })
+
+  it('has a Russian entry for every English one', () => {
+    // A string translated only to English shows up in Portuguese for Russian players.
+    // Entries whose English is the source itself ("Ping", "Guild System") need no Russian.
+    const norm = (key: string) => key.replace(/\s+/g, ' ').trim()
+    const ruKeys = new Set(Object.keys(RU).map(norm))
+    const missing = Object.entries(EN)
+      .filter(([source, english]) => norm(source) !== norm(english) && !ruKeys.has(norm(source)))
+      .map(([source]) => source)
+    expect(missing).toEqual([])
   })
 
   it('leaves Portuguese untouched while the language is pt', () => {
