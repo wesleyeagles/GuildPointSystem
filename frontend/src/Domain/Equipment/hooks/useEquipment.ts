@@ -3,7 +3,7 @@ import { useAuthContext } from '@/Features/Auth/contexts/AuthContext'
 import { onSocketConnect, subscribeTopicEffect } from '@/Shared/websocket/socketClient'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/Shared/api/client'
-import type { CatalogFilters, CatalogPage, CurrentEquipment, EquipmentAssignment, EquipmentOperation, EquipmentSlotEdit, EquipmentSlotEditResult, ImportStatus, MemberEquipment } from '../types'
+import type { CatalogFilters, CatalogPage, CurrentEquipment, EquipmentAssignment, EquipmentOperation, EquipmentSlotEdit, EquipmentSlotEditResult, ImportStatus, MemberEquipment, MemberRelics } from '../types'
 
 export function useEquipmentSubscription() {
   const queries = useQueryClient()
@@ -47,13 +47,13 @@ export function useEquipmentHistory(memberId: number, enabled = true) {
   return useQuery({ queryKey: ['equipment', 'history', memberId], queryFn: () => apiClient<EquipmentAssignment[]>(`/equipment/members/${memberId}/history`), enabled: enabled && memberId > 0, staleTime: Infinity })
 }
 export function useEquipmentRelics(memberId: number) {
-  return useQuery({ queryKey: ['equipment', 'relics', memberId], queryFn: () => apiClient<number[]>(`/equipment/members/${memberId}/relics`), enabled: memberId > 0, staleTime: Infinity })
+  return useQuery({ queryKey: ['equipment', 'relics', memberId], queryFn: () => apiClient<MemberRelics>(`/equipment/members/${memberId}/relics`), enabled: memberId > 0, staleTime: Infinity })
 }
 export function useEquipmentRelicChange(memberId: number) {
   const queries = useQueryClient()
   const key = ['equipment', 'relics', memberId]
   return useMutation({
-    mutationFn: ({ relicId, active }: { relicId: number; active: boolean }) => apiClient<number[]>(`/equipment/members/${memberId}/relics/${relicId}`, { method: 'PUT', body: { active } }),
+    mutationFn: ({ relicId, active }: { relicId: number; active: boolean }) => apiClient<MemberRelics>(`/equipment/members/${memberId}/relics/${relicId}`, { method: 'PUT', body: { active } }),
     onSuccess: data => { queries.setQueryData(key, data); void queries.invalidateQueries({ queryKey: ['logs'] }) },
     onSettled: () => queries.invalidateQueries({ queryKey: key }),
   })

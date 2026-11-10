@@ -1255,6 +1255,8 @@ export const EN: Record<string, string> = {
   '5 slots de talic': '5 talic slots',
   'Relic #{0} · {1}': 'Relic #{0} · {1}',
   'Carregando Relics…': 'Loading Relics…',
+  'Efeitos atuais': 'Current effects',
+  'Ainda não sincronizado pelo jogo. Abra a janela Relics no jogo com a DLL ativa.': 'Not synced by the game yet. Open the Relics window in game with the DLL active.',
   'Registro #': 'Record #',
   'registro #{0}': 'record #{0}',
   '· Registro #{0}': '· Record #{0}',

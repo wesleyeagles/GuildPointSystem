@@ -84,22 +84,23 @@ class EquipmentIntegrationTest {
         return new Operation(id,Action.CREATE,memberId,Slot.Weapon,version,null,catalogId,"15:0.08",
             Origin.GUILD_DISTRIBUTION,LocalDate.now(java.time.ZoneId.of("America/Sao_Paulo")),equip,null,null,null,null,BigDecimal.valueOf(quantity));
     }
+    static List<Integer> ids(MemberRelics r) { return r.relics().stream().map(RelicEntry::id).toList(); }
     @Test void relicsPersistAndReplayWithoutChangingSlotsScoreOrPublicAudit() throws Exception {
         var before=service.board().stream().filter(m->m.memberId()==memberId).findFirst().orElseThrow();
         authenticate(actorId);
-        assertEquals(List.of(),service.relics(memberId));
-        assertEquals(List.of(0),service.setRelic(memberId,0,new RelicState(true)));
-        assertEquals(List.of(0),service.setRelic(memberId,0,new RelicState(true)));
+        assertEquals(List.of(),ids(service.relics(memberId)));
+        assertEquals(List.of(0),ids(service.setRelic(memberId,0,new RelicState(true))));
+        assertEquals(List.of(0),ids(service.setRelic(memberId,0,new RelicState(true))));
         assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM audit_log WHERE target_id=? AND payload->>'action'='RELIC'",Integer.class,memberId));
         assertEquals(actorId,jdbc.queryForObject("SELECT actor_id FROM audit_log WHERE target_id=? AND payload->>'action'='RELIC'",Long.class,memberId));
         var after=service.board().stream().filter(m->m.memberId()==memberId).findFirst().orElseThrow();
         assertEquals(before.slots(),after.slots());
         assertEquals(before.gearScore(),after.gearScore());
         mvc.perform(get("/api/equipment/members/"+memberId+"/relics").with(authentication(authenticationFor(actorId))))
-            .andExpect(status().isOk()).andExpect(jsonPath("$[0]").value(0));
+            .andExpect(status().isOk()).andExpect(jsonPath("$.relics[0].id").value(0));
         authenticate(actorId);
-        assertEquals(List.of(),service.setRelic(memberId,0,new RelicState(false)));
-        assertEquals(List.of(),service.relics(memberId));
+        assertEquals(List.of(),ids(service.setRelic(memberId,0,new RelicState(false))));
+        assertEquals(List.of(),ids(service.relics(memberId)));
         assertTrue(service.history(memberId).isEmpty());
     }
     @Test void relicEndpointsEnforceOwnershipRolesAndValidIdentifiers() throws Exception {
@@ -114,9 +115,9 @@ class EquipmentIntegrationTest {
         mvc.perform(put("/api/equipment/members/"+memberId+"/relics/0").with(authentication(authenticationFor(actorId)))
             .contentType("application/json").content("{}")).andExpect(status().isBadRequest());
         mvc.perform(put("/api/equipment/members/"+memberId+"/relics/119").with(authentication(authenticationFor(actorId)))
-            .contentType("application/json").content("{\"active\":true}")).andExpect(status().isOk()).andExpect(jsonPath("$[0]").value(119));
+            .contentType("application/json").content("{\"active\":true}")).andExpect(status().isOk()).andExpect(jsonPath("$.relics[0].id").value(119));
         mvc.perform(get("/api/equipment/members/"+memberId+"/relics").with(authentication(authenticationFor(memberId))))
-            .andExpect(status().isOk()).andExpect(jsonPath("$[0]").value(119));
+            .andExpect(status().isOk()).andExpect(jsonPath("$.relics[0].id").value(119));
         SecurityContextHolder.clearContext();
         mvc.perform(get("/api/equipment/members/"+memberId+"/relics")
             .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.anonymous())).andExpect(status().isUnauthorized());

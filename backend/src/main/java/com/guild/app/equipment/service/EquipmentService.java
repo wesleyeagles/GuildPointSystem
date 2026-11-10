@@ -63,14 +63,14 @@ public class EquipmentService {
         }
         return repository.board().stream().map(m->repository.review(m.memberId())).filter(Objects::nonNull).toList();
     }
-    public List<Integer> relics(long memberId) {
+    public MemberRelics relics(long memberId) {
         actor(false);
         var member=members.findById(memberId).orElseThrow(()->error("Membro não encontrado.",HttpStatus.NOT_FOUND));
         require(member.getStatus()==MemberStatus.APROVADO && member.isProfileComplete(),"O membro deve estar aprovado e com perfil completo.");
         return repository.relics(memberId);
     }
     @Transactional
-    public List<Integer> setRelic(long memberId,int relicId,RelicState state) {
+    public MemberRelics setRelic(long memberId,int relicId,RelicState state) {
         var actor=actor(true);
         require(relicId>=0 && relicId<120 && state!=null && state.active()!=null,"Relic ou estado inválido.");
         var member=members.findByIdForUpdate(memberId).orElseThrow(()->error("Membro não encontrado.",HttpStatus.NOT_FOUND));
@@ -78,6 +78,29 @@ public class EquipmentService {
         if(repository.setRelic(memberId,relicId,state.active()))
             audit.log(AuditLogType.EQUIPMENT_CHANGED,actor,member,Map.of("action","RELIC","relicId",relicId,"active",state.active()));
         return repository.relics(memberId);
+    }
+    /**
+     * Relics lidas pela DLL (janela Relics do RFOCliMod). Name-based como o equipamento; o conjunto enviado
+     * substitui o salvo. O log fica com action=CLIENT_SYNC, escondido da aba Logs como o do equipamento.
+     */
+    @Transactional
+    public Map<String,Object> syncRelicsFromClient(ClientRelics request) {
+        var seen=new HashSet<Integer>();
+        for(var r:request.relics()) require(seen.add(r.id()),"Relic repetida.");
+        var owners=members.findByGameCharacter(request.character());
+        if(owners.isEmpty()) throw error("Nenhum membro com esse nome de personagem.",HttpStatus.NOT_FOUND);
+        var eligible=owners.stream().map(o->members.findByIdForUpdate(o.getId()).orElseThrow())
+            .filter(m->m.getStatus()==MemberStatus.APROVADO && m.isProfileComplete()).toList();
+        require(!eligible.isEmpty(),"O membro deve estar aprovado e com perfil completo.");
+        int changed=0;
+        for(var member:eligible) {
+            var changes=repository.replaceRelics(member.getId(),request.relics());
+            if(changes.isEmpty()) continue;
+            changed+=changes.size();
+            // O log de EQUIPMENT_CHANGED já avisa o quadro pelo /topic/equipment.
+            audit.log(AuditLogType.EQUIPMENT_CHANGED,member,member,Map.of("action","CLIENT_SYNC","relics",changes));
+        }
+        return Map.of("changed",changed);
     }
     @Transactional
     public ReviewStatus requestReview(ReviewRequest request) {

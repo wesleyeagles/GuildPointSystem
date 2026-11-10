@@ -1251,6 +1251,8 @@ export const RU: Record<string, string> = {
   'Arraste o quadrado para escolher a parte; puxe o canto para mudar o tamanho.': 'Перетащите квадрат, чтобы выбрать область; потяните за угол, чтобы изменить размер.',
   '5 slots de talic': '5 слотов талика',
   'Carregando Relics…': 'Загрузка Relic…',
+  'Efeitos atuais': 'Текущие эффекты',
+  'Ainda não sincronizado pelo jogo. Abra a janela Relics no jogo com a DLL ativa.': 'Ещё не синхронизировано игрой. Откройте окно Relics в игре с активной DLL.',
   'Registro #': 'Запись #',
   'registro #{0}': 'запись #{0}',
   '· Registro #{0}': '· Запись #{0}',

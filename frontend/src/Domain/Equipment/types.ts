@@ -36,3 +36,7 @@ export interface CatalogPage { abilities?: string[]; weaponTypes?: number[]; ite
 export interface ImportStatus { imported_count?: number; excluded?: string }
 
 export interface EquipmentReview { id: string; memberId: number; requestedAt: string; dueAt: string; confirmedAt: string | null; status: 'PENDING' | 'OVERDUE' | 'CONFIRMED'; overdue: boolean }
+
+/** Relic do membro: `upgrade` 0 = base, 1..3 = "+1".."+3" como na janela do jogo. */
+export interface RelicEntry { id: number; upgrade: number }
+export interface MemberRelics { relics: RelicEntry[]; syncedAt: string | null }

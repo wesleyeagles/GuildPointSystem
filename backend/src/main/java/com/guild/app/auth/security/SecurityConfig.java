@@ -77,6 +77,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/character-status/ingest").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/quest-status/ingest").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/equipment-status/ingest").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/relic-status/ingest").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/party-invites/pending").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/party-invites/*/done").permitAll()
                         // Status ao vivo da raid pela DLL: so responde a personagem de membro aprovado em raid.
