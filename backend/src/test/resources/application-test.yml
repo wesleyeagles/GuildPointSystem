@@ -22,3 +22,5 @@ guild:
   cw:
     # Testes chamam tick() com relogio fixo; o agendador de verdade ficaria pontuando no meio.
     scheduler: false
+  pb:
+    scheduler: false

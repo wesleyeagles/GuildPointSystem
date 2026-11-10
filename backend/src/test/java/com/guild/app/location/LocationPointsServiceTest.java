@@ -127,6 +127,7 @@ class LocationPointsServiceTest {
     @Test void knownRegionsStayListedAfterEveryoneLeaves() {
         String region = tag + " Cave";
         at(elsewhere, "Coldron Volcanic Area", region);
+        at(elsewhere, "Coldron Volcanic Area", region);   // o modal so lista pares vistos 2+ vezes
         at(elsewhere, "Coldron Volcanic Area", "Evil Horn");
         var option = service.locations().stream()
                 .filter(o -> region.equals(o.region()))
