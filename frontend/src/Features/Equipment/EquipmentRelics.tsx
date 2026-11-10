@@ -1,9 +1,15 @@
 import { useMemo } from 'react'
 import { useEquipmentRelics, useEquipmentRelicChange } from '@/Domain/Equipment/hooks/useEquipment'
-import groups from '@/Domain/Equipment/relics.json'
+import relicGroups from '@/Domain/Equipment/relics.json'
 import { formatRelicEffect, relicEffectTotals, relicLevelEffects, relicName } from '@/Domain/Equipment/utils/relicEffects'
 import { SCHEDULE_TIME_ZONE } from '@/Shared/utils/scheduleTimeZone'
 import './EquipmentRelics.styles.scss'
+
+type RelicGroup = { grade: number; label?: string; hidden?: boolean; items: { id: number; position: string }[] }
+
+/** Mesmas abas do jogo (I a VI, Technical). Event / OLD fica de fora: no jogo também é só espaço vazio. */
+const groups = (relicGroups as RelicGroup[]).filter(group => !group.hidden)
+const groupName = (group: RelicGroup) => group.label ?? `Grade ${group.grade}`
 
 function relicTitle(id: number, fallback: string, upgrade: number | undefined) {
   const name = relicName(id) ?? fallback
@@ -29,12 +35,12 @@ export function EquipmentRelics({ memberId, editable }: { memberId: number; edit
       <h4>Efeitos atuais</h4>
       <ul>{totals.map(t => <li key={t.code}>{t.text}</li>)}</ul>
     </section>}
-    <div className="equipment-relics__grades">{groups.map(group => <section key={group.grade} className="equipment-relics__grade" aria-label={`Grade ${group.grade}`}>
-      <h4>Grade {group.grade}</h4>
+    <div className="equipment-relics__grades">{groups.map(group => <section key={group.grade} className="equipment-relics__grade" aria-label={groupName(group)}>
+      <h4>{groupName(group)}</h4>
       <div className="equipment-relics__list">{group.items.map((item, index) => {
         const upgrade = owned.get(item.id)
         const active = upgrade !== undefined
-        const label = `Relic ${index + 1} · Grade ${group.grade}`
+        const label = `Relic ${index + 1} · ${groupName(group)}`
         return <button key={item.id} type="button"
           className={`equipment-relics__icon${active ? ' is-active' : ''}`}
           style={{ backgroundPosition: item.position }} aria-label={label}

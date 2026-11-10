@@ -11,12 +11,16 @@ vi.mock('@/Domain/Equipment/hooks/useEquipment', () => ({
 beforeEach(() => { state.active = []; state.upgrades = {}; state.syncedAt = null; state.loading = false; state.error = null; state.pending = false; state.failed = false; state.mutate.mockReset() })
 afterEach(cleanup)
 
-it('preserves all 120 original positions and the marketplace grade order', () => {
-  expect(groups.map(g => g.grade)).toEqual([1, 2, 3, 6, 4, 5, 7, 8])
+it('keeps all 120 relics in the data and shows the game tabs, without the empty Event / OLD', () => {
+  expect(groups.map(g => g.grade)).toEqual([1, 2, 3, 4, 5, 6, 7, 8])
   expect(groups.flatMap(g => g.items.map(i => i.id)).sort((a, b) => a - b)).toEqual(Array.from({ length: 120 }, (_, i) => i))
   render(<EquipmentRelics memberId={1} editable />)
-  expect(screen.getAllByRole('button')).toHaveLength(120)
+  expect(screen.getAllByRole('button')).toHaveLength(103)
   expect(within(screen.getByRole('region', { name: 'Grade 1' })).getAllByRole('button')).toHaveLength(16)
+  // Grade 6 do jogo: Sealed Baal Hamon … Gift of Random Goddess
+  expect(within(screen.getByRole('region', { name: 'Grade 6' })).getAllByRole('button')).toHaveLength(10)
+  expect(screen.getByRole('region', { name: 'Technical' })).toBeInTheDocument()
+  expect(screen.queryByRole('region', { name: 'Event / OLD' })).toBeNull()
 })
 it('activates and deactivates using saved state instead of changing the visual before saving', () => {
   const view = render(<EquipmentRelics memberId={1} editable />)
