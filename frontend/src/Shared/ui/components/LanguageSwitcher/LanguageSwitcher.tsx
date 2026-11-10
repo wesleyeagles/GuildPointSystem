@@ -29,16 +29,27 @@ function UsaFlag() {
   )
 }
 
+function RussiaFlag() {
+  return (
+    <svg viewBox="0 0 28 20" aria-hidden="true">
+      <rect width="28" height="20" fill="#fff" />
+      <rect y="6.67" width="28" height="6.67" fill="#0039a6" />
+      <rect y="13.33" width="28" height="6.67" fill="#d52b1e" />
+    </svg>
+  )
+}
+
 const OPTIONS: { value: Language; label: string; Flag: () => React.JSX.Element }[] = [
   { value: 'pt', label: 'Português', Flag: BrazilFlag },
   { value: 'en', label: 'English', Flag: UsaFlag },
+  { value: 'ru', label: 'Русский', Flag: RussiaFlag },
 ]
 
 export function LanguageSwitcher() {
   const language = useLanguage()
   return (
     // data-no-i18n: the labels name each language in its own tongue.
-    <div className="language-switcher" role="group" aria-label="Idioma / Language" data-no-i18n>
+    <div className="language-switcher" role="group" aria-label="Idioma / Language / Язык" data-no-i18n>
       {OPTIONS.map(({ value, label, Flag }) => (
         <button
           key={value}

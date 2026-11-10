@@ -19,6 +19,19 @@ describe('i18n', () => {
     expect(translateText('Texto que não está no dicionário')).toBe('Texto que não está no dicionário')
   })
 
+  it('translates to Russian, switching straight from English', () => {
+    document.body.innerHTML = '<span id="a">Leilões</span><input id="b" placeholder="Seu nick no jogo">'
+    setLanguage('en')
+    expect(document.getElementById('a')!.textContent).toBe('Auctions')
+    // EN→RU must start again from the Portuguese, not from the English text on screen.
+    setLanguage('ru')
+    expect(document.getElementById('a')!.textContent).toBe('Аукционы')
+    expect(document.getElementById('b')!.getAttribute('placeholder')).toBe('Ваш ник в игре')
+    expect(translateText('Atualize para a v1.35.3')).toBe('Обновите до v1.35.3')
+    setLanguage('pt')
+    expect(document.getElementById('a')!.textContent).toBe('Leilões')
+  })
+
   it('leaves Portuguese untouched while the language is pt', () => {
     expect(translateText('Leilões')).toBe('Leilões')
   })

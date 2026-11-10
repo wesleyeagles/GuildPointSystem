@@ -1,23 +1,26 @@
 import { useSyncExternalStore } from 'react'
-import { EN_EXACT, EN_PATTERNS } from './translations.en'
+import { EN } from './translations.en'
+import { RU } from './translations.ru'
 
 /**
  * Site language. Portuguese is the source: every string in the code is written in PT-BR.
- * English is applied at the DOM level: text nodes and a few attributes are looked up in
- * a PT→EN dictionary as React renders them, so no component needs a t() call. Anything
- * missing from the dictionary simply stays in Portuguese.
+ * Other languages are applied at the DOM level: text nodes and a few attributes are looked
+ * up in a PT→X dictionary as React renders them, so no component needs a t() call. Anything
+ * missing from a dictionary simply stays in Portuguese.
  */
-export type Language = 'pt' | 'en'
+export type Language = 'pt' | 'en' | 'ru'
 
 const STORAGE_KEY = 'guild.language'
 const ATTRIBUTES = ['title', 'placeholder', 'aria-label', 'alt'] as const
 const SKIP_TAGS = new Set(['SCRIPT', 'STYLE', 'TEXTAREA', 'INPUT', 'NOSCRIPT', 'CODE', 'PRE'])
 /** User-written content (editors, chat) and anything explicitly opted out. */
 const SKIP_SELECTOR = '[data-no-i18n], [contenteditable="true"], .ProseMirror'
+const LOCALES: Record<Language, string> = { pt: 'pt-BR', en: 'en-US', ru: 'ru-RU' }
 
 function readStored(): Language {
   try {
-    return localStorage.getItem(STORAGE_KEY) === 'en' ? 'en' : 'pt'
+    const stored = localStorage.getItem(STORAGE_KEY)
+    return stored === 'en' || stored === 'ru' ? stored : 'pt'
   } catch {
     return 'pt'
   }
@@ -53,7 +56,7 @@ export function useLanguage(): Language {
 
 /** Locale for Intl / toLocale* calls that should follow the chosen language. */
 export function getLocale(): string {
-  return language === 'en' ? 'en-US' : 'pt-BR'
+  return LOCALES[language]
 }
 
 // ─── Dictionary lookup ──────────────────────────────────────────────────────
@@ -66,53 +69,82 @@ interface CompiledPattern {
   literalLength: number
 }
 
+interface CompiledDictionary {
+  exact: Record<string, string>
+  patterns: CompiledPattern[]
+}
+
 function escapeRegex(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
-const PATTERNS: CompiledPattern[] = Object.entries(EN_PATTERNS).map(([source, output]) => {
-  const pieces = source.split(/\{\d+\}/)
-  const body = source
-    .split(/(\{\d+\})/)
-    .map((piece) => (/^\{\d+\}$/.test(piece) ? `(?<p${piece.slice(1, -1)}>.*?)` : escapeRegex(piece)))
-    .join('')
-  const hint = pieces.reduce((longest, piece) => (piece.trim().length > longest.length ? piece.trim() : longest), '')
-  const literalLength = pieces.join('').length
-  return { regex: new RegExp(`^${body}$`, 's'), hint, output, literalLength }
-})
+/** Templates (with `{n}`) become regexes; plain strings stay as an exact lookup. */
+function compile(raw: Record<string, string>): CompiledDictionary {
+  const exact: Record<string, string> = {}
+  const patterns: CompiledPattern[] = []
+  for (const [rawSource, rawOutput] of Object.entries(raw)) {
+    const source = rawSource.replace(/\s+/g, ' ').trim()
+    const output = rawOutput.trim()
+    if (!/\{\d+\}/.test(source)) {
+      exact[source] = output
+      continue
+    }
+    const pieces = source.split(/\{\d+\}/)
+    const body = source
+      .split(/(\{\d+\})/)
+      .map((piece) => (/^\{\d+\}$/.test(piece) ? `(?<p${piece.slice(1, -1)}>.*?)` : escapeRegex(piece)))
+      .join('')
+    const hint = pieces.reduce((longest, piece) => (piece.trim().length > longest.length ? piece.trim() : longest), '')
+    patterns.push({ regex: new RegExp(`^${body}$`, 's'), hint, output, literalLength: pieces.join('').length })
+  }
   // Most specific first: "{0} · {1} · {2} pts" must win over "{0} · {1} pts".
-  .sort((a, b) => b.literalLength - a.literalLength)
+  patterns.sort((a, b) => b.literalLength - a.literalLength)
+  return { exact, patterns }
+}
+
+const RAW: Record<Exclude<Language, 'pt'>, Record<string, string>> = { en: EN, ru: RU }
+const compiled = new Map<Language, CompiledDictionary>()
+
+function dictionary(): CompiledDictionary | null {
+  if (language === 'pt') return null
+  let dict = compiled.get(language)
+  if (!dict) {
+    dict = compile(RAW[language])
+    compiled.set(language, dict)
+  }
+  return dict
+}
 
 const cache = new Map<string, string>()
 const CACHE_LIMIT = 8000
 
-/** Placeholders often hold translatable words themselves ("Tipo {0}" → "Tipo Arma"). */
-function translateValue(value: string): string {
-  return EN_EXACT[value] ?? value
-}
-
-function lookup(core: string): string | null {
-  const exact = EN_EXACT[core]
+function lookup(dict: CompiledDictionary, core: string): string | null {
+  const exact = dict.exact[core]
   if (exact !== undefined) return exact
-  for (const pattern of PATTERNS) {
+  for (const pattern of dict.patterns) {
     if (pattern.hint && !core.includes(pattern.hint)) continue
     const match = pattern.regex.exec(core)
     if (!match) continue
     const groups = match.groups ?? {}
-    return pattern.output.replace(/\{(\d+)\}/g, (_, index: string) => translateValue(groups[`p${index}`] ?? ''))
+    // Placeholders often hold translatable words themselves ("Tipo {0}" → "Tipo Arma").
+    return pattern.output.replace(/\{(\d+)\}/g, (_, index: string) => {
+      const value = groups[`p${index}`] ?? ''
+      return dict.exact[value] ?? value
+    })
   }
   return null
 }
 
-/** PT→EN for one string; leading/trailing whitespace is kept as is. */
+/** PT→current language for one string; leading/trailing whitespace is kept as is. */
 export function translateText(text: string): string {
-  if (language !== 'en') return text
+  const dict = dictionary()
+  if (!dict) return text
   const cached = cache.get(text)
   if (cached !== undefined) return cached
   let result = text
   const core = text.replace(/\s+/g, ' ').trim()
   if (core && /[A-Za-zÀ-ú]/.test(core)) {
-    const translated = lookup(core)
+    const translated = lookup(dict, core)
     if (translated !== null) {
       const lead = text.match(/^\s*/)?.[0] ?? ''
       const trail = text.match(/\s*$/)?.[0] ?? ''
@@ -246,9 +278,12 @@ let originalTitle: string | null = null
 
 function applyLanguage() {
   if (typeof document === 'undefined') return
-  document.documentElement.lang = language === 'en' ? 'en' : 'pt-BR'
+  document.documentElement.lang = language === 'pt' ? 'pt-BR' : language
   cache.clear()
-  if (language === 'en') {
+  // Back to the Portuguese source first: EN→RU must translate from PT, not from English.
+  restoreTree(document.body)
+  if (originalTitle !== null) document.title = originalTitle
+  if (language !== 'pt') {
     if (!observer) {
       observer = new MutationObserver(handleMutations)
       observer.observe(document.body, {
@@ -265,13 +300,12 @@ function applyLanguage() {
   } else {
     observer?.disconnect()
     observer = null
-    restoreTree(document.body)
-    if (originalTitle !== null) document.title = originalTitle
+    originalTitle = null
   }
 }
 
 /** Called once at startup, before React renders. */
 export function startTranslator() {
   if (typeof document === 'undefined') return
-  if (language === 'en') applyLanguage()
+  if (language !== 'pt') applyLanguage()
 }

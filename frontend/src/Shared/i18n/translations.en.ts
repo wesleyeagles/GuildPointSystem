@@ -5,7 +5,7 @@
  *
  * To translate a new string: add `'Texto em português': 'English text'` below.
  */
-const EN: Record<string, string> = {
+export const EN: Record<string, string> = {
   // ─── Navigation / layout ───────────────────────────────────────────────────
   'Frases': 'Phrases',
   'Eventos': 'Events',
@@ -1866,14 +1866,4 @@ const EN: Record<string, string> = {
   'Candidato não encontrado': 'Candidate not found',
   'CW inválida': 'Invalid CW',
   'Não foi possível processar o GIF': 'Could not process the GIF',
-}
-
-/** Templates (with `{n}`) are matched by regex; plain strings by exact lookup. */
-export const EN_EXACT: Record<string, string> = {}
-export const EN_PATTERNS: Record<string, string> = {}
-
-for (const [source, target] of Object.entries(EN)) {
-  const key = source.replace(/\s+/g, ' ').trim()
-  if (/\{\d+\}/.test(key)) EN_PATTERNS[key] = target.trim()
-  else EN_EXACT[key] = target.trim()
 }
