@@ -105,4 +105,22 @@ describe('dailyEventSchedule', () => {
       expect(eventsForGuild(HEADER_SCHEDULED_EVENTS, undefined, 'Blacklist')).toBe(HEADER_SCHEDULED_EVENTS)
     })
   })
+
+  describe('weekly PBs', () => {
+    const byId = (id: string) => HEADER_SCHEDULED_EVENTS.find((e) => e.id === id)
+    const elan = byId('pb-elan')!
+    const major = byId('pb-major')!
+
+    it('PB Elan: Mon/Tue/Thu/Sat 14:00 Brasília', () => {
+      // terça 10/11/2026 11:30 → hoje 14:00
+      expect(getScheduledOccurrenceStart(elan, new Date('2026-11-10T11:30:00-03:00')).toISOString()).toBe('2026-11-10T17:00:00.000Z')
+      // terça 15:00 → quinta 12/11 14:00 (pula quarta)
+      expect(getScheduledOccurrenceStart(elan, new Date('2026-11-10T15:00:00-03:00')).toISOString()).toBe('2026-11-12T17:00:00.000Z')
+    })
+
+    it('PB Major: Tue/Sat 14:00 Brasília', () => {
+      // terça 15:00 → sábado 14/11 14:00
+      expect(getScheduledOccurrenceStart(major, new Date('2026-11-10T15:00:00-03:00')).toISOString()).toBe('2026-11-14T17:00:00.000Z')
+    })
+  })
 })

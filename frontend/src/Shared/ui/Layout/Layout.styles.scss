@@ -276,7 +276,7 @@ $drawer-breakpoint: 960px;
     display: flex;
     align-items: center;
     gap: theme.$spacing-md;
-    height: 52px;
+    min-height: 52px;
     padding: 0 theme.$spacing-xl;
     background:
       linear-gradient(180deg, rgba(theme.$color-bg, 0.96), rgba(theme.$color-bg, 0.88));
@@ -312,8 +312,9 @@ $drawer-breakpoint: 960px;
     justify-content: center;
     gap: theme.$spacing-xs;
     min-width: 0;
-    padding: 0 theme.$spacing-sm;
+    padding: 6px theme.$spacing-sm;
     overflow-x: auto;
+    overflow-y: hidden;
   }
 
   &__event-timer {
@@ -321,8 +322,8 @@ $drawer-breakpoint: 960px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 1px;
-    padding: 3px 8px 4px;
+    gap: 4px;
+    padding: 6px 10px;
     border: 1px solid theme.$color-border;
     background: rgba(0, 0, 0, 0.28);
     flex-shrink: 0;

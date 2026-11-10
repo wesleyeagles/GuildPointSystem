@@ -95,7 +95,40 @@ export type IntervalScheduledEvent = {
   anchor: Date
 }
 
-export type ScheduledEvent = DailyScheduledEvent | MultiDailyScheduledEvent | IntervalScheduledEvent
+/** Horário fixo só em alguns dias da semana (0 = domingo, no fuso do evento). */
+export type WeeklyScheduledEvent = {
+  kind: 'weekly'
+  id: string
+  label: string
+  weekdays: number[]
+  hour: number
+  minute: number
+  timeZone?: string
+}
+
+export type ScheduledEvent =
+  | DailyScheduledEvent
+  | MultiDailyScheduledEvent
+  | WeeklyScheduledEvent
+  | IntervalScheduledEvent
+
+/** Próximo horário diário que cai num dos dias da semana (no fuso dado). */
+export function getNextWeeklyOccurrence(
+  weekdays: number[],
+  hour: number,
+  minute: number,
+  now: Date,
+  timeZone: string = TZ,
+): Date {
+  let from = now
+  for (let i = 0; i < 8; i++) {
+    const candidate = getNextDailyOccurrence(hour, minute, from, timeZone)
+    const z = getZonedParts(candidate, timeZone)
+    if (weekdays.includes(new Date(Date.UTC(z.year, z.month - 1, z.day)).getUTCDay())) return candidate
+    from = candidate
+  }
+  throw new Error('weekly event without weekdays')
+}
 
 export function getScheduledOccurrenceStart(event: ScheduledEvent, now: Date): Date {
   if (event.kind === 'daily') {
@@ -105,6 +138,9 @@ export function getScheduledOccurrenceStart(event: ScheduledEvent, now: Date): D
     return event.hours
       .map((hour) => getNextDailyOccurrence(hour, event.minute, now, event.timeZone))
       .reduce((earliest, d) => (d.getTime() < earliest.getTime() ? d : earliest))
+  }
+  if (event.kind === 'weekly') {
+    return getNextWeeklyOccurrence(event.weekdays, event.hour, event.minute, now, event.timeZone)
   }
   return getNextIntervalOccurrence(event.anchor, event.intervalDays, now)
 }
@@ -164,6 +200,25 @@ export const HEADER_SCHEDULED_EVENTS: ScheduledEvent[] = [
     label: 'PB Middle',
     // 00:00 / 12:00 Moscou.
     hours: [6, 18],
+    minute: 0,
+    timeZone: SCHEDULE_TIME_ZONE,
+  },
+  // Semanais, 14:00 Brasília (20:00 Moscou), como no painel da DLL (pb_schedule.hpp).
+  {
+    kind: 'weekly',
+    id: 'pb-elan',
+    label: 'PB Elan',
+    weekdays: [1, 2, 4, 6], // seg, ter, qui, sáb
+    hour: 14,
+    minute: 0,
+    timeZone: SCHEDULE_TIME_ZONE,
+  },
+  {
+    kind: 'weekly',
+    id: 'pb-major',
+    label: 'PB Major',
+    weekdays: [2, 6], // ter, sáb
+    hour: 14,
     minute: 0,
     timeZone: SCHEDULE_TIME_ZONE,
   },
