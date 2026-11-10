@@ -34,6 +34,7 @@ const NAV_ITEMS = [
   { to: '/equipment', label: 'Equipamentos' },
   { to: '/quests', label: 'Quests' },
   { to: '/rotation', label: 'Rotação' },
+  { to: '/damage', label: 'Calculadora de dano' },
   { to: '/auctions', label: 'Leilões' },
   { to: '/logs', label: 'Logs' },
 ]

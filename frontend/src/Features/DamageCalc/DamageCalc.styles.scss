@@ -1,0 +1,87 @@
+.damage-calc {
+  display: grid;
+  gap: theme.$spacing-md;
+  min-width: 0;
+  :where(p, dl) { margin: 0; }
+  :where(label) { display: grid; gap: theme.$spacing-xs; font-size: theme.$font-size-base; }
+  select, input:not([type='checkbox'], [type='radio']) { @include theme.field-input; }
+
+  &__layout { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: theme.$spacing-md; align-items: start; }
+  &__inputs { display: grid; gap: theme.$spacing-md; min-width: 0; }
+  &__row { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: theme.$spacing-sm; margin-bottom: theme.$spacing-sm; }
+  &__picker { position: relative; display: grid; gap: theme.$spacing-xs; min-width: 0; align-content: start; }
+  &__picker-label { font-size: theme.$font-size-base; }
+  &__combo { position: relative; display: flex; align-items: center;
+    .kb-icon { position: absolute; left: 8px; pointer-events: none; }
+    input { width: 100%; padding-right: 56px; cursor: pointer; }
+    .kb-icon + input { padding-left: 44px; }
+    &--open input { cursor: text; }
+  }
+  &__combo-clear, &__combo-arrow { position: absolute; color: theme.$color-text-muted; }
+  &__combo-clear { right: 28px; background: none; border: 0; padding: 4px; cursor: pointer; font-size: 14px;
+    &:hover { color: theme.$color-danger; }
+  }
+  &__combo-arrow { right: 10px; pointer-events: none; }
+  &__combo-detail { color: theme.$color-text-muted; font-family: theme.$font-mono; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  &__row--extra { margin-top: theme.$spacing-md; max-width: 260px; }
+  &__acc { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: theme.$spacing-md; }
+  &__hint { color: theme.$color-text-muted; font-size: theme.$font-size-base; margin-bottom: theme.$spacing-sm; }
+  &__boosts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: theme.$spacing-xs; }
+  &__boosts + &__boosts { margin-top: theme.$spacing-xs; }
+  &__check { display: flex; align-items: center; gap: theme.$spacing-sm; padding: 4px 8px; background: theme.$metal-700; cursor: pointer;
+    .kb-icon { flex: none; }
+    &-name { flex: 1; min-width: 0; display: grid; line-height: 1.2; }
+    em { color: theme.$color-text-muted; font-style: normal; font-size: 13px; }
+    small { color: theme.$color-primary; font-family: theme.$font-mono; white-space: nowrap; }
+    &:has(input:checked) { outline: 1px solid theme.$color-primary; }
+    &--off { opacity: .45; }
+  }
+
+  &__result { position: sticky; top: theme.$spacing-md; }
+  &__big { display: flex; align-items: baseline; justify-content: center; gap: theme.$spacing-sm; font-family: theme.$font-mono; color: theme.$color-amber;
+    span { font-size: 34px; }
+    small { color: theme.$color-text-muted; }
+  }
+  &__avg { text-align: center; margin: theme.$spacing-xs 0 theme.$spacing-md; color: theme.$color-text-muted;
+    strong { color: theme.$color-text; font-family: theme.$font-mono; }
+  }
+  &__breakdown { display: grid; grid-template-columns: 1fr auto; gap: 4px theme.$spacing-sm; margin-bottom: theme.$spacing-md;
+    dt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    dd { margin: 0; text-align: right; font-family: theme.$font-mono; white-space: nowrap; }
+  }
+  &__sub { color: theme.$color-text-muted; padding-left: theme.$spacing-sm; font-size: 14px; }
+
+  @media (max-width: theme.$mobile-breakpoint) {
+    &__layout, &__acc { grid-template-columns: 1fr; }
+    &__boosts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    &__result { position: static; }
+  }
+}
+
+.kb-icon {
+  display: inline-block;
+  flex: none;
+  background-color: theme.$metal-700;
+  background-repeat: no-repeat;
+  border-radius: 3px;
+  box-shadow: 0 0 0 1px var(--kb-grade), 0 0 6px -1px var(--kb-grade);
+  &--missing { opacity: .4; }
+  &--plain { box-shadow: none; }
+}
+
+/* Lista do seletor: fica no body (portal), fora de .damage-calc. */
+.damage-calc__options {
+  position: fixed; z-index: 1000; margin: 0; padding: 0; list-style: none;
+    max-height: 320px; overflow-y: auto; background: theme.$color-bg-elevated; border: 1px solid theme.$color-border-strong;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .55);
+    li { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto auto; column-gap: theme.$spacing-sm;
+      align-items: center; padding: 4px theme.$spacing-sm; cursor: pointer; border-bottom: 1px solid theme.$color-border;
+      .kb-icon { grid-row: span 2; }
+      span, small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      small { color: theme.$color-text-muted; font-family: theme.$font-mono; font-size: 14px; }
+      &:hover, &:focus-visible { background: theme.$metal-700; outline: none; }
+      &[aria-selected='true'] { background: rgba(theme.$color-primary, .12); }
+      &.damage-calc__options-note { display: block; cursor: default; color: theme.$color-text-muted; font-size: 14px; }
+    }
+}

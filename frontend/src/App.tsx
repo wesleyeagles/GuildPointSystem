@@ -14,6 +14,7 @@ import { EventsPage } from '@/Features/Events/Events'
 import { EquipmentPage } from '@/Features/Equipment/Equipment'
 import { QuestsPage } from '@/Features/Quests/Quests'
 import { RotationPage } from '@/Features/Rotation/Rotation'
+import { DamageCalcPage } from '@/Features/DamageCalc/DamageCalc'
 import { AuctionsPage } from '@/Features/Auction/AuctionsPage'
 import { AuctionDetailPage } from '@/Features/Auction/AuctionDetail'
 import { ApprovalsPage } from '@/Features/Admin/Approvals/Approvals'
@@ -67,6 +68,7 @@ function App() {
               <Route path="equipment" element={<EquipmentRoute />} />
               <Route path="quests" element={<QuestsPage />} />
               <Route path="rotation" element={<RotationPage />} />
+              <Route path="damage" element={<DamageCalcPage />} />
               <Route path="party" element={<PartyPage />} />
               <Route path="raid" element={<RaidPage />} />
               <Route path="auctions" element={<AuctionsPage />} />
