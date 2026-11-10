@@ -11,25 +11,30 @@ const ROW_GAP = 4
 const KIND_LABEL: Record<string, string> = {
   EVENT: 'Evento',
   RG: 'RG',
-  CW: 'CW',
+  // A rodada "CW" é o bônus de quem está em Crag 10 min antes da CW: um RG. A CW em si vem como Evento.
+  CW: 'RG',
   PROXIMITY: 'Proximidade',
 }
 
 const fmt = (n: number) => Number(n).toLocaleString('pt-BR')
 
+/** Cor da borda: verde = recebeu, vermelho = barrado pelo limite, cinza = não participou. */
+function statusOf(entry: RecentPointsEntry) {
+  return entry.received ? 'got' : entry.limited ? 'limit' : 'none'
+}
+
 function Row({ entry }: { entry: RecentPointsEntry }) {
   const title = entry.kind === 'RG' && entry.detail ? entry.detail : entry.name
+  const status = statusOf(entry)
   return (
-    <li className={`recent-points__row recent-points__row--${entry.kind.toLowerCase()}${entry.received ? ' recent-points__row--mine' : ''}`}>
+    <li className={`recent-points__row recent-points__row--${entry.kind.toLowerCase()} recent-points__row--${status}`}>
       <span className="recent-points__kind">{KIND_LABEL[entry.kind] ?? entry.kind}</span>
       <span className="recent-points__name" title={title}>{title}</span>
       <span className="recent-points__points">+{fmt(entry.points)}</span>
       <span className="recent-points__meta">
         {entry.members} {entry.members === 1 ? 'membro' : 'membros'} · {formatPointsTime(entry.at)}
       </span>
-      {entry.received ? (
-        <span className="recent-points__mine recent-points__mine--got">Você recebeu +{fmt(entry.myPoints ?? entry.points)}</span>
-      ) : entry.limited ? (
+      {entry.limited && !entry.received ? (
         <span className="recent-points__mine recent-points__mine--limit">
           {entry.kind === 'RG' ? 'Você não recebeu: limite de RG da CW (2x dia)' : 'Você não recebeu: limite diário atingido'}
         </span>
@@ -40,7 +45,7 @@ function Row({ entry }: { entry: RecentPointsEntry }) {
 
 /**
  * Mede a altura de cada linha numa lista invisível do mesmo tamanho e reparte em páginas que
- * cabem na área visível (linhas com "Você recebeu" são mais altas). Sem medida (testes): uma página.
+ * cabem na área visível (linhas com "Você não recebeu" são mais altas). Sem medida (testes): uma página.
  */
 function usePagedRows(count: number) {
   const viewportRef = useRef<HTMLDivElement>(null)

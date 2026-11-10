@@ -28,10 +28,22 @@ describe('Últimos pontos', () => {
     // RG mostra o local no lugar do nome
     expect(within(rows[1]).getByText('Vapor Lake')).toBeTruthy()
     expect(within(rows[1]).getByText(/1 membro ·/)).toBeTruthy()
-    // o que é do jogador logado
-    expect(within(rows[0]).getByText('Você recebeu +5')).toBeTruthy()
+    // situação do jogador logado vai na cor da borda; só o limite ganha texto
+    expect(rows[0].className).toContain('recent-points__row--got')
+    expect(within(rows[0]).queryByText(/Você/)).toBeNull()
+    expect(rows[1].className).toContain('recent-points__row--limit')
     expect(within(rows[1]).getByText('Você não recebeu: limite de RG da CW (2x dia)')).toBeTruthy()
-    expect(within(rows[2]).queryByText(/Você/)).toBeNull() // não recebeu e não era limite: nada
+    expect(rows[2].className).toContain('recent-points__row--none')
+    expect(within(rows[2]).queryByText(/Você/)).toBeNull()
+  })
+
+  it('labels the 10-min-before CW bonus as RG', () => {
+    state.data = [
+      { kind: 'CW', name: 'CW2 10/11: em Crag Mind Field 10 min antes', detail: null, members: 5, points: 2, total: 10, at: '2026-11-10T10:50:00Z', received: false, myPoints: null, limited: false },
+    ]
+    render(<RecentPointsPanel />)
+    const [row] = screen.getAllByRole('listitem')
+    expect(within(row).getByText('RG')).toBeTruthy()
   })
 
   it('says when nothing gave points', () => {

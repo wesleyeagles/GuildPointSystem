@@ -472,11 +472,15 @@
     column-gap: theme.$spacing-sm;
     align-items: baseline;
     padding: 6px theme.$spacing-sm;
-    border-left: 3px solid var(--points-color, #{theme.$color-amber});
+    // Borda = situação do membro logado; a tag e os pontos seguem a cor do tipo.
+    border-left: 3px solid var(--status-color, #{theme.$color-text-faint});
 
-    &--rg { --points-color: #{theme.$color-primary}; }
-    &--cw { --points-color: #{theme.$color-success}; }
+    &--rg, &--cw { --points-color: #{theme.$color-primary}; }
     &--proximity { --points-color: #{theme.$color-text-muted}; }
+
+    &--got { --status-color: #{theme.$color-success}; background: rgba(theme.$color-success, 0.06); }
+    &--limit { --status-color: #{theme.$color-danger}; background: rgba(theme.$color-danger, 0.05); }
+    &--none { --status-color: #{theme.$color-text-faint}; }
   }
 
   &__kind {
@@ -507,18 +511,13 @@
     color: theme.$color-text-muted;
   }
 
-  &__row--mine {
-    background: rgba(theme.$color-success, 0.06);
-  }
-
   &__mine {
     grid-column: 1 / 4;
     margin-top: 4px;
     font-size: 13px;
     font-weight: 600;
 
-    &--got { color: theme.$color-success; }
-    &--limit { color: theme.$color-warning; }
+    &--limit { color: theme.$color-danger; }
   }
 }
 
