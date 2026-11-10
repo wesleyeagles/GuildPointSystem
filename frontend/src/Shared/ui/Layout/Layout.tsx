@@ -27,7 +27,6 @@ import { LanguageSwitcher } from '@/Shared/ui/components/LanguageSwitcher/Langua
 import './Layout.styles.scss'
 
 const NAV_ITEMS = [
-  { to: '/', label: 'Frases' },
   { to: '/dashboard', label: 'Dashboard' },
   { to: '/events', label: 'Eventos' },
   { to: '/cw', label: 'CW' },
@@ -45,6 +44,8 @@ const PROFILE_ITEM = { to: '/profile', label: 'Perfil' }
 /** Reachable only by URL; listed so the header still shows the page title. */
 // Fora do menu, mas com título no cabeçalho se alguém abrir pelo endereço.
 const HIDDEN_ITEMS = [
+  // Página inicial (votação das frases): fora do menu, mas o título continua no cabeçalho.
+  { to: '/', label: 'Frases' },
   { to: '/donate', label: 'Doar Disena' },
 ]
 
