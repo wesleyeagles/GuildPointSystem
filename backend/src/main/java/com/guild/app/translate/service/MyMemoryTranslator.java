@@ -19,7 +19,7 @@ import java.util.Optional;
 
 /**
  * MyMemory (api.mymemory.translated.net), plano gratuito sem chave: ~5 mil caracteres/dia por IP, ou ~50 mil
- * com um e-mail de contato (app.translate.mymemory-email). Quando a cota acaba ou o serviço falha, para de
+ * com um e-mail de contato (guild.translate.mymemory-email, env MYMEMORY_EMAIL). Quando a cota acaba ou o serviço falha, para de
  * chamar por um tempo e devolve vazio (a DLL simplesmente não mostra a tradução).
  */
 @Slf4j
@@ -40,7 +40,7 @@ public class MyMemoryTranslator implements ChatTranslator {
     private volatile Instant quotaPausedUntil = Instant.EPOCH;
     Clock clock = Clock.systemUTC();
 
-    public MyMemoryTranslator(ObjectMapper json, @Value("${app.translate.mymemory-email:}") String email) {
+    public MyMemoryTranslator(ObjectMapper json, @Value("${guild.translate.mymemory-email:}") String email) {
         this.json = json;
         this.email = cleanEmail(email);
     }
