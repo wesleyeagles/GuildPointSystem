@@ -82,6 +82,46 @@ class CwAttendanceTest {
         service.useClock(Clock.systemUTC());
     }
 
+    /** Envios a cada 60 s andando (parado desde agora) pelos pontos dados, em ciclo; FP de cada envio vem de fp(s). */
+    void patrol(long id, int[][] points, java.util.function.IntUnaryOperator fp) {
+        int k = 0;
+        for (int s = -120; s <= 1260; s += 60, ++k) {
+            int[] p = points[k % points.length];
+            service.record(id, nick(id), CRAG, at(t0, s), p[0], p[1], fp.applyAsInt(s), null, at(t0, s));
+        }
+    }
+
+    @Test void botWalkingBackAndForthWithoutSkillsIsAfk() {
+        int[][] ab = {{5100, 5200}, {5130, 5200}};
+        patrol(a, ab, s -> 800);                                       // bot: A ↔ B, nunca usa skill
+        patrol(b, new int[][]{{5100, 5200}}, s -> 800);                // RG: no mesmo ponto, mexendo no teclado
+        patrol(c, ab, s -> s % 180 == 0 ? 700 : 800);                  // indo e voltando, mas usando skill
+        long before = points(a);
+        clock(at(t0, 1200));
+        assertTrue(service.gameEnded(nick(b), END));
+        clock(at(t0, 1330));
+        service.tick();
+        assertEquals(before, points(a));
+        assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM cw_award WHERE member_id=? AND kind='CW'", Integer.class, b));
+        assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM cw_award WHERE member_id=? AND kind='CW'", Integer.class, c));
+
+        loginAs(admin);
+        var rowA = service.overview(7).cws().get(0).members().stream().filter(m -> m.memberId() == a).findFirst().orElseThrow();
+        assertEquals(0, rowA.activeSeconds());
+        assertEquals(1200, rowA.afkSeconds());
+    }
+
+    @Test void walkingThroughNewPointsIsNotPatrol() {
+        int[][] path = new int[23][];
+        for (int k = 0; k < path.length; ++k) path[k] = new int[]{5000 + k * 20, 5000};   // sempre um ponto novo
+        patrol(a, path, s -> 800);
+        clock(at(t0, 1200));
+        assertTrue(service.gameEnded(nick(a), END));
+        clock(at(t0, 1330));
+        service.tick();
+        assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM cw_award WHERE member_id=? AND kind='CW'", Integer.class, a));
+    }
+
     @Test void windowsAreServerTimeAndPbMajorEveryFourDays() {
         assertEquals(2, CwAttendanceService.slotAt(t0).orElseThrow().window().slot());
         assertTrue(CwAttendanceService.slotAt(t0.minusSeconds(1)).isEmpty());                    // 13:59 Moscou

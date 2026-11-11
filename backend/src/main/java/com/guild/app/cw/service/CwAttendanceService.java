@@ -37,7 +37,8 @@ import java.util.*;
  * <ul>
  *   <li>Cada envio de status da DLL perto e durante a CW vira uma amostra (está em Crag Mind Field? parado desde?).</li>
  *   <li>O tempo entre duas amostras seguidas em Crag conta como presença; se o personagem estava AFK (parado na
- *       mesma coordenada há mais de 1 min 30 s sem EXP), o trecho parado inteiro vai para AFK, desde o começo.</li>
+ *       mesma coordenada há mais de 1 min 30 s sem EXP), o trecho parado inteiro vai para AFK, desde o começo.
+ *       Indo e voltando entre os mesmos pontos por 5 min sem skill nem EXP (bot) também é AFK.</li>
  *   <li>Saiu de Crag (morreu e nasceu em outro mapa, TP) e voltou em até 2 min: não perde nada. Mais que isso, o
  *       tempo em outro mapa vai todo para "Fora da CW".</li>
  *   <li>A CW começa no horário fixo e acaba quando a DLL de algum membro vê "Due to the result of Chip War" no chat
@@ -170,16 +171,27 @@ public class CwAttendanceService {
      * Um envio de status de um membro. {@code idleSince} = desde quando está parado sem EXP (null = sem
      * coordenada, não dá para saber: nunca AFK).
      */
-    @Transactional
     public void record(long memberId, String character, String map, Instant idleSince, Instant now) {
+        record(memberId, character, map, idleSince, null, null, null, null, now);
+    }
+
+    /**
+     * Com coordenada, FP e a última vez que ganhou EXP: para pegar quem fica indo e voltando entre os mesmos pontos
+     * sem usar skill ({@link #withPatrol}).
+     */
+    @Transactional
+    public void record(long memberId, String character, String map, Instant idleSince,
+                       Integer x, Integer y, Integer fp, Instant expGainedAt, Instant now) {
         Optional<Slot> slot = sampleSlotAt(now);
         if (slot.isEmpty()) return;
         boolean inMap = map != null && CW_MAP.equalsIgnoreCase(map.strip());
         jdbc.update("""
-                INSERT INTO cw_sample(member_id,at,cw_date,cw_slot,in_map,idle_since,character_name,map_name) VALUES(?,?,?,?,?,?,?,?)
+                INSERT INTO cw_sample(member_id,at,cw_date,cw_slot,in_map,idle_since,character_name,map_name,map_x,map_y,fp,exp_gained_at)
+                VALUES(?,?,?,?,?,?,?,?,?,?,?,?)
                 ON CONFLICT (member_id,at) DO NOTHING""",
                 memberId, Timestamp.from(now), Date.valueOf(slot.get().date()), slot.get().window().slot(), inMap,
-                idleSince == null ? null : Timestamp.from(idleSince), character, mapName(map));
+                idleSince == null ? null : Timestamp.from(idleSince), character, mapName(map), x, y, fp,
+                expGainedAt == null ? null : Timestamp.from(expGainedAt));
     }
 
     private static String mapName(String map) {
@@ -188,7 +200,73 @@ public class CwAttendanceService {
         return m.length() > 80 ? m.substring(0, 80) : m;
     }
 
-    record Sample(Instant at, boolean inMap, Instant idleSince, String character, String map) {        boolean afk() { return idleSince != null && Duration.between(idleSince, at).compareTo(AFK_AFTER) > 0; }
+    record Sample(Instant at, boolean inMap, Instant idleSince, String character, String map,
+                  Integer x, Integer y, Integer fp, Instant expGainedAt) {
+        Sample(Instant at, boolean inMap, Instant idleSince, String character, String map) {
+            this(at, inMap, idleSince, character, map, null, null, null, null);
+        }
+        boolean afk() { return idleSince != null && Duration.between(idleSince, at).compareTo(AFK_AFTER) > 0; }
+        boolean hasPoint() { return inMap && x != null && y != null; }
+        Sample idleFrom(Instant since) {
+            Instant idle = idleSince == null || since.isBefore(idleSince) ? since : idleSince;
+            return new Sample(at, inMap, idle, character, map, x, y, fp, expGainedAt);
+        }
+    }
+
+    /** Bot de CW: indo e voltando por pelo menos isso entre os mesmos pontos, sem skill nem EXP = AFK. */
+    public static final Duration PATROL_WINDOW = Duration.ofMinutes(5);
+    /** No máximo tantos pontos diferentes nesse tempo (quem anda de verdade passa por um ponto novo a cada envio). */
+    public static final int PATROL_MAX_POINTS = 5;
+    /** Coordenadas a até isso uma da outra (unidades do site = mundo / 10) são o mesmo ponto. */
+    public static final int SAME_POINT = 2;
+
+    /**
+     * Marca como AFK os trechos de "patrulha": por {@link #PATROL_WINDOW} seguidos em Crag, andou entre 2 e
+     * {@link #PATROL_MAX_POINTS} pontos e voltou a um ponto onde já tinha estado (A → B → A), sem o FP cair (não
+     * usou skill) e sem ganhar EXP. SP não conta: correr também gasta SP. Parado num ponto só (RG) não é patrulha.
+     * O trecho inteiro, desde o começo da janela, vira AFK (como o parado).
+     */
+    static List<Sample> withPatrol(List<Sample> samples) {
+        int n = samples.size();
+        boolean[] patrol = new boolean[n];
+        for (int j = 0; j < n; ++j) {
+            int i = j;
+            while (i + 1 < n && samples.get(i).hasPoint() && near(samples.get(i), samples.get(i + 1))
+                    && Duration.between(samples.get(j).at(), samples.get(i).at()).compareTo(PATROL_WINDOW) < 0) ++i;
+            if (Duration.between(samples.get(j).at(), samples.get(i).at()).compareTo(PATROL_WINDOW) < 0) continue;
+            if (patrolling(samples.subList(j, i + 1))) for (int k = j; k <= i; ++k) patrol[k] = true;
+        }
+        var out = new ArrayList<Sample>(n);
+        Instant start = null;
+        for (int k = 0; k < n; ++k) {
+            Sample s = samples.get(k);
+            if (!patrol[k]) { start = null; out.add(s); continue; }
+            if (start == null || !patrol[k - 1] || !near(samples.get(k - 1), s)) start = s.at();
+            out.add(s.idleFrom(start));
+        }
+        return out;
+    }
+
+    private static boolean patrolling(List<Sample> window) {
+        Instant from = window.get(0).at();
+        var points = new ArrayList<int[]>();
+        var path = new ArrayList<Integer>();   // ponto de cada envio, sem repetir o anterior
+        for (int k = 0; k < window.size(); ++k) {
+            Sample s = window.get(k);
+            if (!s.hasPoint()) return false;
+            if (s.expGainedAt() != null && s.expGainedAt().isAfter(from)) return false;   // ganhou EXP
+            if (k > 0) {
+                Sample prev = window.get(k - 1);
+                if (s.fp() == null || prev.fp() == null || s.fp() < prev.fp()) return false;   // usou skill (ou sem FP)
+            }
+            int id = -1;
+            for (int p = 0; p < points.size() && id < 0; ++p)
+                if (Math.abs(points.get(p)[0] - s.x()) <= SAME_POINT && Math.abs(points.get(p)[1] - s.y()) <= SAME_POINT) id = p;
+            if (id < 0) { points.add(new int[]{s.x(), s.y()}); id = points.size() - 1; }
+            if (path.isEmpty() || path.get(path.size() - 1) != id) path.add(id);
+        }
+        if (points.size() < 2 || points.size() > PATROL_MAX_POINTS) return false;
+        return path.size() > new HashSet<>(path).size();   // voltou a um ponto onde já tinha estado
     }
 
     /**
@@ -202,7 +280,7 @@ public class CwAttendanceService {
         for (Sample s : samples) byCharacter.computeIfAbsent(Objects.toString(s.character(), ""), k -> new ArrayList<>()).add(s);
         Best best = null;
         for (var e : byCharacter.entrySet()) {
-            long[] p = presence(e.getValue(), from, to);
+            long[] p = presence(withPatrol(e.getValue()), from, to);
             if (best == null || p[0] > best.active() || (p[0] == best.active() && p[1] < best.afk()))
                 best = new Best(p[0], p[1], p[2], e.getKey().isEmpty() ? null : e.getKey());
         }
@@ -428,12 +506,15 @@ public class CwAttendanceService {
 
     private Map<Long, List<Sample>> samplesByMember(Slot slot) {
         var out = new HashMap<Long, List<Sample>>();
-        jdbc.query("SELECT member_id,at,in_map,idle_since,character_name,map_name FROM cw_sample WHERE cw_date=? AND cw_slot=? ORDER BY member_id,at",
+        jdbc.query("""
+                SELECT member_id,at,in_map,idle_since,character_name,map_name,map_x,map_y,fp,exp_gained_at
+                FROM cw_sample WHERE cw_date=? AND cw_slot=? ORDER BY member_id,at""",
                 rs -> {
-                    Timestamp idle = rs.getTimestamp("idle_since");
                     out.computeIfAbsent(rs.getLong("member_id"), k -> new ArrayList<>()).add(new Sample(
                             rs.getTimestamp("at").toInstant(), rs.getBoolean("in_map"),
-                            idle == null ? null : idle.toInstant(), rs.getString("character_name"), rs.getString("map_name")));
+                            ts(rs.getTimestamp("idle_since")), rs.getString("character_name"), rs.getString("map_name"),
+                            rs.getObject("map_x", Integer.class), rs.getObject("map_y", Integer.class),
+                            rs.getObject("fp", Integer.class), ts(rs.getTimestamp("exp_gained_at"))));
                 }, Date.valueOf(slot.date()), slot.window().slot());
         return out;
     }

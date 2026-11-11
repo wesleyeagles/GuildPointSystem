@@ -92,7 +92,8 @@ public class CharacterStatusService {
         statusRepository.save(status);
         syncAccessService.recordSync(member.getId(), now, dllVersion);
         // Durante a CW: tempo no mapa da CW (sem contar AFK), para a aba Presença em CW.
-        cwAttendanceService.record(member.getId(), request.character(), status.getMapName(), status.idleSince(), now);
+        cwAttendanceService.record(member.getId(), request.character(), status.getMapName(), status.idleSince(),
+                status.getMapX(), status.getMapY(), request.fp(), status.getExpGainedAt(), now);
         // PBs diarios automaticos: presenca nas regioes do PB durante a janela.
         pbAutoService.record(member.getId(), request.character(), status.getMapName(), status.getRegionName(), now);
         // Historico de local (3 dias) para a staff consultar onde alguem estava num horario.
