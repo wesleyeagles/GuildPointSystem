@@ -24,6 +24,23 @@
   &__combo-arrow { right: 10px; pointer-events: none; }
   &__combo-detail { color: theme.$color-text-muted; font-family: theme.$font-mono; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+  &__relic-group { margin-top: theme.$spacing-sm;
+    h4 { margin: 0 0 theme.$spacing-xs; font-family: theme.$font-heading; font-size: 14px; text-transform: uppercase; color: theme.$color-text-muted; }
+  }
+  &__relics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: theme.$spacing-xs; }
+  &__relic { display: flex; align-items: center; gap: theme.$spacing-xs; padding: 4px 8px; background: theme.$metal-700; min-width: 0;
+    &.is-owned { outline: 1px solid theme.$color-primary; }
+    &--off { opacity: .45; }
+    select { width: auto; flex: none; padding: 2px 6px; min-height: 0; height: 28px; }
+  }
+  &__relic-main { display: flex; align-items: center; gap: theme.$spacing-sm; flex: 1; min-width: 0; cursor: pointer; }
+  &__relic-icon { flex: none; width: 40px; height: 40px; border-radius: 50%; background-image: url('/relics/item-1-6.jpg'); background-repeat: no-repeat;
+    .damage-calc__relic:not(.is-owned) & { opacity: .5; }
+  }
+  &__relic-name { display: grid; min-width: 0; line-height: 1.2;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    small { color: theme.$color-primary; font-family: theme.$font-mono; font-size: 12px; overflow: hidden; text-overflow: ellipsis; }
+  }
   &__row--extra { margin-top: theme.$spacing-md; max-width: 260px; }
   &__acc { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: theme.$spacing-md; }
   &__hint { color: theme.$color-text-muted; font-size: theme.$font-size-base; margin-bottom: theme.$spacing-sm; }
@@ -54,7 +71,7 @@
 
   @media (max-width: theme.$mobile-breakpoint) {
     &__layout, &__acc { grid-template-columns: 1fr; }
-    &__boosts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    &__boosts, &__relics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     &__result { position: static; }
   }
 }

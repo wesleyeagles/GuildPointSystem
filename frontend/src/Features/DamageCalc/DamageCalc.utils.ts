@@ -8,6 +8,8 @@ export interface KbWeapon {
   n: string
   l: number
   t: string
+  /** Classe pelo PT da kbase: decide quais relics de dano valem. */
+  k?: WeaponClass
   r: string
   atk?: [number, number]
   fo?: [number, number]
@@ -29,6 +31,7 @@ export interface KbData {
 }
 
 export type DamageMode = 'atk' | 'force'
+export type WeaponClass = 'melee' | 'range' | 'force' | 'launcher' | 'grenade'
 
 export interface DamageInput {
   weapon: KbWeapon | null

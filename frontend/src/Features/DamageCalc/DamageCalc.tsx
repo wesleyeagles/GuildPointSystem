@@ -5,6 +5,8 @@ import { Button } from '@/Shared/ui/components/Button/Button'
 import { ADRENAS, BUFFS, GENERATORS, KEEN_PCT, type Boost } from './data/boosts'
 import { calcDamage, defaultMode, type DamageMode, type Effects, type KbAccessory, type KbData, type KbWeapon } from './DamageCalc.utils'
 import { GameIconView, KbIcon } from './KbIcon'
+import { RelicsPanel } from './RelicsPanel'
+import { DAMAGE_RELICS, relicBonus } from './relics'
 import './DamageCalc.styles.scss'
 
 const STORAGE_KEY = 'damageCalc.v1'
@@ -30,11 +32,13 @@ interface SavedState {
   buffs: string[]
   adrena: string
   generator: string
+  /** id da relic → upgrade (0 = base). */
+  relics: Record<string, number>
   extraAtk: number
 }
 
 const INITIAL: SavedState = {
-  weaponType: 'sword', weapon: '', mode: 'atk', keen: 0, acc: {}, buffs: [], adrena: '', generator: '', extraAtk: 0,
+  weaponType: 'sword', weapon: '', mode: 'atk', keen: 0, acc: {}, buffs: [], adrena: '', generator: '', relics: {}, extraAtk: 0,
 }
 
 function loadState(): SavedState {
@@ -46,6 +50,8 @@ function loadState(): SavedState {
       buffs: saved.buffs.filter(id => BUFFS.some(b => b.id === id)),
       adrena: ADRENAS.some(a => a.id === saved.adrena) ? saved.adrena : '',
       generator: GENERATORS.some(g => g.id === saved.generator) ? saved.generator : '',
+      relics: Object.fromEntries(Object.entries(saved.relics ?? {})
+        .filter(([id, up]) => DAMAGE_RELICS.some(r => String(r.id) === id) && Number.isInteger(up) && up >= 0 && up <= 3)),
     }
   } catch {
     return INITIAL
@@ -234,14 +240,17 @@ export function DamageCalcPage() {
   const adrenaPct = adrena?.atk ?? 0
   const generator = GENERATORS.find(g => g.id === s.generator)
   const hasBoth = !!(weapon?.atk && weapon?.fo)
+  const relics = Object.entries(s.relics).map(([id, up]) => relicBonus(Number(id), up, weapon?.k, s.mode))
+  const relicAtk = Math.round(relics.reduce((t, r) => t + r.atk, 0) * 100) / 100
+  const relicCrit = relics.reduce((t, r) => t + r.crit, 0)
 
   const result = calcDamage({
     weapon,
     mode: s.mode,
     keen: s.keen,
     effects: [weapon?.e ?? {}, ...accessories.map(a => a?.e ?? {})],
-    bonusPct: [...buffs.map(b => b.atk), adrenaPct, generator?.atk ?? 0, s.extraAtk],
-    bonusCrit: buffs.reduce((t, b) => t + (b.crit ?? 0), 0),
+    bonusPct: [...buffs.map(b => b.atk), adrenaPct, generator?.atk ?? 0, relicAtk, s.extraAtk],
+    bonusCrit: buffs.reduce((t, b) => t + (b.crit ?? 0), 0) + relicCrit,
   })
 
   const toggleBuff = (id: string) =>
@@ -254,6 +263,7 @@ export function DamageCalcPage() {
     ...buffs.map(b => ({ label: b.name, pct: b.atk })),
     adrena ? { label: `Adrena: ${adrena.name}`, pct: adrenaPct } : null,
     generator ? { label: generator.name, pct: generator.atk } : null,
+    relicAtk ? { label: `Relics (${relics.filter(r => r.atk).length})`, pct: relicAtk } : null,
     s.extraAtk ? { label: 'Outros', pct: s.extraAtk } : null,
   ].filter((l): l is { label: string; pct: number } => !!l && l.pct !== 0)
 
@@ -320,6 +330,8 @@ export function DamageCalcPage() {
           <Panel title="Buffs" actions={s.buffs.length ? <Button size="sm" variant="ghost" onClick={() => set({ buffs: [] })}>Limpar</Button> : undefined}>
             <BoostList name="Buffs" items={BUFFS} selected={s.buffs} toggle={toggleBuff} mode={weapon ? s.mode : undefined} />
           </Panel>
+
+          <RelicsPanel value={s.relics} onChange={relics => set({ relics })} weaponClass={weapon?.k} mode={s.mode} />
 
           <Panel title="Adrena, gerador e outros">
             <BoostList name="Adrena" single items={ADRENAS} selected={s.adrena ? [s.adrena] : []} toggle={id => set({ adrena: id })} />

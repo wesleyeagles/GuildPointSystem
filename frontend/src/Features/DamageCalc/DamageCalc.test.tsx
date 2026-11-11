@@ -2,13 +2,20 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { calcDamage, defaultMode, type KbWeapon } from './DamageCalc.utils'
 import { DamageCalcPage } from './DamageCalc'
+import { relicBonus } from './relics'
 
 vi.mock('./data/kbase.json', () => ({ default: {
   source: 'https://cerberus-games.com/kbase/items/', server: 'CERBERUS - STAGE ERA', scrapedAt: '2026-11-09',
-  weapons: [{ c: 'iwswa65', n: 'Saint Beam Sword', l: 65, t: 'sword', r: '11111', atk: [1000, 2000], i: 3, g: 1 }],
+  weapons: [{ c: 'iwswa65', n: 'Saint Beam Sword', l: 65, t: 'sword', k: 'melee', r: '11111', atk: [1000, 2000], i: 3, g: 1 }],
   amulets: [{ c: 'ia1', n: 'Fire Amulet', l: 1, r: '11111', e: { a: 30, c: 5 } }],
   rings: [],
 } }))
+
+const relicState = vi.hoisted(() => ({ mine: [] as { id: number; upgrade: number }[] }))
+vi.mock('@/Domain/Member/hooks/useMembers', () => ({ useCurrentMember: () => ({ data: { id: 7 } }) }))
+vi.mock('@/Domain/Equipment/hooks/useEquipment', () => ({
+  useEquipmentRelics: () => ({ data: { relics: relicState.mine, syncedAt: '2026-11-11T12:00:00Z' } }),
+}))
 
 afterEach(() => { cleanup(); localStorage.clear() })
 
@@ -84,5 +91,33 @@ describe('Calculadora de dano', () => {
     expect(screen.getByText('1.700')).toBeTruthy() // 1000 × (1 + 40% + 30%)
     fireEvent.click(screen.getByRole('radio', { name: /Attack and Defense Generator/ }))
     expect(screen.getByText('1.900')).toBeTruthy() // + 20% do gerador
+  })
+})
+
+describe('Relics', () => {
+  it('each damage effect only counts for its weapon class and mode', () => {
+    // Frenzy Ratmoth (id 2): Melee e Range 2% / 2,4% / 3% / 4%
+    expect(relicBonus(2, 3, 'melee', 'atk').atk).toBe(4)
+    expect(relicBonus(2, 0, 'range', 'atk').atk).toBe(2)
+    expect(relicBonus(2, 3, 'force', 'force').atk).toBe(0)
+    // Splinter Rex (id 0): Força 2% → só no dano de força
+    expect(relicBonus(0, 0, 'force', 'force').atk).toBe(2)
+    expect(relicBonus(0, 0, 'melee', 'atk').atk).toBe(0)
+    // Freak Vafer Niffer (id 4): só crítico
+    expect(relicBonus(4, 3, 'melee', 'atk')).toEqual({ atk: 0, crit: 2.6 })
+  })
+
+  it('loads the synced relics of the player and adds them to the bonus', async () => {
+    relicState.mine = [{ id: 2, upgrade: 3 }, { id: 0, upgrade: 1 }, { id: 9999, upgrade: 0 }]
+    localStorage.setItem('damageCalc.v1', JSON.stringify({ weapon: 'iwswa65' }))
+    render(<DamageCalcPage />)
+    await screen.findByText('2.000', undefined, KBASE_LOAD)
+    fireEvent.click(screen.getByRole('button', { name: 'Usar minhas relics' }))
+    // espada (melee): só o Melee 4% do Frenzy Ratmoth +3 soma; a de força fica marcada mas não soma
+    expect(screen.getByText('1.040')).toBeTruthy()
+    expect(screen.getByText('2.080')).toBeTruthy()
+    expect(screen.getByRole('checkbox', { name: /Splinter Rex/ })).toBeChecked()
+    expect(screen.getByRole('combobox', { name: 'Upgrade de Frenzy Ratmoth Relic' })).toHaveValue('3')
+    relicState.mine = []
   })
 })
