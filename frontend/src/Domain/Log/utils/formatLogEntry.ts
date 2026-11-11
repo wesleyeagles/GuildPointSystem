@@ -13,6 +13,7 @@ const LOG_TYPE_LABELS: Record<AuditLogType, string> = {
   RESOURCE_ACCESS_UPDATED: 'Lista do mapa de recursos alterada',
   RESOURCE_MOB_UPDATED: 'Grau de mob de recurso alterado',
   PB_BOSS_UPDATED: 'Boss do histórico de PB alterado',
+  MARKET_PRICE_ACCESS_UPDATED: 'Lista do preço do market alterada',
   DLL_RELEASED: 'Nova versão da DLL',
   PARTY_QUEUE_UPDATED: 'Fila de PT atualizada',
   ROTATION_UPDATED: 'Rotação atualizada',
@@ -98,6 +99,8 @@ export function formatLogDetails(log: AuditLogEntry): string {
       return `A partir de ${str(p.minRole)}${Array.isArray(p.viewers) && p.viewers.length ? ` · Liberados: ${p.viewers.join(', ')}` : ''}`
     case 'CHAT_TRANSLATE_ACCESS_UPDATED':
       return Array.isArray(p.translators) && p.translators.length ? `Liberados: ${p.translators.join(', ')}` : 'Ninguém'
+    case 'MARKET_PRICE_ACCESS_UPDATED':
+      return Array.isArray(p.viewers) && p.viewers.length ? `Liberados: ${p.viewers.join(', ')}` : 'Ninguém'
     case 'RESOURCE_ACCESS_UPDATED':
       return Array.isArray(p.trackers) && p.trackers.length ? `Liberados: ${p.trackers.join(', ')}` : 'Ninguém'
     case 'RESOURCE_MOB_UPDATED':

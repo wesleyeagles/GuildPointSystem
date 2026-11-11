@@ -71,6 +71,11 @@ guild:
   translate:
     # Tradutor do chat (MyMemory, gratuito). Com um e-mail de contato a cota diaria sobe de ~5 mil para ~50 mil caracteres.
     mymemory-email: ${MYMEMORY_EMAIL:}
+  market:
+    # Market da Cerberus (preco no tooltip de item da DLL). So abre logado: conta descartavel da guild.
+    url: ${CERBERUS_MARKET_URL:https://cerberus-games.com}
+    login: ${CERBERUS_MARKET_LOGIN:accdebuff2}
+    password: ${CERBERUS_MARKET_PASSWORD:rf147258369*}
   dll:
     # Chave PUBLICA (BCRYPT_ECCPUBLIC_BLOB em base64) das atualizacoes automaticas da DLL; a
     # mesma embutida em CerberusBags/src/update_key.hpp. A privada fica so no PC de quem publica
