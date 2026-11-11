@@ -6,6 +6,7 @@ import com.guild.app.characterstatus.entity.CharacterStatus;
 import com.guild.app.characterstatus.repository.CharacterStatusRepository;
 import com.guild.app.cw.service.CwAttendanceService;
 import com.guild.app.pbauto.service.PbAutoService;
+import com.guild.app.locationhistory.service.LocationHistoryService;
 import com.guild.app.location.repository.GameRegionRepository;
 import com.guild.app.member.entity.Member;
 import com.guild.app.member.repository.MemberRepository;
@@ -31,6 +32,7 @@ public class CharacterStatusService {
     private final GameRegionRepository gameRegionRepository;
     private final CwAttendanceService cwAttendanceService;
     private final PbAutoService pbAutoService;
+    private final LocationHistoryService locationHistoryService;
 
     // ---- Ingestao (sem autenticacao; associada pelo nome do personagem) ----
     // Todas as contas com esse nick recebem o envio (personagem compartilhado).
@@ -93,6 +95,9 @@ public class CharacterStatusService {
         cwAttendanceService.record(member.getId(), request.character(), status.getMapName(), status.idleSince(), now);
         // PBs diarios automaticos: presenca nas regioes do PB durante a janela.
         pbAutoService.record(member.getId(), request.character(), status.getMapName(), status.getRegionName(), now);
+        // Historico de local (3 dias) para a staff consultar onde alguem estava num horario.
+        locationHistoryService.record(member.getId(), request.character(), now, status.getMapName(), status.getRegionName(),
+                status.getMapX(), status.getMapY(), status.idleSince(), dllVersion);
 
         // Avisa a dashboard (apos o commit) para atualizar sem recarregar a pagina.
         webSocketPublisher.publishCharacterStatus(toView(status));

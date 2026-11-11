@@ -30,6 +30,7 @@ import { RaidPage } from '@/Features/Raid/Raid'
 import { ResourcesPage } from '@/Features/Resources/Resources'
 import { PbHistoryPage } from '@/Features/PbHistory/PbHistory'
 import { CwAttendancePage } from '@/Features/CwAttendance/CwAttendance'
+import { LocationHistoryPage } from '@/Features/LocationHistory/LocationHistory'
 import { PresenceReporter } from '@/Features/Presence/PresenceReporter'
 import './App.styles.scss'
 
@@ -75,6 +76,10 @@ function App() {
               <Route path="auctions/:id" element={<AuctionDetailPage />} />
               <Route path="profile" element={<ProfilePage />} />
               <Route path="profile/:id" element={<ProfilePage />} />
+              {/* Sem link no menu: só pela URL. */}
+              <Route element={<AdminRoute />}>
+                <Route path="onde-estava" element={<LocationHistoryPage />} />
+              </Route>
               {/* Administração: um item no menu, uma aba por página (cada aba mantém o próprio endereço). */}
               <Route element={<ModeratorRoute />}>
                 <Route path="admin" element={<AdminLayout />}>

@@ -1,0 +1,44 @@
+.location-history {
+  display: flex;
+  flex-direction: column;
+  gap: theme.$spacing-lg;
+
+  &__form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: theme.$spacing-md;
+    margin-bottom: theme.$spacing-md;
+
+    label {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      color: theme.$color-text-muted;
+      font-size: 0.85rem;
+    }
+
+    input, select { @include theme.field-input; width: auto; }
+  }
+
+  &__muted { margin: 0 0 theme.$spacing-md; color: theme.$color-text-muted; }
+  &__warn { color: theme.$color-warning; }
+
+  &__table {
+    width: 100%;
+    border-collapse: collapse;
+
+    th, td {
+      text-align: left;
+      padding: 6px theme.$spacing-sm;
+      border-bottom: 1px solid theme.$color-border;
+    }
+
+    th { color: theme.$color-text-muted; font-weight: 500; }
+  }
+
+  &__mark td {
+    color: theme.$color-success;
+    font-weight: 600;
+  }
+}
