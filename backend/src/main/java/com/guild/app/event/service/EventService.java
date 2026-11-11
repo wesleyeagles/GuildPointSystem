@@ -241,6 +241,21 @@ public class EventService {
         revertClaim(claim, actorEntity, request.reason());
     }
 
+    /** Vários resgates de uma vez (rodada lançada por engano): os já negados são ignorados. Devolve quantos negou. */
+    @Transactional
+    public int denyClaims(com.guild.app.event.dto.DenyClaimsRequest request, MemberPrincipal actor) {
+        SecurityUtils.requireRole(Role.ADMINISTRADOR);
+        var actorEntity = memberRepository.getReferenceById(actor.getId());
+        String reason = request.reason().strip();
+        int denied = 0;
+        for (var claim : eventClaimRepository.findAllById(new java.util.TreeSet<>(request.claimIds()))) {
+            if (claim.isDenied()) continue;
+            revertClaim(claim, actorEntity, reason);
+            denied++;
+        }
+        return denied;
+    }
+
     private void revertClaim(EventClaim claim, Member actorEntity, String reason) {
         if (claim.isDenied()) {
             return;

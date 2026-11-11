@@ -1,12 +1,13 @@
-import { cleanup, render, screen, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { RecentPointsEntry } from '@/Domain/Log/hooks/useLogs'
 import { formatPointsTime, splitPages } from '@/Features/Dashboard/utils/recentPoints'
 import { RecentPointsPanel } from './RecentPointsPanel'
 
-const state = vi.hoisted(() => ({ data: [] as RecentPointsEntry[] }))
+const state = vi.hoisted(() => ({ data: [] as RecentPointsEntry[], cancel: vi.fn() }))
 vi.mock('@/Domain/Log/hooks/useLogs', () => ({
   useRecentPoints: () => ({ data: state.data, isPending: false, isError: false }),
+  useCancelRecentRound: () => ({ mutate: state.cancel, isPending: false, isError: false, error: null }),
 }))
 
 afterEach(cleanup)
@@ -44,6 +45,21 @@ describe('Últimos pontos', () => {
     render(<RecentPointsPanel />)
     const [row] = screen.getAllByRole('listitem')
     expect(within(row).getByText('RG')).toBeTruthy()
+  })
+
+  it('lets an admin take back the points of a whole round', () => {
+    state.data = [
+      { kind: 'EVENT', name: 'PB Colônia', detail: null, members: 19, points: 5, total: 95, at: '2026-11-11T05:03:00Z', received: false, myPoints: null, limited: false, claimIds: [7, 8] },
+      { kind: 'EVENT', name: 'Boss', detail: null, members: 3, points: 4, total: 12, at: '2026-11-09T20:00:00Z', received: false, myPoints: null, limited: false },
+    ]
+    render(<RecentPointsPanel />)
+    const [round, other] = screen.getAllByRole('listitem')
+    expect(within(other).queryByText('Cancelar')).toBeNull()   // sem claimIds: não é admin
+    fireEvent.click(within(round).getByText('Cancelar'))
+    expect(within(round).getByText('Tirar 5 pontos de 19 membros?')).toBeTruthy()
+    fireEvent.change(within(round).getByPlaceholderText('Motivo...'), { target: { value: 'lançado em dobro' } })
+    fireEvent.click(within(round).getByText('Tirar os pontos'))
+    expect(state.cancel).toHaveBeenCalledWith({ claimIds: [7, 8], reason: 'lançado em dobro' }, expect.anything())
   })
 
   it('says when nothing gave points', () => {

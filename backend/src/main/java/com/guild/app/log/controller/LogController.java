@@ -41,6 +41,8 @@ public class LogController {
     /** Dashboard: últimas rodadas de pontos (eventos, RG, CW), sem nome de jogador; marca as do membro logado. */
     @GetMapping("/recent-points")
     public List<RecentPointsEntry> recentPoints(@RequestParam(defaultValue = "15") int limit) {
-        return logService.recentPoints(limit, SecurityUtils.currentMember().getId());
+        var me = SecurityUtils.currentMember();
+        return logService.recentPoints(limit, me.getId(),
+                me.getRole().isAtLeast(com.guild.app.common.enums.Role.ADMINISTRADOR));
     }
 }

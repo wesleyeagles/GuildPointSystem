@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, useState } from 'react'
-import { useRecentPoints, type RecentPointsEntry } from '@/Domain/Log/hooks/useLogs'
+import { useCancelRecentRound, useRecentPoints, type RecentPointsEntry } from '@/Domain/Log/hooks/useLogs'
+import { Button } from '@/Shared/ui/components/Button/Button'
 import { Panel } from '@/Shared/ui/components/Panel/Panel'
 import { formatPointsTime, splitPages } from '@/Features/Dashboard/utils/recentPoints'
 import { Pagination } from '@/Features/Dashboard/components/Pagination'
@@ -23,6 +24,41 @@ function statusOf(entry: RecentPointsEntry) {
   return entry.received ? 'got' : entry.limited ? 'limit' : 'none'
 }
 
+/** Administrador+: tira os pontos de todos que receberam a rodada (ex.: evento lançado em dobro). */
+function CancelRound({ entry }: { entry: RecentPointsEntry }) {
+  const cancel = useCancelRecentRound()
+  const [open, setOpen] = useState(false)
+  const [reason, setReason] = useState('')
+  const claimIds = entry.claimIds ?? []
+  if (!claimIds.length) return null
+  if (!open) {
+    return (
+      <span className="recent-points__cancel">
+        <Button variant="danger" size="sm" onClick={() => { setOpen(true); setReason('') }}>Cancelar</Button>
+      </span>
+    )
+  }
+  return (
+    <div className="recent-points__cancel-form">
+      <span>Tirar {fmt(entry.points)} pontos de {entry.members} {entry.members === 1 ? 'membro' : 'membros'}?</span>
+      <textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Motivo..." rows={2} />
+      {cancel.isError ? <span className="recent-points__mine--limit">{(cancel.error as Error).message}</span> : null}
+      <div className="recent-points__cancel-actions">
+        <Button variant="secondary" size="sm" onClick={() => setOpen(false)}>Voltar</Button>
+        <Button
+          variant="danger"
+          size="sm"
+          loading={cancel.isPending}
+          disabled={!reason.trim()}
+          onClick={() => cancel.mutate({ claimIds, reason: reason.trim() }, { onSuccess: () => setOpen(false) })}
+        >
+          Tirar os pontos
+        </Button>
+      </div>
+    </div>
+  )
+}
+
 function Row({ entry }: { entry: RecentPointsEntry }) {
   const title = entry.kind === 'RG' && entry.detail ? entry.detail : entry.name
   const status = statusOf(entry)
@@ -39,6 +75,8 @@ function Row({ entry }: { entry: RecentPointsEntry }) {
           {entry.kind === 'RG' ? 'Você não recebeu: limite de RG da CW (2x dia)' : 'Você não recebeu: limite diário atingido'}
         </span>
       ) : null}
+      {/* Só vem com claimIds (Administrador+). */}
+      <CancelRound entry={entry} />
     </li>
   )
 }

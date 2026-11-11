@@ -1,6 +1,6 @@
 import { useAuthContext } from '@/Features/Auth/contexts/AuthContext'
 import { useEffect, useRef } from 'react'
-import { keepPreviousData, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/Shared/api/client'
 import { onSocketReconnect, subscribeTopic, subscribeTopicEffect } from '@/Shared/websocket/socketClient'
 import { eventKeys, mergeEventIntoCache } from '@/Domain/Event/hooks/useEvents'
@@ -231,6 +231,8 @@ export interface RecentPointsEntry {
   myPoints: number | null
   /** Não recebeu porque já estava no limite do dia (evento limitado ou RG). */
   limited: boolean
+  /** Resgates de evento da rodada: só vem para Administrador+ (botão Cancelar). */
+  claimIds?: number[] | null
 }
 
 const recentPointsKey = ['recent-points'] as const
@@ -238,6 +240,21 @@ const recentPointsKey = ['recent-points'] as const
 const POINTS_LOG_TYPES = new Set<AuditLogType>(['EVENT_CLAIMED', 'EVENT_DENIED', 'POINTS_ADJUSTED'])
 /** Vários resgates em sequência viram uma busca só. */
 const RECENT_POINTS_DEBOUNCE_MS = 3000
+
+/** Administrador+: cancela uma rodada de evento inteira (tira os pontos de todos que receberam). */
+export function useCancelRecentRound() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ claimIds, reason }: { claimIds: number[]; reason: string }) =>
+      apiClient<{ denied: number }>('/events/claims/deny', { method: 'POST', body: { claimIds, reason } }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: recentPointsKey })
+      queryClient.invalidateQueries({ queryKey: ['logs'] })
+      queryClient.invalidateQueries({ queryKey: memberKeys.all })
+      queryClient.invalidateQueries({ queryKey: ['members'] })
+    },
+  })
+}
 
 export function useRecentPoints(limit = 15) {
   const queryClient = useQueryClient()

@@ -26,6 +26,9 @@ class RecentPointsTest {
     @Autowired LogService service;
     @Autowired JdbcTemplate jdbc;
     @MockitoBean WebSocketPublisher ws;
+    @Autowired com.guild.app.member.repository.MemberRepository members;
+    @Autowired com.guild.app.event.service.EventService events;
+    @Autowired jakarta.persistence.EntityManager em;
 
     String tag;
     long a, b, c, objective;
@@ -141,5 +144,33 @@ class RecentPointsTest {
         assertTrue(mine(a).get(0).received());
         assertTrue(mine(c).get(0).limited(), "c já tinha 2 RG no dia");
         assertFalse(mine(b).get(0).limited());
+    }
+
+    @Test void adminCancelsARoundAndEveryoneLosesThePoints() {
+        long admin = jdbc.queryForObject("INSERT INTO member(nickname,role,status,profile_complete) VALUES(?,'ADMINISTRADOR','APROVADO',true) RETURNING id",
+                Long.class, tag + "adm");
+        jdbc.update("UPDATE member SET points=20 WHERE id IN (?,?)", a, b);
+        String boss = "\"objectiveName\":\"" + tag + " Boss\",\"points\":5";
+        long ca = claim(a, false), cb = claim(b, false);
+        log("EVENT_CLAIMED", a, 3, "{" + boss + ",\"claimId\":" + ca + "}");
+        log("EVENT_CLAIMED", b, 2, "{" + boss + ",\"claimId\":" + cb + "}");
+
+        assertNull(mine().get(0).claimIds(), "membro não vê os resgates");
+        var row = service.recentPoints(50, admin, true).stream().filter(e -> e.name().startsWith(tag)).findFirst().orElseThrow();
+        assertEquals(List.of(ca, cb), row.claimIds());
+
+        var principal = new com.guild.app.auth.security.MemberPrincipal(members.findById(admin).orElseThrow());
+        org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(
+                new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities()));
+        try {
+            assertEquals(2, events.denyClaims(new com.guild.app.event.dto.DenyClaimsRequest(row.claimIds(), "lançado em dobro"), principal));
+            assertEquals(0, events.denyClaims(new com.guild.app.event.dto.DenyClaimsRequest(row.claimIds(), "de novo"), principal));
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+        em.flush();
+        assertEquals(15L, jdbc.queryForObject("SELECT points FROM member WHERE id=?", Long.class, a));
+        assertEquals(15L, jdbc.queryForObject("SELECT points FROM member WHERE id=?", Long.class, b));
+        assertTrue(mine().isEmpty(), "rodada cancelada some do painel");
     }
 }

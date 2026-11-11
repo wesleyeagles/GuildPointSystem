@@ -2,6 +2,7 @@ package com.guild.app.log.dto;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 
 /**
  * Uma rodada de pontos para a guild, sem nomes de jogador: um evento (todos os resgates dele), uma
@@ -17,6 +18,7 @@ import java.time.Instant;
  * @param received o membro logado recebeu
  * @param myPoints quanto ele recebeu; null se não recebeu
  * @param limited  não recebeu porque já estava no limite do dia (evento LIMITADO ou RG)
+ * @param claimIds resgates de evento da rodada (para o Admin cancelar); null para quem não é Admin ou sem resgate
  */
 public record RecentPointsEntry(
         String kind,
@@ -28,5 +30,6 @@ public record RecentPointsEntry(
         Instant at,
         boolean received,
         BigDecimal myPoints,
-        boolean limited) {
+        boolean limited,
+        List<Long> claimIds) {
 }

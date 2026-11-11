@@ -46,4 +46,10 @@ public class EventController {
     public void denyClaim(@PathVariable Long claimId, @Valid @RequestBody DenyClaimRequest request) {
         eventService.denyClaim(claimId, request, SecurityUtils.currentMember());
     }
+
+    /** Administrador+: tira os pontos de todos os resgates de uma rodada de "Últimos pontos". Devolve quantos tirou. */
+    @PostMapping("/claims/deny")
+    public java.util.Map<String, Integer> denyClaims(@Valid @RequestBody com.guild.app.event.dto.DenyClaimsRequest request) {
+        return java.util.Map.of("denied", eventService.denyClaims(request, SecurityUtils.currentMember()));
+    }
 }

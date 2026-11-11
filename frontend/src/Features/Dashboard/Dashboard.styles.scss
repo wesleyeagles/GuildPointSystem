@@ -519,6 +519,35 @@
 
     &--limit { color: theme.$color-danger; }
   }
+
+  // Administrador+: cancelar a rodada (só vem com claimIds).
+  &__cancel {
+    grid-column: 1 / 4;
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 4px;
+  }
+
+  &__cancel-form {
+    grid-column: 1 / 4;
+    display: flex;
+    flex-direction: column;
+    gap: theme.$spacing-xs;
+    margin-top: theme.$spacing-xs;
+    font-size: 13px;
+
+    textarea {
+      @include theme.field-input;
+      min-height: 48px;
+      resize: vertical;
+    }
+  }
+
+  &__cancel-actions {
+    display: flex;
+    gap: theme.$spacing-xs;
+    justify-content: flex-end;
+  }
 }
 
 // ── Pagination ───────────────────────────────────────────────────────────────

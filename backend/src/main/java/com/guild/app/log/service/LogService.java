@@ -86,6 +86,12 @@ public class LogService {
      */
     @Transactional(readOnly = true)
     public List<RecentPointsEntry> recentPoints(int limit, Long memberId) {
+        return recentPoints(limit, memberId, false);
+    }
+
+    /** {@code admin}: devolve os ids dos resgates de cada rodada (botão Cancelar do painel). */
+    @Transactional(readOnly = true)
+    public List<RecentPointsEntry> recentPoints(int limit, Long memberId, boolean admin) {
         var params = new MapSqlParameterSource()
                 .addValue("limit", Math.max(1, Math.min(limit, 50)))
                 .addValue("me", memberId)
@@ -100,7 +106,15 @@ public class LogService {
                 rs.getTimestamp("last_at").toInstant(),
                 rs.getBoolean("received"),
                 rs.getBigDecimal("my_points"),
-                rs.getBoolean("limited")));
+                rs.getBoolean("limited"),
+                admin ? claimIds(rs.getArray("claim_ids")) : null));
+    }
+
+    private static List<Long> claimIds(java.sql.Array array) throws java.sql.SQLException {
+        if (array == null) return null;
+        var out = new ArrayList<Long>();
+        for (Object id : (Object[]) array.getArray()) out.add(((Number) id).longValue());
+        return out;
     }
 
     private static final String RECENT_POINTS_SQL = """
@@ -115,7 +129,7 @@ public class LogService {
                           THEN regexp_replace(a.payload->>'reason', '^Pontos (de RG|por local):\\s*', '') END AS detail,
                      CASE WHEN a.type = 'EVENT_CLAIMED' THEN a.payload->>'eventId' END AS event_id,
                      COALESCE(a.payload->>'points', a.payload->>'amount')::numeric AS points,
-                     c.objective_id
+                     c.objective_id, c.id AS claim_id
               FROM audit_log a
               LEFT JOIN event_claim c
                 ON a.type = 'EVENT_CLAIMED' AND jsonb_typeof(a.payload->'claimId') = 'number'
@@ -142,7 +156,8 @@ public class LogService {
                      min(created_at) AS first_at, max(created_at) AS last_at,
                      COALESCE(bool_or(target_id = :me), false) AS received,
                      sum(points) FILTER (WHERE target_id = :me) AS my_points,
-                     max(objective_id) AS objective_id
+                     max(objective_id) AS objective_id,
+                     array_agg(claim_id ORDER BY claim_id) FILTER (WHERE claim_id IS NOT NULL) AS claim_ids
               FROM grouped
               GROUP BY k, grp
               ORDER BY last_at DESC
