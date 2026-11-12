@@ -321,7 +321,7 @@ export function AuctionListPage() {
               </label>
               {startMode === 'at' && (
                 <label className="auction-form__field">
-                  <span>Começa em</span>
+                  <span>Começa às</span>
                   <input
                     type="datetime-local"
                     value={startsAtInput}
