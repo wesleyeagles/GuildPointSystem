@@ -97,12 +97,15 @@ export function ItemCard({
   onDelete,
   onEdit,
   weaponCasts,
+  quantity,
 }: {
   item: Item
   canAdmin: boolean
   onDelete: (id: number) => void
   onEdit?: (id: number) => void
   weaponCasts: SeedOption[]
+  /** Shown as "x5" next to the name (auction lots). */
+  quantity?: number
 }) {
   const [imgError, setImgError] = useState(false)
   const det = item.details as Record<string, unknown> | null
@@ -146,7 +149,12 @@ export function ItemCard({
           )}
         </div>
         <div className="item-tooltip__title-wrap">
-          <span className="item-tooltip__name" style={{ color }}>{item.name}</span>
+          <span className="item-tooltip__name-row">
+            <span className="item-tooltip__name" style={{ color }}>{item.name}</span>
+            {quantity != null && quantity > 1 && (
+              <span className="item-tooltip__qty">x{quantity}</span>
+            )}
+          </span>
           <span className="item-tooltip__rarity">{item.rarity}</span>
         </div>
         {canAdmin && (

@@ -1,7 +1,8 @@
 export type Role = 'MEMBRO' | 'MODERADOR' | 'ADMINISTRADOR' | 'LIDER'
 export type MemberStatus = 'PENDENTE' | 'APROVADO' | 'REJEITADO' | 'EXCLUIDO' | 'SUSPENSO'
 export type ObjectiveType = 'NORMAL' | 'LIMITADO'
-export type AuctionStatus = 'OPEN' | 'DOLE' | 'TIE_BREAK' | 'CLOSED' | 'CANCELLED'
+/** SCHEDULED = created but not started (at `startsAt`, or by hand when null); PAUSED = clock frozen. */
+export type AuctionStatus = 'SCHEDULED' | 'OPEN' | 'DOLE' | 'TIE_BREAK' | 'PAUSED' | 'CLOSED' | 'CANCELLED'
 
 /** Finished auctions: no more bids; CANCELLED = force-closed by leadership, nobody charged. */
 export const isAuctionFinished = (status: AuctionStatus) => status === 'CLOSED' || status === 'CANCELLED'
@@ -319,6 +320,8 @@ export interface Auction {
   status: AuctionStatus
   durationMinutes: number
   createdAt: string
+  /** SCHEDULED: planned start (null = "em breve", started by hand). Open: when it opened. */
+  startsAt: string | null
   endsAt: string
   currentBid: number
   winnerId: number | null
@@ -336,6 +339,8 @@ export interface Auction {
   /** Monotonic per auction — newer state always has a higher version. */
   version: number
   serverTime: string
+  /** Time left on the frozen clock while PAUSED. */
+  pausedRemainingMs: number | null
 }
 
 export interface News {

@@ -15,6 +15,13 @@ public class AuctionScheduler {
     /** Short tick so DOLE / tie-break phases fire close to their deadline. */
     @Scheduled(fixedDelay = 200)
     public void tick() {
+        for (var auctionId : auctionService.findDueScheduledIds()) {
+            try {
+                auctionService.startScheduled(auctionId);
+            } catch (Exception e) {
+                log.error("Failed to start scheduled auction {}", auctionId, e);
+            }
+        }
         for (var auctionId : auctionService.findDueAuctionIds()) {
             try {
                 auctionService.advance(auctionId);

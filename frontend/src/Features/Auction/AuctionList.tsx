@@ -1,6 +1,11 @@
 import { Fragment, useCallback, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useAuctions, useCreateAuction, useDeleteAuction } from '@/Domain/Auction/hooks/useAuction'
+import {
+  useAuctionAdminAction,
+  useAuctions,
+  useCreateAuction,
+  useDeleteAuction,
+} from '@/Domain/Auction/hooks/useAuction'
 import { useDiscordBySiteMember, type DiscordMember } from '@/Domain/Discord/hooks/useDiscordMembers'
 import { isAuctionFinished } from '@/Domain/types/models'
 import { useAppToast } from '@/Shared/ui/components/AppToast/AppToast'
@@ -11,7 +16,7 @@ import { AuctionItemIcon } from '@/Features/Auction/components/AuctionItemIcon/A
 import { Button } from '@/Shared/ui/components/Button/Button'
 import { Panel } from '@/Shared/ui/components/Panel/Panel'
 import type { Auction } from '@/Domain/types/models'
-import { formatTime, useCountdown } from '@/Features/Auction/hooks/useCountdown'
+import { formatStartsAt, formatTime, pausedSeconds, useCountdown } from '@/Features/Auction/hooks/useCountdown'
 import './Auction.styles.scss'
 
 const DURATIONS = [
@@ -28,9 +33,19 @@ const DURATIONS = [
 
 type ItemEntry = { itemId: number; quantity: number }
 
+type StartMode = 'now' | 'at' | 'later'
+
+/** Value for <input type="datetime-local"> in the browser's time zone. */
+function toLocalInput(d: Date) {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
 const emptyEntry = (): ItemEntry => ({ itemId: 0, quantity: 1 })
 
 const STATUS_LABEL: Record<string, string> = {
+  SCHEDULED: 'Em breve',
+  PAUSED: 'Pausado',
   OPEN: 'Aberto',
   DOLE: 'DOLE',
   TIE_BREAK: 'Empate',
@@ -41,6 +56,22 @@ const STATUS_LABEL: Record<string, string> = {
 function AuctionListTimer({ endsAt }: { endsAt: string }) {
   const remaining = useCountdown(endsAt)
   return <span className="auction-list__timer">{formatTime(remaining)}</span>
+}
+
+/** Countdown for running auctions, frozen clock when paused, start time when not started. */
+function AuctionListTime({ auction }: { auction: Auction }) {
+  if (auction.status === 'OPEN' || auction.status === 'DOLE') return <AuctionListTimer endsAt={auction.endsAt} />
+  if (auction.status === 'PAUSED') {
+    return <span className="auction-list__timer">{formatTime(pausedSeconds(auction.pausedRemainingMs))}</span>
+  }
+  if (auction.status === 'SCHEDULED') {
+    return (
+      <span className="auction-list__timer auction-list__timer--start">
+        {auction.startsAt ? formatStartsAt(auction.startsAt) : 'Início manual'}
+      </span>
+    )
+  }
+  return null
 }
 
 /** Site profile link, with the Discord name (in the member's role color) in parentheses. */
@@ -62,6 +93,9 @@ function MemberLink({ id, nickname, discord }: { id: number; nickname: string; d
 /** Active: who is leading (or how many are tied). Finished: the winner. */
 function AuctionSubtitle({ auction, discordBySite }: { auction: Auction; discordBySite: Map<number, DiscordMember> }) {
   const finished = isAuctionFinished(auction.status)
+  if (auction.status === 'SCHEDULED') {
+    return <small>{auction.startsAt ? `Começa ${formatStartsAt(auction.startsAt)}` : 'Aguardando a administração iniciar'}</small>
+  }
   if (!finished && auction.tied && auction.tiedCount > 1) {
     if (auction.tiedCount > 3 || auction.tiedMemberIds.length !== auction.tiedCount) {
       return <small>{auction.tiedCount} empatados</small>
@@ -99,13 +133,18 @@ function AuctionListSection({
   emptyText,
   onDelete,
   deletingId,
+  onStart,
+  startingId,
 }: {
   title: string
   auctions: Auction[]
   emptyText?: string
-  /** Shown only for finished auctions, to Líder/Administrador. */
+  /** Shown for finished and not-yet-started auctions, to Líder/Administrador. */
   onDelete?: (auction: Auction) => void
   deletingId?: number | null
+  /** Opens a not-yet-started auction now (Líder/Administrador). */
+  onStart?: (auction: Auction) => void
+  startingId?: number | null
 }) {
   const discordBySite = useDiscordBySiteMember()
 
@@ -135,9 +174,7 @@ function AuctionListSection({
               >
                 {STATUS_LABEL[auction.status] ?? auction.status}
               </span>
-              {(auction.status === 'OPEN' || auction.status === 'DOLE') && (
-                <AuctionListTimer endsAt={auction.endsAt} />
-              )}
+              <AuctionListTime auction={auction} />
               <span className="auction-list__bid">{auction.currentBid}</span>
               <div className="auction-list__actions">
                 <Link to={`/auctions/${auction.id}`}>
@@ -145,7 +182,12 @@ function AuctionListSection({
                     Ver
                   </Button>
                 </Link>
-                {onDelete && isAuctionFinished(auction.status) && (
+                {onStart && auction.status === 'SCHEDULED' && (
+                  <Button size="sm" loading={startingId === auction.id} onClick={() => onStart(auction)}>
+                    Iniciar
+                  </Button>
+                )}
+                {onDelete && (isAuctionFinished(auction.status) || auction.status === 'SCHEDULED') && (
                   <Button
                     variant="danger"
                     size="sm"
@@ -164,15 +206,20 @@ function AuctionListSection({
   )
 }
 
+const lotOf = (auction: Auction) => `#${String(auction.id).padStart(3, '0')}`
+
 export function AuctionListPage() {
   const { data: auctions = [], isLoading } = useAuctions()
   const createAuction = useCreateAuction()
   const deleteAuction = useDeleteAuction()
+  const startAuction = useAuctionAdminAction('start')
   const { showToast } = useAppToast()
   const { hasRole } = useAuthContext()
   const isAdmin = hasRole('ADMINISTRADOR')
 
   const [durationMinutes, setDurationMinutes] = useState(15)
+  const [startMode, setStartMode] = useState<StartMode>('now')
+  const [startsAtInput, setStartsAtInput] = useState('')
   const [entries, setEntries] = useState<ItemEntry[]>([emptyEntry()])
   const [pendingDelete, setPendingDelete] = useState<Auction | null>(null)
   const closeDelete = useCallback(() => setPendingDelete(null), [])
@@ -192,19 +239,46 @@ export function AuctionListPage() {
     const validItems = entries.filter((entry) => entry.itemId > 0 && entry.quantity >= 1)
     if (validItems.length === 0) return
 
-    await createAuction.mutateAsync({
-      durationMinutes,
-      items: validItems.map(({ itemId, quantity }) => ({ itemId, quantity })),
-    })
+    let startsAt: string | undefined
+    if (startMode === 'at') {
+      const when = new Date(startsAtInput)
+      if (!startsAtInput || Number.isNaN(when.getTime()) || when.getTime() <= Date.now()) {
+        showToast('Escolha um horário de início no futuro.', 'error')
+        return
+      }
+      startsAt = when.toISOString()
+    }
+
+    try {
+      await createAuction.mutateAsync({
+        durationMinutes,
+        items: validItems.map(({ itemId, quantity }) => ({ itemId, quantity })),
+        startsAt,
+        startLater: startMode === 'later' || undefined,
+      })
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Não foi possível criar o leilão.', 'error')
+      return
+    }
+    if (startMode === 'at') showToast(`Leilão agendado para ${formatStartsAt(startsAt!)}.`, 'success')
+    if (startMode === 'later') showToast('Leilão criado em "Em breve". Inicie quando quiser.', 'success')
     setEntries([emptyEntry()])
+  }
+
+  const handleStart = async (auction: Auction) => {
+    try {
+      await startAuction.mutateAsync(auction.id)
+      showToast(`Leilão ${lotOf(auction)} iniciado.`, 'success')
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Não foi possível iniciar o leilão.', 'error')
+    }
   }
 
   if (isLoading) return <p>Carregando leilões...</p>
 
-  const active = auctions.filter((a) => !isAuctionFinished(a.status))
+  const active = auctions.filter((a) => !isAuctionFinished(a.status) && a.status !== 'SCHEDULED')
+  const upcoming = auctions.filter((a) => a.status === 'SCHEDULED')
   const closed = auctions.filter((a) => isAuctionFinished(a.status))
-
-  const lotOf = (auction: Auction) => `#${String(auction.id).padStart(3, '0')}`
 
   const handleDelete = async () => {
     if (!pendingDelete) return
@@ -237,6 +311,26 @@ export function AuctionListPage() {
                   ))}
                 </select>
               </label>
+              <label className="auction-form__field">
+                <span>Início</span>
+                <select value={startMode} onChange={(e) => setStartMode(e.target.value as StartMode)}>
+                  <option value="now">Agora</option>
+                  <option value="at">Em um horário</option>
+                  <option value="later">Em breve (iniciar depois)</option>
+                </select>
+              </label>
+              {startMode === 'at' && (
+                <label className="auction-form__field">
+                  <span>Começa em</span>
+                  <input
+                    type="datetime-local"
+                    value={startsAtInput}
+                    min={toLocalInput(new Date())}
+                    onChange={(e) => setStartsAtInput(e.target.value)}
+                    required
+                  />
+                </label>
+              )}
             </div>
 
             <fieldset className="auction-form__items">
@@ -279,13 +373,21 @@ export function AuctionListPage() {
               loading={createAuction.isPending}
               disabled={!entries.some((e) => e.itemId > 0)}
             >
-              Criar Leilão
+              {startMode === 'now' ? 'Criar Leilão' : startMode === 'at' ? 'Agendar leilão' : 'Criar sem iniciar'}
             </Button>
           </form>
         </Panel>
       )}
 
       <AuctionListSection title="Em andamento" auctions={active} emptyText="Nenhum leilão aberto." />
+      <AuctionListSection
+        title="Em breve"
+        auctions={upcoming}
+        onStart={isAdmin ? handleStart : undefined}
+        startingId={startAuction.isPending ? startAuction.variables : null}
+        onDelete={isAdmin ? setPendingDelete : undefined}
+        deletingId={deleteAuction.isPending ? deleteAuction.variables : null}
+      />
       <AuctionListSection
         title="Encerrados"
         auctions={closed}

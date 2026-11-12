@@ -15,6 +15,8 @@ public record AuctionResponse(
         AuctionStatus status,
         Integer durationMinutes,
         Instant createdAt,
+        /** SCHEDULED: planned start (null = "em breve"). Open: when it opened. */
+        Instant startsAt,
         Instant endsAt,
         Long currentBid,
         Long winnerId,
@@ -29,16 +31,18 @@ public record AuctionResponse(
         int dolePhase,
         int tieBreakPhase,
         long version,
-        Instant serverTime
+        Instant serverTime,
+        /** Time left on the frozen clock while PAUSED. */
+        Long pausedRemainingMs
 ) {
     /**
      * Same state without {@code items}, for the per-bid/per-tick AUCTION_UPDATE broadcasts: items never
      * change after creation and clients keep them from the first full response.
      */
     public AuctionResponse withoutItems() {
-        return new AuctionResponse(id, status, durationMinutes, createdAt, endsAt, currentBid, winnerId,
+        return new AuctionResponse(id, status, durationMinutes, createdAt, startsAt, endsAt, currentBid, winnerId,
                 winnerNickname, leaderId, leaderNickname, tiedCount, tied, tiedMemberIds, tiedMemberNicknames,
-                null, dolePhase, tieBreakPhase, version, serverTime);
+                null, dolePhase, tieBreakPhase, version, serverTime, pausedRemainingMs);
     }
 
     /** {@code gameIcon} is set for game-catalog items, which have a sprite instead of an image URL. */

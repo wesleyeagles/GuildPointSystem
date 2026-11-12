@@ -33,16 +33,33 @@ public class AuctionController {
         return auctionService.create(request, SecurityUtils.currentMember());
     }
 
+    /** Líder/Administrador: open a scheduled (or "em breve") auction now. */
+    @PostMapping("/{id}/start")
+    public AuctionResponse start(@PathVariable Long id) {
+        return auctionService.startNow(id, SecurityUtils.currentMember());
+    }
+
+    /** Líder/Administrador: freeze the timer of a running auction (no bids until resumed). */
+    @PostMapping("/{id}/pause")
+    public AuctionResponse pause(@PathVariable Long id) {
+        return auctionService.pause(id, SecurityUtils.currentMember());
+    }
+
+    @PostMapping("/{id}/resume")
+    public AuctionResponse resume(@PathVariable Long id) {
+        return auctionService.resume(id, SecurityUtils.currentMember());
+    }
+
     /** Líder/Administrador: force-close an active auction (no winner, reserves released). */
     @PostMapping("/{id}/cancel")
     public AuctionResponse cancel(@PathVariable Long id) {
         return auctionService.cancel(id, SecurityUtils.currentMember());
     }
 
-    /** Líder/Administrador: add 5 minutes to an open auction (a DOLE countdown goes back to OPEN). */
+    /** Líder/Administrador: add minutes to a running or paused auction (a DOLE countdown goes back to OPEN). */
     @PostMapping("/{id}/extend")
-    public AuctionResponse extend(@PathVariable Long id) {
-        return auctionService.extend(id, SecurityUtils.currentMember());
+    public AuctionResponse extend(@PathVariable Long id, @RequestParam(defaultValue = "5") int minutes) {
+        return auctionService.extend(id, minutes, SecurityUtils.currentMember());
     }
 
     /** Líder/Administrador: delete a finished auction. Points are untouched. */

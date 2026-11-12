@@ -27,6 +27,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -38,6 +39,12 @@ public class AuctionService {
 
     private static final Set<Integer> ALLOWED_DURATIONS = Set.of(1, 5, 15, 30, 60, 180, 360, 720, 1440);
     private static final int CLOSED_LIST_LIMIT = 50;
+    /** A start time closer than this just opens the auction now. */
+    private static final long SCHEDULE_MIN_LEAD_SECONDS = 30;
+    private static final long SCHEDULE_MAX_DAYS = 30;
+    static final Set<Integer> EXTEND_MINUTES = Set.of(1, 5, 15, 30, 60);
+    /** A resumed auction gets at least this much time, so it never drops straight into DOLE. */
+    static final long RESUME_MIN_SECONDS = 30;
     /** Distinct emojis per message, as on Discord. */
     private static final int MAX_REACTION_EMOJIS = 20;
 
@@ -46,8 +53,6 @@ public class AuctionService {
     static final long EXTENDED_SECONDS = 25;
     static final long DOLE_STEP_SECONDS = 2;
     static final long DOLE_RESCUE_SECONDS = 10;
-    /** Time a Líder/Administrador adds with one click on "+5 minutos". */
-    static final long ADMIN_EXTEND_SECONDS = 5 * 60;
 
     /** Tie-break timeline: announcement countdown → free spin → landing on the drawn winner. */
     static final long TIE_COUNTDOWN_SECONDS = 5;
@@ -57,7 +62,11 @@ public class AuctionService {
     static final short TIE_PHASE_SPIN = 2;
     static final short TIE_PHASE_LANDING = 3;
 
+    /** Started and not finished: bids reserve points here (PAUSED keeps them held). */
     static final List<AuctionStatus> ACTIVE_STATUSES =
+            List.of(AuctionStatus.OPEN, AuctionStatus.DOLE, AuctionStatus.TIE_BREAK, AuctionStatus.PAUSED);
+    /** Statuses whose {@code endsAt} drives the scheduler. */
+    static final List<AuctionStatus> TIMED_STATUSES =
             List.of(AuctionStatus.OPEN, AuctionStatus.DOLE, AuctionStatus.TIE_BREAK);
     static final List<AuctionStatus> FINISHED_STATUSES =
             List.of(AuctionStatus.CLOSED, AuctionStatus.CANCELLED);
@@ -91,8 +100,14 @@ public class AuctionService {
                 .limit(CLOSED_LIST_LIMIT)
                 .toList();
 
-        var combined = new ArrayList<Auction>(active.size() + closed.size());
+        // Timed ones first by start time, then the "em breve" ones (no time).
+        var scheduled = auctionRepository.findByStatusOrderByCreatedAtDesc(AuctionStatus.SCHEDULED).stream()
+                .sorted(Comparator.comparing(Auction::getStartsAt, Comparator.nullsLast(Comparator.naturalOrder())))
+                .toList();
+
+        var combined = new ArrayList<Auction>(active.size() + scheduled.size() + closed.size());
         combined.addAll(active);
+        combined.addAll(scheduled);
         combined.addAll(closed);
         return combined.stream().map(this::toResponse).toList();
     }
@@ -111,10 +126,27 @@ public class AuctionService {
             throw new AppException("Duração inválida.", HttpStatus.BAD_REQUEST);
         }
 
+        var now = Instant.now();
+        var startsAt = request.startsAt();
+        boolean timed = startsAt != null && startsAt.isAfter(now.plusSeconds(SCHEDULE_MIN_LEAD_SECONDS));
+        boolean scheduled = timed || (startsAt == null && Boolean.TRUE.equals(request.startLater()));
+        if (timed && startsAt.isAfter(now.plus(Duration.ofDays(SCHEDULE_MAX_DAYS)))) {
+            throw new AppException("O início pode ser no máximo " + SCHEDULE_MAX_DAYS + " dias à frente.",
+                    HttpStatus.BAD_REQUEST);
+        }
+
         var auction = new Auction();
         auction.setDurationMinutes(request.durationMinutes());
         auction.setCreatedBy(memberRepository.getReferenceById(actor.getId()));
-        auction.setEndsAt(Instant.now().plusSeconds(request.durationMinutes() * 60L));
+        if (scheduled) {
+            auction.setStatus(AuctionStatus.SCHEDULED);
+            auction.setStartsAt(timed ? startsAt : null);
+            // Placeholder until it opens (the column is NOT NULL); open() sets the real end.
+            auction.setEndsAt((timed ? startsAt : now).plusSeconds(request.durationMinutes() * 60L));
+        } else {
+            auction.setStartsAt(now);
+            auction.setEndsAt(now.plusSeconds(request.durationMinutes() * 60L));
+        }
         auction = auctionRepository.save(auction);
 
         for (var entry : request.items()) {
@@ -127,15 +159,119 @@ public class AuctionService {
             auctionItemRepository.save(ai);
         }
 
+        var details = new HashMap<String, Object>();
+        details.put("auctionId", auction.getId());
+        details.put("durationMinutes", request.durationMinutes());
+        if (scheduled) details.put("startsAt", timed ? startsAt.toString() : "manual");
         auditLogService.log(AuditLogType.AUCTION_CREATED,
-                memberRepository.getReferenceById(actor.getId()), null,
-                Map.of("auctionId", auction.getId(), "durationMinutes", request.durationMinutes()));
+                memberRepository.getReferenceById(actor.getId()), null, details);
 
         var response = toResponse(auction);
-        // Global announcement: every connected client listens on /topic/auctions.
-        webSocketPublisher.publishAuctionList(Map.of("type", "AUCTION_CREATED", "auction", response));
+        if (scheduled) {
+            // No announcement yet: members get the "new auction" toast when it opens.
+            webSocketPublisher.publishAuctionList(Map.of("type", "AUCTION_SCHEDULED", "auctionId", auction.getId()));
+        } else {
+            // Global announcement: every connected client listens on /topic/auctions.
+            webSocketPublisher.publishAuctionList(Map.of("type", "AUCTION_CREATED", "auction", response));
+        }
         publishAuctionUpdate(response);
         return response;
+    }
+
+    @Transactional(readOnly = true)
+    public List<Long> findDueScheduledIds() {
+        return auctionRepository.findDueScheduledIds(Instant.now());
+    }
+
+    /** Scheduler: opens a scheduled auction once its start time has passed. */
+    @Transactional
+    public void startScheduled(Long auctionId) {
+        var auction = auctionRepository.findByIdForUpdate(auctionId).orElse(null);
+        if (auction == null || auction.getStatus() != AuctionStatus.SCHEDULED
+                || auction.getStartsAt() == null || auction.getStartsAt().isAfter(Instant.now())) return;
+        open(auction, "Leilão iniciado.");
+    }
+
+    /** Líder/Administrador: opens a scheduled or "em breve" auction right now. */
+    @Transactional
+    public AuctionResponse startNow(Long auctionId, MemberPrincipal actor) {
+        SecurityUtils.requireRole(Role.ADMINISTRADOR);
+        var auction = lockForAdmin(auctionId);
+        if (auction.getStatus() != AuctionStatus.SCHEDULED) {
+            throw new AppException("Este leilão já foi iniciado.", HttpStatus.CONFLICT);
+        }
+        return open(auction, actorName(actor) + " iniciou o leilão.");
+    }
+
+    /** SCHEDULED → OPEN: the full duration counts from now, and every member gets the "new auction" toast. */
+    private AuctionResponse open(Auction auction, String botText) {
+        var now = Instant.now();
+        auction.setStatus(AuctionStatus.OPEN);
+        auction.setStartsAt(now);
+        auction.setEndsAt(now.plusSeconds(auction.getDurationMinutes() * 60L));
+        auction.bumpVersion();
+        auctionRepository.save(auction);
+
+        var response = toResponse(auction);
+        webSocketPublisher.publishAuctionList(Map.of("type", "AUCTION_CREATED", "auction", response));
+        publishAuctionUpdate(response);
+        addBotMessage(auction, botText);
+        return response;
+    }
+
+    /**
+     * Freezes a running auction: the time left is kept and bids are refused until it is resumed. A DOLE
+     * countdown is dropped (resume goes back to OPEN). Reserves stay held: PAUSED is an active status.
+     */
+    @Transactional
+    public AuctionResponse pause(Long auctionId, MemberPrincipal actor) {
+        SecurityUtils.requireRole(Role.ADMINISTRADOR);
+        var auction = lockForAdmin(auctionId);
+        if (auction.getStatus() != AuctionStatus.OPEN && auction.getStatus() != AuctionStatus.DOLE) {
+            throw new AppException("Só é possível pausar leilões abertos.", HttpStatus.CONFLICT);
+        }
+        long left = Math.max(0, auction.getEndsAt().toEpochMilli() - Instant.now().toEpochMilli());
+        auction.setPausedRemainingMs(left);
+        auction.setStatus(AuctionStatus.PAUSED);
+        auction.setDolePhase(0);
+        auction.bumpVersion();
+        auctionRepository.save(auction);
+
+        var response = toResponse(auction);
+        publishAuctionUpdate(response);
+        addBotMessage(auction, actorName(actor) + " pausou o leilão. Os lances voltam quando ele for retomado.");
+        return response;
+    }
+
+    /** PAUSED → OPEN with the time that was left (at least {@link #RESUME_MIN_SECONDS}). */
+    @Transactional
+    public AuctionResponse resume(Long auctionId, MemberPrincipal actor) {
+        SecurityUtils.requireRole(Role.ADMINISTRADOR);
+        var auction = lockForAdmin(auctionId);
+        if (auction.getStatus() != AuctionStatus.PAUSED) {
+            throw new AppException("Este leilão não está pausado.", HttpStatus.CONFLICT);
+        }
+        long left = Math.max(RESUME_MIN_SECONDS * 1000,
+                auction.getPausedRemainingMs() != null ? auction.getPausedRemainingMs() : 0);
+        auction.setStatus(AuctionStatus.OPEN);
+        auction.setEndsAt(Instant.now().plusMillis(left));
+        auction.setPausedRemainingMs(null);
+        auction.bumpVersion();
+        auctionRepository.save(auction);
+
+        var response = toResponse(auction);
+        publishAuctionUpdate(response);
+        addBotMessage(auction, actorName(actor) + " retomou o leilão.");
+        return response;
+    }
+
+    private Auction lockForAdmin(Long auctionId) {
+        return auctionRepository.findByIdForUpdate(auctionId)
+                .orElseThrow(() -> new AppException("Leilão não encontrado.", HttpStatus.NOT_FOUND));
+    }
+
+    private String actorName(MemberPrincipal actor) {
+        return memberRepository.findById(actor.getId()).map(Member::getNickname).orElse("A administração");
     }
 
     /**
@@ -151,6 +287,12 @@ public class AuctionService {
                 .orElseThrow(() -> new AppException("Leilão não encontrado.", HttpStatus.NOT_FOUND));
 
         var now = Instant.now();
+        if (auction.getStatus() == AuctionStatus.SCHEDULED) {
+            throw new AppException("Este leilão ainda não começou.", HttpStatus.CONFLICT);
+        }
+        if (auction.getStatus() == AuctionStatus.PAUSED) {
+            throw new AppException("Leilão pausado pela administração: aguarde ele ser retomado.", HttpStatus.CONFLICT);
+        }
         if (auction.getStatus() != AuctionStatus.OPEN && auction.getStatus() != AuctionStatus.DOLE) {
             throw new AppException("Este leilão não está mais aceitando lances.", HttpStatus.CONFLICT);
         }
@@ -271,34 +413,41 @@ public class AuctionService {
     }
 
     /**
-     * Adds {@link #ADMIN_EXTEND_SECONDS} to an open auction. During DOLE the remaining time is only the
-     * countdown step, so the auction goes back to OPEN with the full extension from now.
+     * Adds {@code minutes} (one of {@link #EXTEND_MINUTES}) to a running or paused auction. During DOLE the
+     * remaining time is only the countdown step, so the auction goes back to OPEN with the extension from now.
      */
     @Transactional
-    public AuctionResponse extend(Long auctionId, MemberPrincipal actor) {
+    public AuctionResponse extend(Long auctionId, int minutes, MemberPrincipal actor) {
         SecurityUtils.requireRole(Role.ADMINISTRADOR);
-        var auction = auctionRepository.findByIdForUpdate(auctionId)
-                .orElseThrow(() -> new AppException("Leilão não encontrado.", HttpStatus.NOT_FOUND));
-        if (auction.getStatus() != AuctionStatus.OPEN && auction.getStatus() != AuctionStatus.DOLE) {
-            throw new AppException("Só é possível adicionar tempo a leilões abertos.", HttpStatus.CONFLICT);
+        if (!EXTEND_MINUTES.contains(minutes)) {
+            throw new AppException("Tempo inválido.", HttpStatus.BAD_REQUEST);
+        }
+        long extendSeconds = minutes * 60L;
+        var auction = lockForAdmin(auctionId);
+        var status = auction.getStatus();
+        if (status != AuctionStatus.OPEN && status != AuctionStatus.DOLE && status != AuctionStatus.PAUSED) {
+            throw new AppException("Só é possível adicionar tempo a leilões abertos ou pausados.", HttpStatus.CONFLICT);
         }
 
         var now = Instant.now();
-        if (auction.getStatus() == AuctionStatus.DOLE) {
+        if (status == AuctionStatus.PAUSED) {
+            long left = auction.getPausedRemainingMs() != null ? auction.getPausedRemainingMs() : 0;
+            auction.setPausedRemainingMs(left + extendSeconds * 1000);
+        } else if (status == AuctionStatus.DOLE) {
             auction.setStatus(AuctionStatus.OPEN);
             auction.setDolePhase(0);
-            auction.setEndsAt(now.plusSeconds(ADMIN_EXTEND_SECONDS));
+            auction.setEndsAt(now.plusSeconds(extendSeconds));
         } else {
             var base = auction.getEndsAt().isAfter(now) ? auction.getEndsAt() : now;
-            auction.setEndsAt(base.plusSeconds(ADMIN_EXTEND_SECONDS));
+            auction.setEndsAt(base.plusSeconds(extendSeconds));
         }
         auction.bumpVersion();
         auctionRepository.save(auction);
 
         var response = toResponse(auction);
         publishAuctionUpdate(response);
-        var actorName = memberRepository.findById(actor.getId()).map(Member::getNickname).orElse("A administração");
-        addBotMessage(auction, actorName + " adicionou 5 minutos ao leilão.");
+        addBotMessage(auction, actorName(actor) + " adicionou "
+                + (minutes == 60 ? "1 hora" : minutes == 1 ? "1 minuto" : minutes + " minutos") + " ao leilão.");
         return response;
     }
 
@@ -308,7 +457,8 @@ public class AuctionService {
         SecurityUtils.requireRole(Role.ADMINISTRADOR);
         var auction = auctionRepository.findByIdForUpdate(auctionId)
                 .orElseThrow(() -> new AppException("Leilão não encontrado.", HttpStatus.NOT_FOUND));
-        if (!FINISHED_STATUSES.contains(auction.getStatus())) {
+        // A scheduled auction has no bids yet, so it can go without being cancelled first.
+        if (!FINISHED_STATUSES.contains(auction.getStatus()) && auction.getStatus() != AuctionStatus.SCHEDULED) {
             throw new AppException("Encerre o leilão antes de excluí-lo.", HttpStatus.CONFLICT);
         }
 
@@ -438,7 +588,7 @@ public class AuctionService {
 
     @Transactional(readOnly = true)
     public List<Long> findDueAuctionIds() {
-        return auctionRepository.findDueIds(ACTIVE_STATUSES, Instant.now());
+        return auctionRepository.findDueIds(TIMED_STATUSES, Instant.now());
     }
 
     /** Advances one auction whose timer expired. Each call runs in its own transaction. */
@@ -713,6 +863,7 @@ public class AuctionService {
                 auction.getStatus(),
                 auction.getDurationMinutes(),
                 auction.getCreatedAt(),
+                auction.getStartsAt(),
                 auction.getEndsAt(),
                 auction.getCurrentBid(),
                 winner != null ? winner.getId() : null,
@@ -727,7 +878,8 @@ public class AuctionService {
                 auction.getDolePhase(),
                 auction.getTieBreakPhase(),
                 auction.getStateVersion(),
-                Instant.now());
+                Instant.now(),
+                auction.getStatus() == AuctionStatus.PAUSED ? auction.getPausedRemainingMs() : null);
     }
 
     private AuctionMessageResponse toMessageResponse(AuctionMessage msg) {

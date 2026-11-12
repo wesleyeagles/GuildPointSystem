@@ -349,6 +349,10 @@ export function useCreateAuction() {
     mutationFn: (body: {
       durationMinutes: number
       items: { itemId: number; quantity: number }[]
+      /** ISO time: opens the auction then instead of right away. */
+      startsAt?: string
+      /** Without `startsAt`: create it "em breve", to be started by hand. */
+      startLater?: boolean
     }) => apiClient<Auction>('/auctions', { method: 'POST', body }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: auctionKeys.all, exact: true }),
   })
@@ -363,16 +367,26 @@ export function useCancelAuction() {
   })
 }
 
-/** Líder/Administrador: add 5 minutes to an open auction (DOLE goes back to OPEN). */
+/** Líder/Administrador: add minutes to a running or paused auction (DOLE goes back to OPEN). */
 export function useExtendAuction() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (id: number) => apiClient<Auction>(`/auctions/${id}/extend`, { method: 'POST' }),
+    mutationFn: ({ id, minutes }: { id: number; minutes: number }) =>
+      apiClient<Auction>(`/auctions/${id}/extend?minutes=${minutes}`, { method: 'POST' }),
     onSuccess: (auction) => applyAuction(queryClient, auction),
   })
 }
 
-/** Líder/Administrador: delete a finished auction (points untouched). */
+/** Líder/Administrador: `start` opens a scheduled auction now; `pause`/`resume` freeze and restart the clock. */
+export function useAuctionAdminAction(action: 'start' | 'pause' | 'resume') {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => apiClient<Auction>(`/auctions/${id}/${action}`, { method: 'POST' }),
+    onSuccess: (auction) => applyAuction(queryClient, auction),
+  })
+}
+
+/** Líder/Administrador: delete a finished or not-yet-started auction (points untouched). */
 export function useDeleteAuction() {
   const queryClient = useQueryClient()
   return useMutation({
