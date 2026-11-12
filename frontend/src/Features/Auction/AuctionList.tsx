@@ -7,7 +7,7 @@ import {
   useDeleteAuction,
 } from '@/Domain/Auction/hooks/useAuction'
 import { useDiscordBySiteMember, type DiscordMember } from '@/Domain/Discord/hooks/useDiscordMembers'
-import { isAuctionFinished } from '@/Domain/types/models'
+import { formatAuctionItems, isAuctionFinished } from '@/Domain/types/models'
 import { useAppToast } from '@/Shared/ui/components/AppToast/AppToast'
 import { ConfirmDialog } from '@/Shared/ui/components/ConfirmDialog/ConfirmDialog'
 import { useAuthContext } from '@/Features/Auth/contexts/AuthContext'
@@ -165,7 +165,7 @@ function AuctionListSection({
               <AuctionItemIcon item={auction.items[0]} />
               <div className="auction-list__info">
                 <strong>
-                  {auction.items.map((i) => i.itemName).join(', ') || `Leilão #${auction.id}`}
+                  {formatAuctionItems(auction.items) || `Leilão #${auction.id}`}
                 </strong>
                 <AuctionSubtitle auction={auction} discordBySite={discordBySite} />
               </div>
@@ -407,7 +407,7 @@ export function AuctionListPage() {
         {pendingDelete && (
           <>
             <p>
-              <strong>{pendingDelete.items.map((i) => i.itemName).join(', ')}</strong> — o leilão, os
+              <strong>{formatAuctionItems(pendingDelete.items)}</strong> — o leilão, os
               lances e o chat serão apagados. Essa ação não pode ser desfeita.
             </p>
             <p className="confirm-dialog__note">

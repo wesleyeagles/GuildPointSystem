@@ -315,6 +315,10 @@ export interface AuctionItem {
   gameIcon: ItemGameIcon | null
 }
 
+/** "Name x5, Other" — quantity only when more than one. */
+export const formatAuctionItems = (items: Pick<AuctionItem, 'itemName' | 'quantity'>[]) =>
+  items.map((i) => (i.quantity > 1 ? `${i.itemName} x${i.quantity}` : i.itemName)).join(', ')
+
 export interface Auction {
   id: number
   status: AuctionStatus

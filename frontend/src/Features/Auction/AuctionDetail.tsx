@@ -11,7 +11,7 @@ import {
 } from '@/Domain/Auction/hooks/useAuction'
 import { useAuthContext } from '@/Features/Auth/contexts/AuthContext'
 import { useAppToast } from '@/Shared/ui/components/AppToast/AppToast'
-import { isAuctionFinished } from '@/Domain/types/models'
+import { formatAuctionItems, isAuctionFinished } from '@/Domain/types/models'
 import { useCurrentMember } from '@/Domain/Member/hooks/useMembers'
 import { useItem } from '@/Domain/Item/hooks/useItems'
 import { useItemSeeds } from '@/Domain/Seed/hooks/useItemSeeds'
@@ -596,7 +596,7 @@ export function AuctionDetailPage() {
           onCancel={closeConfirm}
         >
           <p>
-            <strong>{auction.items.map((i) => i.itemName).join(', ')}</strong> — o leilão, os lances e
+            <strong>{formatAuctionItems(auction.items)}</strong> — o leilão, os lances e
             o chat serão apagados. Essa ação não pode ser desfeita.
           </p>
           <p className="confirm-dialog__note">

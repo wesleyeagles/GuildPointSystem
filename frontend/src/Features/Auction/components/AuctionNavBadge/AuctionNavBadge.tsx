@@ -1,5 +1,5 @@
 import { useAuctions } from '@/Domain/Auction/hooks/useAuction'
-import { isAuctionFinished, type Auction } from '@/Domain/types/models'
+import { formatAuctionItems, isAuctionFinished, type Auction } from '@/Domain/types/models'
 import { AuctionItemIcon } from '@/Features/Auction/components/AuctionItemIcon/AuctionItemIcon'
 import { formatTime, pausedSeconds, useCountdown } from '@/Features/Auction/hooks/useCountdown'
 import { NavBadge } from '@/Shared/ui/components/NavBadge/NavBadge'
@@ -11,7 +11,7 @@ function PopoverRow({ auction }: { auction: Auction }) {
     <li className="nav-popover__row">
       <AuctionItemIcon item={auction.items[0]} size={24} />
       <span className="nav-popover__name">
-        {auction.items.map((i) => (i.quantity > 1 ? `${i.itemName} x${i.quantity}` : i.itemName)).join(', ')}
+        {formatAuctionItems(auction.items)}
       </span>
       <span className="nav-popover__time">
         {running
