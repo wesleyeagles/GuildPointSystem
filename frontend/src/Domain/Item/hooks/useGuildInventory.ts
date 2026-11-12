@@ -1,12 +1,13 @@
 import { useQuery } from '@tanstack/react-query'
 
-import type { Item, LuaItemCategory, Page } from '@/Domain/types/models'
+import type { InventoryCategory } from '@/Domain/Item/utils/inventoryCategories'
+import type { Item, Page } from '@/Domain/types/models'
 import { apiClient } from '@/Shared/api/client'
 
 export const GUILD_INVENTORY_PAGE_SIZE = 24
 
 export interface GuildInventoryFilters {
-  category?: LuaItemCategory
+  category?: InventoryCategory
   search?: string
   page?: number
   size?: number

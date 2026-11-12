@@ -73,7 +73,7 @@ public class ItemService {
         item.setRarity(request.rarity());
         item.setImageUrl(blankToNull(request.imageUrl()));
         item.setGameCode(gameCode);
-        item.setLuaCategory(luaRef != null ? luaRef.getCategory() : null);
+        item.setLuaCategory(luaRef != null ? luaRef.getCategory() : inferCategory(request.type(), request.armor(), request.accessory()));
         item.setDescription(request.description());
         item.setCreatedBy(memberRepository.getReferenceById(actor.getId()));
         item = itemRepository.save(item);
@@ -105,7 +105,9 @@ public class ItemService {
         item.setName(request.name());
         item.setRarity(request.rarity());
         item.setGameCode(gameCode);
-        item.setLuaCategory(luaRef != null ? luaRef.getCategory() : item.getLuaCategory());
+        var inferred = inferCategory(request.type(), request.armor(), request.accessory());
+        item.setLuaCategory(luaRef != null ? luaRef.getCategory()
+                : inferred != null ? inferred : item.getLuaCategory());
         item.setDescription(request.description());
         if (request.imageUrl() != null && !request.imageUrl().isBlank()) {
             item.setImageUrl(request.imageUrl());
@@ -302,6 +304,33 @@ public class ItemService {
                 details,
                 talics,
                 item.getCreatedAt());
+    }
+
+    private static final java.util.Set<String> ARMOR_CATEGORIES =
+            java.util.Set.of("HELMET", "UPPER", "LOWER", "GLOVES", "SHOES", "SHIELD");
+
+    /** Category for items not in the Lua catalog, so they show up in the inventory/auction tabs. */
+    static String inferCategory(ItemType type, CreateItemRequest.ArmorData armor,
+                                CreateItemRequest.AccessoryData accessory) {
+        if (type == null) {
+            return null;
+        }
+        return switch (type) {
+            case WEAPON -> "WEAPON";
+            case ARMOR -> {
+                var sub = armor != null ? upper(armor.subtype()) : null;
+                yield sub != null && ARMOR_CATEGORIES.contains(sub) ? sub : null;
+            }
+            case ACCESSORY -> {
+                var sub = accessory != null ? upper(accessory.subtype()) : null;
+                yield "RING".equals(sub) || "AMULET".equals(sub) ? sub : null;
+            }
+            default -> null;
+        };
+    }
+
+    private static String upper(String s) {
+        return s == null || s.isBlank() ? null : s.trim().toUpperCase();
     }
 
     private static void validateImageOrGameCode(String imageUrl, String gameCode) {

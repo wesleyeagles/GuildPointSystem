@@ -4,26 +4,15 @@ import {
   GUILD_INVENTORY_PAGE_SIZE,
   useGuildInventory,
 } from '@/Domain/Item/hooks/useGuildInventory'
-import type { LuaItemCategory, SeedOption } from '@/Domain/types/models'
+import {
+  INVENTORY_CATEGORIES,
+  type InventoryCategory,
+} from '@/Domain/Item/utils/inventoryCategories'
+import type { SeedOption } from '@/Domain/types/models'
 import { ItemCard } from '@/Features/Items/components/ItemCard/ItemCard'
 
 import '../AccessoryCatalog/AccessoryCatalog.styles.scss'
 
-const CATEGORIES: { id: LuaItemCategory; label: string }[] = [
-  { id: 'WEAPON', label: 'Weapon' },
-  { id: 'HELMET', label: 'Helmet' },
-  { id: 'UPPER', label: 'Upper' },
-  { id: 'LOWER', label: 'Lower' },
-  { id: 'GLOVES', label: 'Gloves' },
-  { id: 'SHOES', label: 'Shoes' },
-  { id: 'AMULET', label: 'Amulet' },
-  { id: 'RING', label: 'Ring' },
-  { id: 'SHIELD', label: 'Shield' },
-  { id: 'BOOTY', label: 'Booty' },
-  { id: 'BOX', label: 'Box' },
-  { id: 'POTION', label: 'Potion' },
-  { id: 'RESOURCE', label: 'Resource' },
-]
 
 interface GuildInventoryListProps {
   canAdmin: boolean
@@ -38,7 +27,7 @@ export function GuildInventoryList({
   onEdit,
   onDelete,
 }: GuildInventoryListProps) {
-  const [category, setCategory] = useState<LuaItemCategory>('WEAPON')
+  const [category, setCategory] = useState<InventoryCategory>('WEAPON')
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [page, setPage] = useState(0)
@@ -66,7 +55,7 @@ export function GuildInventoryList({
   return (
     <div className="accessory-catalog">
       <div className="accessory-catalog__mode-tabs accessory-catalog__mode-tabs--wrap">
-        {CATEGORIES.map((tab) => (
+        {INVENTORY_CATEGORIES.map((tab) => (
           <button
             key={tab.id}
             type="button"
