@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import {
   useDeleteChatGlossaryTerm,
   useSaveChatGlossaryTerm,
+  type ChatGlossaryTerm,
   type ChatTranslateAccess,
 } from '@/Domain/ChatTranslate/hooks/useChatTranslate'
 import { Button } from '@/Shared/ui/components/Button/Button'
@@ -13,6 +14,8 @@ const SHOWN = 100
 /**
  * Administrador+: glossário do tradutor do chat. Gírias e termos do jogo têm prioridade sobre o MyMemory
  * (que erra coisas como "хил" = heal); mensagem só com termos do glossário nem gasta a cota da API.
+ * Também aprende sozinho: palavra solta traduzida pela API vira termo "aprendido", e frase em que todas as
+ * palavras já são conhecidas é montada sem a API. Editar um aprendido e salvar torna o termo manual.
  */
 export function ChatGlossarySettings({ access }: { access: ChatTranslateAccess }) {
   const { showToast } = useAppToast()
@@ -26,7 +29,13 @@ export function ChatGlossarySettings({ access }: { access: ChatTranslateAccess }
   const matches = term
     ? access.glossary.filter((t) => t.source.includes(term) || t.translation.toLocaleLowerCase().includes(term))
     : access.glossary
+  const manual = matches.filter((t) => !t.learned)
+  const learned = matches.filter((t) => t.learned)
+  const learnedTotal = access.glossary.filter((t) => t.learned).length
   const fail = (e: unknown) => showToast(e instanceof Error ? e.message : 'Não foi possível salvar.', 'error')
+
+  const edit = (t: ChatGlossaryTerm) => { setSource(t.source); setTranslation(t.translation) }
+  const drop = (t: ChatGlossaryTerm) => remove.mutate(t.id, { onError: fail })
 
   const submit = (e: FormEvent) => {
     e.preventDefault()
@@ -41,12 +50,18 @@ export function ChatGlossarySettings({ access }: { access: ChatTranslateAccess }
   }
 
   return (
-    <Panel title="Glossário do tradutor" code={`${access.glossary.length}`} className="chat-glossary">
+    <Panel title="Glossário do tradutor" code={`${access.glossary.length - learnedTotal}`} className="chat-glossary">
       <p className="dll-admin__muted">
         Gírias e termos do jogo em russo com a tradução certa. Eles têm prioridade sobre o tradutor automático, e uma
         mensagem só com termos daqui nem gasta a cota. Vale palavra inteira ou expressão (ex.: «кинь инв»). Frases
         traduzidas pela API ficam salvas e não gastam a cota de novo:{' '}
         <strong>{access.savedTranslations.toLocaleString('pt-BR')}</strong> até agora.
+      </p>
+      <p className="dll-admin__muted">
+        O glossário também aprende sozinho: quando a API traduz uma mensagem de uma palavra só, a palavra entra como
+        aprendida (<strong>{learnedTotal.toLocaleString('pt-BR')}</strong> até agora), e uma frase em que todas as
+        palavras já são conhecidas é montada sem gastar a cota. Clique num termo para corrigir: ao salvar, ele passa
+        a ser manual.
       </p>
 
       <form className="chat-glossary__form" onSubmit={submit}>
@@ -81,26 +96,42 @@ export function ChatGlossarySettings({ access }: { access: ChatTranslateAccess }
         onChange={(e) => setFilter(e.target.value)}
       />
 
-      {matches.length === 0 ? (
+      <h4 className="chat-glossary__heading">Manuais ({manual.length.toLocaleString('pt-BR')})</h4>
+      <TermList terms={manual} onEdit={edit} onRemove={drop} removing={remove.isPending} />
+      <h4 className="chat-glossary__heading">Aprendidos ({learned.length.toLocaleString('pt-BR')})</h4>
+      <TermList terms={learned} onEdit={edit} onRemove={drop} removing={remove.isPending} />
+    </Panel>
+  )
+}
+
+function TermList({ terms, onEdit, onRemove, removing }: {
+  terms: ChatGlossaryTerm[]
+  onEdit: (t: ChatGlossaryTerm) => void
+  onRemove: (t: ChatGlossaryTerm) => void
+  removing: boolean
+}) {
+  return (
+    <>
+      {terms.length === 0 ? (
         <p className="dll-admin__muted">Nenhum termo.</p>
       ) : (
         <ul className="chat-glossary__list">
-          {matches.slice(0, SHOWN).map((t) => (
+          {terms.slice(0, SHOWN).map((t) => (
             <li key={t.id}>
               <button
                 type="button"
                 className="chat-glossary__term"
                 title="Editar"
-                onClick={() => { setSource(t.source); setTranslation(t.translation) }}
+                onClick={() => onEdit(t)}
               >
-                <span lang="ru">{t.source}</span> → {t.translation}
+                <span>{t.source}</span> → {t.translation}
               </button>
               <button
                 type="button"
                 className="chat-glossary__remove"
                 title={`Tirar ${t.source}`}
-                disabled={remove.isPending}
-                onClick={() => remove.mutate(t.id, { onError: fail })}
+                disabled={removing}
+                onClick={() => onRemove(t)}
               >
                 ✕
               </button>
@@ -108,9 +139,9 @@ export function ChatGlossarySettings({ access }: { access: ChatTranslateAccess }
           ))}
         </ul>
       )}
-      {matches.length > SHOWN && (
-        <p className="dll-admin__muted">Mostrando {SHOWN} de {matches.length}; use a busca para achar os outros.</p>
+      {terms.length > SHOWN && (
+        <p className="dll-admin__muted">Mostrando {SHOWN} de {terms.length}; use a busca para achar os outros.</p>
       )}
-    </Panel>
+    </>
   )
 }

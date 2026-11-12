@@ -23,13 +23,16 @@ import java.time.ZoneId;
 import java.util.*;
 
 /**
- * Tradutor do chat do jogo: a DLL de quem está na lista lê as linhas em russo do chat, manda para cá e
- * mostra a tradução em inglês no próprio chat do jogo (só na tela dela). Como os outros envios da DLL,
+ * Tradutor do chat do jogo: a DLL de quem está na lista lê as linhas em russo (e, desde a 1.40.0, em indonésio)
+ * do chat, manda para cá e mostra a tradução em inglês no próprio chat do jogo (só na tela dela). Como os outros envios da DLL,
  * vai pelo nome do personagem (sem login); só responde a personagem de membro aprovado na lista.
  * Para gastar cada vez menos a cota do MyMemory, cada mensagem passa antes pelo dicionário:
  *  - normalizada (ChatText.normalize) vira a chave; o que a API já traduziu fica salvo em chat_translation;
  *  - termos do glossário (chat_glossary, editado pela liderança) são trocados antes de traduzir, e mensagem
- *    só com termos do glossário nem vai para a API.
+ *    só com termos do glossário nem vai para a API;
+ *  - o glossário também aprende sozinho (V116): mensagem de uma palavra só traduzida pela API vira termo
+ *    "aprendido", e frase em que todas as palavras já são conhecidas (manuais ou aprendidas) é montada sem a API.
+ *    Frase com palavra desconhecida vai inteira para a API (traduz melhor que palavra por palavra).
  * Um cache em memória na frente evita ir ao banco nas repetições mais comuns.
  */
 @Service
@@ -37,6 +40,7 @@ import java.util.*;
 public class ChatTranslateService {
     public static final int MAX_LINES = 10, MAX_LINE_LENGTH = 400, LINES_PER_MINUTE = 60, CACHE_SIZE = 5000;
     public static final int MAX_GLOSSARY = 2000, MAX_TERM_LENGTH = 100, MAX_TRANSLATION_LENGTH = 1000;
+    public static final int MAX_LEARNED = 10000, MAX_LEARNED_WORDS = 3;
 
     private final JdbcTemplate jdbc;
     private final MemberRepository members;
@@ -46,11 +50,12 @@ public class ChatTranslateService {
     private final Map<String, String> cache = Collections.synchronizedMap(new LinkedHashMap<>(256, 0.75f, true) {
         @Override protected boolean removeEldestEntry(Map.Entry<String, String> eldest) { return size() > CACHE_SIZE; }
     });
-    private volatile ChatText.Glossary glossary;
+    private volatile ChatText.Glossary glossary;   // só os termos salvos à mão
+    private volatile ChatText.Glossary vocabulary; // manuais + aprendidos
     Clock clock = Clock.systemUTC();
 
     public record Translator(Long id, String nickname) {}
-    public record GlossaryTerm(Long id, String source, String translation) {}
+    public record GlossaryTerm(Long id, String source, String translation, boolean learned) {}
     /**
      * Uso de hoje (dia de Brasília). apiChars é o que conta na cota do MyMemory (dailyLimit; 0 = desconhecido);
      * quotaPausedUntil = cota acabou e o site parou de chamar a API até essa hora.
@@ -104,24 +109,29 @@ public class ChatTranslateService {
 
     /** Tradução da mensagem normalizada: memória, glossário, dicionário salvo e, por último, a API. */
     private String lookup(String key) {
-        if (!ChatText.hasCyrillic(key)) return null;
+        boolean russian = ChatText.hasCyrillic(key);
+        if (!russian && !ChatText.looksIndonesian(key)) return null;
         String cached = cache.get(key);
         if (cached != null) {
             count(Count.SAVED, 0);
             return cached;
         }
-        String replaced = glossary().apply(key);
+        String replaced = russian ? glossary().apply(key) : key;  // o glossário é só de termos em russo
         String result;
-        if (!ChatText.hasCyrillic(replaced)) {
+        if (russian && !ChatText.hasCyrillic(replaced)) {
             result = replaced;  // só termos do glossário: não chama a API
             count(Count.GLOSSARY, 0);
         } else {
             result = jdbc.query("UPDATE chat_translation SET hits=hits+1, used_at=now() WHERE source=? RETURNING translation",
                 (r, n) -> r.getString(1), key).stream().findFirst().orElse(null);
+            String composed = result == null ? vocabulary().applyComplete(key) : null;
             if (result != null) {
                 count(Count.SAVED, 0);
+            } else if (composed != null) {
+                result = composed;  // todas as palavras já conhecidas: não chama a API
+                count(Count.GLOSSARY, 0);
             } else {
-                result = translator.translate(replaced).map(t -> t.replaceAll("[\\r\\n\\t]+", " ").strip())
+                result = (russian ? translator.translate(replaced) : translator.translate(replaced, "id|en")).map(t -> t.replaceAll("[\\r\\n\\t]+", " ").strip())
                     .filter(t -> !t.isEmpty()).orElse(null);
                 if (result == null) {  // falhou ou sem cota: tenta de novo na próxima vez
                     count(Count.FAILED, 0);
@@ -130,6 +140,7 @@ public class ChatTranslateService {
                 count(Count.API, replaced.length());
                 if (result.length() > MAX_TRANSLATION_LENGTH) result = result.substring(0, MAX_TRANSLATION_LENGTH);
                 jdbc.update("INSERT INTO chat_translation(source,translation) VALUES(?,?) ON CONFLICT (source) DO NOTHING", key, result);
+                learn(key, result);
             }
         }
         cache.put(key, result);
@@ -164,17 +175,52 @@ public class ChatTranslateService {
 
     private ChatText.Glossary glossary() {
         ChatText.Glossary g = glossary;
-        if (g == null) {
-            Map<String, String> terms = new HashMap<>();
-            jdbc.query("SELECT source,translation FROM chat_glossary", r -> { terms.put(r.getString(1), r.getString(2)); });
-            glossary = g = ChatText.Glossary.of(terms);
-        }
+        if (g == null) glossary = g = loadGlossary(false);
         return g;
+    }
+
+    private ChatText.Glossary vocabulary() {
+        ChatText.Glossary g = vocabulary;
+        if (g == null) vocabulary = g = loadGlossary(true);
+        return g;
+    }
+
+    private ChatText.Glossary loadGlossary(boolean withLearned) {
+        Map<String, String> terms = new HashMap<>();
+        jdbc.query("SELECT source,translation FROM chat_glossary" + (withLearned ? "" : " WHERE NOT learned"),
+            r -> { terms.put(r.getString(1), r.getString(2)); });
+        return ChatText.Glossary.of(terms);
+    }
+
+    private static final java.util.regex.Pattern ONE_WORD = java.util.regex.Pattern.compile("\\p{L}+");
+
+    /**
+     * Mensagem de uma palavra só que a API traduziu: a palavra entra no glossário como aprendida (nunca troca
+     * termo que já existe). Tradução de até 3 palavras, sem pontuação no fim; "Hello" vira "hello", "WTS" fica.
+     */
+    public static String learnable(String key, String translation) {
+        if (!ONE_WORD.matcher(key).matches() || key.length() > MAX_TERM_LENGTH) return null;
+        String t = translation.replaceAll("[.!?,;:]+$", "").strip();
+        if (t.isEmpty() || t.length() > MAX_TERM_LENGTH || t.equalsIgnoreCase(key)) return null;
+        if (t.split("\\s+").length > MAX_LEARNED_WORDS) return null;
+        if (!t.equals(t.toUpperCase(Locale.ROOT))) t = t.substring(0, 1).toLowerCase(Locale.ROOT) + t.substring(1);
+        return t;
+    }
+
+    private void learn(String key, String translation) {
+        String word = learnable(key, translation);
+        if (word == null) return;
+        Long learned = jdbc.queryForObject("SELECT count(*) FROM chat_glossary WHERE learned", Long.class);
+        if (learned != null && learned >= MAX_LEARNED) return;
+        if (jdbc.update("INSERT INTO chat_glossary(source,translation,learned) VALUES(?,?,true) ON CONFLICT (source) DO NOTHING",
+                key, word) > 0)
+            vocabulary = null;
     }
 
     /** Esquece o que está em memória (glossário e traduções); o banco continua valendo. */
     public void forgetCaches() {
         glossary = null;
+        vocabulary = null;
         cache.clear();
     }
 
@@ -204,8 +250,8 @@ public class ChatTranslateService {
     }
 
     private List<GlossaryTerm> glossaryTerms() {
-        return jdbc.query("SELECT id,source,translation FROM chat_glossary ORDER BY source",
-            (r, n) -> new GlossaryTerm(r.getLong("id"), r.getString("source"), r.getString("translation")));
+        return jdbc.query("SELECT id,source,translation,learned FROM chat_glossary ORDER BY source",
+            (r, n) -> new GlossaryTerm(r.getLong("id"), r.getString("source"), r.getString("translation"), r.getBoolean("learned")));
     }
 
     private Member configurerOrThrow(MemberPrincipal actor) {
@@ -240,13 +286,14 @@ public class ChatTranslateService {
             throw new AppException("Informe o termo em russo (até " + MAX_TERM_LENGTH + " letras).", HttpStatus.BAD_REQUEST);
         if (english.isEmpty() || english.length() > MAX_TERM_LENGTH)
             throw new AppException("Informe a tradução (até " + MAX_TERM_LENGTH + " letras).", HttpStatus.BAD_REQUEST);
-        boolean exists = Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM chat_glossary WHERE source=?)", Boolean.class, term));
-        Long count = jdbc.queryForObject("SELECT count(*) FROM chat_glossary", Long.class);
+        boolean exists = Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM chat_glossary WHERE source=? AND NOT learned)", Boolean.class, term));
+        Long count = jdbc.queryForObject("SELECT count(*) FROM chat_glossary WHERE NOT learned", Long.class);
         if (!exists && count != null && count >= MAX_GLOSSARY)
             throw new AppException("O glossário chegou ao limite de " + MAX_GLOSSARY + " termos.", HttpStatus.BAD_REQUEST);
         jdbc.update("""
             INSERT INTO chat_glossary(source,translation,updated_by) VALUES(?,?,?)
-            ON CONFLICT (source) DO UPDATE SET translation=EXCLUDED.translation, updated_by=EXCLUDED.updated_by, updated_at=now()""",
+            ON CONFLICT (source) DO UPDATE SET translation=EXCLUDED.translation, updated_by=EXCLUDED.updated_by,
+                updated_at=now(), learned=false""",
             term, english, member.getId());
         termChanged(term);
         audit.log(AuditLogType.CHAT_TRANSLATE_GLOSSARY_UPDATED, member, member, Map.of("source", term, "translation", english));
