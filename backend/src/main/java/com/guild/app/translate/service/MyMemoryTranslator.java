@@ -71,13 +71,18 @@ public class MyMemoryTranslator implements ChatTranslator {
 
     @Override
     public Optional<String> translate(String text) {
+        return translate(text, "ru|en");
+    }
+
+    @Override
+    public Optional<String> translate(String text, String langpair) {
         if (clock.instant().isBefore(pausedUntil)) return Optional.empty();
         try {
-            Answer answer = call(text, emailRejected ? "" : email);
+            Answer answer = call(text, langpair, emailRejected ? "" : email);
             if (answer.outcome() == Outcome.INVALID_EMAIL && !email.isEmpty() && !emailRejected) {
                 emailRejected = true;
                 log.warn("MyMemory recusou o e-mail de MYMEMORY_EMAIL; traduzindo sem ele (cota anônima)");
-                answer = call(text, "");
+                answer = call(text, langpair, "");
             }
             switch (answer.outcome()) {
                 case OK -> { return Optional.of(answer.text()); }
@@ -97,8 +102,8 @@ public class MyMemoryTranslator implements ChatTranslator {
         }
     }
 
-    private Answer call(String text, String contact) throws Exception {
-        String url = URL + "?langpair=ru%7Cen&q=" + URLEncoder.encode(text, StandardCharsets.UTF_8)
+    private Answer call(String text, String langpair, String contact) throws Exception {
+        String url = URL + "?langpair=" + URLEncoder.encode(langpair, StandardCharsets.UTF_8) + "&q=" + URLEncoder.encode(text, StandardCharsets.UTF_8)
             + (contact.isEmpty() ? "" : "&de=" + URLEncoder.encode(contact, StandardCharsets.UTF_8));
         HttpResponse<String> response = http.send(
             HttpRequest.newBuilder(URI.create(url)).timeout(Duration.ofSeconds(8)).GET().build(),

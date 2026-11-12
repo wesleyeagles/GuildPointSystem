@@ -2,6 +2,7 @@ package com.guild.app.event.controller;
 
 import com.guild.app.common.exception.AppException;
 import com.guild.app.event.service.EventGameService;
+import com.guild.app.shout.service.GameLanguage;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +22,7 @@ public class EventGameController {
     private static final MediaType TEXT = new MediaType("text", "plain", java.nio.charset.StandardCharsets.UTF_8);
 
     private final EventGameService service;
+    private final GameLanguage language;
 
     /** Uma linha por evento ainda não resgatado: "id&lt;TAB&gt;fim (s Unix)&lt;TAB&gt;pontos&lt;TAB&gt;objetivo"; 204 = nenhum. */
     @GetMapping(produces = "text/plain;charset=UTF-8")
@@ -44,7 +46,7 @@ public class EventGameController {
             return ResponseEntity.ok().contentType(TEXT)
                 .body(claim.getPoints() + "\t" + claim.getObjective().getName().replaceAll("[\\t\\r\\n]+", " ") + "\n");
         } catch (AppException e) {
-            return ResponseEntity.status(e.getStatus()).contentType(TEXT).body(e.getMessage());
+            return ResponseEntity.status(e.getStatus()).contentType(TEXT).body(language.text(character, e.getMessage()));
         }
     }
 }

@@ -150,6 +150,19 @@ export function useSetSellBlock() {
   })
 }
 
+/** Líder/Administrador: tag "English Player" (the member's DLL shows everything in English). */
+export function useSetEnglishPlayer() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, englishPlayer }: { id: number; englishPlayer: boolean }) =>
+      apiClient<Member>(`/members/${id}/english-player`, { method: 'PUT', body: { englishPlayer } }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: memberKeys.all })
+      queryClient.invalidateQueries({ queryKey: ['logs'] })
+    },
+  })
+}
+
 export function useMemberClaims(id: number) {
   return useQuery({
     queryKey: memberKeys.claims(id),

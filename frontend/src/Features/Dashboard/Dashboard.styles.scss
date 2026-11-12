@@ -387,6 +387,20 @@
     color: theme.$color-warning;
   }
 
+  // "EN" after the nickname: English Player (DLL in English).
+  &__en {
+    @include theme.chamfer-all(3px);
+    flex-shrink: 0;
+    align-self: center;
+    padding: 0 4px;
+    border: 1px solid theme.$color-cyan;
+    color: theme.$color-cyan;
+    font-family: theme.$font-mono;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 14px;
+  }
+
   &__discord {
     min-width: 0;
     font-size: theme.$font-size-heading;
@@ -808,5 +822,16 @@
   &__icon {
     display: inline-flex;
     color: theme.$color-warning;
+  }
+
+  &__en {
+    @include theme.chamfer-all(3px);
+    padding: 0 4px;
+    border: 1px solid theme.$color-cyan;
+    color: theme.$color-cyan;
+    font-family: theme.$font-mono;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 14px;
   }
 }

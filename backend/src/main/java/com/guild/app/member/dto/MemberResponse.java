@@ -26,5 +26,6 @@ public record MemberResponse(
         Instant suspendedAt,
         String suspensionReason,
         boolean blockedForSellAccount,
-        LocalDate blockedForSellUntil
+        LocalDate blockedForSellUntil,
+        boolean englishPlayer
 ) {}

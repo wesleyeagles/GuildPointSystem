@@ -48,19 +48,21 @@ public class PbAutoService {
 
     /**
      * Um PB diário automático. {@code shoutsBefore} = minutos antes do RG; presença vale de {@code rgAt} até
-     * {@code endAt}. Mapas e regiões são os nomes que a DLL envia (sem diferença de maiúscula).
+     * {@code endAt}. {@code shoutEn}: o shout para os "English Players". Mapas e regiões são os nomes que a DLL envia (sem diferença de maiúscula).
      */
     public record Run(String code, String label, LocalTime rgAt, LocalTime endAt, List<Integer> shoutsBefore,
-                      String shout, String rgMap, Set<String> rgRegions, long rgPoints,
+                      String shout, String shoutEn, String rgMap, Set<String> rgRegions, long rgPoints,
                       String pbMap, Set<String> pbRegions, String objective) {}
 
     public static final List<Run> RUNS = List.of(
             new Run("COLONIA_02", "PB Colônia 02:00", LocalTime.of(1, 52), LocalTime.of(2, 5), List.of(12, 7, 2),
                     "RG Base Avançada, Pontos de RG as 01:52",
+                    "RG at the Outpost, RG points at 01:52 (Brasília time)",
                     "Cora HQ", Set.of("Cora Outpost"), 2,
                     "Haram", Set.of("Shadow Wood", "Rock Cavern"), "PB Colônia"),
             new Run("HQ_22", "PB HQ 22:00", LocalTime.of(21, 52), LocalTime.of(22, 5), List.of(12, 7, 2),
                     "RG Base Avançada, Pontos de RG as 21:52",
+                    "RG at the Outpost, RG points at 21:52 (Brasília time)",
                     "Cora HQ", Set.of("Cora Outpost"), 2,
                     "Cora HQ", Set.of("Dark Plain", "Hunter Cave"), "PB HQ"));
 
@@ -122,7 +124,7 @@ public class PbAutoService {
                     Instant shoutAt = rgAt.minus(Duration.ofMinutes(minutes));
                     if (!now.isBefore(shoutAt) && now.isBefore(shoutAt.plus(Duration.ofMinutes(1)))
                             && shouted.add(day + "|" + run.code() + "|" + minutes)) {
-                        shoutService.system(run.shout());
+                        shoutService.system(run.shout(), run.shoutEn());
                     }
                 }
                 if (!now.isBefore(rgAt) && now.isBefore(rgAt.plus(RG_GRACE))) rg(day, run, now);

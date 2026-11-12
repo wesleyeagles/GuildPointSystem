@@ -89,6 +89,10 @@ public class CwAttendanceService {
     static String rgShout(int minutesToPoints) {
         return "RG CW - Pontos de RG serão distribuidos automaticamente em " + minutesToPoints + " minutos.";
     }
+    /** O mesmo aviso para os "English Players". */
+    static String rgShoutEn(int minutesToPoints) {
+        return "RG CW - RG points will be given out automatically in " + minutesToPoints + " minutes.";
+    }
     /**
      * No máximo isso de pontos de CW por membro por dia, e o mesmo para o bônus de 10 min antes. As 3 CWs de um
      * dia do servidor (00h, 08h e 16h em Brasília) caem no mesmo dia de Brasília, então conta por cw_date.
@@ -403,7 +407,7 @@ public class CwAttendanceService {
                 Instant at = slot.startsAt().minus(Duration.ofMinutes(shout.getKey()));
                 if (!now.isBefore(at) && now.isBefore(at.plus(Duration.ofMinutes(1)))
                         && shouted.add(slot.date() + "|" + slot.window().slot() + "|" + shout.getKey())) {
-                    shoutService.system(rgShout(shout.getValue()));
+                    shoutService.system(rgShout(shout.getValue()), rgShoutEn(shout.getValue()));
                 }
             }
             shouted.removeIf(k -> k.compareTo(slot.date().minusDays(2).toString()) < 0);

@@ -50,6 +50,7 @@ public class MemberService {
     private final PartyService partyService;
     private final WebSocketPublisher webSocketPublisher;
     private final DiscordMemberService discordMemberService;
+    private final com.guild.app.shout.service.GameLanguage gameLanguage;
 
     @Transactional(readOnly = true)
     public MemberResponse getById(Long id) {
@@ -375,6 +376,27 @@ public class MemberService {
         return toResponse(member);
     }
 
+    /**
+     * Líder/Administrador: marca o membro como "English Player" — a DLL dele passa a mostrar os painéis, avisos e
+     * shouts em inglês (o idioma vai para a DLL no shout, ver {@link com.guild.app.shout.service.GameLanguage}).
+     */
+    @Transactional
+    public MemberResponse setEnglishPlayer(Long memberId, boolean englishPlayer, MemberPrincipal actor) {
+        SecurityUtils.requireRole(Role.ADMINISTRADOR);
+        var member = memberRepository.findByIdForUpdate(memberId)
+                .orElseThrow(() -> new AppException("Membro não encontrado.", HttpStatus.NOT_FOUND));
+        requireNotDeleted(member);
+        if (member.isEnglishPlayer() == englishPlayer) {
+            return toResponse(member);
+        }
+        member.setEnglishPlayer(englishPlayer);
+        memberRepository.save(member);
+        gameLanguage.forget();
+        auditLogService.log(AuditLogType.MEMBER_ENGLISH_PLAYER_CHANGED, memberRepository.getReferenceById(actor.getId()),
+                member, Map.of("englishPlayer", englishPlayer));
+        return toResponse(member);
+    }
+
     /** Shared by delete and suspend: who may lock a member out, and not while they lead an auction. */
     private void requireCanLockOut(Member member, MemberPrincipal actor, String verb) {
         if (member.getRole() == Role.LIDER) {
@@ -452,6 +474,7 @@ public class MemberService {
                 member.getSuspendedAt(),
                 member.getSuspensionReason(),
                 member.isBlockedForSellAccount(),
-                member.isBlockedForSellAccount() ? member.getBlockedForSellUntil() : null);
+                member.isBlockedForSellAccount() ? member.getBlockedForSellUntil() : null,
+                member.isEnglishPlayer());
     }
 }

@@ -7,6 +7,7 @@ import com.guild.app.event.service.EventService;
 import com.guild.app.member.dto.ApprovalRequest;
 import com.guild.app.member.dto.LinkDiscordRequest;
 import com.guild.app.member.dto.MemberResponse;
+import com.guild.app.member.dto.EnglishPlayerRequest;
 import com.guild.app.member.dto.SellBlockRequest;
 import com.guild.app.member.dto.SuspendMemberRequest;
 import com.guild.app.member.dto.UpdateProfileRequest;
@@ -106,6 +107,12 @@ public class MemberController {
     @PutMapping("/{id}/sell-block")
     public MemberResponse setSellBlock(@PathVariable Long id, @Valid @RequestBody SellBlockRequest request) {
         return memberService.setSellBlock(id, request.until(), SecurityUtils.currentMember());
+    }
+
+    /** Líder/Administrador: tag "English Player" (the member's DLL shows everything in English). */
+    @PutMapping("/{id}/english-player")
+    public MemberResponse setEnglishPlayer(@PathVariable Long id, @RequestBody EnglishPlayerRequest request) {
+        return memberService.setEnglishPlayer(id, request.englishPlayer(), SecurityUtils.currentMember());
     }
 
     /** Líder/Administrador: link or unlink (blank id) the member's Discord account. */

@@ -6,6 +6,7 @@ import { Pagination } from '@/Features/Dashboard/components/Pagination'
 import { RecentPointsPanel } from '@/Features/Dashboard/components/RecentPointsPanel'
 import {
   MemberContextMenu,
+  EnglishTag,
   SellLock,
   type MemberMenuState,
 } from '@/Features/Dashboard/components/MemberContextMenu'
@@ -325,6 +326,7 @@ export function DashboardPage() {
                         {m.nickname}
                       </Link>
                       {sellBlockedUntil(m) && <SellLock className="ranking-list__lock" until={sellBlockedUntil(m)!} />}
+                      {m.englishPlayer && <EnglishTag className="ranking-list__en" />}
                       <DiscordTag member={discordBySiteId.get(m.id)} className="ranking-list__discord" />
                     </span>
                     {locationOf(m.id) && (

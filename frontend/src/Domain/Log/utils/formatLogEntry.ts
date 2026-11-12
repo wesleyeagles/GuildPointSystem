@@ -41,6 +41,7 @@ const LOG_TYPE_LABELS: Record<AuditLogType, string> = {
   MEMBER_SUSPENDED: 'Conta suspensa',
   MEMBER_UNSUSPENDED: 'Suspensão retirada',
   MEMBER_SELL_BLOCK_CHANGED: 'Bloqueio de venda da conta',
+  MEMBER_ENGLISH_PLAYER_CHANGED: 'Tag English Player',
   NEWS_CREATED: 'Notícia publicada',
   NEWS_UPDATED: 'Notícia editada',
   NEWS_DELETED: 'Notícia excluída',
@@ -221,6 +222,8 @@ export function formatLogDetails(log: AuditLogEntry): string {
       return p.blocked
         ? `Conta bloqueada para venda${p.until ? ` até ${str(p.until).split('-').reverse().join('/')}` : ''}`
         : 'Bloqueio de venda removido'
+    case 'MEMBER_ENGLISH_PLAYER_CHANGED':
+      return p.englishPlayer ? 'Marcado como English Player (DLL em inglês)' : 'Tag English Player removida (DLL em português)'
     default:
       return ''
   }

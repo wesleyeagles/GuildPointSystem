@@ -45,6 +45,7 @@ export type AuditLogType =
   | 'MEMBER_SUSPENDED'
   | 'MEMBER_UNSUSPENDED'
   | 'MEMBER_SELL_BLOCK_CHANGED'
+  | 'MEMBER_ENGLISH_PLAYER_CHANGED'
   | 'NEWS_CREATED'
   | 'NEWS_UPDATED'
   | 'NEWS_DELETED'
@@ -91,6 +92,8 @@ export interface Member {
   blockedForSellAccount: boolean
   /** Last day (inclusive, Brasília, yyyy-mm-dd) the account is blocked for sale. */
   blockedForSellUntil: string | null
+  /** Tag "English Player": the member's DLL shows panels, notices and shouts in English. */
+  englishPlayer: boolean
 }
 
 export interface SeedOption {
