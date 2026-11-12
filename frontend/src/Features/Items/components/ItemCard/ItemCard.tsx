@@ -209,8 +209,9 @@ export function ItemCard({
             </span>
           </div>
         )}
-        {item.type === 'ARMOR' && defRate !== undefined && (
-          <StatRow label="Def Success" value={`${defRate}%`} />
+        {/* Raw value from the kbase ("Defence: 2164 [283]"), not a percentage. */}
+        {item.type === 'ARMOR' && defRate !== undefined && defRate > 0 && (
+          <StatRow label="Def Success" value={defRate} />
         )}
 
         {castName && (
