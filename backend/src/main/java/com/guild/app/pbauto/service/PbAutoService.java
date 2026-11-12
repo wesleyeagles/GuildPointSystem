@@ -48,7 +48,7 @@ public class PbAutoService {
 
     /**
      * Um PB diário automático. {@code shoutsBefore} = minutos antes do RG; presença vale de {@code rgAt} até
-     * {@code endAt}. {@code shoutEn}: o shout para os "English Players". Mapas e regiões são os nomes que a DLL envia (sem diferença de maiúscula).
+     * {@code endAt}. {@code shoutEn}: o shout para os "English Players", com o horário de Jacarta (UTC+7). Mapas e regiões são os nomes que a DLL envia (sem diferença de maiúscula).
      */
     public record Run(String code, String label, LocalTime rgAt, LocalTime endAt, List<Integer> shoutsBefore,
                       String shout, String shoutEn, String rgMap, Set<String> rgRegions, long rgPoints,
@@ -57,12 +57,12 @@ public class PbAutoService {
     public static final List<Run> RUNS = List.of(
             new Run("COLONIA_02", "PB Colônia 02:00", LocalTime.of(1, 52), LocalTime.of(2, 5), List.of(12, 7, 2),
                     "RG Base Avançada, Pontos de RG as 01:52",
-                    "RG at the Outpost, RG points at 01:52 (Brasília time)",
+                    "RG at the Outpost, RG points at 11:52 (Jakarta time)",
                     "Cora HQ", Set.of("Cora Outpost"), 2,
                     "Haram", Set.of("Shadow Wood", "Rock Cavern"), "PB Colônia"),
             new Run("HQ_22", "PB HQ 22:00", LocalTime.of(21, 52), LocalTime.of(22, 5), List.of(12, 7, 2),
                     "RG Base Avançada, Pontos de RG as 21:52",
-                    "RG at the Outpost, RG points at 21:52 (Brasília time)",
+                    "RG at the Outpost, RG points at 07:52 (Jakarta time)",
                     "Cora HQ", Set.of("Cora Outpost"), 2,
                     "Cora HQ", Set.of("Dark Plain", "Hunter Cave"), "PB HQ"));
 
