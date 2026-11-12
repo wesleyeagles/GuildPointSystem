@@ -134,9 +134,9 @@ class CwAttendanceTest {
         assertFalse(CwAttendanceService.Slot.of(LocalDate.of(2026, 11, 11), 2).major());
     }
 
-    @Test void cwPointsGoToWhoStayed60PercentWithoutAfk() {
+    @Test void cwPointsGoToWhoStayed45PercentWithoutAfk() {
         walk(a, t0, -120, 1260, CRAG);                     // a CW inteira (20 min) andando
-        walk(b, t0, 0, 600, CRAG);                         // só metade
+        walk(b, t0, 0, 420, CRAG);                         // só 35%
         for (int s = -120; s <= 1260; s += 60) service.record(c, nick(c), CRAG, t0.minusSeconds(120), at(t0, s));  // parado: AFK
         long before = points(a);
 
@@ -169,7 +169,8 @@ class CwAttendanceTest {
         assertEquals(100, rowA.percent());
         assertTrue(rowA.awarded());
         var rowB = cw.members().stream().filter(m -> m.memberId() == b).findFirst().orElseThrow();
-        assertEquals(50, rowB.percent());
+        assertEquals(35, rowB.percent());
+        assertFalse(rowB.awarded());
         var rowC = cw.members().stream().filter(m -> m.memberId() == c).findFirst().orElseThrow();
         assertEquals(0, rowC.activeSeconds());
         assertEquals(1200, rowC.afkSeconds());

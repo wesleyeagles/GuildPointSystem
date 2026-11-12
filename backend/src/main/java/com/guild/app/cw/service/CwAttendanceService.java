@@ -42,7 +42,7 @@ import java.util.*;
  *   <li>Saiu de Crag (morreu e nasceu em outro mapa, TP) e voltou em até 2 min: não perde nada. Mais que isso, o
  *       tempo em outro mapa vai todo para "Fora da CW".</li>
  *   <li>A CW começa no horário fixo e acaba quando a DLL de algum membro vê "Due to the result of Chip War" no chat
- *       (ou quando um Admin marca o fim). 2 min depois do fim, quem ficou 60% da CW em Crag sem AFK recebe o
+ *       (ou quando um Admin marca o fim). 2 min depois do fim, quem ficou 45% da CW em Crag sem AFK recebe o
  *       objetivo "CW" ou, em dia de PB Major, "CW Major" (os pontos entram sozinhos).</li>
  *   <li>10 min antes de cada CW, quem está em Crag (AFK ou não) recebe 2 pontos.</li>
  *   <li>Cada membro pontua em no máximo 2 CWs por dia (e recebe o bônus de 10 min antes no máximo 2 vezes).</li>
@@ -72,7 +72,7 @@ public class CwAttendanceService {
     /** Espera depois do fim para chegarem os últimos envios antes de pontuar. */
     public static final Duration AWARD_DELAY = Duration.ofMinutes(2);
     /** Fração da CW em Crag, sem AFK, para pontuar. */
-    public static final double THRESHOLD = 0.60;
+    public static final double THRESHOLD = 0.45;
     /** Bônus de quem está em Crag 10 min antes. */
     public static final Duration PRE_BONUS_BEFORE = Duration.ofMinutes(10);
     public static final long PRE_BONUS_POINTS = 2;
@@ -449,7 +449,7 @@ public class CwAttendanceService {
         }
     }
 
-    /** Pontua a CW: objetivo "CW" ou "CW Major" para quem ficou 60% do tempo em Crag sem AFK. */
+    /** Pontua a CW: objetivo "CW" ou "CW Major" para quem ficou 45% do tempo em Crag sem AFK. */
     private void award(Slot slot, Instant now) {
         Date date = Date.valueOf(slot.date());
         int number = slot.window().slot();

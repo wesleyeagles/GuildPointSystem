@@ -31,7 +31,7 @@ function minutes(seconds: number) {
 /**
  * Presença em CW: quanto tempo cada membro ficou em Crag Mind Field durante cada CW, pela DLL.
  * A CW acaba quando a DLL de alguém vê "Due to the result of Chip War" no chat; 2 min depois, quem ficou
- * 60% da CW em Crag sem AFK recebe "CW" (ou "CW Major" em dia de PB Major). 10 min antes de cada CW, quem
+ * 45% da CW em Crag sem AFK recebe "CW" (ou "CW Major" em dia de PB Major). 10 min antes de cada CW, quem
  * está em Crag recebe 2 pontos. Todos os membros veem; só Administrador+ marca o fim de uma CW sem aviso.
  */
 export function CwAttendancePage() {
@@ -113,7 +113,7 @@ function CwPanel({ cw, data, days }: { cw: Cw; data: CwAttendance; days: number 
                   </span>
                   {m.percent}%
                   {m.awarded && <span className="cw-attendance__ok"> ✓ pontuado</span>}
-                  {/* Passou dos 60% mas não recebeu: já tinha pontuado em 2 CWs nesse dia. */}
+                  {/* Passou do mínimo mas não recebeu: já tinha pontuado em 2 CWs nesse dia. */}
                   {!m.awarded && cw.awardedAt && !cw.objectiveMissing && m.percent >= data.thresholdPercent && (
                     <span className="cw-attendance__muted"> · já pontuou em 2 CWs hoje</span>
                   )}
