@@ -133,10 +133,11 @@ it.each([false, true])('requires a unique exact Relic code across pages (duplica
   expect(state.create).not.toHaveBeenCalled()
 })
 
-it.each([true, false])('copies the lot draft with the exact deadline for admins only (%s)', async (admin) => {
+it.each([true, false])('copies the lot draft with its target deadline for admins only (%s)', async (admin) => {
   const endsAt = new Date(Date.now() + 15 * 60_000).toISOString()
   state.admin = admin
   state.auctions = [sampleAuction(endsAt)]
+  state.create.mockResolvedValue({ auction: state.auctions[0], deadlineReached: true })
   render(<MemoryRouter><AuctionListPage /></MemoryRouter>)
 
   if (!admin) {
@@ -152,7 +153,7 @@ it.each([true, false])('copies the lot draft with the exact deadline for admins 
   fireEvent.click(screen.getByRole('button', { name: 'Item 17' }))
   fireEvent.click(screen.getByRole('button', { name: 'Criar Leilão' }))
   await waitFor(() => expect(state.create).toHaveBeenCalledWith({
-    startsAt: undefined, startLater: undefined, durationMinutes: 30, endsAt, items: [{ itemId: 99, quantity: 3 }],
+    startsAt: undefined, startLater: undefined, durationMinutes: 30, targetEndsAt: endsAt, items: [{ itemId: 99, quantity: 3 }],
   }))
 })
 
@@ -165,7 +166,7 @@ it('drops the copied deadline when switching to a scheduled start', async () => 
   fireEvent.change(screen.getByLabelText('Início'), { target: { value: 'later' } })
   fireEvent.click(screen.getByRole('button', { name: 'Criar sem iniciar' }))
   await waitFor(() => expect(state.create).toHaveBeenCalled())
-  expect(state.create.mock.calls[0][0]).not.toHaveProperty('endsAt')
+  expect(state.create.mock.calls[0][0]).not.toHaveProperty('targetEndsAt')
   expect(state.create.mock.calls[0][0].startLater).toBe(true)
 })
 
