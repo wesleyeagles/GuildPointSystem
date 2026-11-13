@@ -40,25 +40,19 @@ export function rarityColor(rarity: string): string {
   return RARITY_COLOR[rarity] ?? '#cfd8e3'
 }
 
-/** Relic items: bonus at each upgrade, as in the game's Relics window. */
+/** Relic items: base (+0) bonus, as in the game's Relics window. */
 function RelicEffects({ gameCode }: { gameCode: string | null }) {
   const id = relicIdFromGameCode(gameCode)
-  if (id === null) return null
-  const levels = relicUpgradeTexts(id).filter((texts) => texts.length > 0)
-  if (levels.length === 0) return null
+  const texts = id === null ? [] : relicUpgradeTexts(id)[0] ?? []
+  if (texts.length === 0) return null
   return (
-    <div className="item-tooltip__relic">
+    <div className="item-tooltip__row item-tooltip__row--effects">
       <span className="item-tooltip__label">Relic Effects</span>
-      {levels.map((texts, upgrade) => (
-        <div key={upgrade} className="item-tooltip__row item-tooltip__row--effects">
-          <span className="item-tooltip__label">{levels.length > 1 ? `+${upgrade}` : 'Base'}</span>
-          <span className="item-tooltip__value item-tooltip__effects">
-            {texts.map((text, i) => (
-              <span key={i} className="item-tooltip__effect">{text}</span>
-            ))}
-          </span>
-        </div>
-      ))}
+      <span className="item-tooltip__value item-tooltip__effects">
+        {texts.map((text, i) => (
+          <span key={i} className="item-tooltip__effect">{text}</span>
+        ))}
+      </span>
     </div>
   )
 }
