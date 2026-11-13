@@ -1,4 +1,6 @@
+import { useEffect } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { onSocketReconnect, subscribeTopicEffect } from '@/Shared/websocket/socketClient'
 import { apiClient } from '@/Shared/api/client'
 import { serverNow } from '@/Shared/utils/serverClock'
 
@@ -82,6 +84,18 @@ export function useResourceOverview() {
 
 export function useResourceSpawns(map: number, enabled: boolean) {
   const queryClient = useQueryClient()
+  useEffect(() => {
+    if (!enabled) return
+    const refresh = () => {
+      void queryClient.invalidateQueries({ queryKey: resourceKeys.spawns(map) })
+    }
+    const unsubscribe = subscribeTopicEffect(`/topic/resources/${map}`, refresh)
+    const offReconnect = onSocketReconnect(refresh)
+    return () => {
+      unsubscribe()
+      offReconnect()
+    }
+  }, [enabled, map, queryClient])
   return useQuery({
     queryKey: resourceKeys.spawns(map),
     queryFn: async () => {

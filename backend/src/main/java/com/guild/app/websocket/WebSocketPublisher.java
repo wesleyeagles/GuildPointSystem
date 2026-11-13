@@ -33,6 +33,10 @@ public class WebSocketPublisher {
         send("/topic/equipment", Map.of("changed", true));
     }
 
+    public void publishResourcesChanged(int map) {
+        send("/topic/resources/" + map, Map.of("changed", true));
+    }
+
     public void publishQuestChanged(Long memberId) {
         send("/topic/quests/member/" + memberId, Map.of("changed", true));
     }

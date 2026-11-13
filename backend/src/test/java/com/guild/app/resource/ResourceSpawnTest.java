@@ -22,6 +22,9 @@ import java.util.Objects;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
@@ -95,6 +98,18 @@ class ResourceSpawnTest {
         assertEquals(1, spawns("Spiky Cactus"));
         ok(senderNick, 11, 0, "S\t" + (serial + 1) + "\t10\t20\tSpiky Cactus\n");
         assertEquals(2, spawns("Spiky Cactus"));
+    }
+
+    @Test void etherDiscoveryAndDeathRefreshTheMapButDuplicateReportsDoNot() throws Exception {
+        String sighting = "S\t" + serial + "\t2993\t-4858\tHeart of Ice\n";
+        String death = "D\t" + serial + "\tHeart of Ice\n";
+        ok(senderNick, 10, 0, sighting);
+        ok(viewerNick, 10, 0, sighting);
+        ok(viewerNick, 10, 0, death);
+        ok(senderNick, 10, 0, death);
+        ok(viewerNick, 10, 0, "");
+        verify(ws, times(2)).publishResourcesChanged(10);
+        verifyNoMoreInteractions(ws);
     }
 
     @Test void leveledMobsAreRejectedAndUnknownNamesSurface() throws Exception {

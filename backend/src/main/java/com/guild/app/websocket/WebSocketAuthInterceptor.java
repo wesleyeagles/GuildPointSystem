@@ -64,8 +64,20 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
             checkPresenceSubscription(accessor);
             checkApprovalsSubscription(accessor);
             checkQuestSubscription(accessor);
+            checkResourceSubscription(accessor);
         }
         return message;
+    }
+
+    private void checkResourceSubscription(StompHeaderAccessor accessor) {
+        var destination = accessor.getDestination();
+        if (destination == null || !destination.startsWith("/topic/resources/")) return;
+        var member = accessor.getUser() instanceof UsernamePasswordAuthenticationToken auth
+                && auth.getPrincipal() instanceof MemberPrincipal principal ? principal : null;
+        if (member == null || member.getStatus() != MemberStatus.APROVADO || !member.isProfileComplete()
+                || !member.getRole().isAtLeast(Role.ADMINISTRADOR)) {
+            throw new IllegalStateException("Não autorizado.");
+        }
     }
 
     private void checkQuestSubscription(StompHeaderAccessor accessor) {
