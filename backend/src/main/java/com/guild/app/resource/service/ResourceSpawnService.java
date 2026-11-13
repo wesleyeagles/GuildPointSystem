@@ -67,6 +67,9 @@ public class ResourceSpawnService {
     public record Overview(boolean canView, boolean canConfigure, List<MapView> maps, List<MobView> mobs, List<Tracker> trackers) {}
     /** diedAt: quando morreu (null = vivo ou não se sabe). */
     public record SpawnView(long id, String name, Integer tier, int x, int z, Instant foundAt, String foundBy, Instant diedAt) {}
+    public record HistoryEntry(long revision, String kind, long id, long serial, String name, Integer tier,
+                               int x, int z, Instant foundAt, String foundBy, Instant diedAt) {}
+    public record HistoryPage(int map, long nextCursor, boolean hasMore, List<HistoryEntry> entries) {}
 
     private static boolean eligible(Member m) {
         return m.getStatus() == MemberStatus.APROVADO && m.isProfileComplete()
@@ -105,6 +108,10 @@ public class ResourceSpawnService {
         List<String> lines = body == null || body.isBlank() ? List.of() : List.of(body.replace("\r", "").split("\n"));
         if (lines.size() > MAX_LINES) throw new AppException("Linhas demais.", HttpStatus.BAD_REQUEST);
         Instant now = clock.instant();
+        // Lock before touching spawn/mob rows: a late-committing writer must not fall behind a saved cursor.
+        // Empty-body polls and map projection updates do not take this lock.
+        if (lines.stream().anyMatch(l -> l.startsWith("S\t") || l.startsWith("D\t")))
+            jdbc.queryForObject("SELECT revision FROM resource_history_cursor WHERE map_code=? FOR UPDATE", Long.class, map);
         boolean changed = false;
         for (String line : lines) {
             String[] f = line.split("\t", -1);
@@ -169,6 +176,28 @@ public class ResourceSpawnService {
         jdbc.update("INSERT INTO resource_spawn(map_code,mob_name,serial,x,z,found_at,found_by) VALUES(?,?,?,?,?,?,?)",
             map, name, serial, x, z, Timestamp.from(now), member.getId());
         return true;
+    }
+
+    /** Current state of changed records; clients upsert by id and save the cursor only after saving the page. */
+    @Transactional(readOnly = true)
+    public HistoryPage history(int map, long after, int limit, MemberPrincipal actor) {
+        if (!viewer(member(actor))) throw new AppException("Acesso negado", HttpStatus.FORBIDDEN);
+        if (!MAPS.containsKey(map) || after < 0 || limit < 1 || limit > 1000)
+            throw new AppException("Mapa, cursor ou limite inválido", HttpStatus.BAD_REQUEST);
+        List<HistoryEntry> rows = jdbc.query("""
+            SELECT h.revision,h.kind,s.id,s.serial,s.mob_name,m.tier,s.x,s.z,s.found_at,s.died_at,f.nickname
+            FROM resource_spawn_change h JOIN resource_spawn s ON s.id=h.spawn_id
+            JOIN resource_mob m ON m.name=s.mob_name LEFT JOIN member f ON f.id=s.found_by
+            WHERE h.map_code=? AND h.revision>? ORDER BY h.revision LIMIT ?
+            """, (r,n) -> {
+                Timestamp died = r.getTimestamp("died_at");
+                return new HistoryEntry(r.getLong("revision"),r.getString("kind"),r.getLong("id"),r.getLong("serial"),
+                    r.getString("mob_name"),(Integer)r.getObject("tier"),r.getInt("x"),r.getInt("z"),
+                    r.getTimestamp("found_at").toInstant(),r.getString("nickname"),died == null ? null : died.toInstant());
+            }, map, after, limit + 1);
+        boolean more = rows.size() > limit;
+        List<HistoryEntry> page = List.copyOf(rows.subList(0, Math.min(limit, rows.size())));
+        return new HistoryPage(map, page.isEmpty() ? after : page.get(page.size()-1).revision(), more, page);
     }
 
     static boolean validName(String name) {
