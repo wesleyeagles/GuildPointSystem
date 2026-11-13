@@ -120,6 +120,14 @@ public class AuctionService {
     }
 
     @Transactional
+    public AuctionResponse createWithDeadline(CreateAuctionRequest request, MemberPrincipal actor) {
+        if (request.endsAt() == null) {
+            throw new AppException("Informe o horário de encerramento.", HttpStatus.BAD_REQUEST);
+        }
+        return create(request, actor);
+    }
+
+    @Transactional
     public AuctionResponse create(CreateAuctionRequest request, MemberPrincipal actor) {
         SecurityUtils.requireRole(Role.ADMINISTRADOR);
         if (!ALLOWED_DURATIONS.contains(request.durationMinutes())) {
@@ -143,6 +151,7 @@ public class AuctionService {
 
         var auction = new Auction();
         auction.setDurationMinutes(request.durationMinutes());
+        auction.setFixedDeadline(endsAt != null);
         auction.setCreatedBy(memberRepository.getReferenceById(actor.getId()));
         if (scheduled) {
             auction.setStatus(AuctionStatus.SCHEDULED);
@@ -209,12 +218,33 @@ public class AuctionService {
         return open(auction, actorName(actor) + " iniciou o leilão.");
     }
 
-    /** SCHEDULED → OPEN: the full duration counts from now, and every member gets the "new auction" toast. */
+    @Transactional
+    public List<AuctionResponse> startBatch(List<Long> auctionIds, Instant endsAt, MemberPrincipal actor) {
+        SecurityUtils.requireRole(Role.ADMINISTRADOR);
+        var pending = auctionIds.stream().distinct().sorted().map(this::lockForAdmin).toList();
+        if (pending.stream().anyMatch(a -> a.getStatus() != AuctionStatus.SCHEDULED)) {
+            throw new AppException("A lista mudou. Atualize a página antes de iniciar os leilões.", HttpStatus.CONFLICT);
+        }
+        var now = Instant.now();
+        if (!endsAt.isAfter(now) || endsAt.isAfter(now.plus(Duration.ofDays(1)))) {
+            throw new AppException("O encerramento deve estar nas próximas 24 horas.", HttpStatus.BAD_REQUEST);
+        }
+        var botText = actorName(actor) + " iniciou o leilão.";
+        return pending.stream().map(a -> {
+            a.setFixedDeadline(true);
+            return open(a, botText, now, endsAt);
+        }).toList();
+    }
+
     private AuctionResponse open(Auction auction, String botText) {
         var now = Instant.now();
+        return open(auction, botText, now, now.plusSeconds(auction.getDurationMinutes() * 60L));
+    }
+
+    private AuctionResponse open(Auction auction, String botText, Instant now, Instant endsAt) {
         auction.setStatus(AuctionStatus.OPEN);
         auction.setStartsAt(now);
-        auction.setEndsAt(now.plusSeconds(auction.getDurationMinutes() * 60L));
+        auction.setEndsAt(endsAt);
         auction.bumpVersion();
         auctionRepository.save(auction);
 
@@ -233,6 +263,9 @@ public class AuctionService {
     public AuctionResponse pause(Long auctionId, MemberPrincipal actor) {
         SecurityUtils.requireRole(Role.ADMINISTRADOR);
         var auction = lockForAdmin(auctionId);
+        if (auction.isFixedDeadline()) {
+            throw new AppException("Este leilão tem encerramento fixo e não pode ser pausado.", HttpStatus.CONFLICT);
+        }
         if (auction.getStatus() != AuctionStatus.OPEN && auction.getStatus() != AuctionStatus.DOLE) {
             throw new AppException("Só é possível pausar leilões abertos.", HttpStatus.CONFLICT);
         }
@@ -350,7 +383,8 @@ public class AuctionService {
             auction.setEndsAt(now.plusSeconds(DOLE_RESCUE_SECONDS));
             auction.setStatus(AuctionStatus.OPEN);
             auction.setDolePhase(0);
-        } else if (auction.getEndsAt().toEpochMilli() - now.toEpochMilli() <= EXTEND_THRESHOLD_MS) {
+        } else if (!auction.isFixedDeadline()
+                && auction.getEndsAt().toEpochMilli() - now.toEpochMilli() <= EXTEND_THRESHOLD_MS) {
             auction.setEndsAt(now.plusSeconds(EXTENDED_SECONDS));
         }
         auction.bumpVersion();
@@ -430,6 +464,9 @@ public class AuctionService {
         }
         long extendSeconds = minutes * 60L;
         var auction = lockForAdmin(auctionId);
+        if (auction.isFixedDeadline()) {
+            throw new AppException("Este leilão tem encerramento fixo e não pode ser prorrogado.", HttpStatus.CONFLICT);
+        }
         var status = auction.getStatus();
         if (status != AuctionStatus.OPEN && status != AuctionStatus.DOLE && status != AuctionStatus.PAUSED) {
             throw new AppException("Só é possível adicionar tempo a leilões abertos ou pausados.", HttpStatus.CONFLICT);
@@ -605,7 +642,12 @@ public class AuctionService {
         if (auction == null || auction.getEndsAt().isAfter(Instant.now())) return;
 
         switch (auction.getStatus()) {
-            case OPEN -> startDole(auction);
+            case OPEN -> {
+                if (auction.isFixedDeadline()) {
+                    if (auction.getCurrentBid() == 0) closeWithWinner(auction, null);
+                    else resolveAuction(auction);
+                } else startDole(auction);
+            }
             case DOLE -> advanceDole(auction);
             case TIE_BREAK -> advanceTieBreak(auction);
             default -> { }
@@ -871,6 +913,7 @@ public class AuctionService {
                 auction.getCreatedAt(),
                 auction.getStartsAt(),
                 auction.getEndsAt(),
+                auction.isFixedDeadline(),
                 auction.getCurrentBid(),
                 winner != null ? winner.getId() : null,
                 winner != null ? winner.getNickname() : null,

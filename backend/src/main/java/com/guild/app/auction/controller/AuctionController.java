@@ -33,6 +33,17 @@ public class AuctionController {
         return auctionService.create(request, SecurityUtils.currentMember());
     }
 
+    @PostMapping("/fixed-end")
+    @ResponseStatus(HttpStatus.CREATED)
+    public AuctionResponse createWithDeadline(@Valid @RequestBody CreateAuctionRequest request) {
+        return auctionService.createWithDeadline(request, SecurityUtils.currentMember());
+    }
+
+    @PostMapping("/start-batch")
+    public List<AuctionResponse> startBatch(@Valid @RequestBody StartAuctionBatch request) {
+        return auctionService.startBatch(request.auctionIds(), request.endsAt(), SecurityUtils.currentMember());
+    }
+
     /** Líder/Administrador: open a scheduled (or "em breve") auction now. */
     @PostMapping("/{id}/start")
     public AuctionResponse start(@PathVariable Long id) {

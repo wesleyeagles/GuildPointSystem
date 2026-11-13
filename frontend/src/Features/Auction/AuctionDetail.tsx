@@ -532,7 +532,7 @@ export function AuctionDetailPage() {
                   >
                     Retomar leilão
                   </Button>
-                ) : !isTieBreak && (
+                ) : !isTieBreak && !auction.fixedDeadline && (
                   <Button
                     variant="secondary"
                     size="sm"
@@ -542,7 +542,7 @@ export function AuctionDetailPage() {
                     Pausar leilão
                   </Button>
                 )}
-                {!isTieBreak && (
+                {!isTieBreak && !auction.fixedDeadline && (
                   <div className="auction-admin__extend" role="group" aria-label="Adicionar tempo">
                     <span>Adicionar tempo</span>
                     {EXTEND_OPTIONS.map((opt) => (

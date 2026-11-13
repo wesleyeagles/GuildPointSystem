@@ -354,8 +354,17 @@ export function useCreateAuction() {
       startsAt?: string
       /** Without `startsAt`: create it "em breve", to be started by hand. */
       startLater?: boolean
-    }) => apiClient<Auction>('/auctions', { method: 'POST', body }),
+    }) => apiClient<Auction>(body.endsAt ? '/auctions/fixed-end' : '/auctions', { method: 'POST', body }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: auctionKeys.all, exact: true }),
+  })
+}
+
+export function useStartAuctionBatch() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (body: { auctionIds: number[]; endsAt: string }) =>
+      apiClient<Auction[]>('/auctions/start-batch', { method: 'POST', body }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: auctionKeys.all }),
   })
 }
 

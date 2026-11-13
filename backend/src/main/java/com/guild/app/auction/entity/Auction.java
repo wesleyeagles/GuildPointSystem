@@ -43,6 +43,9 @@ public class Auction {
     @Column(name = "ends_at", nullable = false)
     private Instant endsAt;
 
+    @Column(name = "fixed_deadline", nullable = false)
+    private boolean fixedDeadline;
+
     @Column(name = "current_bid", nullable = false)
     private Long currentBid = 0L;
 
