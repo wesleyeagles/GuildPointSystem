@@ -8,6 +8,7 @@ import com.guild.app.common.exception.AppException;
 import com.guild.app.log.service.AuditLogService;
 import com.guild.app.member.entity.Member;
 import com.guild.app.member.repository.MemberRepository;
+import com.guild.app.websocket.WebSocketPublisher;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -53,6 +54,7 @@ public class ResourceSpawnService {
     private final JdbcTemplate jdbc;
     private final MemberRepository members;
     private final AuditLogService audit;
+    private final WebSocketPublisher websocket;
     private final Map<String, Instant> recent = new ConcurrentHashMap<>();
     Clock clock = Clock.systemUTC();
 
@@ -103,24 +105,26 @@ public class ResourceSpawnService {
         List<String> lines = body == null || body.isBlank() ? List.of() : List.of(body.replace("\r", "").split("\n"));
         if (lines.size() > MAX_LINES) throw new AppException("Linhas demais.", HttpStatus.BAD_REQUEST);
         Instant now = clock.instant();
+        boolean changed = false;
         for (String line : lines) {
             String[] f = line.split("\t", -1);
-            if (f.length == 5 && f[0].equals("S")) sighting(member, map, f, now);
-            else if (f.length == 3 && f[0].equals("D")) death(map, f, now);
+            if (f.length == 5 && f[0].equals("S")) changed |= sighting(member, map, f, now);
+            else if (f.length == 3 && f[0].equals("D")) changed |= death(map, f, now);
             else if (f.length == 9 && f[0].equals("V")) saveView(map, f, now);
         }
+        if (changed) websocket.publishResourcesChanged(map);
         if (!listed(member.getId())) return NO_DOTS;
         return "A\t1\n" + dots(map, Math.max(0, since)) + deaths(map, now);
     }
 
     /** O mob sumiu da lista com o personagem perto: morreu. Só a primeira notícia vale. */
-    private void death(int map, String[] f, Instant now) {
+    private boolean death(int map, String[] f, Instant now) {
         long serial;
-        try { serial = Long.parseLong(f[1]); } catch (NumberFormatException e) { return; }
+        try { serial = Long.parseLong(f[1]); } catch (NumberFormatException e) { return false; }
         String name = f[2].strip();
-        if (serial < 0 || !validName(name)) return;
-        jdbc.update("UPDATE resource_spawn SET died_at=? WHERE map_code=? AND serial=? AND mob_name=? AND died_at IS NULL AND found_at>?",
-            Timestamp.from(now), map, serial, name, Timestamp.from(now.minus(SAME_MOB)));
+        if (serial < 0 || !validName(name)) return false;
+        return jdbc.update("UPDATE resource_spawn SET died_at=? WHERE map_code=? AND serial=? AND mob_name=? AND died_at IS NULL AND found_at>?",
+            Timestamp.from(now), map, serial, name, Timestamp.from(now.minus(SAME_MOB))) > 0;
     }
 
     /** {@code K id epochSegundos} por ponto do mapa que morreu há pouco (o jogo para de piscar / fica vermelho). */
@@ -133,20 +137,20 @@ public class ResourceSpawnService {
         return sb.toString();
     }
 
-    private void sighting(Member member, int map, String[] f, Instant now) {
+    private boolean sighting(Member member, int map, String[] f, Instant now) {
         long serial;
         int x, z;
         try {
             serial = Long.parseLong(f[1]);
             x = Integer.parseInt(f[2]);
             z = Integer.parseInt(f[3]);
-        } catch (NumberFormatException e) { return; }
+        } catch (NumberFormatException e) { return false; }
         String name = f[4].strip();
-        if (serial < 0 || Math.abs(x) > MAX_COORDINATE || Math.abs(z) > MAX_COORDINATE || !validName(name)) return;
+        if (serial < 0 || Math.abs((long) x) > MAX_COORDINATE || Math.abs((long) z) > MAX_COORDINATE || !validName(name)) return false;
         jdbc.update("INSERT INTO resource_mob(name,map_code,first_seen_at) VALUES(?,?,?) ON CONFLICT (name) DO NOTHING",
             name, map, Timestamp.from(now));
         Integer tier = jdbc.queryForObject("SELECT tier FROM resource_mob WHERE name=?", Integer.class, name);
-        if (tier != null && tier == 0) return;
+        if (tier != null && tier == 0) return false;
         // Primeiro na memória (dois membros vendo o mesmo mob ao mesmo tempo), depois no banco (depois de um reinício).
         String key = map + ":" + serial + ":" + name;
         Instant cut = now.minus(SAME_MOB);
@@ -156,14 +160,15 @@ public class ResourceSpawnService {
             fresh[0] = true;
             return now;
         });
-        if (!fresh[0]) return;
+        if (!fresh[0]) return false;
         if (recent.size() > 50_000) recent.entrySet().removeIf(e -> e.getValue().isBefore(cut));
         boolean known = Boolean.TRUE.equals(jdbc.queryForObject(
             "SELECT EXISTS(SELECT 1 FROM resource_spawn WHERE map_code=? AND serial=? AND mob_name=? AND found_at>?)",
             Boolean.class, map, serial, name, Timestamp.from(cut)));
-        if (known) return;
+        if (known) return false;
         jdbc.update("INSERT INTO resource_spawn(map_code,mob_name,serial,x,z,found_at,found_by) VALUES(?,?,?,?,?,?,?)",
             map, name, serial, x, z, Timestamp.from(now), member.getId());
+        return true;
     }
 
     static boolean validName(String name) {
