@@ -311,6 +311,12 @@
     line-height: 1.4;
   }
 
+  &__relic {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
   &__talics {
     display: flex;
     gap: 3px;

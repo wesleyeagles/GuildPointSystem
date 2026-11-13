@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatRelicEffect, relicEffectTotals, relicLevelEffects, relicName } from './relicEffects'
+import { formatRelicEffect, relicEffectTotals, relicLevelEffects, relicIdFromGameCode, relicName, relicUpgradeTexts } from './relicEffects'
 import groups from '../relicData.json'
 
 describe('relic effects', () => {
@@ -30,6 +30,19 @@ describe('relic effects', () => {
       'Attack on monsters and PB: 6.0% increase',
       'Accuracy: 1.30 increase',
       'Drop from monsters: 16.3% increase',
+    ])
+  })
+
+  it('reads the relic id from the item game code and lists each upgrade', () => {
+    expect(relicIdFromGameCode('relic000')).toBe(0)
+    expect(relicIdFromGameCode('relic031')).toBe(31)
+    expect(relicIdFromGameCode('iymta55')).toBeNull()
+    expect(relicIdFromGameCode(null)).toBeNull()
+    expect(relicUpgradeTexts(0)).toEqual([
+      ['Force attack: 2.0% increase'],
+      ['Force attack: 2.4% increase'],
+      ['Force attack: 3.0% increase'],
+      ['Force attack: 4.0% increase'],
     ])
   })
 })

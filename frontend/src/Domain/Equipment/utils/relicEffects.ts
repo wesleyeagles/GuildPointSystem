@@ -27,6 +27,17 @@ export function formatRelicEffect(code: number, value: number): string {
   return `${name}: ${amount} ${value < 0 ? 'decrease' : 'increase'}`
 }
 
+/** Relic do catálogo de itens (game_code "relic003" → 3); null para os outros itens. */
+export function relicIdFromGameCode(gameCode: string | null | undefined): number | null {
+  const match = gameCode?.match(/^relic(\d+)$/i)
+  return match && relics[String(Number(match[1]))] ? Number(match[1]) : null
+}
+
+/** Efeitos de cada upgrade (+0, +1…) já no texto da janela Relics. */
+export function relicUpgradeTexts(id: number): string[][] {
+  return (relics[String(id)]?.levels ?? []).map((level) => level.map(([code, value]) => formatRelicEffect(code, value)))
+}
+
 /** Efeitos de uma relic no upgrade indicado (0 = base). */
 export function relicLevelEffects(id: number, upgrade: number): [number, number][] {
   const levels = relics[String(id)]?.levels ?? []

@@ -5,6 +5,7 @@ import {
   getFavorPct,
   getKeenPct,
 } from '@/Domain/Item/utils/talicUtils'
+import { relicIdFromGameCode, relicUpgradeTexts } from '@/Domain/Equipment/utils/relicEffects'
 import { mediaUrl } from '@/Shared/utils/mediaUrl'
 import { SpriteIcon } from '@/Shared/ui/components/SpriteIcon/SpriteIcon'
 import type { Item, ItemTalic, SeedOption } from '@/Domain/types/models'
@@ -37,6 +38,29 @@ const RARITY_COLOR: Record<string, string> = {
 
 export function rarityColor(rarity: string): string {
   return RARITY_COLOR[rarity] ?? '#cfd8e3'
+}
+
+/** Relic items: bonus at each upgrade, as in the game's Relics window. */
+function RelicEffects({ gameCode }: { gameCode: string | null }) {
+  const id = relicIdFromGameCode(gameCode)
+  if (id === null) return null
+  const levels = relicUpgradeTexts(id).filter((texts) => texts.length > 0)
+  if (levels.length === 0) return null
+  return (
+    <div className="item-tooltip__relic">
+      <span className="item-tooltip__label">Relic Effects</span>
+      {levels.map((texts, upgrade) => (
+        <div key={upgrade} className="item-tooltip__row item-tooltip__row--effects">
+          <span className="item-tooltip__label">{levels.length > 1 ? `+${upgrade}` : 'Base'}</span>
+          <span className="item-tooltip__value item-tooltip__effects">
+            {texts.map((text, i) => (
+              <span key={i} className="item-tooltip__effect">{text}</span>
+            ))}
+          </span>
+        </div>
+      ))}
+    </div>
+  )
 }
 
 function d<T>(details: Record<string, unknown> | null, key: string): T | undefined {
@@ -244,6 +268,8 @@ export function ItemCard({
             </span>
           </div>
         )}
+
+        <RelicEffects gameCode={item.gameCode} />
 
         <TalicUpgradeRow talics={item.talics} />
 
