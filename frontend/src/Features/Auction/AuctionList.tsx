@@ -8,6 +8,7 @@ import {
 } from '@/Domain/Auction/hooks/useAuction'
 import { useDiscordBySiteMember, type DiscordMember } from '@/Domain/Discord/hooks/useDiscordMembers'
 import { formatAuctionItems, isAuctionFinished } from '@/Domain/types/models'
+import { relicIdFromGameCode, relicUpgradeTexts } from '@/Domain/Equipment/utils/relicEffects'
 import { useAppToast } from '@/Shared/ui/components/AppToast/AppToast'
 import { ConfirmDialog } from '@/Shared/ui/components/ConfirmDialog/ConfirmDialog'
 import { useAuthContext } from '@/Features/Auth/contexts/AuthContext'
@@ -167,6 +168,7 @@ function AuctionListSection({
                 <strong>
                   {formatAuctionItems(auction.items) || `Leilão #${auction.id}`}
                 </strong>
+                <AuctionRelicEffects auction={auction} />
                 <AuctionSubtitle auction={auction} discordBySite={discordBySite} />
               </div>
               <span
@@ -204,6 +206,16 @@ function AuctionListSection({
       )}
     </Panel>
   )
+}
+
+/** Base bonus of the relics in the lot, so the list shows what each one gives. */
+function AuctionRelicEffects({ auction }: { auction: Auction }) {
+  const texts = auction.items.flatMap((item) => {
+    const id = relicIdFromGameCode(item.gameIcon?.gameCode)
+    return id === null ? [] : relicUpgradeTexts(id)[0] ?? []
+  })
+  if (texts.length === 0) return null
+  return <span className="auction-list__effects">{texts.join(' · ')}</span>
 }
 
 const lotOf = (auction: Auction) => `#${String(auction.id).padStart(3, '0')}`

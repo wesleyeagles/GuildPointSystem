@@ -141,6 +141,14 @@
     }
   }
 
+  &__effects {
+    font-size: theme.$font-size-base;
+    color: theme.$color-primary;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
   &__status {
     @include theme.tag;
     text-transform: uppercase;
