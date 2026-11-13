@@ -65,13 +65,14 @@ it('uses the same Brasília deadline for new auctions and pending lots', async (
   state.now = Date.parse('2026-11-14T00:00:00Z') // 21h on November 13 in Brasília
   const endsAt = '2026-11-14T00:50:00.000Z'
   const pending = { ...sampleAuction(endsAt), status: 'SCHEDULED' as const }
+  state.create.mockResolvedValue({ auction: pending, deadlineReached: true })
   state.auctions = [pending, { ...pending, id: 43 }, { ...pending, id: 44, status: 'OPEN' }]
   state.startBatch.mockResolvedValue(state.auctions.slice(0, 2))
   render(<MemoryRouter><AuctionListPage /></MemoryRouter>)
   fireEvent.change(screen.getByLabelText('Duração'), { target: { value: 'today' } })
   fireEvent.click(screen.getByRole('button', { name: 'Item 0' }))
   fireEvent.click(screen.getByRole('button', { name: 'Criar Leilão' }))
-  await waitFor(() => expect(state.create).toHaveBeenCalledWith(expect.objectContaining({ endsAt })))
+  await waitFor(() => expect(state.create).toHaveBeenCalledWith(expect.objectContaining({ targetEndsAt: endsAt })))
   fireEvent.click(screen.getByRole('button', { name: 'Iniciar todos até 21h50' }))
   await waitFor(() => expect(state.startBatch).toHaveBeenCalledWith({ auctionIds: [42, 43], endsAt }))
 })

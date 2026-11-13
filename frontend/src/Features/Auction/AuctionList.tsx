@@ -315,7 +315,7 @@ export function AuctionListPage() {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
     const validItems = entries.filter((entry) => entry.itemId > 0 && entry.quantity >= 1)
-    if (validItems.length === 0) return
+    if (createAuction.isPending || validItems.length === 0) return
     const endsAt = closeAt2150 ? todayAt2150(serverNow()) : copiedEnd
     if ((closeAt2150 || copiedEnd) && (!endsAt || Date.parse(endsAt) <= serverNow())) {
       showToast('O horário de encerramento já passou. Escolha outra duração.', 'error')
@@ -334,13 +334,16 @@ export function AuctionListPage() {
 
     draftInput.stop()
     try {
-      await createAuction.mutateAsync({
+      const result = await createAuction.mutateAsync({
         durationMinutes,
-        ...(endsAt ? { endsAt } : {}),
+        ...(endsAt ? (closeAt2150 ? { targetEndsAt: endsAt } : { endsAt }) : {}),
         items: validItems.map(({ itemId, quantity }) => ({ itemId, quantity })),
         startsAt,
         startLater: startMode === 'later' || undefined,
       })
+      if (closeAt2150 && !result.deadlineReached) {
+        showToast(`O leilão ${lotOf(result.auction)} abriu, mas não foi possível confirmar o prazo das 21h50. Confira o cronômetro do lote.`, 'error')
+      }
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Não foi possível criar o leilão.', 'error')
       return

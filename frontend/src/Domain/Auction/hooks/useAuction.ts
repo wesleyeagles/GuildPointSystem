@@ -12,6 +12,7 @@ import { serverNow, trackServerTime } from '@/Shared/utils/serverClock'
 import { isAuctionFinished } from '@/Domain/types/models'
 import type { Auction, AuctionBidResult, AuctionMessage, AuctionMessageReaction } from '@/Domain/types/models'
 import { memberKeys } from '@/Domain/Member/hooks/useMembers'
+import { createAuctionNearDeadline } from './auctionDeadline'
 
 export const auctionKeys = {
   all: ['auctions'] as const,
@@ -346,15 +347,24 @@ export function useSendAuctionMessage() {
 export function useCreateAuction() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (body: {
+    mutationFn: async ({ targetEndsAt, ...body }: {
       durationMinutes: number
       endsAt?: string
+      targetEndsAt?: string
       items: { itemId: number; quantity: number }[]
       /** ISO time: opens the auction then instead of right away. */
       startsAt?: string
       /** Without `startsAt`: create it "em breve", to be started by hand. */
       startLater?: boolean
-    }) => apiClient<Auction>(body.endsAt ? '/auctions/fixed-end' : '/auctions', { method: 'POST', body }),
+    }) => {
+      if (targetEndsAt) {
+        return createAuctionNearDeadline(Date.parse(targetEndsAt), serverNow(),
+          (durationMinutes) => apiClient<Auction>('/auctions', { method: 'POST', body: { ...body, durationMinutes } }),
+          extendAuctionTime)
+      }
+      const auction = await apiClient<Auction>(body.endsAt ? '/auctions/fixed-end' : '/auctions', { method: 'POST', body })
+      return { auction, deadlineReached: true }
+    },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: auctionKeys.all, exact: true }),
   })
 }
@@ -378,11 +388,14 @@ export function useCancelAuction() {
 }
 
 /** Líder/Administrador: add minutes to a running or paused auction (DOLE goes back to OPEN). */
+function extendAuctionTime(id: number, minutes: number) {
+  return apiClient<Auction>(`/auctions/${id}/extend?minutes=${minutes}`, { method: 'POST' })
+}
+
 export function useExtendAuction() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, minutes }: { id: number; minutes: number }) =>
-      apiClient<Auction>(`/auctions/${id}/extend?minutes=${minutes}`, { method: 'POST' }),
+    mutationFn: ({ id, minutes }: { id: number; minutes: number }) => extendAuctionTime(id, minutes),
     onSuccess: (auction) => applyAuction(queryClient, auction),
   })
 }
