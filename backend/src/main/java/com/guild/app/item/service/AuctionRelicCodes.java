@@ -1,0 +1,108 @@
+package com.guild.app.item.service;
+
+import java.util.Locale;
+import java.util.Map;
+
+import static java.util.Map.entry;
+
+final class AuctionRelicCodes {
+    // Tradable BootyItem codes from Item.edf, matched by the English NDItem.edf name to V120.
+    // A trailing " *" on some inventory names is a display marker.
+    private static final Map<String, String> CATALOG_CODES = Map.ofEntries(
+            entry("iyfig85", "relic000"),
+            entry("iyfig86", "relic001"),
+            entry("iyfig87", "relic002"),
+            entry("iyfig88", "relic003"),
+            entry("iyfig89", "relic004"),
+            entry("iyfig90", "relic005"),
+            entry("iyfig91", "relic006"),
+            entry("iyfig92", "relic007"),
+            entry("iyfig93", "relic008"),
+            entry("iyfig94", "relic009"),
+            entry("iyfig95", "relic010"),
+            entry("iyfig96", "relic011"),
+            entry("iyfig97", "relic012"),
+            entry("iyfig98", "relic013"),
+            entry("iyfig99", "relic014"),
+            entry("iyfip01", "relic015"),
+            entry("iyfip02", "relic016"),
+            entry("iyfip03", "relic017"),
+            entry("iyfip04", "relic018"),
+            entry("iyfip05", "relic019"),
+            entry("iyfip06", "relic020"),
+            entry("iyfip07", "relic021"),
+            entry("iyfip08", "relic022"),
+            entry("iyfip09", "relic023"),
+            entry("iyfip10", "relic024"),
+            entry("iyfip11", "relic025"),
+            entry("iyfip12", "relic026"),
+            entry("iyfip13", "relic027"),
+            entry("iyfip14", "relic028"),
+            entry("iyfip15", "relic029"),
+            entry("iyfip16", "relic030"),
+            entry("iyfip17", "relic031"),
+            entry("iyfip18", "relic032"),
+            entry("iyfip19", "relic033"),
+            entry("iyfip20", "relic034"),
+            entry("iyfip21", "relic035"),
+            entry("iyfip22", "relic036"),
+            entry("iyfip23", "relic037"),
+            entry("iyfip24", "relic038"),
+            entry("iyfip25", "relic039"),
+            entry("iyfip26", "relic040"),
+            entry("iyfip28", "relic042"),
+            entry("iyfip29", "relic043"),
+            entry("iyfip30", "relic044"),
+            entry("iyfip31", "relic045"),
+            entry("iyfip32", "relic046"),
+            entry("iyfip33", "relic047"),
+            entry("iyfip34", "relic048"),
+            entry("iyfip35", "relic049"),
+            entry("iyfip36", "relic050"),
+            entry("iyfip37", "relic051"),
+            entry("iyfip38", "relic052"),
+            entry("iyfip39", "relic053"),
+            entry("iyfip40", "relic054"),
+            entry("iyfip41", "relic055"),
+            entry("iyfip42", "relic056"),
+            entry("iyfip43", "relic057"),
+            entry("iyfip44", "relic058"),
+            entry("iyfir11", "relic072"),
+            entry("iyfir12", "relic073"),
+            entry("iyfir13", "relic074"),
+            entry("iyfir14", "relic075"),
+            entry("iyfir15", "relic076"),
+            entry("iyfir16", "relic077"),
+            entry("iyfis43", "relic078"),
+            entry("iyfis44", "relic079"),
+            entry("iyfis45", "relic080"),
+            entry("iyfis46", "relic081"),
+            entry("iyfis47", "relic082"),
+            entry("iyfis48", "relic083"),
+            entry("iyfis49", "relic084"),
+            entry("iyfis50", "relic085"),
+            entry("iyfis51", "relic086"),
+            entry("iyfis52", "relic087"),
+            entry("iyfiw40", "relic091"),
+            entry("iyfiw41", "relic092"),
+            entry("iyfiw42", "relic093"),
+            entry("iyfiw43", "relic094"),
+            entry("iyfiw44", "relic095"),
+            entry("iyfiw45", "relic096"),
+            entry("iyfix44", "relic111"),
+            entry("iyfix45", "relic112"),
+            entry("iyfix46", "relic113"),
+            entry("iyfix47", "relic114"),
+            entry("iyfix48", "relic115"),
+            entry("iyfix49", "relic116"),
+            entry("iyfix50", "relic117"),
+            entry("iyfix51", "relic118"),
+            entry("iyfix52", "relic119")
+    );
+
+    private AuctionRelicCodes() {}
+
+    static String catalogCode(String inventoryCode) {
+        return CATALOG_CODES.get(inventoryCode.toLowerCase(Locale.ROOT));
+    }
+}
