@@ -13,7 +13,13 @@ const state = vi.hoisted(() => ({
 }))
 vi.mock('@/Shared/api/client', () => ({
   apiClient: state.lookup,
-  ApiError: class extends Error { status = 404 },
+  ApiError: class extends Error {
+    status: number
+    constructor(message: string, status: number) {
+      super(message)
+      this.status = status
+    }
+  },
 }))
 
 vi.mock('@/Domain/Auction/hooks/useAuction', () => ({
@@ -52,7 +58,7 @@ function sampleAuction(endsAt: string): Auction {
 it('adds one unit per RF-ui click, even when the first acknowledgement fails', async () => {
   state.admin = true
   state.auctions = []
-  state.lookup.mockResolvedValue({ id: 35, name: 'Intense Staff' })
+  state.lookup.mockResolvedValue({ content: [{ id: 35, name: 'Intense Staff', gameCode: 'iwtji40' }], totalPages: 1 })
   const events = [{ id: 'a'.repeat(32), code: 'iwtji40' }, { id: 'b'.repeat(32), code: 'iwtji40' }]
   let acknowledgements = 0
   vi.stubGlobal('fetch', vi.fn(async (_url, options) => {
@@ -72,6 +78,37 @@ it('adds one unit per RF-ui click, even when the first acknowledgement fails', a
   await waitFor(() => expect(state.create).toHaveBeenCalledWith({
     startsAt: undefined, startLater: undefined, durationMinutes: 15, items: [{ itemId: 35, quantity: 2 }],
   }))
+})
+
+it.each([false, true])('requires a unique exact Relic code across pages (duplicate: %s)', async (duplicate) => {
+  state.admin = true
+  state.auctions = []
+  const relic = { id: 44, name: '(1GR) Freak Vafer Niffer Relic', gameCode: 'relic004' }
+  state.lookup
+    .mockResolvedValueOnce({ content: [{ ...relic, name: 'iyfig89', gameCode: 'other01' }], totalPages: 1 })
+    .mockResolvedValueOnce({ content: [relic], totalPages: 2 })
+    .mockResolvedValueOnce({ content: duplicate ? [{ ...relic, id: 45 }] : [], totalPages: 2 })
+  let sent = false
+  vi.stubGlobal('fetch', vi.fn(async (_url, options) => {
+    if (JSON.parse(options.body).action === 'read') {
+      if (sent) return Response.json([])
+      sent = true
+      return Response.json([{ id: 'c'.repeat(32), code: 'iyfig89' }])
+    }
+    return new Response(null, { status: 204 })
+  }))
+  render(<MemoryRouter><AuctionListPage /></MemoryRouter>)
+  fireEvent.click(screen.getByRole('button', { name: 'Usar como destino na RF-ui' }))
+  await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(
+    duplicate ? 'Há mais de um cadastro para o código relic004.' : `+1 ${relic.name}`,
+  ))
+  expect(screen.getByRole('button', { name: duplicate ? 'Item 0' : 'Item 44' })).toBeVisible()
+  expect(state.lookup.mock.calls.map(([path]) => path)).toEqual([
+    '/items?search=iyfig89&page=0&size=24',
+    '/items?search=relic004&page=0&size=24',
+    '/items?search=relic004&page=1&size=24',
+  ])
+  expect(state.create).not.toHaveBeenCalled()
 })
 
 it.each([true, false])('copies the lot draft with the exact deadline for admins only (%s)', async (admin) => {
