@@ -256,7 +256,7 @@ class ResourceSpawnTest {
                 sql.execute("SET LOCAL search_path TO "+schema);
                 sql.execute("CREATE TABLE resource_spawn(id BIGINT PRIMARY KEY,map_code INT,died_at TIMESTAMPTZ)");
                 sql.execute("INSERT INTO resource_spawn VALUES(20,11,now()-interval '2 days'),(30,11,null),(40,2,null)");
-                sql.execute(new org.springframework.core.io.ClassPathResource("db/migration/V95__resource_history.sql")
+                sql.execute(new org.springframework.core.io.ClassPathResource("db/migration/V122__resource_history.sql")
                     .getContentAsString(StandardCharsets.UTF_8));
                 var result=sql.executeQuery("SELECT revision FROM resource_history_cursor WHERE map_code=11");
                 assertTrue(result.next()); assertEquals(2,result.getLong(1));
