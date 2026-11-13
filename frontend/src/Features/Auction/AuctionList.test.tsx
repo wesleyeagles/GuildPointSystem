@@ -110,6 +110,26 @@ it('drops the copied deadline when switching to a scheduled start', async () => 
   expect(state.create.mock.calls[0][0].startLater).toBe(true)
 })
 
+it('duplicates a scheduled lot into a draft without starting or creating it', async () => {
+  state.admin = true
+  const startsAt = new Date(Math.ceil(Date.now() / 60_000) * 60_000 + 600_000).toISOString()
+  state.auctions = [{
+    ...sampleAuction(new Date(Date.parse(startsAt) + 1_800_000).toISOString()),
+    status: 'SCHEDULED', startsAt,
+  }]
+  render(<MemoryRouter><AuctionListPage /></MemoryRouter>)
+  const duplicate = screen.getByRole('button', { name: 'Duplicar' })
+  expect(duplicate.nextElementSibling).toBe(screen.getByRole('button', { name: 'Excluir' }))
+  fireEvent.click(duplicate)
+  expect(state.create).not.toHaveBeenCalled()
+  expect(screen.getByLabelText('Início')).toHaveValue('at')
+  expect(screen.getByLabelText('Quantidade')).toHaveValue(3)
+  fireEvent.submit(screen.getByLabelText('Início').closest('form')!)
+  await waitFor(() => expect(state.create).toHaveBeenCalledWith({
+    startsAt, startLater: undefined, durationMinutes: 30, items: [{ itemId: 17, quantity: 3 }],
+  }))
+})
+
 it('rejects copying an expired auction without replacing the draft', () => {
   state.admin = true
   state.auctions = [sampleAuction(new Date(Date.now() - 60_000).toISOString())]

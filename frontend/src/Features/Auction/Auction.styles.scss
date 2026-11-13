@@ -150,8 +150,7 @@
   }
 
   &__info &__item-name {
-    flex: 1;
-    min-width: min(120px, 100%);
+    min-width: 0;
     white-space: normal;
     overflow-wrap: anywhere;
   }
