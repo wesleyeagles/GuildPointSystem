@@ -2,11 +2,13 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
   useAdjustPoints,
+  useChangeOwnPassword,
   useCurrentMember,
   useDeleteMember,
   useGrantManualEvent,
   useMember,
   useMemberClaims,
+  useResetPassword,
   useSuspendMember,
   useUnsuspendMember,
   useUpdateMemberRole,
@@ -80,6 +82,15 @@ export function ProfilePage() {
   const [confirmSuspend, setConfirmSuspend] = useState(false)
   const [suspendReason, setSuspendReason] = useState('')
   const closeSuspend = useCallback(() => setConfirmSuspend(false), [])
+  const resetPassword = useResetPassword()
+  const [confirmReset, setConfirmReset] = useState(false)
+  const [tempPassword, setTempPassword] = useState<string | null>(null)
+  const closeReset = useCallback(() => setConfirmReset(false), [])
+  const closeTempPassword = useCallback(() => setTempPassword(null), [])
+  const changeOwnPassword = useChangeOwnPassword()
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [repeatPassword, setRepeatPassword] = useState('')
   const isStaff = hasRole('ADMINISTRADOR')
   const isLeader = hasRole('LIDER')
   const isOwn = !id || Number(id) === user?.memberId
@@ -104,6 +115,46 @@ export function ProfilePage() {
   const canDelete = isStaff && !isOwn && !isDeleted && !!requiredToDelete && hasRole(requiredToDelete)
   const isSuspended = profile.status === 'SUSPENSO'
   const canSuspend = canDelete && profile.status === 'APROVADO'
+  // Login is by email: Discord-only accounts (no email) have nothing to reset.
+  const canResetPassword = canDelete && !!profile.email
+  const canChangeOwnPassword = isOwn && !!profile.email
+
+  const handleResetPassword = async () => {
+    try {
+      const { password } = await resetPassword.mutateAsync(profile.id)
+      setTempPassword(password)
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Não foi possível redefinir a senha.', 'error')
+    }
+    setConfirmReset(false)
+  }
+
+  const copyTempPassword = async () => {
+    if (!tempPassword) return
+    try {
+      await navigator.clipboard.writeText(tempPassword)
+      showToast('Senha copiada.', 'success')
+    } catch {
+      showToast('Não foi possível copiar.', 'error')
+    }
+  }
+
+  const handleChangeOwnPassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (newPassword !== repeatPassword) {
+      showToast('As senhas novas não são iguais.', 'error')
+      return
+    }
+    try {
+      await changeOwnPassword.mutateAsync({ currentPassword, newPassword })
+      showToast('Senha alterada.', 'success')
+      setCurrentPassword('')
+      setNewPassword('')
+      setRepeatPassword('')
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Não foi possível alterar a senha.', 'error')
+    }
+  }
 
   const handleSuspend = async () => {
     try {
@@ -289,6 +340,51 @@ export function ProfilePage() {
             </Button>
           </form>
 
+          {canChangeOwnPassword && (
+            <form className="profile-form" onSubmit={handleChangeOwnPassword}>
+              <h3>Trocar senha</h3>
+              {profile.hasPassword && (
+                <label>
+                  Senha atual
+                  <input
+                    type="password"
+                    autoComplete="current-password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    required
+                  />
+                </label>
+              )}
+              <label>
+                Nova senha
+                <input
+                  type="password"
+                  autoComplete="new-password"
+                  minLength={6}
+                  maxLength={100}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  required
+                />
+              </label>
+              <label>
+                Repita a nova senha
+                <input
+                  type="password"
+                  autoComplete="new-password"
+                  minLength={6}
+                  maxLength={100}
+                  value={repeatPassword}
+                  onChange={(e) => setRepeatPassword(e.target.value)}
+                  required
+                />
+              </label>
+              <Button type="submit" loading={changeOwnPassword.isPending}>
+                Salvar senha
+              </Button>
+            </form>
+          )}
+
           {/* Staff layout (2 columns): Editar Perfil | Ajustar Pontos, Resgates | Conceder Evento,
               then Papel do Membro alone. */}
           {isStaff && !isOwn && (
@@ -453,9 +549,15 @@ export function ProfilePage() {
         <Panel title="Zona de perigo" variant="danger" code="ADM" className="profile-danger">
           <p className="profile-danger__hint">
             Suspender bloqueia o acesso de {profile.nickname} até a suspensão ser retirada, sem apagar
-            nada. Excluir remove o acesso de vez; o histórico é mantido.
+            nada. Excluir remove o acesso de vez; o histórico é mantido. Redefinir senha gera uma senha
+            temporária para quem esqueceu a dele.
           </p>
           <div className="profile-danger__actions">
+            {canResetPassword && (
+              <Button variant="secondary" onClick={() => setConfirmReset(true)}>
+                Redefinir senha
+              </Button>
+            )}
             {canSuspend && (
               <Button variant="secondary" onClick={() => setConfirmSuspend(true)}>
                 Suspender conta
@@ -472,6 +574,42 @@ export function ProfilePage() {
           </div>
         </Panel>
       )}
+
+      <ConfirmDialog
+        open={confirmReset}
+        title={`Redefinir senha de ${profile.nickname}`}
+        code="ADM"
+        confirmLabel="Gerar senha nova"
+        variant="primary"
+        loading={resetPassword.isPending}
+        onConfirm={handleResetPassword}
+        onCancel={closeReset}
+      >
+        <p>
+          A senha atual de <strong>{profile.nickname}</strong> deixa de funcionar e o site gera uma senha
+          temporária, que aparece só uma vez para você passar a ele.
+        </p>
+        <p className="confirm-dialog__note">Login: {profile.email}</p>
+      </ConfirmDialog>
+
+      <ConfirmDialog
+        open={tempPassword !== null}
+        title={`Senha nova de ${profile.nickname}`}
+        code="ADM"
+        confirmLabel="Copiar senha"
+        cancelLabel="Fechar"
+        variant="primary"
+        onConfirm={copyTempPassword}
+        onCancel={closeTempPassword}
+      >
+        <p>
+          Login: <strong>{profile.email}</strong>
+        </p>
+        <p className="profile-temp-password">{tempPassword}</p>
+        <p className="confirm-dialog__note">
+          Ela não aparece de novo. Peça para {profile.nickname} trocar a senha no perfil depois de entrar.
+        </p>
+      </ConfirmDialog>
 
       <ConfirmDialog
         open={confirmSuspend}

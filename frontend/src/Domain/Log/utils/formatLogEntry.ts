@@ -42,6 +42,8 @@ const LOG_TYPE_LABELS: Record<AuditLogType, string> = {
   MEMBER_UNSUSPENDED: 'Suspensão retirada',
   MEMBER_SELL_BLOCK_CHANGED: 'Bloqueio de venda da conta',
   MEMBER_ENGLISH_PLAYER_CHANGED: 'Tag English Player',
+  MEMBER_PASSWORD_RESET: 'Senha redefinida',
+  MEMBER_PASSWORD_CHANGED: 'Senha alterada',
   NEWS_CREATED: 'Notícia publicada',
   NEWS_UPDATED: 'Notícia editada',
   NEWS_DELETED: 'Notícia excluída',

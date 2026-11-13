@@ -5,6 +5,8 @@ import com.guild.app.event.dto.EventClaimResponse;
 import com.guild.app.event.dto.ManualEventRequest;
 import com.guild.app.event.service.EventService;
 import com.guild.app.member.dto.ApprovalRequest;
+import com.guild.app.member.dto.ChangePasswordRequest;
+import com.guild.app.member.dto.ResetPasswordResponse;
 import com.guild.app.member.dto.LinkDiscordRequest;
 import com.guild.app.member.dto.MemberResponse;
 import com.guild.app.member.dto.EnglishPlayerRequest;
@@ -52,6 +54,19 @@ public class MemberController {
     @GetMapping("/me")
     public MemberResponse me() {
         return memberService.getById(SecurityUtils.currentMember().getId());
+    }
+
+    /** The logged-in member's own password. */
+    @PutMapping("/me/password")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void changeOwnPassword(@Valid @RequestBody ChangePasswordRequest request) {
+        memberService.changeOwnPassword(SecurityUtils.currentMember(), request.currentPassword(), request.newPassword());
+    }
+
+    /** Líder/Administrador: new temporary password for a member who forgot theirs (returned once). */
+    @PostMapping("/{id}/reset-password")
+    public ResetPasswordResponse resetPassword(@PathVariable Long id) {
+        return new ResetPasswordResponse(memberService.resetPassword(id, SecurityUtils.currentMember()));
     }
 
     @PutMapping("/{id}/profile")

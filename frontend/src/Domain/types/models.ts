@@ -47,6 +47,8 @@ export type AuditLogType =
   | 'MEMBER_UNSUSPENDED'
   | 'MEMBER_SELL_BLOCK_CHANGED'
   | 'MEMBER_ENGLISH_PLAYER_CHANGED'
+  | 'MEMBER_PASSWORD_RESET'
+  | 'MEMBER_PASSWORD_CHANGED'
   | 'NEWS_CREATED'
   | 'NEWS_UPDATED'
   | 'NEWS_DELETED'
@@ -95,6 +97,8 @@ export interface Member {
   blockedForSellUntil: string | null
   /** Tag "English Player": the member's DLL shows panels, notices and shouts in English. */
   englishPlayer: boolean
+  /** Has an email + password login (Discord-only accounts don't). */
+  hasPassword: boolean
 }
 
 export interface SeedOption {

@@ -306,3 +306,16 @@
   font-size: theme.$font-size-base;
   color: theme.$color-text-muted;
 }
+
+.profile-temp-password {
+  margin: theme.$spacing-sm 0;
+  padding: theme.$spacing-sm theme.$spacing-md;
+  font-family: theme.$font-mono;
+  font-size: 22px;
+  letter-spacing: 2px;
+  text-align: center;
+  color: theme.$color-primary;
+  border: 1px solid theme.$color-border-strong;
+  background: rgba(0, 0, 0, 0.35);
+  user-select: all;
+}

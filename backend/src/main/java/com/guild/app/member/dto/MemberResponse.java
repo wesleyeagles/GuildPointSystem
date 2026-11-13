@@ -27,5 +27,7 @@ public record MemberResponse(
         String suspensionReason,
         boolean blockedForSellAccount,
         LocalDate blockedForSellUntil,
-        boolean englishPlayer
+        boolean englishPlayer,
+        /** Has an email + password login (Discord-only accounts don't). */
+        boolean hasPassword
 ) {}
