@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ItemQuantity } from '@/Shared/ui/components/ItemQuantity/ItemQuantity'
 import {
   applyBonus,
   expandTalicsForDisplay,
@@ -169,9 +170,7 @@ export function ItemCard({
         <div className="item-tooltip__title-wrap">
           <span className="item-tooltip__name-row">
             <span className="item-tooltip__name" style={{ color }}>{item.name}</span>
-            {quantity != null && quantity > 1 && (
-              <span className="item-tooltip__qty">x{quantity}</span>
-            )}
+            {quantity != null && <ItemQuantity quantity={quantity} />}
           </span>
           <span className="item-tooltip__rarity">{item.rarity}</span>
         </div>

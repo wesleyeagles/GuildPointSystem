@@ -26,6 +26,7 @@ import { formatStartsAt, formatTime, pausedSeconds, useCountdown } from '@/Featu
 import { useFillViewport } from '@/Features/Auction/hooks/useFillViewport'
 import { AuctionChat } from '@/Features/Auction/components/AuctionChat/AuctionChat'
 import { AuctionViewers } from '@/Features/Auction/components/AuctionViewers/AuctionViewers'
+import { ItemQuantity } from '@/Shared/ui/components/ItemQuantity/ItemQuantity'
 import './Auction.styles.scss'
 
 // ─── Single auction item card (fetches full data) ─────────────────────────────
@@ -46,6 +47,7 @@ function AuctionItemCard({
           <img src={auctionItem.imageUrl} alt={auctionItem.itemName} className="auction-item-placeholder__img" />
         )}
         <span>{auctionItem.itemName}</span>
+        <ItemQuantity quantity={auctionItem.quantity} />
       </div>
     )
   }

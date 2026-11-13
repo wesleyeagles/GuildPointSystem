@@ -20,6 +20,7 @@ import { Panel } from '@/Shared/ui/components/Panel/Panel'
 import type { Auction } from '@/Domain/types/models'
 import { formatStartsAt, formatTime, pausedSeconds, useCountdown } from '@/Features/Auction/hooks/useCountdown'
 import { useAuctionDraftInput } from '@/Domain/Auction/hooks/useAuctionDraftInput'
+import { ItemQuantity } from '@/Shared/ui/components/ItemQuantity/ItemQuantity'
 import './Auction.styles.scss'
 
 const DURATIONS = [
@@ -175,9 +176,12 @@ function AuctionListSection({
               <span className="auction-list__lot">#{String(auction.id).padStart(3, '0')}</span>
               <AuctionItemIcon item={auction.items[0]} />
               <div className="auction-list__info">
-                <strong>
-                  {formatAuctionItems(auction.items) || `Leilão #${auction.id}`}
-                </strong>
+                {auction.items.length ? auction.items.map((item) => (
+                  <span className="auction-list__item-heading" key={item.itemId}>
+                    <strong className="auction-list__item-name">{item.itemName}</strong>
+                    <ItemQuantity quantity={item.quantity} />
+                  </span>
+                )) : <strong>{`Leilão #${auction.id}`}</strong>}
                 <AuctionRelicEffects auction={auction} />
                 <AuctionSubtitle auction={auction} discordBySite={discordBySite} />
               </div>
