@@ -23,6 +23,7 @@ const CATEGORIES: { id: LuaItemCategory; label: string }[] = [
   { id: 'BOX', label: 'Box' },
   { id: 'POTION', label: 'Potion' },
   { id: 'RESOURCE', label: 'Resource' },
+  { id: 'RELIC', label: 'Relic' },
 ]
 
 const FILTERED_NOTE =

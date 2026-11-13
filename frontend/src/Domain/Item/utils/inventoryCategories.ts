@@ -17,5 +17,6 @@ export const INVENTORY_CATEGORIES: { id: InventoryCategory; label: string }[] = 
   { id: 'BOX', label: 'Box' },
   { id: 'POTION', label: 'Potion' },
   { id: 'RESOURCE', label: 'Resource' },
+  { id: 'RELIC', label: 'Relic' },
   { id: 'OTHER', label: 'Outros' },
 ]

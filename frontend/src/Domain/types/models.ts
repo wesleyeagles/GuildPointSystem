@@ -260,6 +260,7 @@ export type LuaItemCategory =
   | 'BOX'
   | 'POTION'
   | 'RESOURCE'
+  | 'RELIC'
 
 export interface GameLuaItem {
   category: LuaItemCategory

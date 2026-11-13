@@ -31,6 +31,7 @@ const SHEET_LAYOUTS: Record<string, { width: number; height: number; cols: numbe
   '/sprites/ringseamulets.png': { width: 2048, height: 2048, cols: 32 },
   '/sprites/shield.png': { width: 512, height: 1024, cols: 8 },
   '/sprites/resource.png': { width: 1024, height: 2048, cols: 16 },
+  '/relics/item-1-6.jpg': { width: 2048, height: 4096, cols: 32 },
 }
 
 const ARMOR_SHEETS = new Set([
