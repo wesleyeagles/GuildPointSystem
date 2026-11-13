@@ -92,6 +92,8 @@ public class SecurityConfig {
                         // Card de evento no jogo pela DLL: so responde/resgata para personagem de membro aprovado.
                         .requestMatchers(HttpMethod.GET, "/api/events/game").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/events/game/*/claim").permitAll()
+                        // Aviso de leilao aberto no jogo pela DLL: so responde a personagem de membro aprovado.
+                        .requestMatchers(HttpMethod.GET, "/api/auctions/game").permitAll()
                         // Pontos por aproximacao pela DLL da referencia: so responde a personagem de membro aprovado.
                         .requestMatchers(HttpMethod.GET, "/api/proximity-points/game").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/proximity-points/game/*").permitAll()
