@@ -65,6 +65,12 @@ public class ItemService {
         }
         var matches = itemRepository.findTop2ByGameCodeIgnoreCaseAndDeletedFalse(code);
         if (matches.isEmpty()) {
+            var catalogCode = AuctionRelicCodes.catalogCode(code);
+            if (catalogCode != null) {
+                matches = itemRepository.findTop2ByGameCodeIgnoreCaseAndDeletedFalse(catalogCode);
+            }
+        }
+        if (matches.isEmpty()) {
             throw new AppException("Item não cadastrado no site: " + code, HttpStatus.NOT_FOUND);
         }
         if (matches.size() != 1) {
