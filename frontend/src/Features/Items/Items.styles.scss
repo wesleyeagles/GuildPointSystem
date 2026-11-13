@@ -166,7 +166,17 @@
     padding-right: 24px;
   }
 
+  &__name-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+
   &__name {
+    min-width: 0;
+    overflow-wrap: anywhere;
     font-family: theme.$font-heading;
     font-size: 19px;
     font-weight: 800;

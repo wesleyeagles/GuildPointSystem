@@ -1,7 +1,8 @@
 export type Role = 'MEMBRO' | 'MODERADOR' | 'ADMINISTRADOR' | 'LIDER'
 export type MemberStatus = 'PENDENTE' | 'APROVADO' | 'REJEITADO' | 'EXCLUIDO' | 'SUSPENSO'
 export type ObjectiveType = 'NORMAL' | 'LIMITADO'
-export type AuctionStatus = 'OPEN' | 'DOLE' | 'TIE_BREAK' | 'CLOSED' | 'CANCELLED'
+/** SCHEDULED = created but not started (at `startsAt`, or by hand when null); PAUSED = clock frozen. */
+export type AuctionStatus = 'SCHEDULED' | 'OPEN' | 'DOLE' | 'TIE_BREAK' | 'PAUSED' | 'CLOSED' | 'CANCELLED'
 
 /** Finished auctions: no more bids; CANCELLED = force-closed by leadership, nobody charged. */
 export const isAuctionFinished = (status: AuctionStatus) => status === 'CLOSED' || status === 'CANCELLED'
@@ -20,6 +21,8 @@ export type AuditLogType =
   | 'CHAT_TRANSLATE_ACCESS_UPDATED'
   | 'RESOURCE_ACCESS_UPDATED'
   | 'RESOURCE_MOB_UPDATED'
+  | 'PB_BOSS_UPDATED'
+  | 'MARKET_PRICE_ACCESS_UPDATED'
   | 'CHAT_TRANSLATE_GLOSSARY_UPDATED'
   | 'DLL_RELEASED'
   | 'PARTY_QUEUE_UPDATED'
@@ -43,6 +46,9 @@ export type AuditLogType =
   | 'MEMBER_SUSPENDED'
   | 'MEMBER_UNSUSPENDED'
   | 'MEMBER_SELL_BLOCK_CHANGED'
+  | 'MEMBER_ENGLISH_PLAYER_CHANGED'
+  | 'MEMBER_PASSWORD_RESET'
+  | 'MEMBER_PASSWORD_CHANGED'
   | 'NEWS_CREATED'
   | 'NEWS_UPDATED'
   | 'NEWS_DELETED'
@@ -89,6 +95,10 @@ export interface Member {
   blockedForSellAccount: boolean
   /** Last day (inclusive, Brasília, yyyy-mm-dd) the account is blocked for sale. */
   blockedForSellUntil: string | null
+  /** Tag "English Player": the member's DLL shows panels, notices and shouts in English. */
+  englishPlayer: boolean
+  /** Has an email + password login (Discord-only accounts don't). */
+  hasPassword: boolean
 }
 
 export interface SeedOption {
@@ -254,6 +264,7 @@ export type LuaItemCategory =
   | 'BOX'
   | 'POTION'
   | 'RESOURCE'
+  | 'RELIC'
 
 export interface GameLuaItem {
   category: LuaItemCategory
@@ -309,11 +320,17 @@ export interface AuctionItem {
   gameIcon: ItemGameIcon | null
 }
 
+/** "Name x5, Other" — quantity only when more than one. */
+export const formatAuctionItems = (items: Pick<AuctionItem, 'itemName' | 'quantity'>[]) =>
+  items.map((i) => (i.quantity > 1 ? `${i.itemName} x${i.quantity}` : i.itemName)).join(', ')
+
 export interface Auction {
   id: number
   status: AuctionStatus
   durationMinutes: number
   createdAt: string
+  /** SCHEDULED: planned start (null = "em breve", started by hand). Open: when it opened. */
+  startsAt: string | null
   endsAt: string
   currentBid: number
   winnerId: number | null
@@ -331,6 +348,8 @@ export interface Auction {
   /** Monotonic per auction — newer state always has a higher version. */
   version: number
   serverTime: string
+  /** Time left on the frozen clock while PAUSED. */
+  pausedRemainingMs: number | null
 }
 
 export interface News {
@@ -415,4 +434,24 @@ export interface Page<T> {
   totalPages: number
   number: number
   size: number
+}
+
+export interface Phrase {
+  id: number
+  text: string
+  memberId: number | null
+  memberNickname: string | null
+  memberAvatarUrl: string | null
+  /** Linked member's nickname, or the name it was noted with. */
+  author: string | null
+  saidAt: string | null
+  votes: number
+  /** Nicknames of who voted, oldest vote first. */
+  voters: string[]
+}
+
+export interface PhraseBoard {
+  maxVotes: number
+  myVotes: number[]
+  phrases: Phrase[]
 }

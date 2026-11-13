@@ -17,7 +17,7 @@ Poll again from that cursor after reconnecting. Replaying a page is safe.
 Never treat the number of history entries as the number of spawns: a spawn can
 appear again when its death is recorded, with a new revision and the same ID.
 
-Migration V95 backfills every existing spawn, including old deaths, as `SNAPSHOT`.
+Migration V122 backfills every existing spawn, including old deaths, as `SNAPSHOT`.
 New observations emit `FOUND`; the first recorded death emits `DIED` even when
 the spawn ID is older than previously downloaded records. There is no 90-second
 history cutoff. No existing spawn/death data is deleted or rewritten.
@@ -34,15 +34,15 @@ older revisions behind an already persisted cursor. Empty polls and map projecti
 updates do not take the lock. No DLL/protocol update is needed; /game and /spawns
 responses remain unchanged.
 
-V95 installs a database trigger for inserts and death updates, so capture also
+V122 installs a database trigger for inserts and death updates, so capture also
 continues during a rolling deployment or application rollback. A correction or
 clearing of diedAt also emits DIED; always use the current diedAt value rather
 than interpreting the event kind alone as proof of death. The backfill holds a
 write-blocking table lock until the trigger is installed in the same transaction.
 
-Deploy the backend with V95 before using this endpoint. The documented Coolify
+Deploy the backend with V122 before using this endpoint. The documented Coolify
 flow deploys main after merge; verify the actual deployment/health separately.
-Keeping V95 installed preserves collection if application code is rolled back;
+Keeping V122 installed preserves collection if application code is rolled back;
 the older version simply will not expose the new history endpoint. Database
 deletion/restore or removing the trigger requires a separate recovery review.
 

@@ -1,12 +1,14 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useDenyEventClaim } from '@/Domain/Event/hooks/useEvents'
-import { useLogs, useLogsSubscription } from '@/Domain/Log/hooks/useLogs'
+import { NO_LOG_FILTERS, useLogObjectives, useLogs, useLogsSubscription, type LogFilters } from '@/Domain/Log/hooks/useLogs'
+import { useMemberRanking } from '@/Domain/Member/hooks/useMembers'
 import {
   formatLogActor,
   formatLogDetails,
   formatLogTarget,
   getLogTypeLabel,
+  getLogTypeOptions,
 } from '@/Domain/Log/utils/formatLogEntry'
 import {
   canDenyEventClaim,
@@ -15,7 +17,7 @@ import {
   isClaimDenied,
 } from '@/Domain/Log/utils/logClaimUtils'
 import { useAuthContext } from '@/Features/Auth/contexts/AuthContext'
-import type { AuditLogEntry } from '@/Domain/types/models'
+import type { AuditLogEntry, AuditLogType } from '@/Domain/types/models'
 import { Button } from '@/Shared/ui/components/Button/Button'
 import { Panel } from '@/Shared/ui/components/Panel/Panel'
 import { SCHEDULE_TIME_ZONE } from '@/Shared/utils/scheduleTimeZone'
@@ -25,9 +27,12 @@ const PAGE_SIZE = 50
 
 export function LogsPage() {
   const [page, setPage] = useState(0)
+  const [filters, setFilters] = useState<LogFilters>(NO_LOG_FILTERS)
   const [denyingClaimId, setDenyingClaimId] = useState<number | null>(null)
   const [denyReason, setDenyReason] = useState('')
-  const { data, isLoading } = useLogs(page, PAGE_SIZE)
+  const { data, isLoading } = useLogs(page, PAGE_SIZE, filters)
+  const { data: objectives = [] } = useLogObjectives()
+  const { data: members = [] } = useMemberRanking()
   useLogsSubscription()
   const denyClaim = useDenyEventClaim()
   const { user, hasRole } = useAuthContext()
@@ -36,6 +41,16 @@ export function LogsPage() {
   const logs = data?.content ?? []
   const totalPages = data?.totalPages ?? 1
   const deniedClaimIds = useMemo(() => getDeniedClaimIds(logs), [logs])
+  const typeOptions = useMemo(() => getLogTypeOptions(isAdmin), [isAdmin])
+  const memberOptions = useMemo(
+    () => [...members].sort((a, b) => a.nickname.localeCompare(b.nickname, 'pt-BR')),
+    [members],
+  )
+  const hasFilters = Boolean(filters.type || filters.memberId || filters.objective)
+  const updateFilters = (patch: Partial<LogFilters>) => {
+    setFilters((prev) => ({ ...prev, ...patch }))
+    setPage(0)
+  }
 
   const handleDeny = async (claimId: number) => {
     const reason = denyReason.trim()
@@ -54,8 +69,57 @@ export function LogsPage() {
       className="logs-page"
       flush
     >
+      <div className="logs-filters">
+        <label>
+          Tipo
+          <select
+            value={filters.type ?? ''}
+            onChange={(e) => updateFilters({ type: (e.target.value || null) as AuditLogType | null })}
+          >
+            <option value="">Todos</option>
+            {typeOptions.map((t) => (
+              <option key={t.value} value={t.value}>
+                {t.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Evento
+          <select value={filters.objective ?? ''} onChange={(e) => updateFilters({ objective: e.target.value || null })}>
+            <option value="">Todos</option>
+            {objectives.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Player
+          <select
+            value={filters.memberId ?? ''}
+            onChange={(e) => updateFilters({ memberId: e.target.value ? Number(e.target.value) : null })}
+          >
+            <option value="">Todos</option>
+            {memberOptions.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.nickname}
+              </option>
+            ))}
+          </select>
+        </label>
+        {hasFilters && (
+          <Button variant="secondary" size="sm" onClick={() => updateFilters(NO_LOG_FILTERS)}>
+            Limpar filtros
+          </Button>
+        )}
+      </div>
+
       {logs.length === 0 ? (
-        <p className="logs-page__empty">Nenhum registro de auditoria.</p>
+        <p className="logs-page__empty">
+          {hasFilters ? 'Nenhum registro com esses filtros.' : 'Nenhum registro de auditoria.'}
+        </p>
       ) : (
         <>
           <ul className="logs-list">

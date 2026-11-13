@@ -3,6 +3,9 @@ import { apiClient } from '@/Shared/api/client'
 import { memberKeys } from '@/Domain/Member/hooks/useMembers'
 
 /** Só quem está na lista de espera da Party, ou qualquer membro no local. */
+/** Pontos de RG dados nos 30 min antes de uma CW: no máximo isso por membro por dia, como no servidor. */
+export const RG_PER_DAY = 2
+
 export type LocationScope = 'QUEUE' | 'ALL'
 /** Prioridade da fila da Party, ou pontos gerais do site (ranking/leilões). */
 export type LocationPointsType = 'PRIORITY' | 'GENERAL'
@@ -24,6 +27,10 @@ export interface LocationMatch {
   mapY: number | null
   locationAt: string
   inQueue: boolean
+  /** Segundos parado na mesma coordenada, na hora da busca. */
+  stillSeconds: number
+  /** Nos 30 min antes de uma CW: RG recebidos nessas janelas no dia (máximo RG_PER_DAY). Fora delas, 0. */
+  rgToday: number
 }
 
 export interface LocationFilter {
@@ -36,6 +43,8 @@ export interface LocationAwardResult {
   awarded: number
   nicknames: string[]
   skipped: string[]
+  /** Já tinham recebido RG_PER_DAY RG antes de CW no dia e ficaram de fora. */
+  limited: string[]
 }
 
 export const locationKeys = {

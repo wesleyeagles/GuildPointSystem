@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { useActiveEvents, useCancelEvent, useCreateEvent } from '@/Domain/Event/hooks/useEvents'
+import { useActiveEvents, useCancelEvent, useClaimEvent, useCreateEvent } from '@/Domain/Event/hooks/useEvents'
+import type { GuildEvent } from '@/Domain/types/models'
+import { useAppToast } from '@/Shared/ui/components/AppToast/AppToast'
 import { useObjectives } from '@/Domain/Objective/hooks/useObjectives'
 import { useAuthContext } from '@/Features/Auth/contexts/AuthContext'
 import { Button } from '@/Shared/ui/components/Button/Button'
@@ -11,6 +13,46 @@ import '@/Features/Items/Items.styles.scss'
 import './Events.styles.scss'
 
 const DURATIONS = [5, 15, 30, 60]
+
+/** Senha direto na lista: funciona mesmo se o card do evento foi fechado ou nunca apareceu. */
+function EventClaimForm({ event }: { event: GuildEvent }) {
+  const claim = useClaimEvent()
+  const { showToast } = useAppToast()
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+    if (password.length !== 4) {
+      setError('A senha deve ter exatamente 4 caracteres.')
+      return
+    }
+    try {
+      await claim.mutateAsync({ id: event.id, password })
+      showToast(`Evento "${event.objectiveName}" resgatado! +${event.points} pts`, 'success')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao resgatar')
+    }
+  }
+
+  return (
+    <form className="events-list__claim" onSubmit={handleSubmit}>
+      <input
+        type="text"
+        maxLength={4}
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        placeholder="Senha"
+        aria-label={`Senha do evento ${event.objectiveName}`}
+      />
+      <Button type="submit" size="sm" loading={claim.isPending}>
+        Resgatar
+      </Button>
+      {error && <p className="events-list__claim-error">{error}</p>}
+    </form>
+  )
+}
 
 export function EventsPage() {
   const { data: events = [] } = useActiveEvents()
@@ -122,6 +164,7 @@ export function EventsPage() {
                       <small>Expira {new Date(event.expiresAt).toLocaleString('pt-BR', { timeZone: SCHEDULE_TIME_ZONE })}</small>
                       {event.claimedByMe && <span className="events-list__claimed">Resgatado</span>}
                     </div>
+                    {event.active && !event.claimedByMe && <EventClaimForm event={event} />}
                   </div>
                   {isAdmin && (
                     <Button

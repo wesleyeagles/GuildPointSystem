@@ -1,9 +1,11 @@
 import { useMemo, useState, type FormEvent } from 'react'
 import { dllDownloadUrl, useDllReleases, useMemberDlls, usePublishDll } from '@/Domain/Dll/hooks/useDll'
+import { dllVersionFromFile } from '@/Domain/Dll/dllFileVersion'
 import { Button } from '@/Shared/ui/components/Button/Button'
 import { Panel } from '@/Shared/ui/components/Panel/Panel'
 import { useAppToast } from '@/Shared/ui/components/AppToast/AppToast'
 import { ChatTranslatorSettings } from './ChatTranslatorSettings'
+import { MarketPriceSettings } from './MarketPriceSettings'
 import './DllAdmin.styles.scss'
 
 const VERSION_FORMAT = /^\d{1,5}(\.\d{1,5}){0,3}$/
@@ -25,6 +27,8 @@ export function DllAdminPage() {
   const [version, setVersion] = useState('')
   const [notes, setNotes] = useState('')
   const [dll, setDll] = useState<File | null>(null)
+  /** Versão gravada dentro da DLL escolhida (null = não achou). */
+  const [dllVersion, setDllVersion] = useState<string | null>(null)
   const [signature, setSignature] = useState<File | null>(null)
   const [file, setFile] = useState<File | null>(null)
   const [fileKey, setFileKey] = useState(0)
@@ -42,8 +46,19 @@ export function DllAdminPage() {
   }, [members])
   const visibleMembers = onlyOutdated ? members.filter((m) => m.outdated) : members
   const validVersion = VERSION_FORMAT.test(version.trim())
+  // A assinatura vale para a versão de dentro da DLL: número diferente seria recusado (ou publicaria a versão errada).
+  const versionMismatch = !!dll && !!dllVersion && validVersion && version.trim() !== dllVersion
   // Com a DLL assinada o pacote é opcional; sem ela, vale o .rar/.zip como antes (sem atualização automática).
-  const canPublish = validVersion && (dll ? !!signature : !!file)
+  const canPublish = validVersion && !versionMismatch && (dll ? !!signature : !!file)
+
+  const chooseDll = async (chosen: File | null) => {
+    setDll(chosen)
+    setDllVersion(null)
+    if (!chosen) return
+    const found = await dllVersionFromFile(chosen)
+    setDllVersion(found)
+    if (found) setVersion(found)
+  }
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
@@ -59,6 +74,7 @@ export function DllAdminPage() {
       setVersion('')
       setNotes('')
       setDll(null)
+      setDllVersion(null)
       setSignature(null)
       setFile(null)
       setFileKey((k) => k + 1)
@@ -102,7 +118,11 @@ export function DllAdminPage() {
               aria-invalid={version !== '' && !validVersion}
               required
             />
-            <small>A mesma versão compilada na DLL (enviada no User-Agent "CerberusBags/x.y.z").</small>
+            {versionMismatch ? (
+              <small className="dll-admin__error">A DLL escolhida é a v{dllVersion}: use esse número.</small>
+            ) : (
+              <small>Preenchida sozinha ao escolher o version.dll (a versão gravada dentro dela).</small>
+            )}
           </label>
           <label>
             version.dll
@@ -110,7 +130,7 @@ export function DllAdminPage() {
               key={`dll-${fileKey}`}
               type="file"
               accept=".dll"
-              onChange={(e) => setDll(e.target.files?.[0] ?? null)}
+              onChange={(e) => void chooseDll(e.target.files?.[0] ?? null)}
             />
             <small>Com a assinatura, as DLLs instaladas se atualizam sozinhas.</small>
           </label>
@@ -193,6 +213,8 @@ export function DllAdminPage() {
       </Panel>
 
       <ChatTranslatorSettings />
+
+      <MarketPriceSettings />
 
       <Panel title="Histórico de versões" code={`${releases.length}`}>
         {releasesLoading ? (

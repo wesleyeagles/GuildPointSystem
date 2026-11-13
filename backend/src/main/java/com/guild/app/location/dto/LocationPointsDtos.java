@@ -29,7 +29,11 @@ public final class LocationPointsDtos {
             Integer mapX,
             Integer mapY,
             Instant locationAt,
-            boolean inQueue
+            boolean inQueue,
+            /** Segundos parado na mesma coordenada (calculado no servidor, sem depender do relogio do navegador). */
+            long stillSeconds,
+            /** Nos 30 min antes de uma CW: RG que o membro ja recebeu nessas janelas no dia (maximo 2). Fora delas, 0. */
+            int rgToday
     ) {}
 
     public record PreviewRequest(
@@ -54,5 +58,6 @@ public final class LocationPointsDtos {
             @Size(max = 64) String mapLabel
     ) {}
 
-    public record AwardResult(int awarded, List<String> nicknames, List<String> skipped) {}
+    /** {@code limited}: ja tinham recebido 2 RG antes de CW no dia e ficaram de fora. */
+    public record AwardResult(int awarded, List<String> nicknames, List<String> skipped, List<String> limited) {}
 }

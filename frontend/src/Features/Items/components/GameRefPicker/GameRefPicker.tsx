@@ -15,7 +15,7 @@ const CATEGORIES_BY_TYPE: Record<ItemType, LuaItemCategory[]> = {
   WEAPON: ['WEAPON'],
   ARMOR: ['HELMET', 'UPPER', 'LOWER', 'GLOVES', 'SHOES', 'SHIELD'],
   ACCESSORY: ['AMULET', 'RING'],
-  MISC: ['BOOTY', 'BOX', 'POTION', 'RESOURCE'],
+  MISC: ['BOOTY', 'BOX', 'POTION', 'RESOURCE', 'RELIC'],
 }
 
 const CATEGORY_LABELS: Record<LuaItemCategory, string> = {
@@ -32,6 +32,7 @@ const CATEGORY_LABELS: Record<LuaItemCategory, string> = {
   BOX: 'Box',
   POTION: 'Potion',
   RESOURCE: 'Resource',
+  RELIC: 'Relic',
 }
 
 interface GameRefPickerProps {

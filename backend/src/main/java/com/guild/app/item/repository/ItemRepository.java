@@ -13,10 +13,13 @@ public interface ItemRepository extends JpaRepository<Item, Long> {
 
     List<Item> findByDeletedFalseOrderByCreatedAtDesc();
 
+    List<Item> findTop2ByGameCodeIgnoreCaseAndDeletedFalse(String gameCode);
+
     @Query(value = """
             SELECT i.* FROM item i
             WHERE i.deleted = FALSE
-              AND (:category IS NULL OR i.lua_category = :category)
+              AND (:category IS NULL OR i.lua_category = :category
+                   OR (:category = 'OTHER' AND i.lua_category IS NULL))
               AND (
                 :hasSearch = FALSE
                 OR LOWER(i.name) LIKE LOWER(CONCAT('%', :search, '%'))
@@ -27,7 +30,8 @@ public interface ItemRepository extends JpaRepository<Item, Long> {
             countQuery = """
             SELECT COUNT(*) FROM item i
             WHERE i.deleted = FALSE
-              AND (:category IS NULL OR i.lua_category = :category)
+              AND (:category IS NULL OR i.lua_category = :category
+                   OR (:category = 'OTHER' AND i.lua_category IS NULL))
               AND (
                 :hasSearch = FALSE
                 OR LOWER(i.name) LIKE LOWER(CONCAT('%', :search, '%'))

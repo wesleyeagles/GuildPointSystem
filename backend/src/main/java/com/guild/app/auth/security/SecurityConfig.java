@@ -77,6 +77,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/character-status/ingest").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/quest-status/ingest").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/equipment-status/ingest").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/relic-status/ingest").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/party-invites/pending").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/party-invites/*/done").permitAll()
                         // Status ao vivo da raid pela DLL: so responde a personagem de membro aprovado em raid.
@@ -86,11 +87,27 @@ public class SecurityConfig {
                         // Shout no jogo pela DLL: ver/enviar so para personagem de membro aprovado (enviar: Lider/Admin).
                         .requestMatchers(HttpMethod.GET, "/api/shout/game", "/api/shout/game/sender").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/shout/game").permitAll()
+                        // Lista de membros no jogo pela DLL: so personagem de Lider/Admin (mesma regra do shout).
+                        .requestMatchers(HttpMethod.GET, "/api/members/game/roster").permitAll()
+                        // Card de evento no jogo pela DLL: so responde/resgata para personagem de membro aprovado.
+                        .requestMatchers(HttpMethod.GET, "/api/events/game").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/events/game/*/claim").permitAll()
+                        // Pontos por aproximacao pela DLL da referencia: so responde a personagem de membro aprovado.
+                        .requestMatchers(HttpMethod.GET, "/api/proximity-points/game").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/proximity-points/game/*").permitAll()
+                        // Check de "Pronto?" da PT pela DLL: o lider (membro aprovado) inicia, a PT responde.
+                        .requestMatchers(HttpMethod.GET, "/api/ready-check/game").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/ready-check/game/start", "/api/ready-check/game/*/answer").permitAll()
                         // Tradutor do chat pela DLL: so responde a personagem de membro aprovado da lista.
                         .requestMatchers(HttpMethod.GET, "/api/chat-translate/game/access").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/chat-translate/game").permitAll()
+                        // Preço do market no tooltip de item pela DLL: so responde a personagem da lista do Lider.
+                        .requestMatchers(HttpMethod.GET, "/api/market/game/price", "/api/market/game/access").permitAll()
+                        // Fim da CW pela DLL (mensagem do chat): so aceita personagem de membro aprovado.
+                        .requestMatchers(HttpMethod.POST, "/api/cw-attendance/game").permitAll()
                         // Mapa de recursos pela DLL: so aceita personagem de membro aprovado.
                         .requestMatchers(HttpMethod.POST, "/api/resources/game").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/pb-history/game").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/quests/ingest").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/quests/live/ingest").permitAll()
                         .requestMatchers("/ws/**").permitAll()

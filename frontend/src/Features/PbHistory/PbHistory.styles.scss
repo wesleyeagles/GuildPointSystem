@@ -1,0 +1,218 @@
+.pb-history {
+  display: flex;
+  flex-direction: column;
+  gap: theme.$spacing-lg;
+
+  &__muted {
+    margin: 0 0 theme.$spacing-sm;
+    color: theme.$color-text-muted;
+  }
+
+  &__tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: theme.$spacing-xs;
+  }
+
+  &__tab {
+    @include theme.tag(theme.$color-text-muted);
+    cursor: pointer;
+    font-size: theme.$font-size-ui;
+    padding: 6px theme.$spacing-md;
+    background: theme.$metal-800;
+
+    &--active {
+      color: theme.$color-primary;
+      border-color: theme.$color-primary;
+    }
+  }
+
+  &__filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: theme.$spacing-md;
+    margin-bottom: theme.$spacing-md;
+
+    select { @include theme.field-input; }
+  }
+
+  &__kills {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: theme.$spacing-xs;
+  }
+
+  &__kill {
+    border: 1px solid theme.$color-border;
+    background: theme.$metal-800;
+
+    &--open { border-style: dashed; }
+  }
+
+  &__kill-head {
+    display: grid;
+    grid-template-columns: minmax(180px, 2fr) 1fr 1fr 1.2fr auto;
+    gap: theme.$spacing-md;
+    align-items: center;
+    width: 100%;
+    padding: theme.$spacing-sm theme.$spacing-md;
+    background: transparent;
+    border: none;
+    color: theme.$color-text;
+    text-align: left;
+    cursor: pointer;
+
+    &:hover { background: rgba(255, 255, 255, 0.04); }
+
+    @media (max-width: 720px) { grid-template-columns: 1fr 1fr; }
+  }
+
+  // Mapa e, embaixo, a última posição vista (X · Z do mundo do jogo).
+  &__where {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+
+    small {
+      font-family: theme.$font-mono;
+      font-size: theme.$font-size-heading;
+      color: theme.$color-text-muted;
+      white-space: nowrap;
+    }
+  }
+
+  &__kill-name {
+    display: inline-flex;
+    align-items: center;
+    gap: theme.$spacing-sm;
+    font-weight: 600;
+  }
+
+  &__kind {
+    @include theme.tag(theme.$color-text-muted);
+    font-weight: 400;
+
+    &--rotacao { color: theme.$color-primary; border-color: theme.$color-primary; }
+  }
+
+  &__count { color: theme.$color-primary; white-space: nowrap; }
+
+  &__kill-body {
+    padding: 0 theme.$spacing-md theme.$spacing-md;
+
+    h4 {
+      margin: theme.$spacing-md 0 theme.$spacing-xs;
+      font-size: theme.$font-size-ui;
+      color: theme.$color-text-muted;
+      font-weight: 500;
+    }
+  }
+
+  &__detail {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 4px theme.$spacing-md;
+    margin: 0;
+
+    dt { color: theme.$color-text-muted; }
+    dd { margin: 0; }
+  }
+
+  &__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: theme.$spacing-xs;
+  }
+
+  &__chip {
+    @include theme.tag(theme.$color-text);
+
+    &--muted { color: theme.$color-text-muted; }
+  }
+
+  &__table {
+    width: 100%;
+    border-collapse: collapse;
+
+    th, td {
+      text-align: left;
+      padding: 6px theme.$spacing-sm;
+      border-bottom: 1px solid theme.$color-border;
+    }
+
+    th { color: theme.$color-text-muted; font-weight: 500; }
+
+    select { @include theme.field-input; }
+  }
+
+  &__row-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: theme.$spacing-xs;
+    justify-content: flex-end;
+  }
+
+  &__form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: theme.$spacing-sm;
+    margin-top: theme.$spacing-md;
+    align-items: center;
+
+    input, select { @include theme.field-input; }
+  }
+
+  &__search {
+    @include theme.field-input;
+    @include theme.field-control-height;
+    max-width: 420px;
+    width: 100%;
+    margin-bottom: theme.$spacing-md;
+  }
+
+  &__actions { display: flex; margin-top: theme.$spacing-md; }
+}
+
+// Mapa do jogo no detalhe do boss: imagem do mapa e a bolinha da última posição vista.
+.pb-history__map {
+  margin: theme.$spacing-sm 0 theme.$spacing-md;
+  width: min(320px, 100%);
+
+  svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    border: 1px solid theme.$color-border-strong;
+    background: theme.$color-bg;
+  }
+
+  figcaption {
+    margin-top: theme.$spacing-xs;
+    font-family: theme.$font-mono;
+    font-size: theme.$font-size-heading;
+    color: theme.$color-text-muted;
+  }
+
+  &-dot {
+    fill: theme.$color-danger;
+    stroke: #fff;
+
+  }
+
+  &-pulse {
+    fill: none;
+    stroke: theme.$color-danger;
+
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: pb-history-map-pulse 1.4s ease-out infinite;
+  }
+}
+
+@keyframes pb-history-map-pulse {
+  from { opacity: 0.9; transform: scale(0.6); }
+  to   { opacity: 0; transform: scale(2.2); }
+}

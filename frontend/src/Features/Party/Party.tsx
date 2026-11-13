@@ -660,7 +660,8 @@ export function PartyPage() {
               </span>
               {' · posição '}
               {sortByWaiting(board.lfg).findIndex((e) => e.memberId === my.lfg!.memberId) + 1}
-              {` de ${board.lfg.length}`}
+              {' de '}
+              {board.lfg.length}
             </p>
           )}
         </Panel>

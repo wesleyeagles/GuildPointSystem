@@ -40,7 +40,7 @@ public class CatalogService {
 
     private static final Set<String> LUA_ITEM_CATEGORIES = Set.of(
             "WEAPON", "HELMET", "UPPER", "LOWER", "GLOVES", "SHOES",
-            "AMULET", "RING", "SHIELD", "BOOTY", "BOX", "POTION", "RESOURCE");
+            "AMULET", "RING", "SHIELD", "BOOTY", "BOX", "POTION", "RESOURCE", "RELIC");
 
     private final GameAccessoryRepository gameAccessoryRepository;
     private final GameArmorRepository gameArmorRepository;

@@ -86,6 +86,35 @@ export function EquipmentPage() {
   const reviewAction = useEquipmentReviewAction()
   const ownReview = reviews.find(r => r.memberId === user?.memberId)
   const { showToast } = useAppToast()
+  const canPrepareMail = admin && !!user?.nickname && (
+    window.location.origin === 'https://blacklist.guildsystem.com.br' ||
+    (import.meta.env.DEV && import.meta.env.VITE_GAME_MAIL_PREVIEW === 'true')
+  )
+  const mailBusy = useRef(false)
+  const [preparingMail, setPreparingMail] = useState(false)
+  const [mailSender, setMailSender] = useState(() => localStorage.getItem('equipment-mail-sender') || 'boi')
+  const mailSenders = [...new Set(['boi', mailSender, ...(user?.nickname ? [user.nickname] : []), ...members.map(member => member.nickname)])]
+    .sort((a, b) => a.localeCompare(b, 'pt-BR'))
+  async function prepareMail(recipient: string) {
+    if (!canPrepareMail || !user?.nickname || mailBusy.current) return
+    mailBusy.current = true
+    setPreparingMail(true)
+    try {
+      const request: RequestInit & { targetAddressSpace: 'loopback' } = {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sender: mailSender, recipient }), signal: AbortSignal.timeout(30_000),
+        credentials: 'omit', redirect: 'error', targetAddressSpace: 'loopback',
+      }
+      const response = await fetch('http://127.0.0.1:15183/prepare-letter', request)
+      const result: { message?: string } = await response.json()
+      showToast(result.message ?? 'Não foi possível confirmar o preparo da carta.', response.ok ? 'success' : 'error')
+    } catch {
+      showToast('Confira a ponte de cartas e a permissão de acesso local do navegador. Se a carta já abriu no jogo, revise-a antes de tentar novamente.', 'error')
+    } finally {
+      mailBusy.current = false
+      setPreparingMail(false)
+    }
+  }
   const transferMutation = useEquipmentOperation()
   const slotMutation = useEquipmentSlotEdit()
   const mutateSlots = slotMutation.mutateAsync
@@ -153,7 +182,7 @@ export function EquipmentPage() {
   const tooltipItem = tooltip ? members.find(m => m.memberId === tooltip.memberId)?.slots.find(s => s.slot === tooltip.slot)?.assignment : null
   const [search, setSearch] = useState('')
   const [filled, setFilled] = useState(false)
-  const [sort, setSort] = useState('gs-desc')
+  const [sort, setSort] = useState('level-desc')
   const [playerClass, setPlayerClass] = useState('')
   const [historyId, setHistoryId] = useState(0)
   const [selectedSlot, setSelectedSlot] = useState<EquipmentSlot>('Weapon')
@@ -178,7 +207,12 @@ export function EquipmentPage() {
   const canEdit = admin || inspected?.memberId === user?.memberId
   const filteringSelection = onlySelected && selectedMembers.size > 0
   const filtered = members.filter(m => m.nickname.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()) && (!playerClass || playerClassForEquipmentList(m.className ?? undefined) === playerClass) && (!filled || m.slots.some(s => s.assignment)) && (!filteringSelection || selectedMembers.has(m.memberId)))
-    .sort((a, b) => (sort === 'gs-asc' ? (a.gearScore?.total ?? 0) - (b.gearScore?.total ?? 0) : sort === 'gs-desc' ? (b.gearScore?.total ?? 0) - (a.gearScore?.total ?? 0) : sort === 'name-desc' ? b.nickname.localeCompare(a.nickname, 'pt-BR', { sensitivity: 'base' }) : sort === 'level-asc' ? a.level - b.level : sort === 'level-desc' ? b.level - a.level : 0) || a.nickname.localeCompare(b.nickname, 'pt-BR', { sensitivity: 'base' }) || a.memberId - b.memberId)
+    .sort((a, b) => (sort === 'gs-asc' ? (a.gearScore?.total ?? 0) - (b.gearScore?.total ?? 0)
+      : sort === 'gs-desc' ? (b.gearScore?.total ?? 0) - (a.gearScore?.total ?? 0)
+      : sort === 'name-desc' ? b.nickname.localeCompare(a.nickname, 'pt-BR', { sensitivity: 'base' })
+      : sort === 'level-asc' ? a.level - b.level || (a.expPercent ?? 0) - (b.expPercent ?? 0)
+      : sort === 'level-desc' ? b.level - a.level || (b.expPercent ?? 0) - (a.expPercent ?? 0)
+      : 0) || a.nickname.localeCompare(b.nickname, 'pt-BR', { sensitivity: 'base' }) || a.memberId - b.memberId)
   const acceptsDrop = (memberId: number, slot?: EquipmentSlot, source = dragged) => !!(admin && source && source.memberId !== memberId && !transferMutation.isPending && (!slot || slot === source.position.slot ||
     (['RING', 'AMULET'].includes(SLOT_CATEGORY[source.position.slot]) && SLOT_CATEGORY[slot] === SLOT_CATEGORY[source.position.slot])))
   const sendTransfer = async (request: DragTransfer) => {
@@ -258,12 +292,16 @@ export function EquipmentPage() {
       {error && <p role="alert">{error.message}</p>}
       {failedEdit && <div role="alert">{slotMutation.error?.message ?? 'Não foi possível concluir a alteração.'}<Button onClick={() => void editSlots(failedEdit.request, failedEdit.direction)}>Tentar novamente</Button><Button onClick={() => setFailedEdit(null)}>Fechar aviso</Button></div>}
     </div>}
-    <div className={`equipment-workspace${managing && inspected ? ' equipment-workspace--split' : ''}`}>
+    <div className={`equipment-workspace${managing && inspected ? ' equipment-workspace--split' : ''}${canPrepareMail ? ' equipment-workspace--mail' : ''}`}>
     {managing && <Panel className="equipment-workspace__roster" title="Personagens" code={`${members.length} PERSONAGENS`}>
       <div className="equipment-toolbar">
+        {canPrepareMail && <label>Personagem remetente<select value={mailSender} disabled={preparingMail} onChange={e => {
+          setMailSender(e.target.value)
+          localStorage.setItem('equipment-mail-sender', e.target.value)
+        }}>{mailSenders.map(nickname => <option key={nickname} value={nickname}>{nickname}</option>)}</select></label>}
         <label>Pesquisar personagem<input value={search} onChange={e => setSearch(e.target.value)} placeholder="Nick do personagem" /></label>
         <div className="equipment-player-classes" role="group" aria-label="Classe do personagem"><span>Classe</span><div>{(['MELEE', 'RANGER', 'FORCE'] as const).map(value => <Button key={value} size="sm" variant="secondary" aria-pressed={playerClass === value} onClick={() => setPlayerClass(current => current === value ? '' : value)}>{value}</Button>)}</div></div>
-        <label>Ordenar jogadores<select value={sort} onChange={e => setSort(e.target.value)}><option value="name">Nome · A–Z</option><option value="name-desc">Nome · Z–A</option><option value="gs-desc">Gear score decrescente</option><option value="gs-asc">Gear score crescente</option><option value="level-asc">Nível crescente</option><option value="level-desc">Nível decrescente</option></select></label>
+        <label>Ordenar jogadores<select value={sort} onChange={e => setSort(e.target.value)}><option value="name">Nome · A–Z</option><option value="name-desc">Nome · Z–A</option><option value="gs-desc">Gear score decrescente</option><option value="gs-asc">Gear score crescente</option><option value="level-asc">Nível e XP crescentes</option><option value="level-desc">Nível e XP decrescentes</option></select></label>
         <label className="equipment-check"><input type="checkbox" checked={filled} onChange={e => setFilled(e.target.checked)} />Somente com equipamento informado</label>
         <label className="equipment-check"><input type="checkbox" checked={filteringSelection} disabled={selectedMembers.size === 0} onChange={e => setOnlySelected(e.target.checked)} />Somente selecionados ({selectedMembers.size})</label>
         {selectedMembers.size > 0 && <Button size="sm" variant="secondary" onClick={() => { setSelectedMembers(new Set()); setOnlySelected(false) }}>Limpar seleção</Button>}
@@ -312,7 +350,12 @@ export function EquipmentPage() {
               </button>{current && (admin || member.memberId === user?.memberId) && <button type="button" className="equipment-mini-remove" aria-label={`Remover ${slotDescription(slot)} de ${member.nickname}`} title="Remover equipamento" disabled={slotMutation.isPending || !!failedEdit} onClick={() => removeItems(member, slot)}>×</button>}</div>
             })}</div>
           </div>)}
-          <div className="equipment-roster__actions">{admin && <Button size="sm" variant="secondary" aria-label={`Registrar entrega para ${member.nickname}`} onClick={() => registerDelivery(member)}>Registrar entrega</Button>}{(admin || member.memberId === user?.memberId) && <Button size="sm" variant="danger" aria-label={`Limpar equipamentos de ${member.nickname}`} disabled={!member.slots.some(s => s.assignment) || slotMutation.isPending || !!failedEdit} onClick={() => removeItems(member)}>Limpar</Button>}<Button size="sm" variant="secondary" aria-label={`Inspecionar ${member.nickname}`} onClick={() => inspect(member.memberId)}>Ver</Button></div>
+          <div className="equipment-roster__actions">
+            {admin && <Button size="sm" variant="secondary" aria-label={`Registrar entrega para ${member.nickname}`} onClick={() => registerDelivery(member)}>Registrar entrega</Button>}
+            {canPrepareMail && <Button className="equipment-roster__mail" size="sm" variant="secondary" aria-label={`Preparar carta para ${member.nickname}`} title="Preparar carta" disabled={preparingMail} onClick={() => void prepareMail(member.nickname)}>✉</Button>}
+            {(admin || member.memberId === user?.memberId) && <Button size="sm" variant="danger" aria-label={`Limpar equipamentos de ${member.nickname}`} disabled={!member.slots.some(s => s.assignment) || slotMutation.isPending || !!failedEdit} onClick={() => removeItems(member)}>Limpar</Button>}
+            <Button size="sm" variant="secondary" aria-label={`Inspecionar ${member.nickname}`} onClick={() => inspect(member.memberId)}>Ver</Button>
+          </div>
         </li>)}</ul>
         {filtered.length === 0 && <p>Nenhum personagem encontrado com esses filtros.</p>}
       </>}

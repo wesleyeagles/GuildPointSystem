@@ -5,8 +5,12 @@ import {
   GUILD_INVENTORY_PAGE_SIZE,
   useGuildInventory,
 } from '@/Domain/Item/hooks/useGuildInventory'
+import {
+  INVENTORY_CATEGORIES,
+  type InventoryCategory,
+} from '@/Domain/Item/utils/inventoryCategories'
 import { useItem } from '@/Domain/Item/hooks/useItems'
-import type { Item, LuaItemCategory } from '@/Domain/types/models'
+import type { Item } from '@/Domain/types/models'
 import { rarityColor } from '@/Features/Items/components/ItemCard/ItemCard'
 import { mediaUrl } from '@/Shared/utils/mediaUrl'
 import { SpriteIcon } from '@/Shared/ui/components/SpriteIcon/SpriteIcon'
@@ -15,21 +19,6 @@ import '@/Features/Items/components/AccessoryCatalog/AccessoryCatalog.styles.scs
 import '@/Features/Items/components/GameRefPicker/GameRefPicker.styles.scss'
 import './AuctionItemPicker.styles.scss'
 
-const CATEGORIES: { id: LuaItemCategory; label: string }[] = [
-  { id: 'WEAPON', label: 'Weapon' },
-  { id: 'HELMET', label: 'Helmet' },
-  { id: 'UPPER', label: 'Upper' },
-  { id: 'LOWER', label: 'Lower' },
-  { id: 'GLOVES', label: 'Gloves' },
-  { id: 'SHOES', label: 'Shoes' },
-  { id: 'AMULET', label: 'Amulet' },
-  { id: 'RING', label: 'Ring' },
-  { id: 'SHIELD', label: 'Shield' },
-  { id: 'BOOTY', label: 'Booty' },
-  { id: 'BOX', label: 'Box' },
-  { id: 'POTION', label: 'Potion' },
-  { id: 'RESOURCE', label: 'Resource' },
-]
 
 function detailLines(item: Item): string[] {
   const det = item.details as Record<string, unknown> | null
@@ -92,7 +81,7 @@ interface AuctionItemPickerProps {
 
 export function AuctionItemPicker({ itemId, onChange, disabledIds = [] }: AuctionItemPickerProps) {
   const [open, setOpen] = useState(false)
-  const [category, setCategory] = useState<LuaItemCategory>('WEAPON')
+  const [category, setCategory] = useState<InventoryCategory>('WEAPON')
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [page, setPage] = useState(0)
@@ -148,9 +137,9 @@ export function AuctionItemPicker({ itemId, onChange, disabledIds = [] }: Auctio
               >
                 {selectedItem.name}
               </span>
-              <span className="auction-item-picker__details">
-                {detailLines(selectedItem).join(' · ') || selectedItem.gameCode || '—'}
-              </span>
+              {detailLines(selectedItem).length > 0 && (
+                <span className="auction-item-picker__details">{detailLines(selectedItem).join(' · ')}</span>
+              )}
             </div>
             <button type="button" className="game-ref-picker__clear" onClick={() => onChange(0)}>
               Limpar
@@ -184,7 +173,7 @@ export function AuctionItemPicker({ itemId, onChange, disabledIds = [] }: Auctio
               </div>
 
               <div className="accessory-catalog__mode-tabs accessory-catalog__mode-tabs--wrap">
-                {CATEGORIES.map((tab) => (
+                {INVENTORY_CATEGORIES.map((tab) => (
                   <button
                     key={tab.id}
                     type="button"
@@ -237,9 +226,6 @@ export function AuctionItemPicker({ itemId, onChange, disabledIds = [] }: Auctio
                             </span>
                             {lines.length > 0 && (
                               <span className="auction-item-picker-modal__sub">{lines.join(' · ')}</span>
-                            )}
-                            {item.gameCode && (
-                              <span className="auction-item-picker-modal__code">{item.gameCode}</span>
                             )}
                           </div>
                         </button>

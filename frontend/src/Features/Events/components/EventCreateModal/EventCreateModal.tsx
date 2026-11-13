@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useCreateEvent } from '@/Domain/Event/hooks/useEvents'
 import { useObjectives } from '@/Domain/Objective/hooks/useObjectives'
 import { Button } from '@/Shared/ui/components/Button/Button'
@@ -9,9 +9,11 @@ const DURATIONS = [5, 15, 30, 60]
 
 interface EventCreateModalProps {
   onClose: () => void
+  /** Abas do modal "+ Criar" (QuickCreateModal), no topo do card. */
+  tabs?: ReactNode
 }
 
-export function EventCreateModal({ onClose }: EventCreateModalProps) {
+export function EventCreateModal({ onClose, tabs }: EventCreateModalProps) {
   const { data: objectives = [] } = useObjectives()
   const createEvent = useCreateEvent()
 
@@ -31,6 +33,7 @@ export function EventCreateModal({ onClose }: EventCreateModalProps) {
         onClick={(e) => e.stopPropagation()}
         onSubmit={handleSubmit}
       >
+        {tabs}
         <div className="auth-window-bar">
           <span>Lançar evento</span>
           <span className="auth-window-bar__code">ADM</span>

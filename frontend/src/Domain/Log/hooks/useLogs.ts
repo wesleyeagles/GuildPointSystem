@@ -1,24 +1,58 @@
 import { useAuthContext } from '@/Features/Auth/contexts/AuthContext'
 import { useEffect, useRef } from 'react'
-import { useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/Shared/api/client'
 import { onSocketReconnect, subscribeTopic, subscribeTopicEffect } from '@/Shared/websocket/socketClient'
 import { eventKeys, mergeEventIntoCache } from '@/Domain/Event/hooks/useEvents'
 import { memberKeys } from '@/Domain/Member/hooks/useMembers'
 import { getPayloadClaimId, markClaimDeniedInPage } from '@/Domain/Log/utils/logClaimUtils'
 import { useAppToast } from '@/Shared/ui/components/AppToast/AppToast'
-import type { AuditLogEntry, GuildEvent, Page } from '@/Domain/types/models'
+import type { AuditLogEntry, AuditLogType, GuildEvent, Page } from '@/Domain/types/models'
 
 const logKeys = {
   all: ['logs'] as const,
+  objectives: ['log-objectives'] as const,
 }
 
-export function useLogs(page = 0, size = 50) {
+/** Filtros da aba Logs; null = sem filtro. memberId casa com quem fez ou com quem recebeu. */
+export interface LogFilters {
+  type: AuditLogType | null
+  memberId: number | null
+  objective: string | null
+}
+
+export const NO_LOG_FILTERS: LogFilters = { type: null, memberId: null, objective: null }
+
+function matchesFilters(log: AuditLogEntry, f: LogFilters | undefined) {
+  if (!f) return true
+  if (f.type && log.type !== f.type) return false
+  if (f.memberId && log.actorId !== f.memberId && log.targetId !== f.memberId) return false
+  if (f.objective && log.payload.objectiveName !== f.objective) return false
+  return true
+}
+
+export function useLogs(page = 0, size = 50, filters: LogFilters = NO_LOG_FILTERS) {
   const { hasRole } = useAuthContext()
   const audience = hasRole('ADMINISTRADOR') ? 'admin' : 'public'
   return useQuery({
-    queryKey: [...logKeys.all, audience, page, size],
-    queryFn: () => apiClient<Page<AuditLogEntry>>(`/logs?page=${page}&size=${size}`),
+    queryKey: [...logKeys.all, audience, page, size, filters],
+    queryFn: () => {
+      const params = new URLSearchParams({ page: String(page), size: String(size) })
+      if (filters.type) params.set('type', filters.type)
+      if (filters.memberId) params.set('memberId', String(filters.memberId))
+      if (filters.objective) params.set('objective', filters.objective)
+      return apiClient<Page<AuditLogEntry>>(`/logs?${params}`)
+    },
+    placeholderData: keepPreviousData,
+  })
+}
+
+/** Nomes de evento (objetivo) que já apareceram nos logs, para o filtro "Evento". */
+export function useLogObjectives() {
+  return useQuery({
+    queryKey: logKeys.objectives,
+    queryFn: () => apiClient<string[]>('/logs/objectives'),
+    staleTime: 60_000,
   })
 }
 
@@ -27,7 +61,12 @@ export function useLogs(page = 0, size = 50) {
  * on every log would turn each claim into one GET /logs per connected client.
  */
 function applyLogToCache(queryClient: QueryClient, log: AuditLogEntry) {
-  queryClient.setQueriesData<Page<AuditLogEntry>>({ queryKey: logKeys.all }, (old) => {
+  // Cada lista só recebe o log se ele passar nos filtros dela (5º item da chave).
+  const matching = {
+    queryKey: logKeys.all,
+    predicate: (q: { queryKey: readonly unknown[] }) => matchesFilters(log, q.queryKey[5] as LogFilters | undefined),
+  }
+  queryClient.setQueriesData<Page<AuditLogEntry>>(matching, (old) => {
     if (!old || old.number !== 0 || old.content.some((l) => l.id === log.id)) return old
     const totalElements = old.totalElements + 1
     return {
@@ -174,3 +213,72 @@ export function useEventSubscription(onEvent?: (event: GuildEvent) => void) {
 }
 
 export type { AuditLogEntry }
+
+/** Uma rodada de pontos da guild, sem jogador (GET /logs/recent-points). */
+export interface RecentPointsEntry {
+  kind: 'EVENT' | 'RG' | 'CW' | 'PROXIMITY' | string
+  name: string
+  /** Local do RG; null nos outros. */
+  detail: string | null
+  members: number
+  /** Pontos de cada um (o maior, se variou). */
+  points: number
+  total: number
+  at: string
+  /** O membro logado recebeu. */
+  received: boolean
+  /** Quanto ele recebeu; null se não recebeu. */
+  myPoints: number | null
+  /** Não recebeu porque já estava no limite do dia (evento limitado ou RG). */
+  limited: boolean
+  /** Resgates de evento da rodada: só vem para Administrador+ (botão Cancelar). */
+  claimIds?: number[] | null
+}
+
+const recentPointsKey = ['recent-points'] as const
+/** Tipos de log que mudam as rodadas de pontos. */
+const POINTS_LOG_TYPES = new Set<AuditLogType>(['EVENT_CLAIMED', 'EVENT_DENIED', 'POINTS_ADJUSTED'])
+/** Vários resgates em sequência viram uma busca só. */
+const RECENT_POINTS_DEBOUNCE_MS = 3000
+
+/** Administrador+: cancela uma rodada de evento inteira (tira os pontos de todos que receberam). */
+export function useCancelRecentRound() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ claimIds, reason }: { claimIds: number[]; reason: string }) =>
+      apiClient<{ denied: number }>('/events/claims/deny', { method: 'POST', body: { claimIds, reason } }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: recentPointsKey })
+      queryClient.invalidateQueries({ queryKey: ['logs'] })
+      queryClient.invalidateQueries({ queryKey: memberKeys.all })
+      queryClient.invalidateQueries({ queryKey: ['members'] })
+    },
+  })
+}
+
+export function useRecentPoints(limit = 15) {
+  const queryClient = useQueryClient()
+  const timer = useRef<number | undefined>(undefined)
+
+  useEffect(() => {
+    const refresh = () => {
+      window.clearTimeout(timer.current)
+      timer.current = window.setTimeout(() => queryClient.invalidateQueries({ queryKey: recentPointsKey }), RECENT_POINTS_DEBOUNCE_MS)
+    }
+    const stopLogs = subscribeTopicEffect('/topic/logs', (message) => {
+      try {
+        if (POINTS_LOG_TYPES.has((JSON.parse(message.body) as AuditLogEntry).type)) refresh()
+      } catch {
+        refresh()
+      }
+    })
+    const stopReconnect = onSocketReconnect(refresh)
+    return () => { stopLogs(); stopReconnect(); window.clearTimeout(timer.current) }
+  }, [queryClient])
+
+  return useQuery({
+    queryKey: [...recentPointsKey, limit],
+    queryFn: () => apiClient<RecentPointsEntry[]>(`/logs/recent-points?limit=${limit}`),
+    staleTime: 30_000,
+  })
+}

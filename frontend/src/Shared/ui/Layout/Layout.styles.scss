@@ -5,78 +5,59 @@ $drawer-breakpoint: 960px;
   display: grid;
   grid-template-columns: theme.$sidebar-width minmax(0, 1fr);
 
-  // ── Sidebar ────────────────────────────────────────────────────────────────
+  // ── Sidebar: trilho só de ícones ───────────────────────────────────────────
   &__sidebar {
     position: sticky;
     top: 0;
     height: 100vh;
     display: flex;
     flex-direction: column;
-    gap: theme.$spacing-md;
-    padding: theme.$spacing-md theme.$spacing-md theme.$spacing-md;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 0;
+    overflow-x: hidden;
     overflow-y: auto;
+    scrollbar-width: none;
     z-index: 200;
     background:
       repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.012) 0 1px, transparent 1px 3px),
       linear-gradient(90deg, theme.$metal-900, theme.$metal-800 70%, theme.$metal-700);
     border-right: 1px solid theme.$color-border-strong;
     box-shadow: inset -1px 0 0 theme.$metal-highlight, 6px 0 24px rgba(0, 0, 0, 0.45);
+
+    &::-webkit-scrollbar { display: none; }
   }
 
   &__brand {
     display: flex;
-    align-items: center;
     justify-content: center;
-    padding-bottom: theme.$spacing-md;
-    border-bottom: 1px solid theme.$color-border;
-    position: relative;
-
-    &::after {
-      content: '';
-      position: absolute;
-      left: 50%;
-      transform: translateX(-50%);
-      bottom: -1px;
-      width: 48px;
-      height: 1px;
-      background: theme.$color-amber;
-    }
   }
 
   &__logo {
-    width: 48px;
-    height: 48px;
+    width: 36px;
+    height: 36px;
     object-fit: contain;
   }
 
-
-  // Member sheet
+  // Perfil: inicial do nick, pontos disponíveis e a barrinha
   &__member {
-    @include theme.card;
     display: flex;
     flex-direction: column;
-    gap: theme.$spacing-sm;
-    padding: theme.$spacing-sm;
-  }
-
-  &__member-head {
-    display: flex;
     align-items: center;
-    gap: theme.$spacing-sm;
-    min-width: 0;
-    margin: -4px;
-    padding: 4px;
+    gap: 3px;
+    width: 56px;
+    padding: 5px 0 6px;
     color: inherit;
     text-decoration: none;
     border: 1px solid transparent;
-    transition: border-color 0.1s, background 0.1s;
+    border-radius: 8px;
+    transition: border-color 0.12s, background 0.12s;
 
     &:hover,
     &--active {
+      text-decoration: none;
       border-color: theme.$color-border-strong;
       background: rgba(theme.$color-primary, 0.06);
-
-      .layout__member-name { color: theme.$color-primary; }
     }
 
     &:focus-visible {
@@ -85,105 +66,104 @@ $drawer-breakpoint: 960px;
     }
   }
 
-  &__member-name {
+  &__member-avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    object-fit: cover;
     font-family: theme.$font-heading;
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 800;
-    letter-spacing: 0.5px;
-    color: theme.$color-text;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    color: theme.$color-primary;
+    background: rgba(theme.$color-primary, 0.1);
+    border: 1px solid rgba(theme.$color-primary, 0.5);
   }
 
-  &__gauge {
-    @include theme.readout;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    padding: 6px 8px 8px;
-  }
-
-  &__gauge-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-  }
-
-  &__gauge-label {
-    font-family: theme.$font-family;
-    font-size: theme.$font-size-base;
-    color: theme.$color-text-muted;
-  }
-
-  &__gauge-value {
-    font-size: 20px;
-    color: theme.$color-amber;
-
-    &--cyan { color: theme.$color-primary; }
+  &__member-points {
+    font-family: theme.$font-mono;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.5px;
+    color: theme.$color-primary;
+    font-variant-numeric: tabular-nums;
   }
 
   &__gauge-bar {
-    margin-top: 4px;
-    height: 6px;
-    background: repeating-linear-gradient(90deg, theme.$metal-700 0 6px, transparent 6px 8px);
+    display: block;
+    width: 40px;
+    height: 3px;
+    background: theme.$metal-700;
 
     span {
       display: block;
       height: 100%;
-      background: repeating-linear-gradient(90deg, theme.$color-primary 0 6px, transparent 6px 8px);
+      background: theme.$color-primary;
       transition: width 0.4s ease;
     }
   }
 
-  // Navigation slots
+  // Navigation
   &__nav {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    align-items: center;
+    gap: 10px;
     flex: 1;
   }
 
+  &__nav-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+
+    & + & {
+      padding-top: 10px;
+      border-top: 1px solid theme.$color-border;
+    }
+  }
+
   &__nav-link {
-    @include theme.chamfer(theme.$chamfer-sm);
     display: flex;
     align-items: center;
-    gap: theme.$spacing-sm;
-    padding: 8px 10px;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
     position: relative;
-    font-family: theme.$font-heading;
-    font-size: 16px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    text-transform: uppercase;
     color: theme.$color-text-muted;
-    background: rgba(0, 0, 0, 0.25);
-    border: 1px solid theme.$color-border;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    cursor: pointer;
     transition: color 0.12s, background 0.12s, border-color 0.12s;
+
+    svg {
+      width: 22px;
+      height: 22px;
+    }
 
     &:hover {
       color: theme.$color-text;
-      border-color: theme.$color-border-strong;
-      background: linear-gradient(90deg, theme.$metal-700, rgba(0, 0, 0, 0.2));
+      background: rgba(255, 255, 255, 0.04);
     }
 
     &--active {
-      // Mirror the chamfer so the active slot reads as "pressed in"
-      clip-path: polygon(0 0, calc(100% - #{theme.$chamfer-sm}) 0, 100% theme.$chamfer-sm, 100% 100%, theme.$chamfer-sm 100%, 0 calc(100% - #{theme.$chamfer-sm}));
-      color: theme.$color-text;
-      border-color: theme.$color-border-strong;
-      background:
-        linear-gradient(90deg, rgba(theme.$color-primary, 0.14), transparent 70%),
-        theme.metal-surface(theme.$metal-600, theme.$metal-800);
-      @include theme.bevel;
+      color: theme.$color-primary;
+      background: rgba(theme.$color-primary, 0.08);
+      border-color: rgba(theme.$color-primary, 0.25);
 
       &::before {
         content: '';
         position: absolute;
-        left: 0;
-        top: 4px;
-        bottom: 4px;
+        left: -9px;
+        top: 8px;
+        bottom: 8px;
         width: 3px;
+        border-radius: 2px;
         background: theme.$color-primary;
       }
     }
@@ -192,42 +172,70 @@ $drawer-breakpoint: 960px;
     &:focus {
       text-decoration: none;
     }
+
+    &:focus-visible {
+      outline: 2px solid theme.$color-primary;
+      outline-offset: 1px;
+    }
+
+    // Contagem no canto do ícone
+    .nav-badge {
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      min-width: 18px;
+      height: 18px;
+      padding: 0 4px;
+      font-size: 11px;
+    }
   }
 
   &__quick-event {
-    width: 100%;
-    margin-bottom: theme.$spacing-xs;
-    cursor: pointer;
     color: theme.$color-amber;
     border-color: rgba(theme.$color-amber, 0.5);
-    background: linear-gradient(90deg, rgba(theme.$color-amber, 0.12), rgba(0, 0, 0, 0.25) 70%);
+    background: rgba(theme.$color-amber, 0.08);
 
     &:hover {
       color: theme.$color-amber;
       border-color: theme.$color-amber;
-      background: linear-gradient(90deg, rgba(theme.$color-amber, 0.22), rgba(0, 0, 0, 0.2) 70%);
+      background: rgba(theme.$color-amber, 0.16);
     }
   }
 
-  &__nav-label {
-    white-space: nowrap;
+  // Separador antes do escudo de admin (o link fica fora dos grupos)
+  &__nav-group + &__nav-link--admin {
+    margin-top: 11px;
+
+    &::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: -12px;
+      height: 1px;
+      background: theme.$color-border;
+    }
   }
 
-  &__admin {
-    margin-top: theme.$spacing-sm;
-    display: flex;
+  &__nav-link--admin {
+    color: theme.$color-amber;
+
+    &:hover { color: theme.$color-amber; }
+
+    &.layout__nav-link--active {
+      color: theme.$color-amber;
+      background: rgba(theme.$color-amber, 0.08);
+      border-color: rgba(theme.$color-amber, 0.3);
+
+      &::before { background: theme.$color-amber; }
+    }
+  }
+
+  // Bandeiras empilhadas no pé do trilho
+  .language-switcher {
     flex-direction: column;
     gap: 6px;
-  }
-
-  &__admin-strip {
-    @include theme.hazard-stripe(theme.$color-amber, 5px);
-    height: 6px;
-    opacity: 0.75;
-  }
-
-  &__nav-link--admin.layout__nav-link--active::before {
-    background: theme.$color-amber;
+    margin-bottom: 0;
   }
 
   &__logout {
@@ -235,9 +243,10 @@ $drawer-breakpoint: 960px;
     display: flex;
     align-items: center;
     gap: theme.$spacing-sm;
-    padding: 8px 10px;
+    align-self: stretch;
+    padding: 0 10px;
     font-family: theme.$font-heading;
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 700;
     letter-spacing: 1px;
     text-transform: uppercase;
@@ -267,7 +276,7 @@ $drawer-breakpoint: 960px;
     display: flex;
     align-items: center;
     gap: theme.$spacing-md;
-    height: 52px;
+    min-height: 52px;
     padding: 0 theme.$spacing-xl;
     background:
       linear-gradient(180deg, rgba(theme.$color-bg, 0.96), rgba(theme.$color-bg, 0.88));
@@ -303,8 +312,9 @@ $drawer-breakpoint: 960px;
     justify-content: center;
     gap: theme.$spacing-xs;
     min-width: 0;
-    padding: 0 theme.$spacing-sm;
+    padding: 6px theme.$spacing-sm;
     overflow-x: auto;
+    overflow-y: hidden;
   }
 
   &__event-timer {
@@ -312,8 +322,8 @@ $drawer-breakpoint: 960px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 1px;
-    padding: 3px 8px 4px;
+    gap: 4px;
+    padding: 6px 10px;
     border: 1px solid theme.$color-border;
     background: rgba(0, 0, 0, 0.28);
     flex-shrink: 0;
@@ -510,8 +520,6 @@ $drawer-breakpoint: 960px;
       gap: theme.$spacing-sm;
     }
 
-    // The diamond alone carries the connection state; the label stays in the tooltip.
-    &__socket-text,
     &__clock--local {
       display: none;
     }
@@ -537,3 +545,69 @@ $drawer-breakpoint: 960px;
   }
 }
 
+
+// ── Tooltip dos ícones do trilho (portal no body) ─────────────────────────────
+.sidebar-tooltip {
+  position: fixed;
+  z-index: 1000;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: max-content;
+  max-width: 260px;
+  padding: 7px 12px 7px 14px;
+  pointer-events: none;
+  background: linear-gradient(90deg, rgba(theme.$color-primary, 0.1), transparent 60%), theme.$metal-800;
+  border: 1px solid theme.$color-border-strong;
+  border-left: 3px solid theme.$color-primary;
+  border-radius: 6px;
+  box-shadow: 0 8px 24px theme.$metal-shadow, 0 0 12px rgba(theme.$color-primary, 0.12);
+  animation: sidebar-tooltip-in 0.14s ease-out;
+
+  // Setinha apontando para o ícone
+  &::before {
+    content: '';
+    position: absolute;
+    left: -8px;
+    top: 50%;
+    transform: translateY(-50%);
+    border: 5px solid transparent;
+    border-right-color: theme.$color-primary;
+  }
+
+  &__label {
+    font-family: theme.$font-heading;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    white-space: nowrap;
+    color: theme.$color-text;
+  }
+
+  &__points {
+    display: flex;
+    gap: 12px;
+    padding-top: 4px;
+    border-top: 1px dashed theme.$color-border;
+    font-size: theme.$font-size-base;
+    color: theme.$color-text-muted;
+    white-space: nowrap;
+
+    b {
+      font-family: theme.$font-mono;
+      font-weight: 700;
+      color: theme.$color-amber;
+    }
+
+    b.sidebar-tooltip__points--cyan { color: theme.$color-primary; }
+  }
+}
+
+@keyframes sidebar-tooltip-in {
+  from {
+    opacity: 0;
+    transform: translate(-6px, -50%);
+  }
+}

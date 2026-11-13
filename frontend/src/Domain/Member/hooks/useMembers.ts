@@ -150,6 +150,19 @@ export function useSetSellBlock() {
   })
 }
 
+/** Líder/Administrador: tag "English Player" (the member's DLL shows everything in English). */
+export function useSetEnglishPlayer() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, englishPlayer }: { id: number; englishPlayer: boolean }) =>
+      apiClient<Member>(`/members/${id}/english-player`, { method: 'PUT', body: { englishPlayer } }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: memberKeys.all })
+      queryClient.invalidateQueries({ queryKey: ['logs'] })
+    },
+  })
+}
+
 export function useMemberClaims(id: number) {
   return useQuery({
     queryKey: memberKeys.claims(id),
@@ -202,6 +215,31 @@ export function useAdjustPoints() {
 }
 
 /** Líder/Administrador: delete a member's account (history kept, login and personal data wiped). */
+/** Líder/Administrador: new temporary password for a member (returned once, never stored in plain text). */
+export function useResetPassword() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) =>
+      apiClient<{ password: string }>(`/members/${id}/reset-password`, { method: 'POST' }),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: memberKeys.detail(id) })
+      queryClient.invalidateQueries({ queryKey: ['logs'] })
+    },
+  })
+}
+
+/** The logged-in member's own password (currentPassword empty when the account has none yet). */
+export function useChangeOwnPassword() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (body: { currentPassword: string; newPassword: string }) =>
+      apiClient<void>('/members/me/password', { method: 'PUT', body }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: memberKeys.all })
+    },
+  })
+}
+
 export function useDeleteMember() {
   const queryClient = useQueryClient()
   return useMutation({

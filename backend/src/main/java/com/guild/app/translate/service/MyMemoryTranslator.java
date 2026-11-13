@@ -19,7 +19,7 @@ import java.util.Optional;
 
 /**
  * MyMemory (api.mymemory.translated.net), plano gratuito sem chave: ~5 mil caracteres/dia por IP, ou ~50 mil
- * com um e-mail de contato (app.translate.mymemory-email). Quando a cota acaba ou o serviço falha, para de
+ * com um e-mail de contato (guild.translate.mymemory-email, env MYMEMORY_EMAIL). Quando a cota acaba ou o serviço falha, para de
  * chamar por um tempo e devolve vazio (a DLL simplesmente não mostra a tradução).
  */
 @Slf4j
@@ -40,7 +40,7 @@ public class MyMemoryTranslator implements ChatTranslator {
     private volatile Instant quotaPausedUntil = Instant.EPOCH;
     Clock clock = Clock.systemUTC();
 
-    public MyMemoryTranslator(ObjectMapper json, @Value("${app.translate.mymemory-email:}") String email) {
+    public MyMemoryTranslator(ObjectMapper json, @Value("${guild.translate.mymemory-email:}") String email) {
         this.json = json;
         this.email = cleanEmail(email);
     }
@@ -71,13 +71,18 @@ public class MyMemoryTranslator implements ChatTranslator {
 
     @Override
     public Optional<String> translate(String text) {
+        return translate(text, "ru|en");
+    }
+
+    @Override
+    public Optional<String> translate(String text, String langpair) {
         if (clock.instant().isBefore(pausedUntil)) return Optional.empty();
         try {
-            Answer answer = call(text, emailRejected ? "" : email);
+            Answer answer = call(text, langpair, emailRejected ? "" : email);
             if (answer.outcome() == Outcome.INVALID_EMAIL && !email.isEmpty() && !emailRejected) {
                 emailRejected = true;
                 log.warn("MyMemory recusou o e-mail de MYMEMORY_EMAIL; traduzindo sem ele (cota anônima)");
-                answer = call(text, "");
+                answer = call(text, langpair, "");
             }
             switch (answer.outcome()) {
                 case OK -> { return Optional.of(answer.text()); }
@@ -97,8 +102,8 @@ public class MyMemoryTranslator implements ChatTranslator {
         }
     }
 
-    private Answer call(String text, String contact) throws Exception {
-        String url = URL + "?langpair=ru%7Cen&q=" + URLEncoder.encode(text, StandardCharsets.UTF_8)
+    private Answer call(String text, String langpair, String contact) throws Exception {
+        String url = URL + "?langpair=" + URLEncoder.encode(langpair, StandardCharsets.UTF_8) + "&q=" + URLEncoder.encode(text, StandardCharsets.UTF_8)
             + (contact.isEmpty() ? "" : "&de=" + URLEncoder.encode(contact, StandardCharsets.UTF_8));
         HttpResponse<String> response = http.send(
             HttpRequest.newBuilder(URI.create(url)).timeout(Duration.ofSeconds(8)).GET().build(),

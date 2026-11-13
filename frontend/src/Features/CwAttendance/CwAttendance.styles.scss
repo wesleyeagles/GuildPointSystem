@@ -1,0 +1,57 @@
+.cw-attendance {
+  display: flex;
+  flex-direction: column;
+  gap: theme.$spacing-lg;
+
+  &__muted {
+    margin: 0;
+    color: theme.$color-text-muted;
+  }
+
+  &__filters select { @include theme.field-input; }
+
+  &__warn { color: theme.$color-warning; }
+  &__ok { color: theme.$color-success; }
+  &__line { margin: 0 0 theme.$spacing-sm; }
+
+  &__end {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: theme.$spacing-sm;
+    margin-bottom: theme.$spacing-md;
+
+    input { @include theme.field-input; width: auto; }
+  }
+
+  &__table {
+    width: 100%;
+    border-collapse: collapse;
+
+    th, td {
+      text-align: left;
+      padding: 6px theme.$spacing-sm;
+      border-bottom: 1px solid theme.$color-border;
+    }
+
+    th { color: theme.$color-text-muted; font-weight: 500; }
+  }
+
+  &__bar {
+    display: inline-block;
+    vertical-align: middle;
+    width: 80px;
+    height: 6px;
+    margin-right: theme.$spacing-sm;
+    background: theme.$metal-800;
+    border: 1px solid theme.$color-border;
+
+    span {
+      display: block;
+      height: 100%;
+      background: theme.$color-text-muted;
+    }
+
+    .cw-attendance__bar--ok { background: theme.$color-success; }
+  }
+}

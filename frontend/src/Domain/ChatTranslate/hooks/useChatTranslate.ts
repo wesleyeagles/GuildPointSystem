@@ -10,6 +10,8 @@ export interface ChatGlossaryTerm {
   /** Termo em russo, normalizado (minúsculas, ё = е). */
   source: string
   translation: string
+  /** Aprendido sozinho (mensagem de uma palavra traduzida pela API); salvar à mão tira a marca. */
+  learned: boolean
 }
 
 /**

@@ -3,20 +3,24 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { EquipmentRelics } from './EquipmentRelics'
 import groups from '@/Domain/Equipment/relics.json'
 
-const state = vi.hoisted(() => ({ active: [] as number[], loading: false, error: null as Error | null, pending: false, failed: false, mutate: vi.fn() }))
+const state = vi.hoisted(() => ({ active: [] as number[], upgrades: {} as Record<number, number>, syncedAt: null as string | null, loading: false, error: null as Error | null, pending: false, failed: false, mutate: vi.fn() }))
 vi.mock('@/Domain/Equipment/hooks/useEquipment', () => ({
-  useEquipmentRelics: () => ({ data: state.active, isLoading: state.loading, error: state.error, refetch: vi.fn() }),
+  useEquipmentRelics: () => ({ data: { relics: state.active.map(id => ({ id, upgrade: state.upgrades[id] ?? 0 })), syncedAt: state.syncedAt }, isLoading: state.loading, error: state.error, refetch: vi.fn() }),
   useEquipmentRelicChange: () => ({ mutate: state.mutate, isPending: state.pending, error: state.failed ? new Error('Falha') : null }),
 }))
-beforeEach(() => { state.active = []; state.loading = false; state.error = null; state.pending = false; state.failed = false; state.mutate.mockReset() })
+beforeEach(() => { state.active = []; state.upgrades = {}; state.syncedAt = null; state.loading = false; state.error = null; state.pending = false; state.failed = false; state.mutate.mockReset() })
 afterEach(cleanup)
 
-it('preserves all 120 original positions and the marketplace grade order', () => {
-  expect(groups.map(g => g.grade)).toEqual([1, 2, 3, 6, 4, 5, 7, 8])
+it('keeps all 120 relics in the data and shows the game tabs, without the empty Event / OLD', () => {
+  expect(groups.map(g => g.grade)).toEqual([1, 2, 3, 4, 5, 6, 7, 8])
   expect(groups.flatMap(g => g.items.map(i => i.id)).sort((a, b) => a - b)).toEqual(Array.from({ length: 120 }, (_, i) => i))
   render(<EquipmentRelics memberId={1} editable />)
-  expect(screen.getAllByRole('button')).toHaveLength(120)
+  expect(screen.getAllByRole('button')).toHaveLength(103)
   expect(within(screen.getByRole('region', { name: 'Grade 1' })).getAllByRole('button')).toHaveLength(16)
+  // Grade 6 do jogo: Sealed Baal Hamon … Gift of Random Goddess
+  expect(within(screen.getByRole('region', { name: 'Grade 6' })).getAllByRole('button')).toHaveLength(10)
+  expect(screen.getByRole('region', { name: 'Technical' })).toBeInTheDocument()
+  expect(screen.queryByRole('region', { name: 'Event / OLD' })).toBeNull()
 })
 it('activates and deactivates using saved state instead of changing the visual before saving', () => {
   const view = render(<EquipmentRelics memberId={1} editable />)
@@ -50,4 +54,23 @@ it('disables edits while loading or saving and retains the saved visual after an
   state.failed = false; state.error = new Error('Falha de leitura')
   view.rerender(<EquipmentRelics memberId={1} editable />)
   expect(screen.getByRole('button', { name: 'Relic 1 · Grade 1' })).toBeDisabled()
+})
+it('shows the synced upgrade badge, relic names and the current effects like the game window', () => {
+  state.active = [2, 3]; state.upgrades = { 2: 1 }; state.syncedAt = '2026-11-10T13:00:00Z'
+  render(<EquipmentRelics memberId={1} editable={false} />)
+  const dragon = screen.getByRole('button', { name: 'Relic 3 · Grade 1' })
+  expect(dragon).toHaveTextContent('+1')
+  expect(dragon.title).toContain('(1GR) Frenzy Ratmoth Relic +1')
+  expect(dragon.title).toContain('Melee attack: 2.4% increase')
+  expect(screen.getByRole('button', { name: 'Relic 4 · Grade 1' })).not.toHaveTextContent('+')
+  expect(screen.getByRole('button', { name: 'Relic 1 · Grade 1' }).title).toContain('Não possui')
+  const effects = within(screen.getByRole('region', { name: 'Efeitos atuais' })).getAllByRole('listitem').map(li => li.textContent)
+  expect(effects).toEqual(['Melee attack: 2.4% increase', 'Melee skill attack: 2.4% increase', 'Range attack: 2.4% increase',
+    'Range skill attack: 2.4% increase', 'PrecisionAccuracy: 1.30 increase', 'Accuracy: 1.30 increase'])
+  expect(screen.getByText(/Sincronizado pelo jogo/)).toBeInTheDocument()
+})
+it('explains how to sync when the game never sent the relics', () => {
+  render(<EquipmentRelics memberId={1} editable={false} />)
+  expect(screen.getByText(/Ainda não sincronizado pelo jogo/)).toBeInTheDocument()
+  expect(screen.queryByRole('region', { name: 'Efeitos atuais' })).toBeNull()
 })

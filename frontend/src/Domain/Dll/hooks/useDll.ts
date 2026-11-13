@@ -56,28 +56,6 @@ export function dllUpdatesItself(installed: string | null | undefined, latest: D
   return !!latest?.autoUpdate && dllAtLeast(installed, FIRST_AUTO_UPDATE_VERSION)
 }
 
-/**
- * Prazo para a troca automática acontecer. A DLL baixa sempre a mais recente (até 30 min com o jogo aberto) e ela vale
- * quando o jogo abre de novo: com várias versões publicadas no mesmo dia, ficar 2+ versões atrás é normal.
- */
-const AUTO_UPDATE_GRACE_MS = 3 * 24 * 60 * 60 * 1000
-
-/**
- * A DLL instalada ainda vai se trocar sozinha: uma versão atrás, ou a mais recente saiu há menos de 3 dias.
- * Fora disso a troca falhou e o modal avisa.
- */
-export function dllAutoUpdatePending(
-  installed: string | null | undefined,
-  latest: DllRelease | null | undefined,
-  releasesBehind: number,
-  now: number,
-) {
-  if (!latest || !dllUpdatesItself(installed, latest)) return false
-  if (releasesBehind <= 1) return true
-  const publishedAt = new Date(latest.publishedAt).getTime()
-  return Number.isNaN(publishedAt) || now - publishedAt < AUTO_UPDATE_GRACE_MS
-}
-
 /** Link do botão "Download DLL": sempre a versão mais recente publicada. */
 export function dllDownloadUrl(latest: DllRelease | null | undefined) {
   return latest ? `${API_BASE}/dll/download?v=${encodeURIComponent(latest.version)}` : FALLBACK_DOWNLOAD_URL

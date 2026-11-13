@@ -37,6 +37,11 @@ public final class EquipmentDtos {
     }
     public record ReviewRequest(@NotNull UUID operationId, @NotNull @Positive Long memberId) {}
     public record RelicState(@NotNull Boolean active) {}
+    public record RelicEntry(int id,int upgrade) {}
+    public record MemberRelics(List<RelicEntry> relics,Instant syncedAt) {}
+    public record ReportedRelic(@Min(0) @Max(119) int id,@Min(0) @Max(3) int upgrade) {}
+    public record ClientRelics(@NotBlank @Size(max=32) String character,
+                               @NotNull @Size(max=120) List<@NotNull @Valid ReportedRelic> relics) {}
     public record ReviewStatus(UUID id, long memberId, Instant requestedAt, Instant dueAt, Instant confirmedAt,
                                String status, boolean overdue) {}
     public record CurrentSlot(Slot slot, long version, Assignment assignment) {}

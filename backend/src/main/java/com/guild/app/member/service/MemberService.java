@@ -28,9 +28,11 @@ import com.guild.app.points.dto.PointsAdjustmentRequest;
 import com.guild.app.points.service.PointsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
@@ -50,6 +52,13 @@ public class MemberService {
     private final PartyService partyService;
     private final WebSocketPublisher webSocketPublisher;
     private final DiscordMemberService discordMemberService;
+    private final com.guild.app.shout.service.GameLanguage gameLanguage;
+    private final PasswordEncoder passwordEncoder;
+
+    /** Temporary passwords: no look-alike characters (0/O, 1/l/I), easy to read out over Discord. */
+    private static final String TEMP_PASSWORD_CHARS = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    private static final int TEMP_PASSWORD_LENGTH = 10;
+    private static final SecureRandom RANDOM = new SecureRandom();
 
     @Transactional(readOnly = true)
     public MemberResponse getById(Long id) {
@@ -375,6 +384,77 @@ public class MemberService {
         return toResponse(member);
     }
 
+    /**
+     * Líder/Administrador: marca o membro como "English Player" — a DLL dele passa a mostrar os painéis, avisos e
+     * shouts em inglês (o idioma vai para a DLL no shout, ver {@link com.guild.app.shout.service.GameLanguage}).
+     */
+    @Transactional
+    public MemberResponse setEnglishPlayer(Long memberId, boolean englishPlayer, MemberPrincipal actor) {
+        SecurityUtils.requireRole(Role.ADMINISTRADOR);
+        var member = memberRepository.findByIdForUpdate(memberId)
+                .orElseThrow(() -> new AppException("Membro não encontrado.", HttpStatus.NOT_FOUND));
+        requireNotDeleted(member);
+        if (member.isEnglishPlayer() == englishPlayer) {
+            return toResponse(member);
+        }
+        member.setEnglishPlayer(englishPlayer);
+        memberRepository.save(member);
+        gameLanguage.forget();
+        auditLogService.log(AuditLogType.MEMBER_ENGLISH_PLAYER_CHANGED, memberRepository.getReferenceById(actor.getId()),
+                member, Map.of("englishPlayer", englishPlayer));
+        return toResponse(member);
+    }
+
+    /**
+     * Líder/Administrador: replaces a member's password with a random temporary one and returns it once
+     * (it is never stored in plain text nor logged). Only for members below the actor's role.
+     */
+    @Transactional
+    public String resetPassword(Long memberId, MemberPrincipal actor) {
+        SecurityUtils.requireRole(Role.ADMINISTRADOR);
+        var member = memberRepository.findByIdForUpdate(memberId)
+                .orElseThrow(() -> new AppException("Membro não encontrado.", HttpStatus.NOT_FOUND));
+        requireNotDeleted(member);
+        if (Objects.equals(member.getId(), actor.getId())) {
+            throw new AppException("Para trocar a sua própria senha, use o seu perfil.", HttpStatus.BAD_REQUEST);
+        }
+        if (member.getRole().isAtLeast(actor.getRole())) {
+            throw new AppException("Você só pode redefinir a senha de membros com cargo abaixo do seu.",
+                    HttpStatus.FORBIDDEN);
+        }
+        if (member.getEmail() == null || member.getEmail().isBlank()) {
+            throw new AppException("Este membro não tem e-mail cadastrado: ele entra pelo Discord.",
+                    HttpStatus.BAD_REQUEST);
+        }
+        var password = new StringBuilder(TEMP_PASSWORD_LENGTH);
+        for (int i = 0; i < TEMP_PASSWORD_LENGTH; i++) {
+            password.append(TEMP_PASSWORD_CHARS.charAt(RANDOM.nextInt(TEMP_PASSWORD_CHARS.length())));
+        }
+        member.setPasswordHash(passwordEncoder.encode(password));
+        memberRepository.save(member);
+        auditLogService.log(AuditLogType.MEMBER_PASSWORD_RESET, memberRepository.getReferenceById(actor.getId()),
+                member, Map.of("nickname", member.getNickname()));
+        return password.toString();
+    }
+
+    /** The member's own password. currentPassword is required when the account already has one. */
+    @Transactional
+    public void changeOwnPassword(MemberPrincipal actor, String currentPassword, String newPassword) {
+        var member = memberRepository.findByIdForUpdate(actor.getId())
+                .orElseThrow(() -> new AppException("Membro não encontrado.", HttpStatus.NOT_FOUND));
+        if (member.getEmail() == null || member.getEmail().isBlank()) {
+            throw new AppException("Sua conta entra pelo Discord e não tem e-mail para login com senha.",
+                    HttpStatus.BAD_REQUEST);
+        }
+        if (member.getPasswordHash() != null
+                && (currentPassword == null || !passwordEncoder.matches(currentPassword, member.getPasswordHash()))) {
+            throw new AppException("Senha atual incorreta.", HttpStatus.BAD_REQUEST);
+        }
+        member.setPasswordHash(passwordEncoder.encode(newPassword));
+        memberRepository.save(member);
+        auditLogService.log(AuditLogType.MEMBER_PASSWORD_CHANGED, member, member, Map.of());
+    }
+
     /** Shared by delete and suspend: who may lock a member out, and not while they lead an auction. */
     private void requireCanLockOut(Member member, MemberPrincipal actor, String verb) {
         if (member.getRole() == Role.LIDER) {
@@ -452,6 +532,8 @@ public class MemberService {
                 member.getSuspendedAt(),
                 member.getSuspensionReason(),
                 member.isBlockedForSellAccount(),
-                member.isBlockedForSellAccount() ? member.getBlockedForSellUntil() : null);
+                member.isBlockedForSellAccount() ? member.getBlockedForSellUntil() : null,
+                member.isEnglishPlayer(),
+                member.getPasswordHash() != null);
     }
 }

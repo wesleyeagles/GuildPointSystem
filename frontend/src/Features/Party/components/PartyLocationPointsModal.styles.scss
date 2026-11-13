@@ -67,6 +67,24 @@
     white-space: nowrap;
   }
 
+  &__still {
+    flex: 0 0 auto;
+    color: theme.$color-text-muted;
+    font-size: theme.$font-size-base;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__afk {
+    flex: 0 0 auto;
+    padding: 1px 6px;
+    border: 1px solid theme.$color-danger;
+    border-radius: 4px;
+    color: theme.$color-danger;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+  }
+
   &__empty {
     margin: 0;
     color: theme.$color-text-muted;

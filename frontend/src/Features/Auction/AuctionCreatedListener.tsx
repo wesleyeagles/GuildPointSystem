@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 import { useAuctionCreatedSubscription } from '@/Domain/Auction/hooks/useAuction'
-import type { Auction } from '@/Domain/types/models'
+import { formatAuctionItems, type Auction } from '@/Domain/types/models'
 import { AuctionItemIcon } from '@/Features/Auction/components/AuctionItemIcon/AuctionItemIcon'
 import { useAppToast } from '@/Shared/ui/components/AppToast/AppToast'
 import { playScheduleAlertSound } from '@/Shared/utils/notificationSound'
@@ -11,9 +11,7 @@ export function AuctionCreatedListener() {
 
   const onCreated = useCallback(
     (auction: Auction) => {
-      const names = auction.items
-        .map((item) => (item.quantity > 1 ? `${item.itemName} x${item.quantity}` : item.itemName))
-        .join(', ')
+      const names = formatAuctionItems(auction.items)
       playScheduleAlertSound()
       showToast(names || `Leilão #${auction.id}`, 'info', {
         title: `Novo leilão #${String(auction.id).padStart(3, '0')}`,

@@ -6,10 +6,12 @@ WORKDIR /app
 COPY mvnw .
 COPY .mvn .mvn
 COPY pom.xml .
-RUN chmod +x mvnw && ./mvnw dependency:go-offline -B
+# Cache do Maven no servidor de build: as dependências não são baixadas de novo a cada deploy,
+# mesmo quando o cache de camadas do Docker se perde.
+RUN --mount=type=cache,target=/root/.m2 chmod +x mvnw && ./mvnw dependency:go-offline -B
 
 COPY src src
-RUN ./mvnw package -DskipTests -B
+RUN --mount=type=cache,target=/root/.m2 ./mvnw package -DskipTests -B
 
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
@@ -24,7 +26,9 @@ COPY --from=build /app/target/*.jar app.jar
 
 EXPOSE 8080
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=240s --retries=10 \
+# O Coolify espera o start-period inteiro antes da 1ª checagem: curto, com checagens frequentes.
+# 40 s + 20 x 10 s = 4 min de margem para o Spring e o Flyway subirem.
+HEALTHCHECK --interval=10s --timeout=10s --start-period=40s --retries=20 \
   CMD curl -fsS http://localhost:8080/actuator/health || exit 1
 
 ENV JAVA_OPTS="-XX:MaxRAMPercentage=75.0 -XX:+UseContainerSupport"

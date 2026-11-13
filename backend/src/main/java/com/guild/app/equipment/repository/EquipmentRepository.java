@@ -17,8 +17,42 @@ public class EquipmentRepository {
     private final ObjectMapper json;
     private final com.guild.app.equipment.EquipmentGearScore gearScore;
 
-    public List<Integer> relics(long memberId) {
-        return jdbc.queryForList("SELECT relic_id FROM member_equipment_relic WHERE member_id=? ORDER BY relic_id",Integer.class,memberId);
+    public MemberRelics relics(long memberId) {
+        var list=jdbc.query("SELECT relic_id,upgrade FROM member_equipment_relic WHERE member_id=? ORDER BY relic_id",
+            (r,n)->new RelicEntry(r.getInt("relic_id"),r.getInt("upgrade")),memberId);
+        var synced=jdbc.query("SELECT synced_at FROM member_relic_sync WHERE member_id=?",(r,n)->r.getTimestamp(1).toInstant(),memberId);
+        return new MemberRelics(list,synced.isEmpty()?null:synced.getFirst());
+    }
+    /** Substitui o conjunto inteiro pelo lido no jogo; devolve só o que mudou (antes/depois por relic). */
+    public List<Map<String,Object>> replaceRelics(long memberId,List<ReportedRelic> reported) {
+        var before=new HashMap<Integer,Integer>();
+        for(var e:relics(memberId).relics()) before.put(e.id(),e.upgrade());
+        var after=new TreeMap<Integer,Integer>();
+        for(var r:reported) after.put(r.id(),r.upgrade());
+        var changes=new ArrayList<Map<String,Object>>();
+        for(var id:new TreeSet<>(before.keySet())) if(!after.containsKey(id)) {
+            jdbc.update("DELETE FROM member_equipment_relic WHERE member_id=? AND relic_id=?",memberId,id);
+            changes.add(change(id,before.get(id),null));
+        }
+        for(var e:after.entrySet()) {
+            var old=before.get(e.getKey());
+            if(Objects.equals(old,e.getValue())) continue;
+            jdbc.update("""
+                INSERT INTO member_equipment_relic(member_id,relic_id,upgrade) VALUES(?,?,?)
+                ON CONFLICT(member_id,relic_id) DO UPDATE SET upgrade=EXCLUDED.upgrade
+                """,memberId,e.getKey(),e.getValue());
+            changes.add(change(e.getKey(),old,e.getValue()));
+        }
+        jdbc.update("""
+            INSERT INTO member_relic_sync(member_id,synced_at) VALUES(?,now())
+            ON CONFLICT(member_id) DO UPDATE SET synced_at=EXCLUDED.synced_at
+            """,memberId);
+        return changes;
+    }
+    private static Map<String,Object> change(int id,Integer before,Integer after) {
+        var m=new LinkedHashMap<String,Object>();
+        m.put("relicId",id); m.put("before",before); m.put("after",after);
+        return m;
     }
     public boolean setRelic(long memberId,int relicId,boolean active) {
         return (active ? jdbc.update("INSERT INTO member_equipment_relic(member_id,relic_id) VALUES(?,?) ON CONFLICT DO NOTHING",memberId,relicId)

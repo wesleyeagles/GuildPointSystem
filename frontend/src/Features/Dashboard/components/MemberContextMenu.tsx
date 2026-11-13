@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import type { DiscordMember } from '@/Domain/Discord/hooks/useDiscordMembers'
-import { useLinkDiscord, useSetSellBlock } from '@/Domain/Member/hooks/useMembers'
+import { useLinkDiscord, useSetEnglishPlayer, useSetSellBlock } from '@/Domain/Member/hooks/useMembers'
 import type { Member } from '@/Domain/types/models'
 import { useAppToast } from '@/Shared/ui/components/AppToast/AppToast'
 import { Button } from '@/Shared/ui/components/Button/Button'
@@ -20,6 +20,16 @@ export function SellLock({ className, until }: { className: string; until?: stri
       <svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" aria-hidden="true">
         <path d="M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5Zm-3 8V7a3 3 0 1 1 6 0v3H9Zm3 4a1.5 1.5 0 0 1 .75 2.8V18h-1.5v-1.2A1.5 1.5 0 0 1 12 14Z" />
       </svg>
+    </span>
+  )
+}
+
+/** "EN" badge: the member plays with the DLL in English. */
+export function EnglishTag({ className }: { className: string }) {
+  const label = 'English Player: a DLL mostra tudo em inglês'
+  return (
+    <span className={className} title={label} aria-label={label}>
+      EN
     </span>
   )
 }
@@ -44,6 +54,7 @@ interface MemberContextMenuProps {
 /** Right-click menu on a ranking member: Discord shortcuts, profile and (staff) Discord link + sale block. */
 export function MemberContextMenu({ menu, discordMember, discordMembers, canManage, onClose }: MemberContextMenuProps) {
   const setSellBlock = useSetSellBlock()
+  const setEnglishPlayer = useSetEnglishPlayer()
   const linkDiscord = useLinkDiscord()
   const { showToast } = useAppToast()
   const ref = useRef<HTMLDivElement>(null)
@@ -106,6 +117,21 @@ export function MemberContextMenu({ menu, discordMember, discordMembers, canMana
       onClose()
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Erro ao alterar bloqueio de venda', 'error')
+    }
+  }
+
+  const saveEnglishPlayer = async (englishPlayer: boolean) => {
+    try {
+      await setEnglishPlayer.mutateAsync({ id: member.id, englishPlayer })
+      showToast(
+        englishPlayer
+          ? `${member.nickname}: English Player — a DLL passa a mostrar tudo em inglês.`
+          : `${member.nickname}: tag English Player removida.`,
+        'success',
+      )
+      onClose()
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Erro ao alterar a tag English Player', 'error')
     }
   }
 
@@ -192,6 +218,26 @@ export function MemberContextMenu({ menu, discordMember, discordMembers, canMana
             Salvar vínculo
           </Button>
         </form>
+      )}
+
+      {canManage && (
+        <>
+          <div className="member-context-menu__section">Idioma no jogo</div>
+          <div className="member-context-menu__status">
+            <EnglishTag className="member-context-menu__en" />
+            {member.englishPlayer ? 'English Player: DLL em inglês' : 'DLL em português'}
+          </div>
+          <div className="member-context-menu__form">
+            <Button
+              size="sm"
+              variant={member.englishPlayer ? 'danger' : 'secondary'}
+              loading={setEnglishPlayer.isPending}
+              onClick={() => saveEnglishPlayer(!member.englishPlayer)}
+            >
+              {member.englishPlayer ? 'Remover tag English Player' : 'Marcar como English Player'}
+            </Button>
+          </div>
+        </>
       )}
 
       {canManage && (

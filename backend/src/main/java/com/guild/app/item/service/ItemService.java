@@ -56,6 +56,24 @@ public class ItemService {
         return toResponse(item, icon);
     }
 
+    public record AuctionItemRef(Long id, String name) {}
+
+    public AuctionItemRef getAuctionItem(String code) {
+        SecurityUtils.requireRole(Role.ADMINISTRADOR);
+        if (!code.matches("[A-Za-z0-9]{7}")) {
+            throw new AppException("Código de item inválido.", HttpStatus.BAD_REQUEST);
+        }
+        var matches = itemRepository.findTop2ByGameCodeIgnoreCaseAndDeletedFalse(code);
+        if (matches.isEmpty()) {
+            throw new AppException("Item não cadastrado no site: " + code, HttpStatus.NOT_FOUND);
+        }
+        if (matches.size() != 1) {
+            throw new AppException("Há mais de um cadastro para o código " + code, HttpStatus.CONFLICT);
+        }
+        var item = matches.getFirst();
+        return new AuctionItemRef(item.getId(), item.getName());
+    }
+
     @Transactional
     public ItemResponse create(CreateItemRequest request, MemberPrincipal actor) {
         SecurityUtils.requireRole(Role.ADMINISTRADOR);
@@ -73,7 +91,7 @@ public class ItemService {
         item.setRarity(request.rarity());
         item.setImageUrl(blankToNull(request.imageUrl()));
         item.setGameCode(gameCode);
-        item.setLuaCategory(luaRef != null ? luaRef.getCategory() : null);
+        item.setLuaCategory(luaRef != null ? luaRef.getCategory() : inferCategory(request.type(), request.armor(), request.accessory()));
         item.setDescription(request.description());
         item.setCreatedBy(memberRepository.getReferenceById(actor.getId()));
         item = itemRepository.save(item);
@@ -105,7 +123,9 @@ public class ItemService {
         item.setName(request.name());
         item.setRarity(request.rarity());
         item.setGameCode(gameCode);
-        item.setLuaCategory(luaRef != null ? luaRef.getCategory() : item.getLuaCategory());
+        var inferred = inferCategory(request.type(), request.armor(), request.accessory());
+        item.setLuaCategory(luaRef != null ? luaRef.getCategory()
+                : inferred != null ? inferred : item.getLuaCategory());
         item.setDescription(request.description());
         if (request.imageUrl() != null && !request.imageUrl().isBlank()) {
             item.setImageUrl(request.imageUrl());
@@ -302,6 +322,33 @@ public class ItemService {
                 details,
                 talics,
                 item.getCreatedAt());
+    }
+
+    private static final java.util.Set<String> ARMOR_CATEGORIES =
+            java.util.Set.of("HELMET", "UPPER", "LOWER", "GLOVES", "SHOES", "SHIELD");
+
+    /** Category for items not in the Lua catalog, so they show up in the inventory/auction tabs. */
+    static String inferCategory(ItemType type, CreateItemRequest.ArmorData armor,
+                                CreateItemRequest.AccessoryData accessory) {
+        if (type == null) {
+            return null;
+        }
+        return switch (type) {
+            case WEAPON -> "WEAPON";
+            case ARMOR -> {
+                var sub = armor != null ? upper(armor.subtype()) : null;
+                yield sub != null && ARMOR_CATEGORIES.contains(sub) ? sub : null;
+            }
+            case ACCESSORY -> {
+                var sub = accessory != null ? upper(accessory.subtype()) : null;
+                yield "RING".equals(sub) || "AMULET".equals(sub) ? sub : null;
+            }
+            default -> null;
+        };
+    }
+
+    private static String upper(String s) {
+        return s == null || s.isBlank() ? null : s.trim().toUpperCase();
     }
 
     private static void validateImageOrGameCode(String imageUrl, String gameCode) {

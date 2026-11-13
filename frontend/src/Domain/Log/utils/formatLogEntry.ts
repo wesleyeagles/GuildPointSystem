@@ -12,6 +12,8 @@ const LOG_TYPE_LABELS: Record<AuditLogType, string> = {
   CHAT_TRANSLATE_GLOSSARY_UPDATED: 'Glossário do tradutor alterado',
   RESOURCE_ACCESS_UPDATED: 'Lista do mapa de recursos alterada',
   RESOURCE_MOB_UPDATED: 'Grau de mob de recurso alterado',
+  PB_BOSS_UPDATED: 'Boss do histórico de PB alterado',
+  MARKET_PRICE_ACCESS_UPDATED: 'Lista do preço do market alterada',
   DLL_RELEASED: 'Nova versão da DLL',
   PARTY_QUEUE_UPDATED: 'Fila de PT atualizada',
   ROTATION_UPDATED: 'Rotação atualizada',
@@ -39,6 +41,9 @@ const LOG_TYPE_LABELS: Record<AuditLogType, string> = {
   MEMBER_SUSPENDED: 'Conta suspensa',
   MEMBER_UNSUSPENDED: 'Suspensão retirada',
   MEMBER_SELL_BLOCK_CHANGED: 'Bloqueio de venda da conta',
+  MEMBER_ENGLISH_PLAYER_CHANGED: 'Tag English Player',
+  MEMBER_PASSWORD_RESET: 'Senha redefinida',
+  MEMBER_PASSWORD_CHANGED: 'Senha alterada',
   NEWS_CREATED: 'Notícia publicada',
   NEWS_UPDATED: 'Notícia editada',
   NEWS_DELETED: 'Notícia excluída',
@@ -68,6 +73,14 @@ function str(value: unknown): string {
   return String(value)
 }
 
+/** Tipos para o filtro da aba Logs, em ordem alfabética do nome. Equipamento só aparece para admin. */
+export function getLogTypeOptions(isAdmin: boolean): { value: AuditLogType; label: string }[] {
+  return (Object.entries(LOG_TYPE_LABELS) as [AuditLogType, string][])
+    .filter(([type]) => isAdmin || (type !== 'EQUIPMENT_CHANGED' && type !== 'EQUIPMENT_CATALOG_IMPORTED'))
+    .map(([value, label]) => ({ value, label }))
+    .sort((a, b) => a.label.localeCompare(b.label, 'pt-BR'))
+}
+
 export function getLogTypeLabel(type: AuditLogType): string {
   return LOG_TYPE_LABELS[type] ?? type
 }
@@ -89,10 +102,14 @@ export function formatLogDetails(log: AuditLogEntry): string {
       return `A partir de ${str(p.minRole)}${Array.isArray(p.viewers) && p.viewers.length ? ` · Liberados: ${p.viewers.join(', ')}` : ''}`
     case 'CHAT_TRANSLATE_ACCESS_UPDATED':
       return Array.isArray(p.translators) && p.translators.length ? `Liberados: ${p.translators.join(', ')}` : 'Ninguém'
+    case 'MARKET_PRICE_ACCESS_UPDATED':
+      return Array.isArray(p.viewers) && p.viewers.length ? `Liberados: ${p.viewers.join(', ')}` : 'Ninguém'
     case 'RESOURCE_ACCESS_UPDATED':
       return Array.isArray(p.trackers) && p.trackers.length ? `Liberados: ${p.trackers.join(', ')}` : 'Ninguém'
     case 'RESOURCE_MOB_UPDATED':
       return `${str(p.name)} → ${Number(p.tier) ? `Grau ${str(p.tier)}` : 'Não é recurso'}`
+    case 'PB_BOSS_UPDATED':
+      return p.removed ? `Removido: ${str(p.name)}` : `${str(p.name)}${p.label ? ` (${str(p.label)})` : ''} · ${p.kind === 'ROTACAO' ? 'Rotação' : 'Extra'}`
     case 'CHAT_TRANSLATE_GLOSSARY_UPDATED':
       return p.removed ? `Removido: ${str(p.source)}` : `${str(p.source)} → ${str(p.translation)}`
     case 'RAID_GAME_INVITE':
@@ -134,7 +151,7 @@ export function formatLogDetails(log: AuditLogEntry): string {
     case 'EVENT_CREATED':
       return `${str(p.objectiveName)} · ${str(p.durationMinutes)} min`
     case 'EVENT_CLAIMED':
-      return `${str(p.objectiveName)} · +${str(p.points)} pts`
+      return `${str(p.objectiveName)} · +${str(p.points)} pts${p.source === 'GAME' ? ' · pelo jogo' : ''}`
     case 'EVENT_DENIED': {
       const reason = str(p.reason)
       const points = str(p.pointsReverted)
@@ -207,6 +224,8 @@ export function formatLogDetails(log: AuditLogEntry): string {
       return p.blocked
         ? `Conta bloqueada para venda${p.until ? ` até ${str(p.until).split('-').reverse().join('/')}` : ''}`
         : 'Bloqueio de venda removido'
+    case 'MEMBER_ENGLISH_PLAYER_CHANGED':
+      return p.englishPlayer ? 'Marcado como English Player (DLL em inglês)' : 'Tag English Player removida (DLL em português)'
     default:
       return ''
   }

@@ -76,10 +76,38 @@ public class CharacterStatus {
     @Column(name = "location_at")
     private Instant locationAt;
 
+    /** Desde quando esta na mesma coordenada (mapa, regiao e X/Y). Null = sem local ou sem X/Y (DLL antiga). */
+    @Column(name = "still_since")
+    private Instant stillSince;
+
+    /** Ultima vez que ganhou EXP (level ou % subiu entre dois envios). Null = ainda nao visto. */
+    @Column(name = "exp_gained_at")
+    private Instant expGainedAt;
+
+    /**
+     * Ultima vez que fez algo mesmo parado: HP/FP/SP caiu entre dois envios (skill, apanhando) ou a DLL viu
+     * tecla/clique/roda/camera no jogo. Null = ainda nao visto.
+     */
+    @Column(name = "active_at")
+    private Instant activeAt;
+
     /** Quando o cliente observou (recebido) e quando o servidor gravou. */
     @Column(name = "observed_at", nullable = false)
     private Instant observedAt = Instant.now();
 
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt = Instant.now();
+
+    /**
+     * Desde quando esta sem fazer nada: parado na mesma coordenada, sem ganhar EXP (quem mata parado no lugar
+     * nao e AFK) e sem atividade (skill, apanhando, tecla, camera: quem bate no chip parado nao e AFK).
+     * Null = nao da para saber (sem coordenada).
+     */
+    public Instant idleSince() {
+        if (stillSince == null) return null;
+        Instant since = stillSince;
+        if (expGainedAt != null && expGainedAt.isAfter(since)) since = expGainedAt;
+        if (activeAt != null && activeAt.isAfter(since)) since = activeAt;
+        return since;
+    }
 }

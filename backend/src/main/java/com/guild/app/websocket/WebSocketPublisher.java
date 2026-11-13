@@ -103,6 +103,11 @@ public class WebSocketPublisher {
         send("/topic/news", payload);
     }
 
+    /** Frases da guild: criada, editada, excluída ou voto mudou. */
+    public void publishPhrasesChanged() {
+        send("/topic/phrases", Map.of("changed", true));
+    }
+
     public void publishRotationChanged() { send("/topic/rotation", java.util.Map.of("changed",true)); }
 
     public void publishDonations(Object payload) {

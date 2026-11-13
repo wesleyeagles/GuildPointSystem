@@ -258,6 +258,33 @@ class RaidLiveTest {
                 .andExpect(status().isBadRequest());
     }
 
+    @Test void everyMemberSeesAllMembersOnTheMapAndLeadershipFlagsOutsideARaid() throws Exception {
+        String vitals = "50\t10\t800\t0\t300\t0\t40";
+        // Fora de raid: DLL até fx=4 continua recebendo 204; fx=5 recebe "N" e os pontos de todos.
+        mvc.perform(post("/api/raids/game/status").param("character", otherNick).param("fx", "4")
+                .contentType(MediaType.TEXT_PLAIN).content(vitals + "\nL\t1\t100\t200"))
+            .andExpect(status().isNoContent());
+        String view = reportFx(outsiderNick, 5, vitals + "\nL\t1\t300\t400");
+        assertTrue(view.startsWith("N\n"), view);
+        assertTrue(view.contains("G\t" + otherNick + "\t1,100,200\t"), view);
+        assertTrue(view.contains("G\t" + outsiderNick + "\t1,300,400\t"), view);
+        // Membro comum fora de raid: a bandeira é ignorada.
+        assertFalse(reportFx(outsiderNick, 5, vitals + "\nL\t1\t300\t400\nF\t1\t10\t20").contains("B\t"));
+        // Administrador (e Líder) fora de raid: bandeira da guild, todos veem.
+        jdbc.update("UPDATE member SET role='ADMINISTRADOR' WHERE id=?", leaderId);
+        reportFx(leaderNick, 5, "55\t900\t1000\t300\t400\t50\t60\nL\t1\t1\t1\nF\t1\t7920\t-2224");
+        assertTrue(reportFx(outsiderNick, 5, vitals + "\nL\t1\t300\t400").contains("B\t" + leaderNick + "\t1,7920,-2224\t"));
+        // Quem está em raid também vê os pontos de todos e a bandeira da guild (fx=5), depois da raid.
+        var raid = raids.create("Raid", as(otherId));
+        String inRaid = reportFx(otherNick, 5, vitals + "\nL\t1\t100\t200");
+        assertTrue(inRaid.startsWith("R\t" + raid.id() + "\t"), inRaid);
+        assertTrue(inRaid.contains("G\t" + outsiderNick + "\t") && inRaid.contains("B\t" + leaderNick + "\t"), inRaid);
+        assertFalse(reportFx(otherNick, 4, vitals).contains("G\t"));
+        // "F -" tira; sem posição no envio, o ponto some.
+        assertFalse(reportFx(leaderNick, 5, "55\t900\t1000\t300\t400\t50\t60\nF\t-").contains("B\t"));
+        assertFalse(reportFx(otherNick, 5, vitals).contains("G\t" + leaderNick + "\t"));
+    }
+
     @Test void hiddenMembersCannotPlaceFlags() throws Exception {
         var raid = raids.create("Raid", as(leaderId));
         raids.addMembers(raid.id(), List.of(otherId), null, false, as(leaderId));

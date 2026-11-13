@@ -21,7 +21,7 @@ import java.util.Map;
 public class PointsService {
 
     private static final List<AuctionStatus> RESERVING_STATUSES =
-            List.of(AuctionStatus.OPEN, AuctionStatus.DOLE, AuctionStatus.TIE_BREAK);
+            List.of(AuctionStatus.OPEN, AuctionStatus.DOLE, AuctionStatus.TIE_BREAK, AuctionStatus.PAUSED);
     /** Auction ids start at 1, so this excludes nothing. */
     private static final long NO_AUCTION = 0L;
 

@@ -19,6 +19,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.*;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -100,6 +101,11 @@ class LocationPointsServiceTest {
         assertEquals(List.of(nick(notInQueue)), result.skipped());
         assertEquals(5, points(inQueue));
         assertEquals(0, points(notInQueue));
+        // Log: tipo "Pontos ajustados" com o evento "RG" (filtro Evento da aba Logs).
+        var log = jdbc.queryForMap("SELECT payload->>'objectiveName' AS objective, payload->>'reason' AS reason FROM audit_log "
+                + "WHERE type='POINTS_ADJUSTED' AND target_id=? ORDER BY id DESC LIMIT 1", inQueue);
+        assertEquals("RG", log.get("objective"));
+        assertEquals("Pontos de RG: Vapor Lake", log.get("reason"));
     }
 
     @Test void priorityPointsGoToTheQueue() {
@@ -121,6 +127,7 @@ class LocationPointsServiceTest {
     @Test void knownRegionsStayListedAfterEveryoneLeaves() {
         String region = tag + " Cave";
         at(elsewhere, "Coldron Volcanic Area", region);
+        at(elsewhere, "Coldron Volcanic Area", region);   // o modal so lista pares vistos 2+ vezes
         at(elsewhere, "Coldron Volcanic Area", "Evil Horn");
         var option = service.locations().stream()
                 .filter(o -> region.equals(o.region()))
@@ -129,8 +136,83 @@ class LocationPointsServiceTest {
         assertEquals(0, option.members());
     }
 
+    long stillSeconds(long id) {
+        return service.preview(new PreviewRequest("Coldron Volcanic Area", null, Scope.ALL)).stream()
+                .filter(m -> m.memberId() == id).findFirst().orElseThrow().stillSeconds();
+    }
+    void send(long gid, long id, int x, int y) {
+        statusService.ingest(new CharacterStatusIngestRequest(gid, nick(id), 50, 1f, 10, 10, 1, 1, 1, 1,
+                "Coldron Volcanic Area", "Evil Horn", x, y), "1.1.0");
+    }
+
+    @Test void stillTimeKeepsCountingOnSameCoordinateAndResetsWhenMoving() {
+        long charGid = gid++;
+        send(charGid, elsewhere, 10, 20);
+        jdbc.update("UPDATE character_status SET still_since = now() - interval '5 minutes' WHERE gid=?", charGid);
+        em.clear();
+        send(charGid, elsewhere, 10, 20); // mesma coordenada: continua contando
+        assertTrue(stillSeconds(elsewhere) >= 290);
+        send(charGid, elsewhere, 11, 20); // andou: zera
+        assertTrue(stillSeconds(elsewhere) < 5);
+    }
+
+    @Test void withoutCoordinatesItIsNeverAfk() {
+        long charGid = gid++;
+        statusService.ingest(new CharacterStatusIngestRequest(charGid, nick(elsewhere), 50, 1f, 10, 10, 1, 1, 1, 1,
+                "Coldron Volcanic Area", "Evil Horn", null, null), "1.26.1");
+        assertEquals(-1, stillSeconds(elsewhere));  // DLL sem X/Y: so a regiao nao diz se esta parado
+    }
+
+    @Test void gainingExpInPlaceIsNotIdle() {
+        long charGid = gid++;
+        send(charGid, elsewhere, 10, 20);
+        jdbc.update("UPDATE character_status SET still_since = now() - interval '5 minutes' WHERE gid=?", charGid);
+        em.clear();
+        statusService.ingest(new CharacterStatusIngestRequest(charGid, nick(elsewhere), 50, 2f, 10, 10, 1, 1, 1, 1,
+                "Coldron Volcanic Area", "Evil Horn", 10, 20), "1.26.2");  // mesma coordenada, mas ganhou EXP
+        assertTrue(stillSeconds(elsewhere) < 5);
+    }
+
     @Test void membersCannotUseIt() {
         loginAs(notInQueue);
         assertThrows(AppException.class, () -> service.locations());
+    }
+
+    @Test void atMostTwoRgPerDayInTheHalfHourBeforeCw() {
+        var actor = new MemberPrincipal(members.findById(moderator).orElseThrow());
+        Runnable rg = () -> service.award(new AwardRequest(null, "Vapor Lake", Scope.ALL, PointsType.GENERAL, 5,
+                List.of(inQueue), "RG", null), actor);
+        try {
+            // 13:00 Moscou (07:00 Brasilia): fora da janela, sem limite.
+            service.useClock(Clock.fixed(Instant.parse("2026-11-08T10:00:00Z"), ZoneOffset.UTC));
+            for (int i = 0; i < 3; i++) rg.run();
+            assertEquals(15, points(inQueue));
+            assertEquals(0, service.preview(new PreviewRequest(null, "Vapor Lake", Scope.ALL)).stream()
+                    .filter(m -> m.memberId() == inQueue).findFirst().orElseThrow().rgToday());
+            // 13:35 Moscou (07:35 Brasilia): 25 min antes da CW2, conta.
+            service.useClock(Clock.fixed(Instant.parse("2026-11-08T10:35:00Z"), ZoneOffset.UTC));
+            rg.run();
+            // 21:40 Moscou (15:40 Brasilia): antes da CW3, mesmo dia.
+            service.useClock(Clock.fixed(Instant.parse("2026-11-08T18:40:00Z"), ZoneOffset.UTC));
+            rg.run();
+            assertEquals(2, service.preview(new PreviewRequest(null, "Vapor Lake", Scope.ALL)).stream()
+                    .filter(m -> m.memberId() == inQueue).findFirst().orElseThrow().rgToday());
+            var third = service.award(new AwardRequest(null, "Vapor Lake", Scope.ALL, PointsType.GENERAL, 5,
+                    List.of(inQueue, notInQueue), "RG", null), actor);
+            assertEquals(List.of(nick(inQueue)), third.limited());
+            assertEquals(1, third.awarded());
+            assertEquals(25, points(inQueue));
+            assertEquals(5, points(notInQueue));
+            assertThrows(AppException.class, rg::run);
+            // Depois do inicio da CW3: sem limite de novo.
+            service.useClock(Clock.fixed(Instant.parse("2026-11-08T19:05:00Z"), ZoneOffset.UTC));
+            rg.run();
+            assertEquals(30, points(inQueue));
+            // Prioridade da Party (nao e RG) nao tem limite.
+            service.award(new AwardRequest(null, "Vapor Lake", Scope.QUEUE, PointsType.PRIORITY, 1, List.of(inQueue), null, null), actor);
+            assertEquals(1, priority(inQueue));
+        } finally {
+            service.useClock(Clock.systemUTC());
+        }
     }
 }

@@ -4,6 +4,9 @@ import com.guild.app.characterstatus.dto.CharacterStatusIngestRequest;
 import com.guild.app.characterstatus.dto.CharacterStatusView;
 import com.guild.app.characterstatus.entity.CharacterStatus;
 import com.guild.app.characterstatus.repository.CharacterStatusRepository;
+import com.guild.app.cw.service.CwAttendanceService;
+import com.guild.app.pbauto.service.PbAutoService;
+import com.guild.app.locationhistory.service.LocationHistoryService;
 import com.guild.app.location.repository.GameRegionRepository;
 import com.guild.app.member.entity.Member;
 import com.guild.app.member.repository.MemberRepository;
@@ -16,6 +19,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +30,9 @@ public class CharacterStatusService {
     private final WebSocketPublisher webSocketPublisher;
     private final SyncAccessService syncAccessService;
     private final GameRegionRepository gameRegionRepository;
+    private final CwAttendanceService cwAttendanceService;
+    private final PbAutoService pbAutoService;
+    private final LocationHistoryService locationHistoryService;
 
     // ---- Ingestao (sem autenticacao; associada pelo nome do personagem) ----
     // Todas as contas com esse nick recebem o envio (personagem compartilhado).
@@ -66,6 +73,9 @@ public class CharacterStatusService {
                     return created;
                 });
 
+        if (gainedExp(status, request)) status.setExpGainedAt(now);
+        Instant active = activeAt(status, request, now);
+        if (active != null && (status.getActiveAt() == null || active.isAfter(status.getActiveAt()))) status.setActiveAt(active);
         status.setCharacterName(request.character());
         status.setDllVersion(dllVersion);
         status.setLevel(request.level());
@@ -81,9 +91,39 @@ public class CharacterStatusService {
         status.setUpdatedAt(now);
         statusRepository.save(status);
         syncAccessService.recordSync(member.getId(), now, dllVersion);
+        // Durante a CW: tempo no mapa da CW (sem contar AFK), para a aba Presença em CW.
+        cwAttendanceService.record(member.getId(), request.character(), status.getMapName(), status.idleSince(),
+                status.getMapX(), status.getMapY(), request.fp(), status.getExpGainedAt(), now);
+        // PBs diarios automaticos: presenca nas regioes do PB durante a janela.
+        pbAutoService.record(member.getId(), request.character(), status.getMapName(), status.getRegionName(), now);
+        // Historico de local (3 dias) para a staff consultar onde alguem estava num horario.
+        locationHistoryService.record(member.getId(), request.character(), now, status.getMapName(), status.getRegionName(),
+                status.getMapX(), status.getMapY(), status.idleSince(), dllVersion);
 
         // Avisa a dashboard (apos o commit) para atualizar sem recarregar a pagina.
         webSocketPublisher.publishCharacterStatus(toView(status));
+    }
+
+    /** Level ou % maior que no envio anterior deste personagem (morte, que tira EXP, nao conta). */
+    private static boolean gainedExp(CharacterStatus status, CharacterStatusIngestRequest request) {
+        if (status.getId() == null || status.getLevel() == null || status.getExpPercent() == null) return false;
+        int level = request.level();
+        return level > status.getLevel() || (level == status.getLevel() && request.expPercent() > status.getExpPercent());
+    }
+
+    /** A DLL so conta tecla/clique dos ultimos minutos; mais que isso e so "parado ha muito tempo". */
+    static final int MAX_IDLE_SEC = 24 * 3600;
+
+    /**
+     * Quando fez algo pela ultima vez, mesmo parado no lugar: HP, FP ou SP menor que no envio anterior (usou skill
+     * ou apanhou; regeneracao e pocao so sobem) ou a ultima tecla/clique/camera que a DLL viu. Null = nada novo.
+     */
+    private static Instant activeAt(CharacterStatus status, CharacterStatusIngestRequest request, Instant now) {
+        Instant at = null;
+        if (status.getId() != null && status.getHp() != null && status.getFp() != null && status.getSp() != null
+                && (request.hp() < status.getHp() || request.fp() < status.getFp() || request.sp() < status.getSp())) at = now;
+        if (at == null && request.idleSec() != null && request.idleSec() <= MAX_IDLE_SEC) at = now.minusSeconds(request.idleSec());
+        return at;
     }
 
     /** Envio sem mapa nem regiao (DLL antiga ou tela de carregamento) apaga o local: nunca fica um local velho. */
@@ -91,6 +131,18 @@ public class CharacterStatusService {
         String map = trimToNull(request.map());
         String region = trimToNull(request.region());
         boolean known = map != null || region != null;
+        Integer x = known ? request.mapX() : null;
+        Integer y = known ? request.mapY() : null;
+        // So conta "parado" com coordenada: sem X/Y (DLL antes da 1.26.2) seria so "na mesma regiao", e quem
+        // anda e mata mob pela regiao inteira viraria AFK.
+        boolean coords = known && x != null && y != null;
+        boolean samePlace = coords
+                && status.getStillSince() != null
+                && Objects.equals(map, status.getMapName())
+                && Objects.equals(region, status.getRegionName())
+                && Objects.equals(x, status.getMapX())
+                && Objects.equals(y, status.getMapY());
+        if (!samePlace) status.setStillSince(coords ? now : null);
         status.setMapName(map);
         status.setRegionName(region);
         status.setMapX(known ? request.mapX() : null);

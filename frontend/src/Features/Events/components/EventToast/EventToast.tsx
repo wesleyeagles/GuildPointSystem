@@ -39,16 +39,32 @@ export function EventToastProvider({ children }: { children: ReactNode }) {
 
   useEventSubscription(pushEvent)
 
+  // Cards closed with "×" (or expired) in this session: the active-events refetch must not bring them back.
+  const [dismissed, setDismissed] = useState<ReadonlySet<number>>(() => new Set())
+
+  // The list is the source of truth: drop claimed/ended cards and open one for every active event not yet
+  // claimed. Without this, a member who opened the site after the event was created (or whose socket was
+  // down when it was broadcast) never saw the card, and so had nowhere to type the password.
   useEffect(() => {
-    setToasts((prev) =>
-      prev.filter((toast) => {
+    setToasts((prev) => {
+      const kept = prev.filter((toast) => {
         const match = activeEvents.find((e) => e.id === toast.id)
         return match && match.active && !match.claimedByMe
-      }),
-    )
-  }, [activeEvents])
+      })
+      const missing = activeEvents.filter(
+        (e) =>
+          e.active &&
+          !e.claimedByMe &&
+          !dismissed.has(e.id) &&
+          new Date(e.expiresAt).getTime() > serverNow() &&
+          !kept.some((k) => k.id === e.id),
+      )
+      return missing.length === 0 && kept.length === prev.length ? prev : [...kept, ...missing]
+    })
+  }, [activeEvents, dismissed])
 
   const dismiss = (id: number) => {
+    setDismissed((prev) => (prev.has(id) ? prev : new Set(prev).add(id)))
     setToasts((prev) => prev.filter((e) => e.id !== id))
   }
 

@@ -1,7 +1,7 @@
 import { useAuctions } from '@/Domain/Auction/hooks/useAuction'
-import { isAuctionFinished, type Auction } from '@/Domain/types/models'
+import { formatAuctionItems, isAuctionFinished, type Auction } from '@/Domain/types/models'
 import { AuctionItemIcon } from '@/Features/Auction/components/AuctionItemIcon/AuctionItemIcon'
-import { formatTime, useCountdown } from '@/Features/Auction/hooks/useCountdown'
+import { formatTime, pausedSeconds, useCountdown } from '@/Features/Auction/hooks/useCountdown'
 import { NavBadge } from '@/Shared/ui/components/NavBadge/NavBadge'
 
 function PopoverRow({ auction }: { auction: Auction }) {
@@ -11,9 +11,15 @@ function PopoverRow({ auction }: { auction: Auction }) {
     <li className="nav-popover__row">
       <AuctionItemIcon item={auction.items[0]} size={24} />
       <span className="nav-popover__name">
-        {auction.items.map((i) => (i.quantity > 1 ? `${i.itemName} x${i.quantity}` : i.itemName)).join(', ')}
+        {formatAuctionItems(auction.items)}
       </span>
-      <span className="nav-popover__time">{running ? formatTime(remaining) : 'Empate'}</span>
+      <span className="nav-popover__time">
+        {running
+          ? formatTime(remaining)
+          : auction.status === 'PAUSED'
+            ? `${formatTime(pausedSeconds(auction.pausedRemainingMs))} ⏸`
+            : 'Empate'}
+      </span>
     </li>
   )
 }
@@ -21,7 +27,8 @@ function PopoverRow({ auction }: { auction: Auction }) {
 /** Sidebar bubble with the number of active auctions; hovering it lists their items. */
 export function AuctionNavBadge() {
   const { data: auctions = [] } = useAuctions()
-  const active = auctions.filter((a) => !isAuctionFinished(a.status))
+  // Not-yet-started auctions are listed on the page, not in the bubble.
+  const active = auctions.filter((a) => !isAuctionFinished(a.status) && a.status !== 'SCHEDULED')
 
   return (
     <NavBadge count={active.length} ariaLabel={`${active.length} leilão(ões) ativo(s)`} title="Leilões ativos">

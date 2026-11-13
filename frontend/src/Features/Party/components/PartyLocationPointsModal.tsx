@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import {
   useAwardLocationPoints,
   useCurrentLocations,
   useLocationPreview,
+  RG_PER_DAY,
   type LocationPointsType,
   type LocationScope,
 } from '@/Domain/Location/hooks/useLocationPoints'
@@ -19,9 +20,23 @@ interface PartyLocationPointsModalProps {
    * rg: atalho do menu, pontos gerais para todos no local.
    */
   variant?: 'party' | 'rg'
+  /** Abas do modal "+ Criar" (QuickCreateModal), no topo do card. */
+  tabs?: ReactNode
 }
 
 const ANY = ''
+
+/** RG: parado na mesma coordenada por mais que isso = AFK (sai marcado como desmarcado). */
+const AFK_SECONDS = 3 * 60
+
+/** "45s", "2m 05s", "1h 03m". */
+function formatStill(seconds: number) {
+  const s = Math.floor(seconds)
+  if (s < 60) return `${s}s`
+  const m = Math.floor(s / 60)
+  if (m < 60) return `${m}m ${String(s % 60).padStart(2, '0')}s`
+  return `${Math.floor(m / 60)}h ${String(m % 60).padStart(2, '0')}m`
+}
 
 /** "Vapor Lake · 3" quando há gente lá agora. */
 function withCount(name: string, members: number | undefined) {
@@ -32,7 +47,7 @@ function withCount(name: string, members: number | undefined) {
  * Moderador+: escolhe o mapa e, se quiser, a região (o nome do topo do mini-mapa), confere quem
  * a DLL viu lá nos últimos 3 minutos e dá pontos a quem continuar marcado.
  */
-export function PartyLocationPointsModal({ onClose, variant = 'party' }: PartyLocationPointsModalProps) {
+export function PartyLocationPointsModal({ onClose, variant = 'party', tabs }: PartyLocationPointsModalProps) {
   const rg = variant === 'rg'
   const { showToast } = useAppToast()
   const { data: locations = [] } = useCurrentLocations()
@@ -49,7 +64,27 @@ export function PartyLocationPointsModal({ onClose, variant = 'party' }: PartyLo
   const filter = useMemo(() => ({ map: map || null, region: region || null, scope }), [map, region, scope])
   const preview = useLocationPreview(filter)
   const matches = preview.data ?? []
-  const selected = matches.filter((m) => !unchecked.has(m.memberId))
+  // RG: relógio de 1s para o "parado há" andar entre as buscas (o servidor manda os segundos na hora da busca).
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    if (!rg) return
+    const id = window.setInterval(() => setNow(Date.now()), 1000)
+    return () => window.clearInterval(id)
+  }, [rg])
+  // -1 = sem coordenada (DLL antes da 1.26.2): não dá para saber se está parado, nunca vira AFK.
+  const stillFor = (m: (typeof matches)[number]) =>
+    m.stillSeconds < 0 ? -1 : m.stillSeconds + Math.max(0, (now - preview.dataUpdatedAt) / 1000)
+  const isAfk = (m: (typeof matches)[number]) => rg && stillFor(m) > AFK_SECONDS
+
+  // AFK sai desmarcado; o moderador pode marcar de volta (vale só para aquela coordenada).
+  // Se voltar a andar, volta ao normal (marcado, a menos que tenha sido desmarcado à mão).
+  const [afkChecked, setAfkChecked] = useState<Set<string>>(new Set())
+  const afkKey = (m: (typeof matches)[number]) => `${m.memberId}:${m.map}:${m.region}:${m.mapX}:${m.mapY}`
+  // RG nos 30 min antes de uma CW: quem já recebeu 2 nessas janelas no dia não recebe de novo (o servidor também recusa).
+  const isLimited = (m: (typeof matches)[number]) => rg && m.rgToday >= RG_PER_DAY
+  const isChecked = (m: (typeof matches)[number]) =>
+    isLimited(m) ? false : isAfk(m) ? afkChecked.has(afkKey(m)) : !unchecked.has(m.memberId)
+  const selected = matches.filter(isChecked)
 
   // Mapas da guild (GAME_MAPS), com quantos estão lá agora.
   const mapCounts = new Map<string, number>()
@@ -82,13 +117,16 @@ export function PartyLocationPointsModal({ onClose, variant = 'party' }: PartyLo
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
 
-  const toggle = (memberId: number) =>
-    setUnchecked((prev) => {
-      const next = new Set(prev)
-      if (next.has(memberId)) next.delete(memberId)
-      else next.add(memberId)
-      return next
-    })
+  const flip = <T,>(set: Set<T>, value: T) => {
+    const next = new Set(set)
+    if (next.has(value)) next.delete(value)
+    else next.add(value)
+    return next
+  }
+  const toggle = (m: (typeof matches)[number]) => {
+    if (isAfk(m)) setAfkChecked((prev) => flip(prev, afkKey(m)))
+    else setUnchecked((prev) => flip(prev, m.memberId))
+  }
 
   const submit = (e: FormEvent) => {
     e.preventDefault()
@@ -99,7 +137,8 @@ export function PartyLocationPointsModal({ onClose, variant = 'party' }: PartyLo
         onSuccess: (result) => {
           const given = pointsType === 'PRIORITY' ? `+${amount} de prioridade` : `+${amount} pontos`
           const left = result.skipped.length ? ` Saíram do local e não receberam: ${result.skipped.join(', ')}.` : ''
-          showToast(`${given} para ${result.awarded} membro(s).${left}`, 'success')
+          const limited = result.limited?.length ? ` Já tinham ${RG_PER_DAY} RG antes de CW hoje: ${result.limited.join(', ')}.` : ''
+          showToast(`${given} para ${result.awarded} membro(s).${left}${limited}`, 'success')
           onClose()
         },
         onError: (err) => showToast(err instanceof Error ? err.message : 'Não foi possível dar os pontos.', 'error'),
@@ -117,6 +156,7 @@ export function PartyLocationPointsModal({ onClose, variant = 'party' }: PartyLo
         onClick={(e) => e.stopPropagation()}
         onSubmit={submit}
       >
+        {tabs}
         <div className="auth-window-bar">
           <span>{rg ? 'Pontos de RG' : 'Pontos por local'}</span>
           <span className="auth-window-bar__code">{rg ? 'RG' : 'LOC'}</span>
@@ -184,14 +224,28 @@ export function PartyLocationPointsModal({ onClose, variant = 'party' }: PartyLo
                 {matches.map((m) => (
                   <li key={m.memberId}>
                     <label className="party-location-points__item">
-                      <input type="checkbox" checked={!unchecked.has(m.memberId)} onChange={() => toggle(m.memberId)} />
+                      <input type="checkbox" checked={isChecked(m)} disabled={isLimited(m)} onChange={() => toggle(m)} />
                       <span className="party-location-points__name" title={m.characterName}>
                         {m.nickname}
                       </span>
                       <span className="party-location-points__where">
                         {[m.region, mapLabel(m.map)].filter(Boolean).join(' · ')}
-                        {m.mapX != null && m.mapY != null ? ` (${m.mapX}, ${m.mapY})` : ''}
-                      </span>                    </label>
+                      </span>
+                      {rg && (
+                        <span className="party-location-points__still" title="Tempo parado no mesmo lugar e sem ganhar EXP">
+                          {stillFor(m) < 0 ? '—' : formatStill(stillFor(m))}
+                        </span>
+                      )}
+                      {rg && m.rgToday > 0 && (
+                        <span
+                          className={isLimited(m) ? 'party-location-points__afk' : 'party-location-points__still'}
+                          title={`RG antes de CW recebidos hoje (máximo ${RG_PER_DAY} por dia, só nos 30 min antes da CW)`}
+                        >
+                          RG {m.rgToday}/{RG_PER_DAY}
+                        </span>
+                      )}
+                      {isAfk(m) && !isLimited(m) && <span className="party-location-points__afk">AFK</span>}
+                    </label>
                   </li>
                 ))}
               </ul>

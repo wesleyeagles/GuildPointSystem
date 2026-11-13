@@ -16,17 +16,22 @@ import { Panel } from '@/Shared/ui/components/Panel/Panel'
 import { publicAssetUrl } from '@/Shared/utils/publicAssetUrl'
 import { useServerNow } from '@/Shared/utils/useServerNow'
 import { ResourceSettings } from './components/ResourceSettings'
+import { ResourceRespawn } from './components/ResourceRespawn'
+import { SpotLayer, SpotSide } from './components/ResourceSpots'
+import { groupSpawnSpots, type SpawnSpot } from '@/Domain/Resource/spawnSpots'
 import './Resources.styles.scss'
 
 /** Grau -> chave das cores (iguais às bolinhas do mapa no jogo); null = desconhecido. */
-const tierKey = (tier: number | null) => (tier && tier >= 1 && tier <= 3 ? String(tier) : 'u')
+/** 1..3 = grau, 4 = Tower Rift Metal (Crag Mind Field); null/0 = desconhecido. */
+const tierKey = (tier: number | null) => (tier && tier >= 1 && tier <= 4 ? String(tier) : 'u')
 const TIERS: { key: string; label: string }[] = [
   { key: '1', label: TIER_LABEL[1] },
   { key: '2', label: TIER_LABEL[2] },
   { key: '3', label: TIER_LABEL[3] },
+  { key: '4', label: TIER_LABEL[4] },
   { key: 'u', label: 'Desconhecido' },
 ]
-const RADIUS: Record<string, number> = { '1': 2.2, '2': 3.6, '3': 5.5, u: 3.6 }
+const RADIUS: Record<string, number> = { '1': 2.2, '2': 3.6, '3': 5.5, '4': 4.4, u: 3.6 }
 const PERIODS = [
   { key: 'all', label: 'Tudo', ms: 0 },
   { key: '1d', label: '24 horas', ms: 86_400_000 },
@@ -34,6 +39,8 @@ const PERIODS = [
   { key: '30d', label: '30 dias', ms: 30 * 86_400_000 },
 ]
 const RECENT = 40
+/** Achados a até isto (em pixels do mapa de 400) um do outro, no mesmo grau, são o mesmo ponto de respawn. */
+const SPOT_PX = 4
 
 function when(iso: string) {
   return new Date(iso).toLocaleString('pt-BR', {
@@ -68,6 +75,7 @@ export function ResourcesPage() {
         ))}
       </div>
       <ResourceMapPanel key={map.code} map={map} />
+      <ResourceRespawn key={`respawn-${map.code}`} map={map.code} />
       {overview.canConfigure && <ResourceSettings overview={overview} />}
     </div>
   )
@@ -75,13 +83,20 @@ export function ResourcesPage() {
 
 function ResourceMapPanel({ map }: { map: ResourceMap }) {
   const { data: spawns = [], isLoading } = useResourceSpawns(map.code, true)
-  const [shown, setShown] = useState<Record<string, boolean>>({ '1': true, '2': true, '3': true, u: true })
+  const [shown, setShown] = useState<Record<string, boolean>>({ '1': true, '2': true, '3': true, '4': true, u: true })
   const [period, setPeriod] = useState('all')
+  // Mouse em cima (no mapa ou na lista): só destaca o ponto no mapa. Clique: abre os detalhes ao lado.
   const [hover, setHover] = useState<ResourceSpawn | null>(null)
+  const [selected, setSelected] = useState<ResourceSpawn | null>(null)
+  const marked = hover ?? selected
   const now = useServerNow(5_000)
+  // Achados (cada nascimento) ou pontos de respawn (nascimentos agrupados por lugar).
+  const [mode, setMode] = useState<'finds' | 'spots'>('finds')
+  const [spotHover, setSpotHover] = useState<SpawnSpot | null>(null)
+  const [spotSelected, setSpotSelected] = useState<SpawnSpot | null>(null)
 
   const counts = useMemo(() => {
-    const c: Record<string, number> = { '1': 0, '2': 0, '3': 0, u: 0 }
+    const c: Record<string, number> = { '1': 0, '2': 0, '3': 0, '4': 0, u: 0 }
     for (const s of spawns) c[tierKey(s.tier)]++
     return c
   }, [spawns])
@@ -99,6 +114,15 @@ function ResourceMapPanel({ map }: { map: ResourceMap }) {
   }, [visible])
   const recent = useMemo(() => [...visible].sort((a, b) => b.id - a.id).slice(0, RECENT), [visible])
   const view = map.view
+  const spots = useMemo(
+    () => groupSpawnSpots(visible.filter((s) => s.tier != null), view ? SPOT_PX / Math.max(view.scaleX, 1e-6) : 40),
+    [visible, view],
+  )
+  // O ponto aberto acompanha os dados novos (mesma chave = mesmo primeiro achado).
+  const openSpot = spotSelected ? spots.find((s) => s.key === spotSelected.key) ?? null : null
+  const switchMode = (next: 'finds' | 'spots') => {
+    setMode(next); setHover(null); setSelected(null); setSpotHover(null); setSpotSelected(null)
+  }
 
   return (
     <Panel title={mapLabel(map.name)} code={`${visible.length} de ${spawns.length}`} className="resources__panel">
@@ -114,6 +138,16 @@ function ResourceMapPanel({ map }: { map: ResourceMap }) {
             {t.label} <small>({counts[t.key]})</small>
           </label>
         ))}
+        <div className="resources__modes" role="tablist" aria-label="Mostrar no mapa">
+          <button type="button" role="tab" aria-selected={mode === 'finds'}
+            className={`resources__mode${mode === 'finds' ? ' resources__mode--active' : ''}`} onClick={() => switchMode('finds')}>
+            Achados
+          </button>
+          <button type="button" role="tab" aria-selected={mode === 'spots'}
+            className={`resources__mode${mode === 'spots' ? ' resources__mode--active' : ''}`} onClick={() => switchMode('spots')}>
+            Pontos de respawn
+          </button>
+        </div>
         <select className="resources__period" value={period} onChange={(e) => setPeriod(e.target.value)} aria-label="Período">
           {PERIODS.map((p) => <option key={p.key} value={p.key}>{p.label}</option>)}
         </select>
@@ -123,25 +157,31 @@ function ResourceMapPanel({ map }: { map: ResourceMap }) {
         <div className="resources__map">
           <svg viewBox={`0 0 ${view?.areaW ?? 400} ${view?.areaH ?? 400}`} role="img" aria-label={`Mapa ${mapLabel(map.name)}`}>
             <image href={publicAssetUrl(`/resource-maps/${map.code}.png`)} x="0" y="0" width={view?.areaW ?? 400} height={view?.areaH ?? 400} />
-            {view && ordered.map((s) => {
+            {view && mode === 'spots' && (
+              <SpotLayer view={view} spots={spots} marked={spotHover ?? openSpot}
+                onHover={setSpotHover} onSelect={(s) => { setSpotHover(null); setSpotSelected(s) }} />
+            )}
+            {view && mode === 'finds' && ordered.map((s) => {
               const p = mapPoint(view, s.x, s.z)
               if (!p) return null
               const key = tierKey(s.tier)
               return (
                 <circle
                   key={s.id}
-                  className={`resources__dot resources__dot--t${key}${hover?.id === s.id ? ' resources__dot--hover' : ''}`}
+                  className={`resources__dot resources__dot--t${key}${marked?.id === s.id ? ' resources__dot--hover' : ''}`}
                   cx={p.px}
                   cy={p.py}
                   r={RADIUS[key]}
                   onMouseEnter={() => setHover(s)}
                   onMouseLeave={() => setHover((h) => (h?.id === s.id ? null : h))}
+                  onClick={() => setSelected(s)}
                 >
                   <title>{`${s.name} · ${s.tier ? TIER_LABEL[s.tier] : 'grau desconhecido'} · ${when(s.foundAt)}${s.foundBy ? ` · ${s.foundBy}` : ''}`}</title>
                 </circle>
               )
             })}
             {view && <ResourcePulses view={view} spawns={visible} />}
+            {view && mode === 'finds' && marked && <ResourceMarker view={view} spawn={marked} />}
           </svg>
           {!view && (
             <p className="resources__notice">
@@ -152,25 +192,42 @@ function ResourceMapPanel({ map }: { map: ResourceMap }) {
         </div>
 
         <div className="resources__side">
-          <h3 className="resources__subtitle">{hover ? 'Ponto' : 'Achados recentes'}</h3>
-          {hover ? (
-            <dl className="resources__detail">
-              <dt>Mob</dt><dd>{hover.name}</dd>
-              <dt>Grau</dt><dd>{hover.tier ? TIER_LABEL[hover.tier] : 'Desconhecido'}</dd>
-              <dt>Achado</dt><dd>{when(hover.foundAt)}</dd>
-              <dt>Por</dt><dd>{hover.foundBy ?? '—'}</dd>
-              {hover.diedAt && <><dt>Morreu</dt><dd>{when(hover.diedAt)}</dd></>}
-              <dt>Posição</dt><dd>{hover.x}, {hover.z}</dd>
-            </dl>
+          <h3 className="resources__subtitle">
+            {mode === 'spots' ? (openSpot ? 'Ponto de respawn' : `Pontos de respawn (${spots.length})`) : selected ? 'Achado' : 'Achados recentes'}
+          </h3>
+          {mode === 'spots' ? (
+            <SpotSide spots={spots} selected={openSpot} now={now} onHover={setSpotHover} onSelect={setSpotSelected} />
+          ) : selected ? (
+            <>
+              <dl className="resources__detail">
+                <dt>Mob</dt><dd>{selected.name}</dd>
+                <dt>Grau</dt><dd>{selected.tier ? TIER_LABEL[selected.tier] : 'Desconhecido'}</dd>
+                <dt>Achado</dt><dd>{when(selected.foundAt)}</dd>
+                <dt>Por</dt><dd>{selected.foundBy ?? '—'}</dd>
+                {selected.diedAt && <><dt>Morreu</dt><dd>{when(selected.diedAt)}</dd></>}
+                <dt>Posição</dt><dd>{selected.x}, {selected.z}</dd>
+              </dl>
+              <button type="button" className="resources__back" onClick={() => setSelected(null)}>← Voltar à lista</button>
+            </>
           ) : recent.length === 0 ? (
             <p className="resources__muted">Nenhum recurso achado {period === 'all' ? 'ainda' : 'nesse período'}.</p>
           ) : (
             <ul className="resources__recent">
               {recent.map((s) => (
-                <li key={s.id} onMouseEnter={() => setHover(s)} onMouseLeave={() => setHover(null)}>
-                  <span className={`resources__swatch resources__swatch--t${tierKey(s.tier)}`} />
-                  <span className="resources__recent-name">{s.name}</span>
-                  <time>{when(s.foundAt)}</time>
+                <li key={s.id}>
+                  <button
+                    type="button"
+                    onMouseEnter={() => setHover(s)}
+                    onMouseLeave={() => setHover((h) => (h?.id === s.id ? null : h))}
+                    onFocus={() => setHover(s)}
+                    onBlur={() => setHover((h) => (h?.id === s.id ? null : h))}
+                    onClick={() => { setHover(null); setSelected(s) }}
+                    title="Ver detalhes"
+                  >
+                    <span className={`resources__swatch resources__swatch--t${tierKey(s.tier)}`} />
+                    <span className="resources__recent-name">{s.name}</span>
+                    <time>{when(s.foundAt)}</time>
+                  </button>
                 </li>
               ))}
             </ul>
@@ -178,6 +235,19 @@ function ResourceMapPanel({ map }: { map: ResourceMap }) {
         </div>
       </div>
     </Panel>
+  )
+}
+
+/** Anel em volta do ponto destacado (mouse na lista ou no mapa, ou o aberto nos detalhes), por cima de tudo. */
+function ResourceMarker({ view, spawn }: { view: ResourceMapScale; spawn: ResourceSpawn }) {
+  const p = mapPoint(view, spawn.x, spawn.z)
+  if (!p) return null
+  const r = RADIUS[tierKey(spawn.tier)]
+  return (
+    <g className="resources__marker" pointerEvents="none">
+      <circle cx={p.px} cy={p.py} r={r + 6} />
+      <circle cx={p.px} cy={p.py} r={r + 10} className="resources__marker-wave" />
+    </g>
   )
 }
 

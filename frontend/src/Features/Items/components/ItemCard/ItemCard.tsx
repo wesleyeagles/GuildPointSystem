@@ -1,10 +1,12 @@
 import { useState } from 'react'
+import { ItemQuantity } from '@/Shared/ui/components/ItemQuantity/ItemQuantity'
 import {
   applyBonus,
   expandTalicsForDisplay,
   getFavorPct,
   getKeenPct,
 } from '@/Domain/Item/utils/talicUtils'
+import { relicIdFromGameCode, relicUpgradeTexts } from '@/Domain/Equipment/utils/relicEffects'
 import { mediaUrl } from '@/Shared/utils/mediaUrl'
 import { SpriteIcon } from '@/Shared/ui/components/SpriteIcon/SpriteIcon'
 import type { Item, ItemTalic, SeedOption } from '@/Domain/types/models'
@@ -37,6 +39,23 @@ const RARITY_COLOR: Record<string, string> = {
 
 export function rarityColor(rarity: string): string {
   return RARITY_COLOR[rarity] ?? '#cfd8e3'
+}
+
+/** Relic items: base (+0) bonus, as in the game's Relics window. */
+function RelicEffects({ gameCode }: { gameCode: string | null }) {
+  const id = relicIdFromGameCode(gameCode)
+  const texts = id === null ? [] : relicUpgradeTexts(id)[0] ?? []
+  if (texts.length === 0) return null
+  return (
+    <div className="item-tooltip__row item-tooltip__row--effects">
+      <span className="item-tooltip__label">Relic Effects</span>
+      <span className="item-tooltip__value item-tooltip__effects">
+        {texts.map((text, i) => (
+          <span key={i} className="item-tooltip__effect">{text}</span>
+        ))}
+      </span>
+    </div>
+  )
 }
 
 function d<T>(details: Record<string, unknown> | null, key: string): T | undefined {
@@ -97,12 +116,15 @@ export function ItemCard({
   onDelete,
   onEdit,
   weaponCasts,
+  quantity,
 }: {
   item: Item
   canAdmin: boolean
   onDelete: (id: number) => void
   onEdit?: (id: number) => void
   weaponCasts: SeedOption[]
+  /** Shown as "x5" next to the name (auction lots). */
+  quantity?: number
 }) {
   const [imgError, setImgError] = useState(false)
   const det = item.details as Record<string, unknown> | null
@@ -146,7 +168,10 @@ export function ItemCard({
           )}
         </div>
         <div className="item-tooltip__title-wrap">
-          <span className="item-tooltip__name" style={{ color }}>{item.name}</span>
+          <span className="item-tooltip__name-row">
+            <span className="item-tooltip__name" style={{ color }}>{item.name}</span>
+            {quantity != null && <ItemQuantity quantity={quantity} />}
+          </span>
           <span className="item-tooltip__rarity">{item.rarity}</span>
         </div>
         {canAdmin && (
@@ -209,8 +234,9 @@ export function ItemCard({
             </span>
           </div>
         )}
-        {item.type === 'ARMOR' && defRate !== undefined && (
-          <StatRow label="Def Success" value={`${defRate}%`} />
+        {/* Raw value from the kbase ("Defence: 2164 [283]"), not a percentage. */}
+        {item.type === 'ARMOR' && defRate !== undefined && defRate > 0 && (
+          <StatRow label="Def Success" value={defRate} />
         )}
 
         {castName && (
@@ -235,6 +261,8 @@ export function ItemCard({
             </span>
           </div>
         )}
+
+        <RelicEffects gameCode={item.gameCode} />
 
         <TalicUpgradeRow talics={item.talics} />
 

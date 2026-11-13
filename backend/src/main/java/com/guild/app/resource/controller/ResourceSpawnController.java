@@ -27,7 +27,7 @@ public class ResourceSpawnController {
     private final ResourceSpawnService service;
 
     public record AccessRequest(@Size(max = 500) List<Long> memberIds) {}
-    public record TierRequest(@NotBlank @Size(max = 64) String name, @NotNull @Min(0) @Max(3) Integer tier) {}
+    public record TierRequest(@NotBlank @Size(max = 64) String name, @NotNull @Min(0) @Max(4) Integer tier) {}
 
     /** Mobs vistos pela DLL no mapa {@code map}; devolve os pontos do mapa (só para quem está na lista). */
     @PostMapping(value = "/game", produces = "text/plain;charset=UTF-8")
@@ -49,6 +49,12 @@ public class ResourceSpawnController {
     public ResourceSpawnService.HistoryPage history(@RequestParam int map,
             @RequestParam(defaultValue = "0") long after, @RequestParam(defaultValue = "500") int limit) {
         return service.history(map, after, limit, SecurityUtils.currentMember());
+    }
+
+    @PreAuthorize("isAuthenticated()")
+    @GetMapping("/stats")
+    public ResourceSpawnService.Stats stats(@RequestParam int map, @RequestParam(defaultValue = "7") int days) {
+        return service.stats(map, days, SecurityUtils.currentMember());
     }
 
     @PreAuthorize("isAuthenticated()")

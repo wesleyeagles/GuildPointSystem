@@ -5,12 +5,13 @@ import java.time.Instant;
 /**
  * Situacao da sincronizacao DLL do membro logado.
  *
- * @param synced         enviou dados do jogo dentro da janela (ex.: ultimos 3 dias)
+ * @param synced         enviou dados do jogo dentro da janela (ex.: ultimas 6 horas)
  * @param lastSyncAt     ultimo envio de qualquer personagem (null = nunca)
  * @param deadline       a partir de quando o acesso exige estar sincronizado
  * @param newAccount     prazo vem do cadastro (contas criadas depois do prazo geral)
  * @param blocked        prazo passou e nao esta sincronizado: o site recusa as requisicoes
- * @param windowDays     tamanho da janela de "recente"
+ * @param windowDays     tamanho da janela de "recente", em dias inteiros (0 se menor que um dia)
+ * @param windowHours    tamanho da janela em horas (o texto do site usa este)
  * @param dllVersion     versao da DLL no ultimo envio (null = nunca ou cliente sem versao)
  * @param latestDllVersion versao mais recente publicada no site (null = nenhuma)
  * @param dllOutdated    sincroniza, mas com versao anterior a mais recente (so aviso, nao bloqueia)
@@ -25,6 +26,7 @@ public record SyncAccessView(
         boolean newAccount,
         boolean blocked,
         long windowDays,
+        long windowHours,
         String dllVersion,
         String latestDllVersion,
         boolean dllOutdated,

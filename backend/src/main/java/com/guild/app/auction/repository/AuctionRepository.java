@@ -28,6 +28,10 @@ public interface AuctionRepository extends JpaRepository<Auction, Long> {
 
     List<Auction> findByStatus(AuctionStatus status);
 
+    @Query("SELECT a.id FROM Auction a WHERE a.status = com.guild.app.common.enums.AuctionStatus.SCHEDULED"
+            + " AND a.startsAt IS NOT NULL AND a.startsAt <= :now")
+    List<Long> findDueScheduledIds(Instant now);
+
     @Query("SELECT a.id FROM Auction a WHERE a.status IN :statuses AND a.endsAt <= :now")
     List<Long> findDueIds(Collection<AuctionStatus> statuses, Instant now);
 

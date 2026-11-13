@@ -5,12 +5,13 @@ import {
   useAuctionTieBreak,
   useCancelAuction,
   useDeleteAuction,
+  useAuctionAdminAction,
   useExtendAuction,
   usePlaceBid,
 } from '@/Domain/Auction/hooks/useAuction'
 import { useAuthContext } from '@/Features/Auth/contexts/AuthContext'
 import { useAppToast } from '@/Shared/ui/components/AppToast/AppToast'
-import { isAuctionFinished } from '@/Domain/types/models'
+import { formatAuctionItems, isAuctionFinished } from '@/Domain/types/models'
 import { useCurrentMember } from '@/Domain/Member/hooks/useMembers'
 import { useItem } from '@/Domain/Item/hooks/useItems'
 import { useItemSeeds } from '@/Domain/Seed/hooks/useItemSeeds'
@@ -21,10 +22,11 @@ import { ConfirmDialog } from '@/Shared/ui/components/ConfirmDialog/ConfirmDialo
 import { Panel } from '@/Shared/ui/components/Panel/Panel'
 import { ItemCard } from '@/Features/Items/components/ItemCard/ItemCard'
 import type { AuctionItem, SeedOption } from '@/Domain/types/models'
-import { formatTime, useCountdown } from '@/Features/Auction/hooks/useCountdown'
+import { formatStartsAt, formatTime, pausedSeconds, useCountdown } from '@/Features/Auction/hooks/useCountdown'
 import { useFillViewport } from '@/Features/Auction/hooks/useFillViewport'
 import { AuctionChat } from '@/Features/Auction/components/AuctionChat/AuctionChat'
 import { AuctionViewers } from '@/Features/Auction/components/AuctionViewers/AuctionViewers'
+import { ItemQuantity } from '@/Shared/ui/components/ItemQuantity/ItemQuantity'
 import './Auction.styles.scss'
 
 // ─── Single auction item card (fetches full data) ─────────────────────────────
@@ -45,16 +47,20 @@ function AuctionItemCard({
           <img src={auctionItem.imageUrl} alt={auctionItem.itemName} className="auction-item-placeholder__img" />
         )}
         <span>{auctionItem.itemName}</span>
+        <ItemQuantity quantity={auctionItem.quantity} />
       </div>
     )
   }
 
   return (
     <div className="auction-item-wrap">
-      <ItemCard item={item} canAdmin={false} onDelete={() => {}} weaponCasts={weaponCasts} />
-      {auctionItem.quantity > 1 && (
-        <div className="auction-item-wrap__qty">x{auctionItem.quantity}</div>
-      )}
+      <ItemCard
+        item={item}
+        canAdmin={false}
+        onDelete={() => {}}
+        weaponCasts={weaponCasts}
+        quantity={auctionItem.quantity}
+      />
     </div>
   )
 }
@@ -62,6 +68,8 @@ function AuctionItemCard({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 const STATUS_LABEL: Record<string, string> = {
+  SCHEDULED: 'Em breve',
+  PAUSED: 'Pausado',
   OPEN: 'Aberto',
   DOLE: 'DOLE',
   TIE_BREAK: 'Empate',
@@ -70,6 +78,13 @@ const STATUS_LABEL: Record<string, string> = {
 }
 
 const QUICK_INCREMENTS = [5, 10, 50, 100, 500]
+const EXTEND_OPTIONS = [
+  { minutes: 1, label: '+1 min' },
+  { minutes: 5, label: '+5 min' },
+  { minutes: 15, label: '+15 min' },
+  { minutes: 30, label: '+30 min' },
+  { minutes: 60, label: '+1 h' },
+]
 const FEEDBACK_MS = 4000
 
 type BidFeedback = { kind: 'ok' | 'error'; text: string }
@@ -98,6 +113,9 @@ export function AuctionDetailPage() {
   const cancelAuction = useCancelAuction()
   const deleteAuction = useDeleteAuction()
   const extendAuction = useExtendAuction()
+  const startAuction = useAuctionAdminAction('start')
+  const pauseAuction = useAuctionAdminAction('pause')
+  const resumeAuction = useAuctionAdminAction('resume')
 
   const [bidAmount, setBidAmount] = useState('')
   const [feedback, setFeedback] = useState<BidFeedback | null>(null)
@@ -107,6 +125,7 @@ export function AuctionDetailPage() {
   const closeConfirm = useCallback(() => setConfirm(null), [])
 
   const remaining = useCountdown(auction?.endsAt ?? '')
+  const untilStart = useCountdown(auction?.status === 'SCHEDULED' ? (auction.startsAt ?? '') : '')
 
   useEffect(() => {
     if (!feedback) return
@@ -151,12 +170,25 @@ export function AuctionDetailPage() {
     }
   }
 
-  const handleExtend = async () => {
+  const handleExtend = async (minutes: number, label: string) => {
     try {
-      await extendAuction.mutateAsync(auctionId)
-      showToast('+5 minutos adicionados ao leilão.', 'success')
+      await extendAuction.mutateAsync({ id: auctionId, minutes })
+      showToast(`${label} adicionados ao leilão.`, 'success')
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Não foi possível adicionar tempo.', 'error')
+    }
+  }
+
+  const runAdminAction = async (
+    mutation: typeof startAuction,
+    success: string,
+    failure: string,
+  ) => {
+    try {
+      await mutation.mutateAsync(auctionId)
+      showToast(success, 'success')
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : failure, 'error')
     }
   }
 
@@ -183,6 +215,8 @@ export function AuctionDetailPage() {
   const isCancelled = auction.status === 'CANCELLED'
   const isFinished = isAuctionFinished(auction.status)
   const isTieBreak = auction.status === 'TIE_BREAK'
+  const isScheduled = auction.status === 'SCHEDULED'
+  const isPaused = auction.status === 'PAUSED'
   const lotLabel = `#${String(auction.id).padStart(3, '0')}`
   // Whoever holds the current bid has points reserved here; cancelling releases them.
   const reservedNames = auction.tied
@@ -286,10 +320,22 @@ export function AuctionDetailPage() {
             <div
               className={`auction-console__display auction-console__display--timer${isUrgent ? ' auction-console__display--urgent' : ''}`}
             >
-              <span className="auction-console__label">Tempo</span>
-              <span className={`auction-console__value${remaining >= 3600 ? ' auction-console__value--long' : ''}`}>
-                {isFinished || isTieBreak ? '--:--' : formatTime(remaining)}
+              <span className="auction-console__label">
+                {isScheduled ? 'Começa em' : isPaused ? 'Tempo (pausado)' : 'Tempo'}
               </span>
+              {(() => {
+                const shown = isScheduled
+                  ? untilStart
+                  : isPaused
+                    ? pausedSeconds(auction.pausedRemainingMs)
+                    : remaining
+                const blank = isFinished || isTieBreak || (isScheduled && !auction.startsAt)
+                return (
+                  <span className={`auction-console__value${shown >= 3600 ? ' auction-console__value--long' : ''}`}>
+                    {blank ? '--:--' : formatTime(shown)}
+                  </span>
+                )
+              })()}
             </div>
           </div>
 
@@ -302,6 +348,14 @@ export function AuctionDetailPage() {
                 </span>
               </dd>
             </div>
+            {isScheduled && (
+              <div>
+                <dt>Início</dt>
+                <dd className="auction-console__mono">
+                  {auction.startsAt ? formatStartsAt(auction.startsAt) : 'Manual (pela administração)'}
+                </dd>
+              </div>
+            )}
             {member && (
               <div>
                 <dt>Seu saldo disponível</dt>
@@ -357,6 +411,20 @@ export function AuctionDetailPage() {
               </div>
             )}
           </dl>
+
+          {isScheduled && (
+            <div className="auction-detail__notice" role="status">
+              {auction.startsAt
+                ? `Este leilão abre ${formatStartsAt(auction.startsAt)}. Os lances começam nessa hora.`
+                : 'Este leilão ainda não começou. A administração vai iniciá-lo em breve.'}
+            </div>
+          )}
+          {isPaused && (
+            <div className="auction-detail__notice auction-detail__notice--paused" role="status">
+              Leilão pausado pela administração. Os lances voltam quando ele for retomado; os pontos
+              reservados continuam reservados.
+            </div>
+          )}
 
           {/* DOLE system alert */}
           {auction.status === 'DOLE' && (
@@ -441,17 +509,54 @@ export function AuctionDetailPage() {
               <Button variant="danger" size="sm" onClick={() => setConfirm('delete')}>
                 Excluir leilão
               </Button>
+            ) : isScheduled ? (
+              <>
+                <Button
+                  size="sm"
+                  loading={startAuction.isPending}
+                  onClick={() => runAdminAction(startAuction, 'Leilão iniciado.', 'Não foi possível iniciar o leilão.')}
+                >
+                  Iniciar agora
+                </Button>
+                <Button variant="danger" size="sm" onClick={() => setConfirm('delete')}>
+                  Excluir leilão
+                </Button>
+              </>
             ) : (
               <>
-                {!isTieBreak && (
+                {isPaused ? (
+                  <Button
+                    size="sm"
+                    loading={resumeAuction.isPending}
+                    onClick={() => runAdminAction(resumeAuction, 'Leilão retomado.', 'Não foi possível retomar o leilão.')}
+                  >
+                    Retomar leilão
+                  </Button>
+                ) : !isTieBreak && (
                   <Button
                     variant="secondary"
                     size="sm"
-                    loading={extendAuction.isPending}
-                    onClick={handleExtend}
+                    loading={pauseAuction.isPending}
+                    onClick={() => runAdminAction(pauseAuction, 'Leilão pausado.', 'Não foi possível pausar o leilão.')}
                   >
-                    Adicionar +5 Minutos
+                    Pausar leilão
                   </Button>
+                )}
+                {!isTieBreak && (
+                  <div className="auction-admin__extend" role="group" aria-label="Adicionar tempo">
+                    <span>Adicionar tempo</span>
+                    {EXTEND_OPTIONS.map((opt) => (
+                      <Button
+                        key={opt.minutes}
+                        variant="secondary"
+                        size="sm"
+                        disabled={extendAuction.isPending}
+                        onClick={() => handleExtend(opt.minutes, opt.label)}
+                      >
+                        {opt.label}
+                      </Button>
+                    ))}
+                  </div>
                 )}
                 <Button variant="danger" size="sm" onClick={() => setConfirm('cancel')}>
                   Encerrar leilão
@@ -493,7 +598,7 @@ export function AuctionDetailPage() {
           onCancel={closeConfirm}
         >
           <p>
-            <strong>{auction.items.map((i) => i.itemName).join(', ')}</strong> — o leilão, os lances e
+            <strong>{formatAuctionItems(auction.items)}</strong> — o leilão, os lances e
             o chat serão apagados. Essa ação não pode ser desfeita.
           </p>
           <p className="confirm-dialog__note">

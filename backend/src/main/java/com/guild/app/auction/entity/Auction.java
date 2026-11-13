@@ -32,6 +32,14 @@ public class Auction {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt = Instant.now();
 
+    /** Start time of a scheduled auction (null = "em breve", opened by hand); set to the opening time once open. */
+    @Column(name = "starts_at")
+    private Instant startsAt;
+
+    /** Time left on the clock while PAUSED. */
+    @Column(name = "paused_remaining_ms")
+    private Long pausedRemainingMs;
+
     @Column(name = "ends_at", nullable = false)
     private Instant endsAt;
 

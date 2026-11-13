@@ -82,6 +82,7 @@ public class SyncAccessService {
                 deadline.isAfter(enforceFrom),
                 !synced && !now.isBefore(deadline),
                 window.toDays(),
+                window.toHours(),
                 dllVersion,
                 latestDllVersion,
                 dllOutdated,

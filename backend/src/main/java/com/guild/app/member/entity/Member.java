@@ -87,6 +87,10 @@ public class Member {
     @Column(name = "blocked_for_sell_until")
     private LocalDate blockedForSellUntil;
 
+    /** "English Player": a DLL deste membro mostra textos e shouts em inglês. */
+    @Column(name = "english_player", nullable = false)
+    private boolean englishPlayer;
+
     /** The block lifts by itself once its last day has passed. */
     public boolean isBlockedForSellAccount() {
         return blockedForSellUntil != null

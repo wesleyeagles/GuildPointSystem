@@ -3,6 +3,7 @@ $tier-colors: (
   '1': #5ad25a,
   '2': #4696ff,
   '3': #ffaa28,
+  '4': #3cd7d7,
   'u': #dc5adc,
 );
 
@@ -179,14 +180,22 @@ $tier-colors: (
     max-height: 560px;
     overflow-y: auto;
 
-    li {
+    li { border-bottom: 1px solid theme.$color-border; }
+
+    button {
       display: flex;
       align-items: center;
       gap: theme.$spacing-sm;
+      width: 100%;
       padding: 4px theme.$spacing-xs;
-      border-bottom: 1px solid theme.$color-border;
+      background: transparent;
+      border: none;
+      color: inherit;
+      font: inherit;
+      text-align: left;
+      cursor: pointer;
 
-      &:hover { background: theme.$metal-700; }
+      &:hover, &:focus-visible { background: theme.$metal-700; outline: none; }
     }
 
     time {
@@ -195,6 +204,31 @@ $tier-colors: (
       font-family: theme.$font-mono;
       font-size: 13px;
     }
+  }
+
+  &__back {
+    margin-top: theme.$spacing-md;
+    padding: 0;
+    background: transparent;
+    border: none;
+    color: theme.$color-primary;
+    font: inherit;
+    cursor: pointer;
+
+    &:hover { text-decoration: underline; }
+  }
+
+  &__marker {
+    fill: none;
+    stroke: #fff;
+    stroke-width: 2;
+  }
+
+  &__marker-wave {
+    stroke-width: 1.5;
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: resources-marker 1.2s ease-out infinite;
   }
 
   &__recent-name {
@@ -284,6 +318,44 @@ $tier-colors: (
   }
 
   &__actions { display: flex; margin-top: theme.$spacing-md; }
+
+  &__respawn-note { flex: 1 1 420px; margin: 0; }
+
+  &__respawn {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: theme.$spacing-md;
+  }
+
+  &__respawn-card {
+    border: 1px solid theme.$color-border;
+    background: theme.$metal-800;
+    padding: theme.$spacing-md;
+
+    h3 { display: flex; align-items: center; gap: 6px; margin: 0 0 theme.$spacing-sm; font-size: theme.$font-size-ui; }
+    h4 { margin: theme.$spacing-md 0 4px; font-size: theme.$font-size-ui; font-weight: 500; color: theme.$color-text-muted; }
+
+    @each $key, $color in $tier-colors {
+      &--t#{$key} .resources__bars span { background: $color; }
+    }
+  }
+
+  &__bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 48px;
+    border-bottom: 1px solid theme.$color-border;
+
+    span { flex: 1; min-height: 1px; opacity: 0.85; }
+  }
+
+  &__bars-axis {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: theme.$color-text-muted;
+  }
 }
 
 @keyframes resources-wave {
@@ -299,4 +371,53 @@ $tier-colors: (
 @keyframes resources-dead {
   0% { opacity: 1; }
   50% { opacity: 0.25; }
+}
+
+@keyframes resources-marker {
+  from { transform: scale(0.6); opacity: 1; }
+  to { transform: scale(1.4); opacity: 0; }
+}
+
+// Achados x pontos de respawn
+.resources__modes { display: inline-flex; gap: 2px; }
+
+.resources__mode {
+  @include theme.tag(theme.$color-text-muted);
+  cursor: pointer;
+  font-size: theme.$font-size-ui;
+  padding: 4px theme.$spacing-sm;
+  background: theme.$metal-800;
+
+  &--active { color: theme.$color-primary; border-color: theme.$color-primary; }
+}
+
+.resources__spot {
+  cursor: pointer;
+
+  circle { fill-opacity: 0.55; stroke: #111; stroke-width: 1; }
+
+  text {
+    fill: #fff;
+    font-size: 8px;
+    font-weight: 700;
+    text-anchor: middle;
+    pointer-events: none;
+    paint-order: stroke;
+    stroke: #000;
+    stroke-width: 2px;
+  }
+
+  @each $key, $color in (('1', #5ad25a), ('2', #4696ff), ('3', #ffaa28), ('u', #dc5adc)) {
+    &--t#{$key} circle { fill: $color; }
+  }
+
+  &--hover circle { fill-opacity: 0.9; stroke: #fff; stroke-width: 2; }
+}
+
+.resources__subtitle--small { font-size: theme.$font-size-ui; margin-top: theme.$spacing-md; }
+
+.resources__recent--plain li {
+  display: flex;
+  gap: theme.$spacing-sm;
+  padding: 4px theme.$spacing-xs;
 }

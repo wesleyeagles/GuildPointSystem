@@ -57,6 +57,7 @@ function ResourceMobs({ overview }: { overview: ResourceOverview }) {
                   <option value="1">{TIER_LABEL[1]}</option>
                   <option value="2">{TIER_LABEL[2]}</option>
                   <option value="3">{TIER_LABEL[3]}</option>
+                  <option value="4">{TIER_LABEL[4]}</option>
                   <option value="0">Não é recurso</option>
                 </select>
               </td>

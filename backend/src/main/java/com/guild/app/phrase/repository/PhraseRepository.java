@@ -1,0 +1,13 @@
+package com.guild.app.phrase.repository;
+
+import com.guild.app.phrase.entity.Phrase;
+import org.springframework.data.jpa.repository.EntityGraph;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.List;
+
+public interface PhraseRepository extends JpaRepository<Phrase, Long> {
+
+    @EntityGraph(attributePaths = {"member"})
+    List<Phrase> findAllByOrderByIdAsc();
+}

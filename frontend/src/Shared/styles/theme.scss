@@ -71,8 +71,10 @@ $spacing-lg: 1.5rem;
 $spacing-xl: 2rem;
 
 // Typography
-$font-family:  'Barlow Semi Condensed', 'Segoe UI', system-ui, sans-serif;
-$font-heading: 'Big Shoulders Display', 'Barlow Semi Condensed', sans-serif;
+// The Latin fonts have no Cyrillic: Russian falls back per letter to a narrow font that does,
+// instead of the much wider Segoe UI. Portuguese/English keep the first font in each stack.
+$font-family:  'Barlow Semi Condensed', 'Roboto Condensed', 'Segoe UI', system-ui, sans-serif;
+$font-heading: 'Big Shoulders Display', 'PT Sans Narrow', 'Barlow Semi Condensed', sans-serif;
 $font-mono:    'Share Tech Mono', ui-monospace, Consolas, monospace;
 $font-size-base:    16px;  // Barlow — body, inputs, labels
 $font-size-heading: 14px;  // minimum for heading/mono UI chrome
@@ -84,7 +86,7 @@ $font-size-display: 32px;
 // Single-line form controls (input, select, picker triggers)
 $field-control-height: 42px;
 
-$sidebar-width: 236px;
+$sidebar-width: 64px;
 // Phones: below this, pages switch to their single-column / stacked layouts.
 $mobile-breakpoint: 640px;
 

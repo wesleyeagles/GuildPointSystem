@@ -9,7 +9,7 @@ import { ChatTranslateUsagePanel } from './ChatTranslateUsagePanel'
 
 /**
  * Administrador+: quem usa o tradutor do chat no jogo. A DLL desses membros mostra, no próprio chat, a
- * tradução em inglês das mensagens em russo (só na tela deles). Os demais não têm o recurso.
+ * tradução em inglês das mensagens em russo e indonésio (só na tela deles). Os demais não têm o recurso.
  */
 export function ChatTranslatorSettings() {
   const { data: access } = useChatTranslateAccess()
@@ -42,10 +42,10 @@ function ChatTranslatorForm({ access }: { access: ChatTranslateAccess }) {
   })
 
   return (
-    <Panel title="Tradutor do chat (russo → inglês)" code={`${access.translators.length}`} className="chat-translator">
+    <Panel title="Tradutor do chat (russo e indonésio → inglês)" code={`${access.translators.length}`} className="chat-translator">
       <p className="dll-admin__muted">
-        A DLL (v1.15.0 ou mais nova) desses membros traduz as mensagens em russo e mostra a tradução em verde no chat do
-        jogo, só na tela deles. Mudanças valem em até 1 minuto.
+        A DLL desses membros troca as mensagens em russo (v1.15.0 ou mais nova) e em indonésio (v1.40.0 ou mais nova)
+        pela tradução em inglês no chat do jogo, só na tela deles. Mudanças valem em até 1 minuto.
       </p>
       {access.usage && <ChatTranslateUsagePanel usage={access.usage} />}
       <div className="chat-translator__chips">
