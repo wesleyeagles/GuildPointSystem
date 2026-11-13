@@ -56,6 +56,24 @@ public class ItemService {
         return toResponse(item, icon);
     }
 
+    public record AuctionItemRef(Long id, String name) {}
+
+    public AuctionItemRef getAuctionItem(String code) {
+        SecurityUtils.requireRole(Role.ADMINISTRADOR);
+        if (!code.matches("[A-Za-z0-9]{7}")) {
+            throw new AppException("Código de item inválido.", HttpStatus.BAD_REQUEST);
+        }
+        var matches = itemRepository.findTop2ByGameCodeIgnoreCaseAndDeletedFalse(code);
+        if (matches.isEmpty()) {
+            throw new AppException("Item não cadastrado no site: " + code, HttpStatus.NOT_FOUND);
+        }
+        if (matches.size() != 1) {
+            throw new AppException("Há mais de um cadastro para o código " + code, HttpStatus.CONFLICT);
+        }
+        var item = matches.getFirst();
+        return new AuctionItemRef(item.getId(), item.getName());
+    }
+
     @Transactional
     public ItemResponse create(CreateItemRequest request, MemberPrincipal actor) {
         SecurityUtils.requireRole(Role.ADMINISTRADOR);

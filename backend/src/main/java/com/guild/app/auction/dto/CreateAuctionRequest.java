@@ -16,7 +16,9 @@ public record CreateAuctionRequest(
         /** Optional: opens the auction at this time instead of right away. */
         Instant startsAt,
         /** true without {@code startsAt}: create it "em breve", to be started by hand. */
-        Boolean startLater
+        Boolean startLater,
+        /** Optional exact deadline for a copy of an open auction. Incompatible with scheduling. */
+        Instant endsAt
 ) {
     public record AuctionItemEntry(
             @NotNull(message = "Selecione um item.")

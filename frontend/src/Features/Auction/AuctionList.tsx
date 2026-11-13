@@ -1,6 +1,7 @@
-import { Fragment, useCallback, useState } from 'react'
+import { Fragment, useCallback, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
+  serverNow,
   useAuctionAdminAction,
   useAuctions,
   useCreateAuction,
@@ -18,6 +19,7 @@ import { Button } from '@/Shared/ui/components/Button/Button'
 import { Panel } from '@/Shared/ui/components/Panel/Panel'
 import type { Auction } from '@/Domain/types/models'
 import { formatStartsAt, formatTime, pausedSeconds, useCountdown } from '@/Features/Auction/hooks/useCountdown'
+import { useAuctionDraftInput } from '@/Domain/Auction/hooks/useAuctionDraftInput'
 import './Auction.styles.scss'
 
 const DURATIONS = [
@@ -43,6 +45,12 @@ function toLocalInput(d: Date) {
 }
 
 const emptyEntry = (): ItemEntry => ({ itemId: 0, quantity: 1 })
+
+const auctionDate = new Intl.DateTimeFormat('pt-BR', {
+  dateStyle: 'short',
+  timeStyle: 'medium',
+  timeZone: 'America/Sao_Paulo',
+})
 
 const STATUS_LABEL: Record<string, string> = {
   SCHEDULED: 'Em breve',
@@ -132,6 +140,7 @@ function AuctionListSection({
   title,
   auctions,
   emptyText,
+  onCopy,
   onDelete,
   deletingId,
   onStart,
@@ -139,6 +148,7 @@ function AuctionListSection({
 }: {
   title: string
   auctions: Auction[]
+  onCopy?: (auction: Auction) => void
   emptyText?: string
   /** Shown for finished and not-yet-started auctions, to Líder/Administrador. */
   onDelete?: (auction: Auction) => void
@@ -184,6 +194,11 @@ function AuctionListSection({
                     Ver
                   </Button>
                 </Link>
+                {onCopy && auction.status === 'OPEN' && (
+                  <Button type="button" variant="secondary" size="sm" onClick={() => onCopy(auction)}>
+                    Copiar leilão
+                  </Button>
+                )}
                 {onStart && auction.status === 'SCHEDULED' && (
                   <Button size="sm" loading={startingId === auction.id} onClick={() => onStart(auction)}>
                     Iniciar
@@ -230,11 +245,24 @@ export function AuctionListPage() {
   const isAdmin = hasRole('ADMINISTRADOR')
 
   const [durationMinutes, setDurationMinutes] = useState(15)
+  const [copiedEnd, setCopiedEnd] = useState<string | null>(null)
+  const durationField = useRef<HTMLSelectElement>(null)
   const [startMode, setStartMode] = useState<StartMode>('now')
   const [startsAtInput, setStartsAtInput] = useState('')
   const [entries, setEntries] = useState<ItemEntry[]>([emptyEntry()])
   const [pendingDelete, setPendingDelete] = useState<Auction | null>(null)
   const closeDelete = useCallback(() => setPendingDelete(null), [])
+
+  const draftInput = useAuctionDraftInput(isAdmin && !createAuction.isPending, (itemId) => {
+    setEntries((previous) => {
+      const matching = previous.findIndex((entry) => entry.itemId === itemId)
+      const index = matching >= 0 ? matching : previous.findIndex((entry) => entry.itemId === 0)
+      if (index < 0) return [...previous, { itemId, quantity: 1 }]
+      return previous.map((entry, i) => i === index
+        ? { itemId, quantity: matching >= 0 ? Math.max(0, entry.quantity) + 1 : 1 }
+        : entry)
+    })
+  })
 
   const updateEntry = (index: number, patch: Partial<ItemEntry>) => {
     setEntries((prev) => prev.map((entry, i) => (i === index ? { ...entry, ...patch } : entry)))
@@ -244,6 +272,23 @@ export function AuctionListPage() {
 
   const removeEntry = (index: number) => {
     setEntries((prev) => (prev.length <= 1 ? prev : prev.filter((_, i) => i !== index)))
+  }
+
+  const copyAuction = (auction: Auction) => {
+    if (createAuction.isPending) return
+    if (Date.parse(auction.endsAt) <= serverNow()) {
+      showToast('O horário de encerramento desse leilão já passou.', 'error')
+      return
+    }
+    draftInput.stop()
+    setDurationMinutes(auction.durationMinutes)
+    setStartMode('now')
+    setStartsAtInput('')
+    setCopiedEnd(auction.endsAt)
+    setEntries(auction.items.length
+      ? auction.items.map(({ itemId, quantity }) => ({ itemId, quantity }))
+      : [emptyEntry()])
+    durationField.current?.focus()
   }
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -261,9 +306,11 @@ export function AuctionListPage() {
       startsAt = when.toISOString()
     }
 
+    draftInput.stop()
     try {
       await createAuction.mutateAsync({
         durationMinutes,
+        ...(copiedEnd ? { endsAt: copiedEnd } : {}),
         items: validItems.map(({ itemId, quantity }) => ({ itemId, quantity })),
         startsAt,
         startLater: startMode === 'later' || undefined,
@@ -274,6 +321,7 @@ export function AuctionListPage() {
     }
     if (startMode === 'at') showToast(`Leilão agendado para ${formatStartsAt(startsAt!)}.`, 'success')
     if (startMode === 'later') showToast('Leilão criado em "Em breve". Inicie quando quiser.', 'success')
+    setCopiedEnd(null)
     setEntries([emptyEntry()])
   }
 
@@ -313,9 +361,16 @@ export function AuctionListPage() {
               <label className="auction-form__field">
                 <span>Duração</span>
                 <select
-                  value={durationMinutes}
-                  onChange={(e) => setDurationMinutes(Number(e.target.value))}
+                  ref={durationField}
+                  value={copiedEnd ? 'copied' : durationMinutes}
+                  onChange={(e) => {
+                    setCopiedEnd(null)
+                    setDurationMinutes(Number(e.target.value))
+                  }}
                 >
+                  {copiedEnd && (
+                    <option value="copied">Até {auctionDate.format(new Date(copiedEnd))} (Brasília)</option>
+                  )}
                   {DURATIONS.map((d) => (
                     <option key={d.value} value={d.value}>
                       {d.label}
@@ -325,7 +380,7 @@ export function AuctionListPage() {
               </label>
               <label className="auction-form__field">
                 <span>Início</span>
-                <select value={startMode} onChange={(e) => setStartMode(e.target.value as StartMode)}>
+                <select value={startMode} onChange={(e) => { setCopiedEnd(null); setStartMode(e.target.value as StartMode) }}>
                   <option value="now">Agora</option>
                   <option value="at">Em um horário</option>
                   <option value="later">Em breve (iniciar depois)</option>
@@ -347,6 +402,16 @@ export function AuctionListPage() {
 
             <fieldset className="auction-form__items">
               <legend>Itens do leilão</legend>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                disabled={createAuction.isPending}
+                onClick={draftInput.active ? draftInput.stop : draftInput.start}
+              >
+                {draftInput.active ? 'Desconectar RF-ui' : 'Usar como destino na RF-ui'}
+              </Button>
+              {draftInput.message && <p role="status">{draftInput.message}</p>}
               {entries.map((entry, index) => {
                 const otherIds = entries
                   .filter((_, i) => i !== index)
@@ -391,7 +456,8 @@ export function AuctionListPage() {
         </Panel>
       )}
 
-      <AuctionListSection title="Em andamento" auctions={active} emptyText="Nenhum leilão aberto." />
+      <AuctionListSection title="Em andamento" auctions={active} emptyText="Nenhum leilão aberto."
+        onCopy={isAdmin && !createAuction.isPending ? copyAuction : undefined} />
       <AuctionListSection
         title="Em breve"
         auctions={upcoming}

@@ -33,6 +33,11 @@ public class ItemController {
         return itemService.getById(id);
     }
 
+    @GetMapping("/auction-code/{code}")
+    public ItemService.AuctionItemRef getAuctionItem(@PathVariable String code) {
+        return itemService.getAuctionItem(code);
+    }
+
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ItemResponse create(@Valid @RequestBody CreateItemRequest request) {

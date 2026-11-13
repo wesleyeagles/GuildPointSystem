@@ -13,6 +13,8 @@ public interface ItemRepository extends JpaRepository<Item, Long> {
 
     List<Item> findByDeletedFalseOrderByCreatedAtDesc();
 
+    List<Item> findTop2ByGameCodeIgnoreCaseAndDeletedFalse(String gameCode);
+
     @Query(value = """
             SELECT i.* FROM item i
             WHERE i.deleted = FALSE

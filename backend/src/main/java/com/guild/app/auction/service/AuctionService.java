@@ -128,6 +128,12 @@ public class AuctionService {
 
         var now = Instant.now();
         var startsAt = request.startsAt();
+        var endsAt = request.endsAt();
+        if (endsAt != null && (startsAt != null || Boolean.TRUE.equals(request.startLater())
+                || !endsAt.isAfter(now) || endsAt.isAfter(now.plus(Duration.ofDays(1))))) {
+            throw new AppException("O encerramento deve estar nas próximas 24 horas, sem agendamento.",
+                    HttpStatus.BAD_REQUEST);
+        }
         boolean timed = startsAt != null && startsAt.isAfter(now.plusSeconds(SCHEDULE_MIN_LEAD_SECONDS));
         boolean scheduled = timed || (startsAt == null && Boolean.TRUE.equals(request.startLater()));
         if (timed && startsAt.isAfter(now.plus(Duration.ofDays(SCHEDULE_MAX_DAYS)))) {
@@ -145,7 +151,7 @@ public class AuctionService {
             auction.setEndsAt((timed ? startsAt : now).plusSeconds(request.durationMinutes() * 60L));
         } else {
             auction.setStartsAt(now);
-            auction.setEndsAt(now.plusSeconds(request.durationMinutes() * 60L));
+            auction.setEndsAt(endsAt != null ? endsAt : now.plusSeconds(request.durationMinutes() * 60L));
         }
         auction = auctionRepository.save(auction);
 
