@@ -325,6 +325,7 @@ export const formatAuctionItems = (items: Pick<AuctionItem, 'itemName' | 'quanti
   items.map((i) => (i.quantity > 1 ? `${i.itemName} x${i.quantity}` : i.itemName)).join(', ')
 
 export interface Auction {
+  fixedDeadline?: boolean
   id: number
   status: AuctionStatus
   durationMinutes: number

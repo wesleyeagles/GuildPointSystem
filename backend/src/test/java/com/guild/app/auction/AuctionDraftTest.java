@@ -28,6 +28,7 @@ import static org.mockito.Mockito.*;
 class AuctionDraftTest {
     @Mock AuctionRepository auctions;
     @Mock AuctionItemRepository auctionItems;
+    @Mock AuctionMessageRepository messages;
     @Mock ItemRepository items;
     @Mock MemberRepository members;
     @Mock AuditLogService audit;
@@ -51,6 +52,7 @@ class AuctionDraftTest {
         arrangeSave(); var end = Instant.now().plusSeconds(300);
         var result = service.create(request(end, null, false), actor);
         assertEquals(end, result.endsAt()); assertEquals(AuctionStatus.OPEN, result.status());
+        assertTrue(result.fixedDeadline());
         assertEquals(0L, result.currentBid()); assertNull(result.winnerId());
         verify(auctionItems).save(argThat(a -> a.getQuantity() == 3));
     }
@@ -76,5 +78,39 @@ class AuctionDraftTest {
         SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities()));
         assertThrows(AppException.class, () -> service.create(request(Instant.now().plusSeconds(300), null, false), principal));
         verifyNoInteractions(auctions);
+    }
+
+    @Test void opensExistingLotsWithTheSameExactDeadline() {
+        var first = scheduled(8L);
+        var second = scheduled(9L);
+        when(auctions.findByIdForUpdate(8L)).thenReturn(Optional.of(first));
+        when(auctions.findByIdForUpdate(9L)).thenReturn(Optional.of(second));
+        when(messages.save(any())).thenAnswer(call -> call.getArgument(0));
+        var end = Instant.now().plusSeconds(600);
+        var opened = service.startBatch(List.of(9L, 8L), end, actor);
+        assertEquals(List.of(8L, 9L), opened.stream().map(a -> a.id()).toList());
+        assertTrue(opened.stream().allMatch(a -> a.status() == AuctionStatus.OPEN && a.fixedDeadline() && end.equals(a.endsAt())));
+        assertEquals(first.getStartsAt(), second.getStartsAt());
+        verifyNoInteractions(audit);
+    }
+
+    @Test void refusesToOpenAnyLotIfOneWasAlreadyStarted() {
+        var first = scheduled(8L);
+        var second = scheduled(9L);
+        second.setStatus(AuctionStatus.OPEN);
+        when(auctions.findByIdForUpdate(8L)).thenReturn(Optional.of(first));
+        when(auctions.findByIdForUpdate(9L)).thenReturn(Optional.of(second));
+        assertThrows(AppException.class, () -> service.startBatch(List.of(8L, 9L), Instant.now().plusSeconds(600), actor));
+        assertEquals(AuctionStatus.SCHEDULED, first.getStatus());
+        verify(auctions, never()).save(any());
+        verifyNoInteractions(websocket);
+    }
+
+    private Auction scheduled(long id) {
+        var auction = new Auction();
+        auction.setId(id);
+        auction.setStatus(AuctionStatus.SCHEDULED);
+        auction.setDurationMinutes(720);
+        return auction;
     }
 }

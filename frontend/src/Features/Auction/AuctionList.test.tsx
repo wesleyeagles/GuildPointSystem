@@ -8,6 +8,8 @@ const state = vi.hoisted(() => ({
   admin: true,
   auctions: [] as Auction[],
   create: vi.fn(),
+  startBatch: vi.fn(),
+  now: undefined as number | undefined,
   lookup: vi.fn(),
   toast: vi.fn(),
 }))
@@ -23,11 +25,12 @@ vi.mock('@/Shared/api/client', () => ({
 }))
 
 vi.mock('@/Domain/Auction/hooks/useAuction', () => ({
-  serverNow: () => Date.now(),
+  serverNow: () => state.now ?? Date.now(),
   useAuctions: () => ({ data: state.auctions }),
   useCreateAuction: () => ({ mutateAsync: state.create }),
   useDeleteAuction: () => ({}),
   useAuctionAdminAction: () => ({}),
+  useStartAuctionBatch: () => ({ mutateAsync: state.startBatch }),
 }))
 vi.mock('@/Domain/Discord/hooks/useDiscordMembers', () => ({ useDiscordBySiteMember: () => new Map() }))
 vi.mock('@/Features/Auth/contexts/AuthContext', () => ({ useAuthContext: () => ({ hasRole: () => state.admin }) }))
@@ -41,6 +44,8 @@ vi.mock('./components/AuctionItemPicker/AuctionItemPicker', () => ({
 afterEach(() => {
   cleanup()
   state.create.mockReset()
+  state.startBatch.mockReset()
+  state.now = undefined
   state.lookup.mockReset()
   vi.unstubAllGlobals()
 })
@@ -54,6 +59,22 @@ function sampleAuction(endsAt: string): Auction {
     items: [{ itemId: 17, quantity: 3, itemName: 'Item original', imageUrl: null, gameIcon: null }],
   }
 }
+
+it('uses the same Brasília deadline for new auctions and pending lots', async () => {
+  state.admin = true
+  state.now = Date.parse('2026-11-14T00:00:00Z') // 21h on November 13 in Brasília
+  const endsAt = '2026-11-14T00:50:00.000Z'
+  const pending = { ...sampleAuction(endsAt), status: 'SCHEDULED' as const }
+  state.auctions = [pending, { ...pending, id: 43 }, { ...pending, id: 44, status: 'OPEN' }]
+  state.startBatch.mockResolvedValue(state.auctions.slice(0, 2))
+  render(<MemoryRouter><AuctionListPage /></MemoryRouter>)
+  fireEvent.change(screen.getByLabelText('Duração'), { target: { value: 'today' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Item 0' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Criar Leilão' }))
+  await waitFor(() => expect(state.create).toHaveBeenCalledWith(expect.objectContaining({ endsAt })))
+  fireEvent.click(screen.getByRole('button', { name: 'Iniciar todos até 21h50' }))
+  await waitFor(() => expect(state.startBatch).toHaveBeenCalledWith({ auctionIds: [42, 43], endsAt }))
+})
 
 it('adds one unit per RF-ui click, even when the first acknowledgement fails', async () => {
   state.admin = true
@@ -124,7 +145,7 @@ it.each([true, false])('copies the lot draft with the exact deadline for admins 
   fireEvent.click(screen.getByRole('button', { name: 'Copiar leilão' }))
   expect(state.create).not.toHaveBeenCalled()
   expect(screen.getByLabelText('Duração')).toHaveValue('copied')
-  expect(screen.getByRole('option', { name: /Até .*Brasília/ })).toBeVisible()
+  expect(screen.getByRole('option', { name: /Até \d{2}\/\d{2}\/\d{4}.*Brasília/ })).toBeVisible()
   expect(screen.getByLabelText('Quantidade')).toHaveValue(3)
 
   fireEvent.click(screen.getByRole('button', { name: 'Item 17' }))

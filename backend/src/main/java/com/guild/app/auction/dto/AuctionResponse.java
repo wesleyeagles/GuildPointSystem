@@ -18,6 +18,7 @@ public record AuctionResponse(
         /** SCHEDULED: planned start (null = "em breve"). Open: when it opened. */
         Instant startsAt,
         Instant endsAt,
+        boolean fixedDeadline,
         Long currentBid,
         Long winnerId,
         String winnerNickname,
@@ -40,7 +41,7 @@ public record AuctionResponse(
      * change after creation and clients keep them from the first full response.
      */
     public AuctionResponse withoutItems() {
-        return new AuctionResponse(id, status, durationMinutes, createdAt, startsAt, endsAt, currentBid, winnerId,
+        return new AuctionResponse(id, status, durationMinutes, createdAt, startsAt, endsAt, fixedDeadline, currentBid, winnerId,
                 winnerNickname, leaderId, leaderNickname, tiedCount, tied, tiedMemberIds, tiedMemberNicknames,
                 null, dolePhase, tieBreakPhase, version, serverTime, pausedRemainingMs);
     }
