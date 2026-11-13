@@ -137,9 +137,9 @@ export function AuctionItemPicker({ itemId, onChange, disabledIds = [] }: Auctio
               >
                 {selectedItem.name}
               </span>
-              <span className="auction-item-picker__details">
-                {detailLines(selectedItem).join(' · ') || selectedItem.gameCode || '—'}
-              </span>
+              {detailLines(selectedItem).length > 0 && (
+                <span className="auction-item-picker__details">{detailLines(selectedItem).join(' · ')}</span>
+              )}
             </div>
             <button type="button" className="game-ref-picker__clear" onClick={() => onChange(0)}>
               Limpar
@@ -226,9 +226,6 @@ export function AuctionItemPicker({ itemId, onChange, disabledIds = [] }: Auctio
                             </span>
                             {lines.length > 0 && (
                               <span className="auction-item-picker-modal__sub">{lines.join(' · ')}</span>
-                            )}
-                            {item.gameCode && (
-                              <span className="auction-item-picker-modal__code">{item.gameCode}</span>
                             )}
                           </div>
                         </button>
