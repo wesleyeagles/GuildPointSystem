@@ -348,6 +348,7 @@ export function useCreateAuction() {
   return useMutation({
     mutationFn: (body: {
       durationMinutes: number
+      endsAt?: string
       items: { itemId: number; quantity: number }[]
       /** ISO time: opens the auction then instead of right away. */
       startsAt?: string
