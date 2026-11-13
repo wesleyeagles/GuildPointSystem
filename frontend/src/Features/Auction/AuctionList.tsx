@@ -198,14 +198,14 @@ function AuctionListSection({
                     Ver
                   </Button>
                 </Link>
-                {onCopy && auction.status === 'OPEN' && (
-                  <Button type="button" variant="secondary" size="sm" onClick={() => onCopy(auction)}>
-                    Copiar leilão
-                  </Button>
-                )}
                 {onStart && auction.status === 'SCHEDULED' && (
                   <Button size="sm" loading={startingId === auction.id} onClick={() => onStart(auction)}>
                     Iniciar
+                  </Button>
+                )}
+                {onCopy && (auction.status === 'OPEN' || auction.status === 'SCHEDULED') && (
+                  <Button type="button" variant="secondary" size="sm" onClick={() => onCopy(auction)}>
+                    {auction.status === 'SCHEDULED' ? 'Duplicar' : 'Copiar leilão'}
                   </Button>
                 )}
                 {onDelete && (isAuctionFinished(auction.status) || auction.status === 'SCHEDULED') && (
@@ -280,15 +280,19 @@ export function AuctionListPage() {
 
   const copyAuction = (auction: Auction) => {
     if (createAuction.isPending) return
-    if (Date.parse(auction.endsAt) <= serverNow()) {
+    const scheduled = auction.status === 'SCHEDULED'
+    if (!scheduled && Date.parse(auction.endsAt) <= serverNow()) {
       showToast('O horário de encerramento desse leilão já passou.', 'error')
       return
     }
     draftInput.stop()
     setDurationMinutes(auction.durationMinutes)
-    setStartMode('now')
-    setStartsAtInput('')
-    setCopiedEnd(auction.endsAt)
+    const futureStart = scheduled && auction.startsAt && Date.parse(auction.startsAt) > serverNow()
+      ? toLocalInput(new Date(auction.startsAt))
+      : ''
+    setStartMode(scheduled ? (futureStart ? 'at' : 'later') : 'now')
+    setStartsAtInput(futureStart)
+    setCopiedEnd(scheduled ? null : auction.endsAt)
     setEntries(auction.items.length
       ? auction.items.map(({ itemId, quantity }) => ({ itemId, quantity }))
       : [emptyEntry()])
@@ -465,6 +469,7 @@ export function AuctionListPage() {
       <AuctionListSection
         title="Em breve"
         auctions={upcoming}
+          onCopy={isAdmin && !createAuction.isPending ? copyAuction : undefined}
         onStart={isAdmin ? handleStart : undefined}
         startingId={startAuction.isPending ? startAuction.variables : null}
         onDelete={isAdmin ? setPendingDelete : undefined}
