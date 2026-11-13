@@ -1,8 +1,35 @@
 import { useEffect, useRef, useState } from 'react'
 import { apiClient, ApiError } from '@/Shared/api/client'
+import type { Item, Page } from '@/Domain/types/models'
+import auctionRelicCodes from '../auctionRelicCodes.json'
 
 type DraftItem = { id: number; name: string }
 const bridge = 'http://127.0.0.1:15184/draft'
+
+async function findExactItem(code: string, signal: AbortSignal): Promise<DraftItem | undefined> {
+  let match: DraftItem | undefined
+  for (let page = 0; ; page++) {
+    const params = new URLSearchParams({ search: code, page: String(page), size: '24' })
+    const result = await apiClient<Page<Item>>(`/items?${params}`, { signal })
+    for (const item of result.content) {
+      if (item.gameCode?.toLowerCase() !== code) continue
+      if (match) throw new ApiError(`Há mais de um cadastro para o código ${code}.`, 409)
+      match = item
+    }
+    if (page + 1 >= result.totalPages) return match
+  }
+}
+
+async function lookupDraftItem(inventoryCode: string, signal: AbortSignal): Promise<DraftItem> {
+  const code = inventoryCode.toLowerCase()
+  const exact = await findExactItem(code, signal)
+  if (exact) return exact
+  // Tradable inventory codes verified against Item.edf and catalog migration V120 (#45).
+  const alias = (auctionRelicCodes as Partial<Record<string, string>>)[code]
+  const relic = alias ? await findExactItem(alias, signal) : undefined
+  if (!relic) throw new ApiError(`Item não cadastrado no site: ${inventoryCode}`, 404)
+  return relic
+}
 
 async function request(action: string, key: string, signal?: AbortSignal, ids?: string[]) {
   return fetch(bridge, {
@@ -88,7 +115,7 @@ export function useAuctionDraftInput(enabled: boolean, addItem: (id: number) => 
             try {
               let item = items.get(event.code)
               if (!item) {
-                item = await apiClient<DraftItem>(`/items/auction-code/${encodeURIComponent(event.code)}`, { signal })
+                item = await lookupDraftItem(event.code, signal)
                 items.set(event.code, item)
               }
               if (signal.aborted) return
