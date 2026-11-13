@@ -160,6 +160,7 @@ it('shows each item quantity in its own badge, separate from numbers in the name
   render(<MemoryRouter><AuctionListPage /></MemoryRouter>)
   for (const [name, label] of [['500 CASH COIN', '10 unidades'], ['Armor 50', '1 unidade'], ['Rare Ore', '99 unidades']]) {
     const title = screen.getByText(name)
+    expect(screen.getByRole('img', { name: label })).toBeVisible()
     expect(title.parentElement?.querySelector(`[aria-label="${label}"]`)).not.toBeNull()
   }
   expect(screen.queryByText('500 CASH COIN x10')).toBeNull()
