@@ -146,3 +146,22 @@ it('closing the page aborts reading and releases the bridge destination', async 
   expect(JSON.parse(fetch.mock.calls.at(-1)![1].body).action).toBe('close')
   expect(fetch.mock.calls[0][1].signal.aborted).toBe(true)
 })
+
+
+it('shows each item quantity in its own badge, separate from numbers in the name', () => {
+  state.admin = false
+  const auction = sampleAuction(new Date(Date.now() + 60_000).toISOString())
+  auction.items = [
+    { itemId: 1, itemName: '500 CASH COIN', quantity: 10, imageUrl: null, gameIcon: null },
+    { itemId: 2, itemName: 'Armor 50', quantity: 1, imageUrl: null, gameIcon: null },
+    { itemId: 3, itemName: 'Rare Ore', quantity: 99, imageUrl: null, gameIcon: null },
+  ]
+  state.auctions = [auction]
+  render(<MemoryRouter><AuctionListPage /></MemoryRouter>)
+  for (const [name, label] of [['500 CASH COIN', '10 unidades'], ['Armor 50', '1 unidade'], ['Rare Ore', '99 unidades']]) {
+    const title = screen.getByText(name)
+    expect(screen.getByRole('img', { name: label })).toBeVisible()
+    expect(title.parentElement?.querySelector(`[aria-label="${label}"]`)).not.toBeNull()
+  }
+  expect(screen.queryByText('500 CASH COIN x10')).toBeNull()
+})

@@ -1,0 +1,31 @@
+.item-quantity {
+  display: inline-flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 64px;
+  padding: 3px 8px;
+  border: 1px solid theme.$color-amber;
+  background: rgba(theme.$color-amber, 0.1);
+  line-height: 1;
+  white-space: nowrap;
+
+  &__value {
+    color: theme.$color-amber;
+    font-family: theme.$font-heading;
+    font-size: 28px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__label {
+    margin-top: 2px;
+    color: theme.$color-text;
+    font-family: theme.$font-heading;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+}

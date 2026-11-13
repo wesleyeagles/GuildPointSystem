@@ -168,18 +168,15 @@
 
   &__name-row {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 8px;
     min-width: 0;
   }
 
-  &__qty {
-    @include theme.tag(theme.$color-primary);
-    flex-shrink: 0;
-    border-color: theme.$color-cyan-dim;
-  }
-
   &__name {
+    min-width: 0;
+    overflow-wrap: anywhere;
     font-family: theme.$font-heading;
     font-size: 19px;
     font-weight: 800;
