@@ -22,6 +22,7 @@ public record AuctionResponse(
         Long currentBid,
         Long winnerId,
         String winnerNickname,
+        Instant deliveredAt,
         Long leaderId,
         String leaderNickname,
         int tiedCount,
@@ -42,7 +43,7 @@ public record AuctionResponse(
      */
     public AuctionResponse withoutItems() {
         return new AuctionResponse(id, status, durationMinutes, createdAt, startsAt, endsAt, fixedDeadline, currentBid, winnerId,
-                winnerNickname, leaderId, leaderNickname, tiedCount, tied, tiedMemberIds, tiedMemberNicknames,
+                winnerNickname, deliveredAt, leaderId, leaderNickname, tiedCount, tied, tiedMemberIds, tiedMemberNicknames,
                 null, dolePhase, tieBreakPhase, version, serverTime, pausedRemainingMs);
     }
 

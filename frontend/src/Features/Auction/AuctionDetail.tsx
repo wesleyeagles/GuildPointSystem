@@ -4,6 +4,7 @@ import {
   useAuction,
   useAuctionTieBreak,
   useCancelAuction,
+  useConfirmAuctionDelivery,
   useDeleteAuction,
   useAuctionAdminAction,
   useExtendAuction,
@@ -11,6 +12,7 @@ import {
 } from '@/Domain/Auction/hooks/useAuction'
 import { useAuthContext } from '@/Features/Auth/contexts/AuthContext'
 import { useAppToast } from '@/Shared/ui/components/AppToast/AppToast'
+import { getGameMailSender, useGameMail } from '@/Shared/hooks/useGameMail'
 import { formatAuctionItems, isAuctionFinished } from '@/Domain/types/models'
 import { useCurrentMember } from '@/Domain/Member/hooks/useMembers'
 import { useItem } from '@/Domain/Item/hooks/useItems'
@@ -98,6 +100,8 @@ export function AuctionDetailPage() {
   const { showToast } = useAppToast()
   const { hasRole } = useAuthContext()
   const canManage = hasRole('ADMINISTRADOR') // Líder ranks above Administrador
+  const mailSender = getGameMailSender()
+  const { canPrepareMail, preparingMail, prepareMail } = useGameMail(canManage, mailSender)
 
   // Someone deleted this auction while we were watching it.
   const onDeleted = useCallback(() => {
@@ -111,6 +115,7 @@ export function AuctionDetailPage() {
   const { data: weaponCasts = [] } = useItemSeeds('WEAPON_CAST')
   const placeBid = usePlaceBid()
   const cancelAuction = useCancelAuction()
+  const confirmDelivery = useConfirmAuctionDelivery()
   const deleteAuction = useDeleteAuction()
   const extendAuction = useExtendAuction()
   const startAuction = useAuctionAdminAction('start')
@@ -121,7 +126,7 @@ export function AuctionDetailPage() {
   const [feedback, setFeedback] = useState<BidFeedback | null>(null)
   const [rouletteShown, setRouletteShown] = useState(false)
   const [rouletteStopped, setRouletteStopped] = useState(false)
-  const [confirm, setConfirm] = useState<'cancel' | 'delete' | null>(null)
+  const [confirm, setConfirm] = useState<'cancel' | 'delete' | 'delivery' | null>(null)
   const closeConfirm = useCallback(() => setConfirm(null), [])
 
   const remaining = useCountdown(auction?.endsAt ?? '')
@@ -412,6 +417,26 @@ export function AuctionDetailPage() {
             )}
           </dl>
 
+          {isClosed && revealWinner && auction.winnerNickname && (
+            <div className="auction-detail__notice">
+              {auction.deliveredAt ? (
+                <p>Item enviado em {new Date(auction.deliveredAt).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })} (Brasília)</p>
+              ) : <>
+                <p>Entrega pendente</p>
+                {canManage && (
+                  <div className="auction-admin">
+                    {canPrepareMail && (
+                      <Button size="sm" variant="secondary" loading={preparingMail} onClick={() => {
+                        if (auction.winnerNickname) void prepareMail(auction.winnerNickname)
+                      }}>Preparar carta ({mailSender})</Button>
+                    )}
+                    <Button size="sm" onClick={() => setConfirm('delivery')}>Confirmar envio</Button>
+                  </div>
+                )}
+              </>}
+            </div>
+          )}
+
           {isScheduled && (
             <div className="auction-detail__notice" role="status">
               {auction.startsAt
@@ -565,6 +590,27 @@ export function AuctionDetailPage() {
             )}
           </div>
         )}
+
+        <ConfirmDialog
+          open={confirm === 'delivery' && canManage && revealWinner && !!auction.winnerNickname && !auction.deliveredAt}
+          title={`Confirmar envio do leilão ${lotLabel}`}
+          code="ADM"
+          confirmLabel="Marcar como enviado"
+          variant="primary"
+          loading={confirmDelivery.isPending}
+          onConfirm={async () => {
+            try {
+              await confirmDelivery.mutateAsync(auctionId)
+              closeConfirm()
+              showToast('Envio do leilão confirmado.', 'success')
+            } catch (err) {
+              showToast(err instanceof Error ? err.message : 'Não foi possível confirmar o envio.', 'error')
+            }
+          }}
+          onCancel={closeConfirm}
+        >
+          <p>Confirme após enviar todos os itens do lote para <strong>{auction.winnerNickname}</strong> no jogo.</p>
+        </ConfirmDialog>
 
         <ConfirmDialog
           open={confirm === 'cancel'}

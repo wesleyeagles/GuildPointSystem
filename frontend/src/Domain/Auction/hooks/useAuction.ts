@@ -378,6 +378,14 @@ export function useStartAuctionBatch() {
   })
 }
 
+export function useConfirmAuctionDelivery() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => apiClient<Auction>(`/auctions/${id}/delivery`, { method: 'POST' }),
+    onSuccess: (auction) => applyAuction(queryClient, auction),
+  })
+}
+
 /** Líder/Administrador: force-close an active auction (no winner; reserved points released). */
 export function useCancelAuction() {
   const queryClient = useQueryClient()

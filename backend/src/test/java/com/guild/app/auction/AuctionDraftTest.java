@@ -80,6 +80,35 @@ class AuctionDraftTest {
         verifyNoInteractions(auctions);
     }
 
+    @Test void deliveryRecordsOneConfirmationForAClosedAuctionWithWinner() {
+        var auction = scheduled(8L);
+        auction.setStatus(AuctionStatus.CLOSED);
+        var winner = new Member();
+        winner.setId(2L);
+        winner.setNickname("Winner");
+        auction.setWinner(winner);
+        when(auctions.findByIdForUpdate(8L)).thenReturn(Optional.of(auction));
+
+        var first = service.confirmDelivery(8L, actor);
+        var repeated = service.confirmDelivery(8L, actor);
+
+        assertNotNull(first.deliveredAt());
+        assertEquals(first.deliveredAt(), repeated.deliveredAt());
+        assertEquals(first.deliveredAt(), first.withoutItems().deliveredAt());
+        verify(auctions).save(auction);
+        verify(audit).log(eq(AuditLogType.AUCTION_DELIVERED), nullable(Member.class), eq(winner), anyMap());
+        verify(websocket).publishAuctionList(any());
+    }
+
+    @Test void deliveryRejectsAnAuctionWithoutWinner() {
+        var auction = scheduled(8L);
+        auction.setStatus(AuctionStatus.CLOSED);
+        when(auctions.findByIdForUpdate(8L)).thenReturn(Optional.of(auction));
+        assertThrows(AppException.class, () -> service.confirmDelivery(8L, actor));
+        verify(auctions, never()).save(any());
+        verifyNoInteractions(audit, websocket);
+    }
+
     @Test void opensExistingLotsWithTheSameExactDeadline() {
         var first = scheduled(8L);
         var second = scheduled(9L);

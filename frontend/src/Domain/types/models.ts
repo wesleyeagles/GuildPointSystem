@@ -41,6 +41,7 @@ export type AuditLogType =
   | 'POINTS_ADJUSTED'
   | 'AUCTION_CREATED'
   | 'AUCTION_CLOSED'
+  | 'AUCTION_DELIVERED'
   | 'AUCTION_CANCELLED'
   | 'AUCTION_DELETED'
   | 'MEMBER_DELETED'
@@ -326,6 +327,7 @@ export const formatAuctionItems = (items: Pick<AuctionItem, 'itemName' | 'quanti
   items.map((i) => (i.quantity > 1 ? `${i.itemName} x${i.quantity}` : i.itemName)).join(', ')
 
 export interface Auction {
+  deliveredAt?: string | null
   fixedDeadline?: boolean
   id: number
   status: AuctionStatus

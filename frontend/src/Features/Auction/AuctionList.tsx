@@ -200,7 +200,7 @@ function AuctionListSection({
               <span
                 className={`auction-list__status auction-list__status--${auction.status.toLowerCase()}`}
               >
-                {STATUS_LABEL[auction.status] ?? auction.status}
+                {auction.deliveredAt ? 'Enviado' : STATUS_LABEL[auction.status] ?? auction.status}
               </span>
               <AuctionListTime auction={auction} />
               <span className="auction-list__bid">{auction.currentBid}</span>

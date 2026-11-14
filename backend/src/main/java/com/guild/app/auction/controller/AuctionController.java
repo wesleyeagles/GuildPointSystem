@@ -17,6 +17,11 @@ public class AuctionController {
 
     private final AuctionService auctionService;
 
+    @PostMapping("/{id}/delivery")
+    public AuctionResponse confirmDelivery(@PathVariable Long id) {
+        return auctionService.confirmDelivery(id, SecurityUtils.currentMember());
+    }
+
     @GetMapping
     public List<AuctionResponse> list() {
         return auctionService.listOpen();

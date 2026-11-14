@@ -1,0 +1,1 @@
+ALTER TABLE auction ADD COLUMN delivered_at TIMESTAMPTZ;

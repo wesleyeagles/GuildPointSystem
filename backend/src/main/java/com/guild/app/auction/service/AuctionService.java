@@ -309,6 +309,26 @@ public class AuctionService {
                 .orElseThrow(() -> new AppException("Leilão não encontrado.", HttpStatus.NOT_FOUND));
     }
 
+    @Transactional
+    public AuctionResponse confirmDelivery(Long auctionId, MemberPrincipal actor) {
+        SecurityUtils.requireRole(Role.ADMINISTRADOR);
+        var auction = lockForAdmin(auctionId);
+        if (auction.getStatus() != AuctionStatus.CLOSED || auction.getWinner() == null) {
+            throw new AppException("Só é possível confirmar a entrega de um leilão encerrado com vencedor.",
+                    HttpStatus.CONFLICT);
+        }
+        if (auction.getDeliveredAt() != null) return toResponse(auction);
+
+        auction.setDeliveredAt(Instant.now());
+        auction.bumpVersion();
+        auctionRepository.save(auction);
+        auditLogService.log(AuditLogType.AUCTION_DELIVERED, memberRepository.getReferenceById(actor.getId()),
+                auction.getWinner(), Map.of("auctionId", auctionId, "deliveredAt", auction.getDeliveredAt().toString()));
+        var response = toResponse(auction);
+        publishAuctionUpdate(response);
+        return response;
+    }
+
     private String actorName(MemberPrincipal actor) {
         return memberRepository.findById(actor.getId()).map(Member::getNickname).orElse("A administração");
     }
@@ -917,6 +937,7 @@ public class AuctionService {
                 auction.getCurrentBid(),
                 winner != null ? winner.getId() : null,
                 winner != null ? winner.getNickname() : null,
+                auction.getDeliveredAt(),
                 leaderId,
                 leaderNickname,
                 tiedIds.size(),
