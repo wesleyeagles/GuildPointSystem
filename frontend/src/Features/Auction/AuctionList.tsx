@@ -271,6 +271,7 @@ export function AuctionListPage() {
   const [entries, setEntries] = useState<ItemEntry[]>([emptyEntry()])
   const [lotCount, setLotCount] = useState('1')
   const [isCreating, setIsCreating] = useState(false)
+  const [creationSummary, setCreationSummary] = useState('')
   const creating = useRef(false)
   const [pendingDelete, setPendingDelete] = useState<Auction | null>(null)
   const closeDelete = useCallback(() => setPendingDelete(null), [])
@@ -349,8 +350,13 @@ export function AuctionListPage() {
     }
     creating.current = true
     setIsCreating(true)
+    setCreationSummary(count > 1 ? `Criando 0 de ${count} leilões…` : '')
     draftInput.suspend()
     let created = 0
+    const uncheckedDeadlines: string[] = []
+    const deadlineWarning = () => uncheckedDeadlines.length
+      ? ` Confira o cronômetro dos lotes ${uncheckedDeadlines.join(', ')}. O ajuste de prazo ficou incompleto.`
+      : ''
     try {
       while (created < count) {
         if (startsAt && Date.parse(startsAt) <= serverNow() + 30_000) {
@@ -358,26 +364,31 @@ export function AuctionListPage() {
         }
         const result = await createAuction.mutateAsync(request)
         created++
+        if (count > 1) setCreationSummary(`Criando leilões: ${created} de ${count} confirmados…`)
         if (closeAt2150 && !result.deadlineReached) {
-          throw new Error(`Confira o cronômetro do lote ${lotOf(result.auction)}. O ajuste de prazo ficou incompleto.`)
+          uncheckedDeadlines.push(lotOf(result.auction))
         }
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Não foi possível criar o leilão.'
       if (count > 1) {
-        showToast(`${created} de ${count} leilões confirmados. ${message} Confira a lista antes de repetir.`, 'error')
+        const summary = `${created} de ${count} leilões confirmados. ${message}${deadlineWarning()} Confira a lista antes de repetir.`
+        setCreationSummary(summary)
+        showToast(summary, 'error')
         setLotCount(String(Math.max(1, count - created)))
       } else {
         showToast(message, 'error')
       }
-      if (created === count) setEntries([emptyEntry()])
       return
     } finally {
       creating.current = false
       setIsCreating(false)
     }
-    if (count > 1) showToast(`${count} leilões criados.`, 'success')
-    else if (startMode === 'at') showToast(`Leilão agendado para ${formatStartsAt(startsAt!)}.`, 'success')
+    if (count > 1 || uncheckedDeadlines.length) {
+      const summary = `${count === 1 ? '1 leilão criado.' : `${count} leilões criados.`}${deadlineWarning()}`
+      setCreationSummary(summary)
+      showToast(summary, uncheckedDeadlines.length ? 'error' : 'success')
+    } else if (startMode === 'at') showToast(`Leilão agendado para ${formatStartsAt(startsAt!)}.`, 'success')
     else if (startMode === 'later') showToast('Leilão criado em "Em breve". Inicie quando quiser.', 'success')
     setCopiedEnd(null)
     setCloseAt2150(todayAt2150(serverNow()) !== null)
@@ -550,6 +561,7 @@ export function AuctionListPage() {
                   : startMode === 'now' ? 'Criar Leilão' : startMode === 'at' ? 'Agendar leilão' : 'Criar sem iniciar'}
               </Button>
             </div>
+            {creationSummary && <p role="status">{creationSummary}</p>}
           </form>
         </Panel>
       )}
