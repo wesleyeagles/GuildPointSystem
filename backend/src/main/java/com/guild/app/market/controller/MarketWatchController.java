@@ -1,6 +1,7 @@
 package com.guild.app.market.controller;
 
 import com.guild.app.common.security.SecurityUtils;
+import com.guild.app.item.service.GameItemCard;
 import com.guild.app.market.service.MarketWatchService;
 import com.guild.app.market.service.MarketWatchService.Alert;
 import com.guild.app.market.service.MarketWatchService.CatalogItem;
@@ -23,18 +24,22 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class MarketWatchController {
     private final MarketWatchService service;
+    private final GameItemCard cards;
 
     /**
      * Uma linha por alerta dos últimos 30 min, do mais novo ao mais antigo:
      * "id TAB some em (s Unix) TAB preço total (CS) TAB código TAB item" (item = nome, " +N" e " xN"). 204 = nenhum.
+     * Com details=1 (DLL 1.43.2+), mais "TAB efeitos da relic TAB ícone (sprite|ícone|colunas)" (podem vir vazios).
      */
     @GetMapping(value = "/game/alerts", produces = "text/plain;charset=UTF-8")
-    public ResponseEntity<String> gameAlerts(@RequestParam(required = false) String character) {
+    public ResponseEntity<String> gameAlerts(@RequestParam(required = false) String character,
+                                             @RequestParam(defaultValue = "0") int details) {
         List<Alert> alerts = service.gameAlerts(character);
         if (alerts.isEmpty()) return ResponseEntity.noContent().build();
         return ResponseEntity.ok(alerts.stream()
             .map(a -> a.id() + "\t" + a.createdAt().plus(MarketWatchService.GAME_WINDOW).getEpochSecond() + "\t" + a.price()
-                + "\t" + a.itemCode() + "\t" + label(a) + "\n")
+                + "\t" + a.itemCode() + "\t" + label(a)
+                + (details == 1 ? "\t" + cards.effects(a.itemCode()) + "\t" + cards.iconKey(a.itemCode()) : "") + "\n")
             .collect(Collectors.joining()));
     }
 

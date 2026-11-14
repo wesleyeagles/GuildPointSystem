@@ -111,7 +111,7 @@ public final class AuctionRelicCodes {
         return GAME_CODES.getOrDefault(code.toLowerCase(Locale.ROOT), code);
     }
 
-    static String catalogCode(String inventoryCode) {
+    public static String catalogCode(String inventoryCode) {
         return CATALOG_CODES.get(inventoryCode.toLowerCase(Locale.ROOT));
     }
 }

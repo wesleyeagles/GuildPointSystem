@@ -4,6 +4,7 @@ import com.guild.app.auction.dto.AuctionResponse;
 import com.guild.app.auction.repository.AuctionRepository;
 import com.guild.app.common.enums.AuctionStatus;
 import com.guild.app.common.enums.MemberStatus;
+import com.guild.app.item.service.GameItemCard;
 import com.guild.app.member.entity.Member;
 import com.guild.app.member.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
@@ -31,11 +32,12 @@ public class AuctionGameService {
     private final AuctionRepository auctions;
     private final AuctionService auctionService;
     private final MemberRepository members;
+    private final GameItemCard cards;
     private volatile Snapshot snapshot = new Snapshot(List.of(), Instant.EPOCH);
     Clock clock = Clock.systemUTC();
 
     /** Leilão como a DLL mostra: fim em segundos Unix (a DLL conta pelo relógio do site). */
-    public record GameAuction(long id, long endsAtEpoch, long currentBid, String items) {}
+    public record GameAuction(long id, long endsAtEpoch, long currentBid, String items, String effects, String icon) {}
 
     private record Snapshot(List<GameAuction> auctions, Instant loadedAt) {}
 
@@ -52,8 +54,11 @@ public class AuctionGameService {
         if (now.isBefore(current.loadedAt().plus(CACHE)) && !now.isBefore(current.loadedAt())) return current.auctions();
         List<GameAuction> loaded = auctions.findByStatusInOrderByCreatedAtDesc(SHOWN).stream()
             .map(a -> auctionService.getById(a.getId()))
-            .map(r -> new GameAuction(r.id(), r.endsAt().getEpochSecond(), r.currentBid() == null ? 0 : r.currentBid(),
-                items(r)))
+            .map(r -> {
+                String code = firstCode(r);
+                return new GameAuction(r.id(), r.endsAt().getEpochSecond(), r.currentBid() == null ? 0 : r.currentBid(),
+                    items(r), cards.effects(code), cards.iconKey(code));
+            })
             .toList();
         snapshot = new Snapshot(loaded, now);
         return loaded;
@@ -67,6 +72,13 @@ public class AuctionGameService {
             .toList());
         text = text.replaceAll("[\\p{Cntrl}\\u2028\\u2029]+", " ").replaceAll(" {2,}", " ").trim();
         return text.length() > 180 ? text.substring(0, 179) + "…" : text;
+    }
+
+    /** Código do primeiro item com ícone do jogo (é ele que aparece no card). */
+    static String firstCode(AuctionResponse auction) {
+        if (auction.items() == null) return null;
+        return auction.items().stream().filter(i -> i.gameIcon() != null).map(i -> i.gameIcon().gameCode())
+            .findFirst().orElse(null);
     }
 
     /** Testes: esquece os leilões guardados. */

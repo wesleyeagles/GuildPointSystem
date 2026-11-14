@@ -21,13 +21,18 @@ public class AuctionGameController {
 
     private final AuctionGameService service;
 
-    /** Uma linha por leilão aberto: "id&lt;TAB&gt;fim (s Unix)&lt;TAB&gt;lance atual&lt;TAB&gt;itens"; 204 = nenhum. */
+    /**
+     * Uma linha por leilão aberto: "id&lt;TAB&gt;fim (s Unix)&lt;TAB&gt;lance atual&lt;TAB&gt;itens"; 204 = nenhum.
+     * Com details=1 (DLL 1.43.2+), mais "&lt;TAB&gt;efeitos da relic&lt;TAB&gt;ícone (sprite|ícone|colunas)" (podem vir vazios).
+     */
     @GetMapping(produces = "text/plain;charset=UTF-8")
-    public ResponseEntity<String> open(@RequestParam(required = false) String character) {
+    public ResponseEntity<String> open(@RequestParam(required = false) String character,
+                                       @RequestParam(defaultValue = "0") int details) {
         var auctions = service.open(character);
         if (auctions.isEmpty()) return ResponseEntity.noContent().build();
         return ResponseEntity.ok(auctions.stream()
-            .map(a -> a.id() + "\t" + a.endsAtEpoch() + "\t" + a.currentBid() + "\t" + a.items() + "\n")
+            .map(a -> a.id() + "\t" + a.endsAtEpoch() + "\t" + a.currentBid() + "\t" + a.items()
+                + (details == 1 ? "\t" + a.effects() + "\t" + a.icon() : "") + "\n")
             .collect(Collectors.joining()));
     }
 }

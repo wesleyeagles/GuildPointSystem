@@ -38,6 +38,7 @@ class MarketWatchTest {
     @Autowired MockMvc mvc;
     @Autowired MarketWatchService service;
     @Autowired MemberRepository members;
+    @Autowired com.guild.app.item.service.GameItemCard cards;
     @MockitoBean WebSocketPublisher ws;
     @MockitoBean MarketSource source;
     String coxinha, assassino;
@@ -122,6 +123,20 @@ class MarketWatchTest {
         assertEquals(1, service.scan());
         String cox = alerts(coxinha);
         assertTrue(cox.matches("\\d+\t\\d{10}\t8500\tiyfip06\t\\(2GR\\) Brutal Rex Relic\n"), cox);
+    }
+
+    @Test void relicEffectsAndIconForTheGameCard() throws Exception {
+        assertEquals("Force attack +3.5%", cards.effects("relic020"));
+        assertEquals("Force attack +3.5%", cards.effects("iyfip06"));   // código do market
+        assertEquals("", cards.effects("iwshi28"));
+        assertTrue(cards.iconKey("iyfip06").startsWith("/relics/item-1-6.jpg|951|32"), cards.iconKey("iyfip06"));
+        assertTrue(cards.icon("../etc/passwd", 1, 32).isEmpty());
+        service.add(new NewWatch(coxinhaId, "relic020", "(2GR) Brutal Rex Relic", null, null), as(leaderId));
+        when(source.listings("iyfip06")).thenReturn(Optional.of(List.of(new Listing("iyfip06", "(2GR) Brutal Rex Relic", 0, 1, 8500, 7))));
+        service.scan();
+        String body = mvc.perform(get("/api/market/game/alerts").param("character", coxinha).param("details", "1"))
+            .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertTrue(body.endsWith("\tForce attack +3.5%\t/relics/item-1-6.jpg|951|32\n"), body);
     }
 
     @Test void nothingForStrangers() throws Exception {
