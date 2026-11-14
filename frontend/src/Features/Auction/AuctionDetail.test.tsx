@@ -37,7 +37,11 @@ it('prepares the game letter for the winner and only records delivery after conf
   state.auction = {
     id: 40, status: 'CLOSED', items: [], winnerId: 8, winnerNickname: 'Vencedor local',
     currentBid: 10, endsAt: '2026-11-14T00:50:00Z',
-  } as Auction
+    durationMinutes: 30, createdAt: '2026-11-14T00:20:00Z', startsAt: null,
+    leaderId: null, leaderNickname: null, tiedCount: 0, tied: false, tiedMemberIds: [],
+    tiedMemberNicknames: [], dolePhase: 0, tieBreakPhase: 0, version: 1,
+    serverTime: '2026-11-14T01:00:00Z', pausedRemainingMs: null,
+  }
   vi.stubEnv('VITE_GAME_MAIL_PREVIEW', 'true')
   localStorage.setItem('equipment-mail-sender', 'boi')
   const bridge = vi.fn().mockResolvedValue(Response.json({ message: 'Carta preparada.' }))
