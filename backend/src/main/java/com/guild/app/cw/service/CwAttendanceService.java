@@ -76,6 +76,8 @@ public class CwAttendanceService {
     /** Bônus de quem está em Crag 10 min antes. */
     public static final Duration PRE_BONUS_BEFORE = Duration.ofMinutes(10);
     public static final long PRE_BONUS_POINTS = 2;
+    /** Quem chega em Crag até isso depois do horário do bônus ainda recebe (local enviado até lá). */
+    public static final Duration PRE_BONUS_LATE = Duration.ofMinutes(1);
     /** Local mais velho que isso não conta para o bônus (a DLL envia a cada ~1 min). */
     public static final Duration FRESH_LOCATION = Duration.ofMinutes(3);
     /** Objetivos (criados na aba Objetivos) dados na CW. */
@@ -412,7 +414,7 @@ public class CwAttendanceService {
             }
             shouted.removeIf(k -> k.compareTo(slot.date().minusDays(2).toString()) < 0);
             Instant bonusAt = slot.startsAt().minus(PRE_BONUS_BEFORE);
-            if (!now.isBefore(bonusAt) && now.isBefore(bonusAt.plus(Duration.ofMinutes(3)))) preBonus(slot, now);
+            if (!now.isBefore(bonusAt) && now.isBefore(bonusAt.plus(Duration.ofMinutes(3)))) preBonus(slot, bonusAt, now);
             if (!now.isBefore(slot.windowEndsAt()) && now.isBefore(slot.windowEndsAt().plus(Duration.ofHours(1))))
                 jdbc.update("""
                         INSERT INTO cw_session(cw_date,cw_slot,closed_at) VALUES(?,?,?)
@@ -425,24 +427,31 @@ public class CwAttendanceService {
         for (Slot slot : due) award(slot, now);
     }
 
-    /** 2 pontos para quem está em Crag 10 min antes da CW (AFK ou não). */
-    private void preBonus(Slot slot, Instant now) {
+    /**
+     * 2 pontos para quem está em Crag 10 min antes da CW (AFK ou não). Roda em todo tick dos 3 min seguintes: quem
+     * chega em Crag até {@link #PRE_BONUS_LATE} depois (local enviado até lá) também recebe, uma vez só.
+     */
+    private void preBonus(Slot slot, Instant bonusAt, Instant now) {
         Date date = Date.valueOf(slot.date());
         int number = slot.window().slot();
         jdbc.update("INSERT INTO cw_session(cw_date,cw_slot) VALUES(?,?) ON CONFLICT DO NOTHING", date, number);
-        if (jdbc.update("UPDATE cw_session SET pre_awarded_at=? WHERE cw_date=? AND cw_slot=? AND pre_awarded_at IS NULL",
-                Timestamp.from(now), date, number) == 0) return;
+        boolean first = jdbc.update("UPDATE cw_session SET pre_awarded_at=? WHERE cw_date=? AND cw_slot=? AND pre_awarded_at IS NULL",
+                Timestamp.from(now), date, number) > 0;
+        Instant lateUntil = bonusAt.plus(PRE_BONUS_LATE);
         var inMap = new TreeSet<Long>();
-        for (CharacterStatus s : statusRepository.findByLocationAtAfter(now.minus(FRESH_LOCATION)))
+        for (CharacterStatus s : statusRepository.findByLocationAtAfter(now.minus(FRESH_LOCATION))) {
+            // Depois do atraso só vale local enviado até o limite (o primeiro tick vale tudo: backend fora do ar na hora).
+            if (!first && now.isAfter(lateUntil) && s.getLocationAt().isAfter(lateUntil)) continue;
             if (CW_MAP.equalsIgnoreCase(Objects.toString(s.getMapName(), "").strip())) inMap.add(s.getMember().getId());
+        }
         String reason = slot.window().label() + " " + brtDay(slot) + ": em " + CW_MAP + " 10 min antes";
         for (Long id : inMap) {
             Member member = members.findByIdForUpdate(id).orElse(null);
             if (member == null || !eligible(member)) continue;
             if (awardsToday(date, id, "PRE") >= PER_DAY) continue;
+            if (jdbc.update("INSERT INTO cw_award(cw_date,cw_slot,member_id,kind,points) VALUES(?,?,?,'PRE',?) ON CONFLICT DO NOTHING",
+                    date, number, id, PRE_BONUS_POINTS) == 0) continue;   // já recebeu neste RG
             pointsService.adjustPoints(member, member, PRE_BONUS_POINTS, PointsModality.EVENTO, reason);
-            jdbc.update("INSERT INTO cw_award(cw_date,cw_slot,member_id,kind,points) VALUES(?,?,?,'PRE',?) ON CONFLICT DO NOTHING",
-                    date, number, id, PRE_BONUS_POINTS);
             audit.log(AuditLogType.POINTS_ADJUSTED, member, member, Map.of(
                     "amount", PRE_BONUS_POINTS, "modality", PointsModality.EVENTO.name(), "reason", reason, "source", "CW"));
             publishPoints(id);

@@ -71,6 +71,8 @@ public class PbAutoService {
     static final Duration FRESH_LOCATION = Duration.ofMinutes(3);
     /** Até quanto tempo depois do horário o tick ainda dá o RG / o objetivo (backend fora do ar no minuto exato). */
     static final Duration RG_GRACE = Duration.ofMinutes(3);
+    /** Quem chega na base até isso depois do horário do RG ainda recebe (local enviado até lá). */
+    static final Duration RG_LATE = Duration.ofMinutes(1);
     static final Duration AWARD_GRACE = Duration.ofHours(1);
 
     private final JdbcTemplate jdbc;
@@ -135,14 +137,20 @@ public class PbAutoService {
         shouted.removeIf(k -> k.compareTo(today.minusDays(2).toString()) < 0);
     }
 
-    /** Pontos de RG para quem está na base agora (AFK ou não). */
+    /**
+     * Pontos de RG para quem está na base (AFK ou não). Roda em todo tick do {@link #RG_GRACE}: quem chega até
+     * {@link #RG_LATE} depois do horário (local enviado até lá) também recebe, uma vez só.
+     */
     private void rg(LocalDate day, Run run, Instant now) {
         Date date = Date.valueOf(day);
         jdbc.update("INSERT INTO pb_auto_run(run_date,code) VALUES(?,?) ON CONFLICT DO NOTHING", date, run.code());
-        if (jdbc.update("UPDATE pb_auto_run SET rg_at=? WHERE run_date=? AND code=? AND rg_at IS NULL",
-                Timestamp.from(now), date, run.code()) == 0) return;
+        boolean first = jdbc.update("UPDATE pb_auto_run SET rg_at=? WHERE run_date=? AND code=? AND rg_at IS NULL",
+                Timestamp.from(now), date, run.code()) > 0;
+        Instant lateUntil = at(day, run.rgAt()).plus(RG_LATE);
         var here = new TreeSet<Long>();
         for (CharacterStatus s : statusRepository.findByLocationAtAfter(now.minus(FRESH_LOCATION))) {
+            // Depois do atraso só vale local enviado até o limite (o primeiro tick vale tudo: backend fora do ar na hora).
+            if (!first && now.isAfter(lateUntil) && s.getLocationAt().isAfter(lateUntil)) continue;
             if (same(s.getMapName(), run.rgMap()) && run.rgRegions().stream().anyMatch(r -> same(s.getRegionName(), r)))
                 here.add(s.getMember().getId());
         }

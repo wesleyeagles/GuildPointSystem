@@ -50,6 +50,7 @@ class PbAutoTest {
     void place(long id, String map, String region, Instant at) {
         statusService.ingest(new CharacterStatusIngestRequest(gid++, nick(id), 50, 1f, 10, 10, 1, 1, 1, 1, map, region, 10, 10), "1.36.0");
         jdbc.update("UPDATE character_status SET location_at=? WHERE member_id=?", Timestamp.from(at), id);
+        em.flush(); em.clear();
     }
 
     @BeforeEach void setup() {
@@ -89,6 +90,27 @@ class PbAutoTest {
         assertEquals(beforeA + 2, points(a));
         assertEquals(beforeB, points(b));
         assertEquals(beforeC, points(c));
+    }
+
+    @Test void rgStillGivesToWhoArrivesUpToOneMinuteLate() {
+        place(a, "Cora HQ", "Cora Outpost", rg.minusSeconds(20));
+        place(b, "Cora HQ", "Cora HQ", rg.minusSeconds(20));
+        place(c, "Cora HQ", "Cora HQ", rg.minusSeconds(20));
+        long beforeA = points(a), beforeB = points(b), beforeC = points(c);
+        clock(rg.plusSeconds(5));
+        service.tick();                                                    // 01:52:05: só o A
+        assertEquals(beforeA + 2, points(a));
+        assertEquals(beforeB, points(b));
+        place(b, "Cora HQ", "Cora Outpost", rg.plusSeconds(50));           // chegou 01:52:50
+        clock(rg.plusSeconds(65));
+        service.tick();                                                    // 01:53:05: tick depois do limite, local antes
+        assertEquals(beforeB + 2, points(b));
+        place(c, "Cora HQ", "Cora Outpost", rg.plusSeconds(70));           // chegou 01:53:10: tarde
+        clock(rg.plusSeconds(95));
+        service.tick();
+        assertEquals(beforeC, points(c));
+        assertEquals(beforeA + 2, points(a));                              // não recebe de novo
+        assertEquals(beforeB + 2, points(b));
     }
 
     @Test void pbColoniaFor0152To0205InShadowWoodOrRockCavern() {

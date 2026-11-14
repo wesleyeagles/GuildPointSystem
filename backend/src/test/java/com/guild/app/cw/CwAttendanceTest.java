@@ -291,6 +291,33 @@ class CwAttendanceTest {
         assertEquals(beforeB, points(b));
     }
 
+    @Test void preBonusStillGivesToWhoArrivesUpToOneMinuteLate() {
+        Instant bonus = t0.minus(Duration.ofMinutes(10));
+        statusService.ingest(new CharacterStatusIngestRequest(gid++, nick(a), 50, 1f, 10, 10, 1, 1, 1, 1, CRAG, "Mine", 10, 10), "1.27.1");
+        statusService.ingest(new CharacterStatusIngestRequest(gid++, nick(b), 50, 1f, 10, 10, 1, 1, 1, 1, "Cora HQ", "Cora HQ", 10, 10), "1.27.1");
+        statusService.ingest(new CharacterStatusIngestRequest(gid++, nick(c), 50, 1f, 10, 10, 1, 1, 1, 1, "Cora HQ", "Cora HQ", 10, 10), "1.27.1");
+        jdbc.update("UPDATE character_status SET location_at=? WHERE member_id IN (?,?,?)", Timestamp.from(bonus.minusSeconds(30)), a, b, c);
+        long beforeA = points(a), beforeB = points(b), beforeC = points(c);
+        clock(bonus.plusSeconds(5));
+        service.tick();
+        assertEquals(beforeA + 2, points(a));
+        assertEquals(beforeB, points(b));
+        statusService.ingest(new CharacterStatusIngestRequest(gid++, nick(b), 50, 1f, 10, 10, 1, 1, 1, 1, CRAG, "Mine", 10, 10), "1.27.1");
+        jdbc.update("UPDATE character_status SET location_at=? WHERE member_id=?", Timestamp.from(bonus.plusSeconds(55)), b);
+        em.flush(); em.clear();
+        clock(bonus.plusSeconds(70));
+        service.tick();                                    // tick depois do limite, local de B antes dele
+        assertEquals(beforeB + 2, points(b));
+        statusService.ingest(new CharacterStatusIngestRequest(gid++, nick(c), 50, 1f, 10, 10, 1, 1, 1, 1, CRAG, "Mine", 10, 10), "1.27.1");
+        jdbc.update("UPDATE character_status SET location_at=? WHERE member_id=?", Timestamp.from(bonus.plusSeconds(75)), c);
+        em.flush(); em.clear();
+        clock(bonus.plusSeconds(100));
+        service.tick();
+        assertEquals(beforeC, points(c));                  // chegou depois de 1 min
+        assertEquals(beforeA + 2, points(a));              // não recebe de novo
+        assertEquals(beforeB + 2, points(b));
+    }
+
     @Test void withoutEndMessageAnAdministratorEndsIt() {
         walk(a, t0, -60, 900, CRAG);
         clock(Instant.parse("2026-11-08T14:00:30Z"));       // 17:00:30 Moscou: janela da CW2 acabou
