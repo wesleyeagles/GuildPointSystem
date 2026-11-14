@@ -116,6 +116,14 @@ class MarketWatchTest {
         assertEquals(0, service.scan());
     }
 
+    @Test void relicFromCatalogUsesTheMarketCode() throws Exception {
+        service.add(new NewWatch(coxinhaId, "relic020", "(2GR) Brutal Rex Relic", null, null), as(leaderId));
+        when(source.listings("iyfip06")).thenReturn(Optional.of(List.of(new Listing("iyfip06", "(2GR) Brutal Rex Relic", 0, 1, 8500, 7))));
+        assertEquals(1, service.scan());
+        String cox = alerts(coxinha);
+        assertTrue(cox.matches("\\d+\t\\d{10}\t8500\tiyfip06\t\\(2GR\\) Brutal Rex Relic\n"), cox);
+    }
+
     @Test void nothingForStrangers() throws Exception {
         mvc.perform(get("/api/market/game/alerts").param("character", "NinguemAqui")).andExpect(status().isNoContent());
         mvc.perform(get("/api/market/game/alerts").param("character", coxinha)).andExpect(status().isNoContent());

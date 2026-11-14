@@ -5,7 +5,7 @@ import java.util.Map;
 
 import static java.util.Map.entry;
 
-final class AuctionRelicCodes {
+public final class AuctionRelicCodes {
     // Tradable BootyItem codes from Item.edf, matched by the English NDItem.edf name to V120.
     // A trailing " *" on some inventory names is a display marker.
     private static final Map<String, String> CATALOG_CODES = Map.ofEntries(
@@ -100,7 +100,16 @@ final class AuctionRelicCodes {
             entry("iyfix52", "relic119")
     );
 
+    /** Contrário: relic do catálogo (relic020) -> código do jogo/market (iyfip06). */
+    private static final Map<String, String> GAME_CODES = CATALOG_CODES.entrySet().stream()
+            .collect(java.util.stream.Collectors.toUnmodifiableMap(Map.Entry::getValue, Map.Entry::getKey, (a, b) -> a));
+
     private AuctionRelicCodes() {}
+
+    /** Código do item no jogo e no market da Cerberus; quem não é relic do catálogo fica igual. */
+    public static String gameCode(String code) {
+        return GAME_CODES.getOrDefault(code.toLowerCase(Locale.ROOT), code);
+    }
 
     static String catalogCode(String inventoryCode) {
         return CATALOG_CODES.get(inventoryCode.toLowerCase(Locale.ROOT));

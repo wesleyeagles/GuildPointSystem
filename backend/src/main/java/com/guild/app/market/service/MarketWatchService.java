@@ -5,6 +5,7 @@ import com.guild.app.common.enums.AuditLogType;
 import com.guild.app.common.enums.MemberStatus;
 import com.guild.app.common.enums.Role;
 import com.guild.app.common.exception.AppException;
+import com.guild.app.item.service.AuctionRelicCodes;
 import com.guild.app.log.service.AuditLogService;
 import com.guild.app.member.entity.Member;
 import com.guild.app.member.repository.MemberRepository;
@@ -207,9 +208,11 @@ public class MarketWatchService {
         int start = cursor % codes.size();
         for (int i = 0; i < n; i++) {
             String code = codes.get((start + i) % codes.size());
-            Optional<List<MarketPage.Listing>> listings = source.listings(code);
+            // Relic do catálogo (relic020) tem outro código no jogo/market (iyfip06).
+            String marketCode = AuctionRelicCodes.gameCode(code);
+            Optional<List<MarketPage.Listing>> listings = source.listings(marketCode);
             if (listings.isEmpty()) continue;   // market fora: não mexe no que já foi visto
-            created += apply(code, listings.get());
+            created += apply(code, marketCode, listings.get());
         }
         cursor = (start + n) % codes.size();
         return created;
@@ -218,8 +221,8 @@ public class MarketWatchService {
     private record WatchRow(long id, long memberId, String name, Integer minUpgrade, Long maxPrice) {}
 
     /** Confere os anúncios de um código contra as linhas que querem esse item. */
-    int apply(String code, List<MarketPage.Listing> all) {
-        List<MarketPage.Listing> listings = new ArrayList<>(all.stream().filter(l -> code.equals(l.code()) && l.quantity() > 0 && l.price() > 0).toList());
+    int apply(String code, String marketCode, List<MarketPage.Listing> all) {
+        List<MarketPage.Listing> listings = new ArrayList<>(all.stream().filter(l -> marketCode.equals(l.code()) && l.quantity() > 0 && l.price() > 0).toList());
         listings.sort(Comparator.comparingDouble(MarketWatchService::unit));
         Map<MarketPage.Listing, String> keys = keys(listings);
         List<WatchRow> watches = jdbc.query("SELECT id,member_id,item_name,min_upgrade,max_price FROM market_watch WHERE item_code=?",
@@ -240,7 +243,7 @@ public class MarketWatchService {
                 String name = l.name() == null || l.name().isBlank() ? w.name() : l.name().strip();
                 if (name.length() > 200) name = name.substring(0, 200);
                 jdbc.update("INSERT INTO market_alert(watch_id,member_id,item_code,item_name,upgrade,quantity,price) VALUES(?,?,?,?,?,?,?)",
-                    w.id(), w.memberId(), code, name, l.upgrade(), l.quantity(), l.price());
+                    w.id(), w.memberId(), marketCode, name, l.upgrade(), l.quantity(), l.price());
                 alerted++;
             }
             seen.removeAll(matching);   // saiu do market (vendido/retirado): se voltar, avisa de novo
