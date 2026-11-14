@@ -14,6 +14,7 @@ import { Button } from '@/Shared/ui/components/Button/Button'
 import { MemberClassIcon } from '@/Shared/ui/components/MemberClassIcon/MemberClassIcon'
 import { ConfirmDialog } from '@/Shared/ui/components/ConfirmDialog/ConfirmDialog'
 import { useAppToast } from '@/Shared/ui/components/AppToast/AppToast'
+import { getGameMailSender, useGameMail } from '@/Shared/hooks/useGameMail'
 import { EquipmentIcon, EmptyEquipmentSlot } from './EquipmentIcon'
 import { EquipmentRelics } from './EquipmentRelics'
 import { formatEquipmentEffect } from '@/Domain/Equipment/utils/equipmentEffects'
@@ -86,35 +87,10 @@ export function EquipmentPage() {
   const reviewAction = useEquipmentReviewAction()
   const ownReview = reviews.find(r => r.memberId === user?.memberId)
   const { showToast } = useAppToast()
-  const canPrepareMail = admin && !!user?.nickname && (
-    window.location.origin === 'https://blacklist.guildsystem.com.br' ||
-    (import.meta.env.DEV && import.meta.env.VITE_GAME_MAIL_PREVIEW === 'true')
-  )
-  const mailBusy = useRef(false)
-  const [preparingMail, setPreparingMail] = useState(false)
-  const [mailSender, setMailSender] = useState(() => localStorage.getItem('equipment-mail-sender') || 'boi')
+  const [mailSender, setMailSender] = useState(getGameMailSender)
+  const { canPrepareMail, preparingMail, prepareMail } = useGameMail(admin && !!user?.nickname, mailSender)
   const mailSenders = [...new Set(['boi', mailSender, ...(user?.nickname ? [user.nickname] : []), ...members.map(member => member.nickname)])]
     .sort((a, b) => a.localeCompare(b, 'pt-BR'))
-  async function prepareMail(recipient: string) {
-    if (!canPrepareMail || !user?.nickname || mailBusy.current) return
-    mailBusy.current = true
-    setPreparingMail(true)
-    try {
-      const request: RequestInit & { targetAddressSpace: 'loopback' } = {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sender: mailSender, recipient }), signal: AbortSignal.timeout(30_000),
-        credentials: 'omit', redirect: 'error', targetAddressSpace: 'loopback',
-      }
-      const response = await fetch('http://127.0.0.1:15183/prepare-letter', request)
-      const result: { message?: string } = await response.json()
-      showToast(result.message ?? 'Não foi possível confirmar o preparo da carta.', response.ok ? 'success' : 'error')
-    } catch {
-      showToast('Confira a ponte de cartas e a permissão de acesso local do navegador. Se a carta já abriu no jogo, revise-a antes de tentar novamente.', 'error')
-    } finally {
-      mailBusy.current = false
-      setPreparingMail(false)
-    }
-  }
   const transferMutation = useEquipmentOperation()
   const slotMutation = useEquipmentSlotEdit()
   const mutateSlots = slotMutation.mutateAsync

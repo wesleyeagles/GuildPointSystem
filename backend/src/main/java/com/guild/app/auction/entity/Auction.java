@@ -53,6 +53,9 @@ public class Auction {
     @JoinColumn(name = "winner_id")
     private Member winner;
 
+    @Column(name = "delivered_at")
+    private Instant deliveredAt;
+
     @Column(name = "tie_break_seed")
     private Long tieBreakSeed;
 

@@ -31,6 +31,7 @@ const LOG_TYPE_LABELS: Record<AuditLogType, string> = {
   POINTS_ADJUSTED: 'Pontos ajustados',
   AUCTION_CREATED: 'Leilão criado',
   AUCTION_CLOSED: 'Leilão encerrado',
+  AUCTION_DELIVERED: 'Entrega de leilão confirmada',
   AUCTION_CANCELLED: 'Leilão cancelado',
   AUCTION_DELETED: 'Leilão excluído',
   PROFILE_UPDATED: 'Perfil alterado',
@@ -172,6 +173,8 @@ export function formatLogDetails(log: AuditLogEntry): string {
     }
     case 'AUCTION_CREATED':
       return `#${str(p.auctionId)} · ${str(p.durationMinutes)} min`
+    case 'AUCTION_DELIVERED':
+      return `#${str(p.auctionId)}`
     case 'AUCTION_CLOSED': {
       const winner =
         p.winnerId === 'none' || p.winnerId == null
