@@ -110,6 +110,22 @@ it('creates multiple lots with the same items and target time', async () => {
   }
 })
 
+it('creates all four lots even when the first deadline adjustment fails', async () => {
+  state.admin = true
+  state.auctions = []
+  state.now = Date.parse('2026-11-14T21:00:00Z')
+  const auction = sampleAuction('2026-11-15T00:49:00Z')
+  state.create.mockResolvedValueOnce({ auction, deadlineReached: false })
+    .mockResolvedValue({ auction, deadlineReached: true })
+  render(<MemoryRouter><AuctionListPage /></MemoryRouter>)
+  fireEvent.click(screen.getByRole('button', { name: 'Item 0' }))
+  fireEvent.change(screen.getByLabelText('Número de leilões'), { target: { value: '4' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Criar 4 leilões' }))
+  expect(await screen.findByText(/4 leilões criados.*#042.*ajuste de prazo/)).toBeVisible()
+  expect(state.create).toHaveBeenCalledTimes(4)
+  expect(screen.getByRole('button', { name: 'Item 0' })).toBeVisible()
+})
+
 it('keeps the draft for the remaining lots after a partial failure', async () => {
   state.admin = true
   state.auctions = []
@@ -124,6 +140,7 @@ it('keeps the draft for the remaining lots after a partial failure', async () =>
   expect(state.create).toHaveBeenCalledTimes(2)
   expect(screen.getByRole('button', { name: 'Item 99' })).toBeVisible()
   expect(state.toast).toHaveBeenCalledWith(expect.stringContaining('1 de 3 leilões confirmados'), 'error')
+  expect(screen.getByText(/1 de 3 leilões confirmados.*Falha na API/)).toBeVisible()
 })
 
 it('defaults to 15 minutes once the Brasília deadline has passed', () => {
