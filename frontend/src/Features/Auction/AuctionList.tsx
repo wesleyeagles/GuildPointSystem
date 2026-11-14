@@ -40,6 +40,8 @@ type ItemEntry = { itemId: number; quantity: number }
 
 type StartMode = 'now' | 'at' | 'later'
 
+const MAX_LOTS = 30
+
 /** Value for <input type="datetime-local"> in the browser's time zone. */
 function toLocalInput(d: Date) {
   const pad = (n: number) => String(n).padStart(2, '0')
@@ -261,15 +263,19 @@ export function AuctionListPage() {
 
   const [durationMinutes, setDurationMinutes] = useState(15)
   const [copiedEnd, setCopiedEnd] = useState<string | null>(null)
-  const [closeAt2150, setCloseAt2150] = useState(false)
+  const [closeAt2150, setCloseAt2150] = useState(() => todayAt2150(serverNow()) !== null)
   const durationField = useRef<HTMLSelectElement>(null)
   const [startMode, setStartMode] = useState<StartMode>('now')
   const [startsAtInput, setStartsAtInput] = useState('')
+  const [copiedStart, setCopiedStart] = useState<string | null>(null)
   const [entries, setEntries] = useState<ItemEntry[]>([emptyEntry()])
+  const [lotCount, setLotCount] = useState('1')
+  const [isCreating, setIsCreating] = useState(false)
+  const creating = useRef(false)
   const [pendingDelete, setPendingDelete] = useState<Auction | null>(null)
   const closeDelete = useCallback(() => setPendingDelete(null), [])
 
-  const draftInput = useAuctionDraftInput(isAdmin && !createAuction.isPending, (itemId) => {
+  const draftInput = useAuctionDraftInput(isAdmin, isCreating, (itemId) => {
     setEntries((previous) => {
       const matching = previous.findIndex((entry) => entry.itemId === itemId)
       const index = matching >= 0 ? matching : previous.findIndex((entry) => entry.itemId === 0)
@@ -291,19 +297,19 @@ export function AuctionListPage() {
   }
 
   const copyAuction = (auction: Auction) => {
-    if (createAuction.isPending) return
+    if (creating.current) return
     const scheduled = auction.status === 'SCHEDULED'
     if (!scheduled && Date.parse(auction.endsAt) <= serverNow()) {
       showToast('O horário de encerramento desse leilão já passou.', 'error')
       return
     }
-    draftInput.stop()
     setDurationMinutes(auction.durationMinutes)
     const futureStart = scheduled && auction.startsAt && Date.parse(auction.startsAt) > serverNow()
       ? toLocalInput(new Date(auction.startsAt))
       : ''
     setStartMode(scheduled ? (futureStart ? 'at' : 'later') : 'now')
     setStartsAtInput(futureStart)
+    setCopiedStart(futureStart ? auction.startsAt : null)
     setCopiedEnd(scheduled ? null : auction.endsAt)
     setCloseAt2150(false)
     setEntries(auction.items.length
@@ -316,7 +322,8 @@ export function AuctionListPage() {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
     const validItems = entries.filter((entry) => entry.itemId > 0 && entry.quantity >= 1)
-    if (createAuction.isPending || validItems.length === 0) return
+    const count = Number(lotCount)
+    if (creating.current || validItems.length === 0 || !Number.isInteger(count) || count < 1 || count > MAX_LOTS) return
     const endsAt = closeAt2150 ? todayAt2150(serverNow()) : copiedEnd
     if ((closeAt2150 || copiedEnd) && (!endsAt || Date.parse(endsAt) <= serverNow())) {
       showToast('O horário de encerramento já passou. Escolha outra duração.', 'error')
@@ -325,33 +332,60 @@ export function AuctionListPage() {
 
     let startsAt: string | undefined
     if (startMode === 'at') {
-      const when = new Date(startsAtInput)
-      if (!startsAtInput || Number.isNaN(when.getTime()) || when.getTime() <= Date.now()) {
-        showToast('Escolha um horário de início no futuro.', 'error')
+      const when = new Date(copiedStart ?? startsAtInput)
+      if (!startsAtInput || Number.isNaN(when.getTime()) || when.getTime() <= serverNow() + 30_000) {
+        showToast('Escolha um horário de início com mais de 30 segundos de antecedência.', 'error')
         return
       }
       startsAt = when.toISOString()
     }
 
-    draftInput.stop()
+    const request = {
+      durationMinutes,
+      ...(copiedEnd ? { endsAt: copiedEnd } : endsAt ? { targetEndsAt: endsAt } : {}),
+      items: validItems.map(({ itemId, quantity }) => ({ itemId, quantity })),
+      startsAt,
+      startLater: startMode === 'later' || undefined,
+    }
+    creating.current = true
+    setIsCreating(true)
+    draftInput.suspend()
+    let created = 0
     try {
-      const result = await createAuction.mutateAsync({
-        durationMinutes,
-        ...(endsAt ? { targetEndsAt: endsAt } : {}),
-        items: validItems.map(({ itemId, quantity }) => ({ itemId, quantity })),
-        startsAt,
-        startLater: startMode === 'later' || undefined,
-      })
-      if (endsAt && !result.deadlineReached) {
-        showToast(`O leilão ${lotOf(result.auction)} abriu, mas não foi possível ajustar o prazo. Confira o cronômetro do lote.`, 'error')
+      while (created < count) {
+        if (startsAt && Date.parse(startsAt) <= serverNow() + 30_000) {
+          throw new Error('O início agendado está próximo demais.')
+        }
+        const result = await createAuction.mutateAsync(request)
+        created++
+        if (closeAt2150 && !result.deadlineReached) {
+          throw new Error(`Confira o cronômetro do lote ${lotOf(result.auction)}. O ajuste de prazo ficou incompleto.`)
+        }
       }
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Não foi possível criar o leilão.', 'error')
+      const message = err instanceof Error ? err.message : 'Não foi possível criar o leilão.'
+      if (count > 1) {
+        showToast(`${created} de ${count} leilões confirmados. ${message} Confira a lista antes de repetir.`, 'error')
+        setLotCount(String(Math.max(1, count - created)))
+      } else {
+        showToast(message, 'error')
+      }
+      if (created === count) setEntries([emptyEntry()])
       return
+    } finally {
+      creating.current = false
+      setIsCreating(false)
     }
-    if (startMode === 'at') showToast(`Leilão agendado para ${formatStartsAt(startsAt!)}.`, 'success')
-    if (startMode === 'later') showToast('Leilão criado em "Em breve". Inicie quando quiser.', 'success')
+    if (count > 1) showToast(`${count} leilões criados.`, 'success')
+    else if (startMode === 'at') showToast(`Leilão agendado para ${formatStartsAt(startsAt!)}.`, 'success')
+    else if (startMode === 'later') showToast('Leilão criado em "Em breve". Inicie quando quiser.', 'success')
     setCopiedEnd(null)
+    setCloseAt2150(todayAt2150(serverNow()) !== null)
+    setDurationMinutes(15)
+    setStartMode('now')
+    setStartsAtInput('')
+    setCopiedStart(null)
+    setLotCount('1')
     setEntries([emptyEntry()])
   }
 
@@ -407,6 +441,7 @@ export function AuctionListPage() {
                 <span>Duração</span>
                 <select
                   ref={durationField}
+                  disabled={isCreating}
                   value={closeAt2150 ? 'today' : copiedEnd ? 'copied' : durationMinutes}
                   onChange={(e) => {
                     const selectedToday = e.target.value === 'today'
@@ -430,9 +465,10 @@ export function AuctionListPage() {
               </label>
               <label className="auction-form__field">
                 <span>Início</span>
-                <select value={startMode} onChange={(e) => {
+                <select value={startMode} disabled={isCreating} onChange={(e) => {
                   setCopiedEnd(null)
-                  setCloseAt2150(false)
+                  setCopiedStart(null)
+                  setCloseAt2150(e.target.value === 'now' && canCloseToday)
                   setStartMode(e.target.value as StartMode)
                 }}>
                   <option value="now">Agora</option>
@@ -445,22 +481,26 @@ export function AuctionListPage() {
                   <span>Começa às</span>
                   <input
                     type="datetime-local"
+                    disabled={isCreating}
                     value={startsAtInput}
                     min={toLocalInput(new Date())}
-                    onChange={(e) => setStartsAtInput(e.target.value)}
+                    onChange={(e) => {
+                      setCopiedStart(null)
+                      setStartsAtInput(e.target.value)
+                    }}
                     required
                   />
                 </label>
               )}
             </div>
 
-            <fieldset className="auction-form__items">
+            <fieldset className="auction-form__items" disabled={isCreating}>
               <legend>Itens do leilão</legend>
               <Button
                 type="button"
                 variant="secondary"
                 size="sm"
-                disabled={createAuction.isPending}
+                disabled={isCreating}
                 onClick={draftInput.active ? draftInput.stop : draftInput.start}
               >
                 {draftInput.active ? 'Desconectar RF-ui' : 'Usar como destino na RF-ui'}
@@ -499,19 +539,23 @@ export function AuctionListPage() {
               </Button>
             </fieldset>
 
-            <Button
-              type="submit"
-              loading={createAuction.isPending}
-              disabled={!entries.some((e) => e.itemId > 0)}
-            >
-              {startMode === 'now' ? 'Criar Leilão' : startMode === 'at' ? 'Agendar leilão' : 'Criar sem iniciar'}
-            </Button>
+            <div className="auction-form__row auction-form__submit">
+              <label className="auction-form__field auction-form__lot-count">
+                <span>Número de leilões</span>
+                <input type="number" min={1} max={MAX_LOTS} step={1} required value={lotCount}
+                  onChange={(e) => setLotCount(e.target.value)} disabled={isCreating} />
+              </label>
+              <Button type="submit" loading={isCreating} disabled={!entries.some((e) => e.itemId > 0)}>
+                {Number(lotCount) > 1 ? `Criar ${lotCount} leilões`
+                  : startMode === 'now' ? 'Criar Leilão' : startMode === 'at' ? 'Agendar leilão' : 'Criar sem iniciar'}
+              </Button>
+            </div>
           </form>
         </Panel>
       )}
 
       <AuctionListSection title="Em andamento" auctions={active} emptyText="Nenhum leilão aberto."
-        onCopy={isAdmin && !createAuction.isPending ? copyAuction : undefined} />
+        onCopy={isAdmin && !isCreating ? copyAuction : undefined} />
       <AuctionListSection
         title="Em breve"
         auctions={upcoming}
@@ -521,7 +565,7 @@ export function AuctionListPage() {
             Iniciar todos até 21h50
           </Button>
         ) : undefined}
-        onCopy={isAdmin && !createAuction.isPending ? copyAuction : undefined}
+        onCopy={isAdmin && !isCreating ? copyAuction : undefined}
         onStart={isAdmin && !startBatch.isPending ? handleStart : undefined}
         startingId={startAuction.isPending ? startAuction.variables : null}
         onDelete={isAdmin && !startBatch.isPending ? setPendingDelete : undefined}

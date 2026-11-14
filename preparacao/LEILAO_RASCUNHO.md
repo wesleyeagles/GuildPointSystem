@@ -1,6 +1,6 @@
 # Rascunho do leilão
 
-Administradores podem selecionar **Usar como destino na RF-ui** na tela de leilões.
+Ao abrir Leilões como administrador, o site conecta a RF-ui automaticamente.
 Com uma ponte local compatível em execução, Ctrl + Alt + clique esquerdo no item
 acrescenta uma unidade ao rascunho. Repetir o clique soma a quantidade. O botão
 **Criar Leilão** continua sendo necessário para publicar.
@@ -14,9 +14,11 @@ ou combinados com agendamento; criação normal e agendamento continuam iguais.
 ## Integração local opcional
 
 O site não instala nem distribui DLLs. A ponte local é uma dependência externa;
-sem ela, o formulário manual continua funcionando normalmente. A conexão começa
-somente por ação do administrador e termina ao desconectar, enviar o formulário
-ou sair da página. O navegador pode solicitar permissão de rede local.
+sem ela, o formulário manual continua funcionando normalmente. Uma aba por navegador
+recebe os cliques. A conexão pausa durante a criação e volta em seguida. O botão
+**Desconectar RF-ui** libera a conexão para outra aba e mantém a aba atual desligada
+até clicar em **Usar como destino na RF-ui** ou reabrir Leilões. O navegador pode
+solicitar permissão de rede local.
 
 Contrato HTTP: POST `http://127.0.0.1:15184/draft`, JSON `{ action, key, ids? }`.
 `key` é aleatória (32 caracteres hexadecimais), exclusiva do rascunho.
