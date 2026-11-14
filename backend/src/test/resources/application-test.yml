@@ -14,6 +14,8 @@ spring:
     enabled: true
 
 guild:
+  market:
+    watch-enabled: false
   jwt:
     secret: test-secret-key-minimum-256-bits-for-hmac-sha256-algorithm
     expiration-ms: 3600000

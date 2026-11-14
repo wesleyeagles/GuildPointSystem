@@ -256,4 +256,77 @@
   }
 }
 
+.market-watch {
+  &__form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: theme.$spacing-sm;
+    margin: theme.$spacing-sm 0 theme.$spacing-md;
+  }
+
+  &__field {
+    position: relative;
+    flex: 0 1 200px;
+    min-width: 160px;
+
+    &--item { flex-basis: 320px; }
+
+    .chat-translator__chip { min-height: 32px; }
+  }
+
+  &__suggestions {
+    position: absolute;
+    z-index: 5;
+    left: 0;
+    right: 0;
+    max-height: 260px;
+    overflow-y: auto;
+    background: theme.$metal-900;
+  }
+
+  &__empty {
+    padding: 6px theme.$spacing-sm;
+    color: theme.$color-text-muted;
+  }
+
+  &__small {
+    @include theme.field-input;
+    @include theme.field-control-height;
+    width: 170px;
+  }
+
+  &__table {
+    width: 100%;
+    border-collapse: collapse;
+
+    th, td {
+      text-align: left;
+      padding: 6px theme.$spacing-sm;
+      border-bottom: 1px solid theme.$color-border;
+    }
+
+    th { color: theme.$color-text-muted; font-weight: 600; font-size: 0.8rem; }
+  }
+
+  &__remove {
+    background: transparent;
+    border: none;
+    color: theme.$color-text-muted;
+    cursor: pointer;
+
+    &:hover { color: theme.$color-danger; }
+  }
+
+  &__alerts {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 0.9rem;
+  }
+}
+
 .dll-admin__error { color: theme.$color-danger; }

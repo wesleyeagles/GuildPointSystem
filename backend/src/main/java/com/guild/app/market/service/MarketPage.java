@@ -12,16 +12,19 @@ import java.util.regex.Pattern;
 /**
  * Uma página do market da Cerberus (cerberus-games.com/market, fórum XenForo). Os anúncios vêm no próprio
  * HTML, cada um num div.itemInfo:
- *   .itemBlock .itemName / .upgradeLevel ("+3") / .itemAmount ("5 pcs.") / a.similarItem (?like=código) / .buy ("15 CS").
+ *   .itemBlock .itemName / onclick itemDetailsHandler(this, id) / .upgradeLevel ("+3") / .itemAmount ("5 pcs.") / a.similarItem (?like=código) / .buy ("15 CS").
  * Anúncio que não dá para ler inteiro é ignorado.
  */
 public record MarketPage(boolean loggedIn, List<Listing> listings) {
 
-    /** Um anúncio: preço total em CS pela quantidade inteira. */
-    public record Listing(String code, String name, int upgrade, int quantity, long price) {}
+    /** Um anúncio: preço total em CS pela quantidade inteira; id = número do anúncio no market (0 se não veio). */
+    public record Listing(String code, String name, int upgrade, int quantity, long price, long id) {
+        public Listing(String code, String name, int upgrade, int quantity, long price) { this(code, name, upgrade, quantity, price, 0); }
+    }
 
     private static final Pattern CODE = Pattern.compile("[?&]like=([a-z0-9]+)");
     private static final Pattern NUMBER = Pattern.compile("(\\d[\\d\\s.,]*)");
+    private static final Pattern ID = Pattern.compile("itemDetailsHandler\\(this,\\s*(\\d{1,15})\\)");
     private static final Pattern CS = Pattern.compile("(\\d[\\d\\s.,]*)\\s*CS\\b", Pattern.CASE_INSENSITIVE);
 
     public static MarketPage parse(String html) {
@@ -53,8 +56,9 @@ public record MarketPage(boolean loggedIn, List<Listing> listings) {
         Element up = block.selectFirst(".upgradeLevel");
         Long upgrade = up == null ? Long.valueOf(0) : number(up.text());
         Element name = block.selectFirst(".itemName");
+        Matcher id = ID.matcher(info.html());
         return new Listing(code.group(1), name == null ? "" : name.text().strip(),
-            upgrade == null ? 0 : upgrade.intValue(), quantity.intValue(), total);
+            upgrade == null ? 0 : upgrade.intValue(), quantity.intValue(), total, id.find() ? Long.parseLong(id.group(1)) : 0);
     }
 
     /** Primeiro número do texto, sem separador de milhar ("1 499", "1.499", "1,499" = 1499). */

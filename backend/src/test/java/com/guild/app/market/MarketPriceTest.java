@@ -97,7 +97,7 @@ class MarketPriceTest {
     @Test void parsesRealMarkup() {
         MarketPage page = MarketPage.parse(PAGE);
         assertTrue(page.loggedIn());
-        assertEquals(List.of(new Listing("iwshi28", "Vampire Big Sword Breaker", 3, 1, 1499),
+        assertEquals(List.of(new Listing("iwshi28", "Vampire Big Sword Breaker", 3, 1, 1499, 138443),
                              new Listing("ibxyz01", "Cactus Seeds", 0, 4, 10)), page.listings());
         assertFalse(MarketPage.parse("<html data-logged-in=\"false\"><body>login</body></html>").loggedIn());
     }

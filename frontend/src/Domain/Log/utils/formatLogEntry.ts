@@ -14,6 +14,7 @@ const LOG_TYPE_LABELS: Record<AuditLogType, string> = {
   RESOURCE_MOB_UPDATED: 'Grau de mob de recurso alterado',
   PB_BOSS_UPDATED: 'Boss do histórico de PB alterado',
   MARKET_PRICE_ACCESS_UPDATED: 'Lista do preço do market alterada',
+  MARKET_WATCH_UPDATED: 'Alerta de item no market alterado',
   DLL_RELEASED: 'Nova versão da DLL',
   PARTY_QUEUE_UPDATED: 'Fila de PT atualizada',
   ROTATION_UPDATED: 'Rotação atualizada',
@@ -104,6 +105,11 @@ export function formatLogDetails(log: AuditLogEntry): string {
       return Array.isArray(p.translators) && p.translators.length ? `Liberados: ${p.translators.join(', ')}` : 'Ninguém'
     case 'MARKET_PRICE_ACCESS_UPDATED':
       return Array.isArray(p.viewers) && p.viewers.length ? `Liberados: ${p.viewers.join(', ')}` : 'Ninguém'
+    case 'MARKET_WATCH_UPDATED': {
+      const filters = [p.minUpgrade ? `+${str(p.minUpgrade)} ou mais` : '', p.maxPrice ? `até ${Number(p.maxPrice).toLocaleString('pt-BR')} CS/un.` : '']
+        .filter(Boolean).join(', ')
+      return `${p.removed ? 'Removido: ' : ''}${str(p.item)}${filters ? ` (${filters})` : ''}`
+    }
     case 'RESOURCE_ACCESS_UPDATED':
       return Array.isArray(p.trackers) && p.trackers.length ? `Liberados: ${p.trackers.join(', ')}` : 'Ninguém'
     case 'RESOURCE_MOB_UPDATED':
