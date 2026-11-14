@@ -94,9 +94,11 @@ export function EventToastProvider({ children }: { children: ReactNode }) {
 }
 
 function formatRemaining(seconds: number): string {
-  const m = Math.floor(seconds / 60)
-  const s = seconds % 60
-  return `${m}:${String(s).padStart(2, '0')}`
+  // "4:07" abaixo de 1 hora; "21:13:56" a partir dela (igual ao card da DLL).
+  const h = Math.floor(seconds / 3600)
+  const m = Math.floor(seconds / 60) % 60
+  const s = String(seconds % 60).padStart(2, '0')
+  return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${s}` : `${m}:${s}`
 }
 
 function EventToastCard({
