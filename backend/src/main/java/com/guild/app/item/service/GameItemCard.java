@@ -113,23 +113,63 @@ public class GameItemCard {
         if (sheet == null || !SHEET.matcher(sheet).matches() || iconId < 0 || cols <= 0 || cols > 64) return Optional.empty();
         String key = sheet + "|" + iconId + "|" + cols;
         byte[] cached = icons.get(key);
-        if (cached != null) return Optional.of(cached);
-        byte[] made = render(sheet, iconId, cols);
-        if (made.length == 0) return Optional.empty();   // falha não fica guardada: tenta de novo no próximo pedido
-        icons.put(key, made);
-        return Optional.of(made);
+        if (cached != null) return cached.length == 0 ? Optional.empty() : Optional.of(cached);
+        Long failedAt = failures.get(key);
+        if (failedAt != null && System.currentTimeMillis() - failedAt < FAILURE_PAUSE_MS) return Optional.empty();
+        // Um recorte por vez no servidor inteiro: muitas DLLs pedindo o mesmo ícone novo ao mesmo tempo esperam
+        // o primeiro e pegam do cache, em vez de cada uma baixar e decodificar o sprite.
+        synchronized (renderLock) {
+            cached = icons.get(key);
+            if (cached != null) return Optional.of(cached);
+            byte[] made = render(sheet, iconId, cols);
+            if (made.length == 0) {
+                failures.put(key, System.currentTimeMillis());
+                return Optional.empty();
+            }
+            failures.remove(key);
+            icons.put(key, made);
+            return Optional.of(made);
+        }
     }
+
+    private static final long FAILURE_PAUSE_MS = 10 * 60_000;
+    private final Object renderLock = new Object();
+    private final Map<String, Long> failures = new java.util.concurrent.ConcurrentHashMap<>();
+    /** Bytes do sprite (jpg/png comprimido, poucos MB), os últimos 3: baixar de novo a cada ícone novo pesa. */
+    private final Map<String, byte[]> sheets = new LinkedHashMap<>(4, 0.75f, true) {
+        @Override protected boolean removeEldestEntry(Map.Entry<String, byte[]> e) { return size() > 3; }
+    };
 
     private byte[] render(String sheet, int iconId, int cols) {
         try {
-            HttpResponse<byte[]> r = http.send(HttpRequest.newBuilder(URI.create(frontend + sheet)).timeout(Duration.ofSeconds(15)).GET().build(),
-                HttpResponse.BodyHandlers.ofByteArray());
-            if (r.statusCode() != 200) return new byte[0];
-            BufferedImage img = ImageIO.read(new ByteArrayInputStream(r.body()));
+            byte[] bytes = sheets.get(sheet);
+            if (bytes == null) {
+                HttpResponse<byte[]> r = http.send(HttpRequest.newBuilder(URI.create(frontend + sheet)).timeout(Duration.ofSeconds(15)).GET().build(),
+                    HttpResponse.BodyHandlers.ofByteArray());
+                if (r.statusCode() != 200 || r.body().length > 30_000_000) return new byte[0];
+                bytes = r.body();
+                sheets.put(sheet, bytes);
+            }
+            // Decodifica só a célula do ícone (o sprite inteiro descomprimido passa de 30 MB).
+            BufferedImage img;
+            try (var in = ImageIO.createImageInputStream(new ByteArrayInputStream(bytes))) {
+                var readers = ImageIO.getImageReaders(in);
+                if (!readers.hasNext()) return new byte[0];
+                var reader = readers.next();
+                try {
+                    reader.setInput(in, true, true);
+                    int cellSize = reader.getWidth(0) / cols;
+                    int cx = iconId % cols * cellSize, cy = iconId / cols * cellSize;
+                    if (cellSize <= 0 || cy + cellSize > reader.getHeight(0)) return new byte[0];
+                    var param = reader.getDefaultReadParam();
+                    param.setSourceRegion(new java.awt.Rectangle(cx, cy, cellSize, cellSize));
+                    img = reader.read(0, param);
+                } finally {
+                    reader.dispose();
+                }
+            }
             if (img == null) return new byte[0];
-            int cell = img.getWidth() / cols;
-            int x = iconId % cols * cell, y = iconId / cols * cell;
-            if (cell <= 0 || y + cell > img.getHeight()) return new byte[0];
+            int cell = img.getWidth(), x = 0, y = 0;
             BufferedImage out = new BufferedImage(ICON, ICON, BufferedImage.TYPE_INT_ARGB);
             Graphics2D g = out.createGraphics();
             g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
