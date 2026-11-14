@@ -349,6 +349,7 @@ export function useCreateAuction() {
   return useMutation({
     mutationFn: async ({ targetEndsAt, ...body }: {
       durationMinutes: number
+      endsAt?: string
       targetEndsAt?: string
       items: { itemId: number; quantity: number }[]
       /** ISO time: opens the auction then instead of right away. */
@@ -361,7 +362,7 @@ export function useCreateAuction() {
           (durationMinutes) => apiClient<Auction>('/auctions', { method: 'POST', body: { ...body, durationMinutes } }),
           extendAuctionTime)
       }
-      const auction = await apiClient<Auction>('/auctions', { method: 'POST', body })
+      const auction = await apiClient<Auction>(body.endsAt ? '/auctions/fixed-end' : '/auctions', { method: 'POST', body })
       return { auction, deadlineReached: true }
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: auctionKeys.all, exact: true }),

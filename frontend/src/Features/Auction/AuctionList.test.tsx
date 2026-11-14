@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import { afterEach, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import type { Auction } from '@/Domain/types/models'
 import { AuctionListPage } from './AuctionList'
 
@@ -41,6 +41,19 @@ vi.mock('./components/AuctionItemPicker/AuctionItemPicker', () => ({
   ),
 }))
 
+beforeEach(() => {
+  let queue = Promise.resolve()
+  vi.stubGlobal('navigator', {
+    locks: {
+      request: (_name: string, { signal }: { signal: AbortSignal }, callback: () => Promise<void>) => {
+        queue = queue.then(() => { if (!signal.aborted) return callback() })
+        return queue
+      },
+    },
+  })
+  vi.stubGlobal('fetch', vi.fn(async () => new Response(null, { status: 503 })))
+})
+
 afterEach(() => {
   cleanup()
   state.create.mockReset()
@@ -69,12 +82,56 @@ it('uses the same Brasília deadline for new auctions and pending lots', async (
   state.auctions = [pending, { ...pending, id: 43 }, { ...pending, id: 44, status: 'OPEN' }]
   state.startBatch.mockResolvedValue(state.auctions.slice(0, 2))
   render(<MemoryRouter><AuctionListPage /></MemoryRouter>)
-  fireEvent.change(screen.getByLabelText('Duração'), { target: { value: 'today' } })
+  expect(screen.getByLabelText('Duração')).toHaveValue('today')
   fireEvent.click(screen.getByRole('button', { name: 'Item 0' }))
   fireEvent.click(screen.getByRole('button', { name: 'Criar Leilão' }))
   await waitFor(() => expect(state.create).toHaveBeenCalledWith(expect.objectContaining({ targetEndsAt: endsAt })))
   fireEvent.click(screen.getByRole('button', { name: 'Iniciar todos até 21h50' }))
   await waitFor(() => expect(state.startBatch).toHaveBeenCalledWith({ auctionIds: [42, 43], endsAt }))
+})
+
+it('creates multiple lots with the same items and target time', async () => {
+  state.admin = true
+  state.auctions = []
+  state.now = Date.parse('2026-11-14T21:00:00Z')
+  state.create.mockResolvedValue({ auction: sampleAuction('2026-11-15T00:50:00Z'), deadlineReached: true })
+  render(<MemoryRouter><AuctionListPage /></MemoryRouter>)
+  fireEvent.click(screen.getByRole('button', { name: 'Item 0' }))
+  fireEvent.change(screen.getByLabelText('Quantidade'), { target: { value: '4' } })
+  fireEvent.change(screen.getByLabelText('Número de leilões'), { target: { value: '3' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Criar 3 leilões' }))
+  await waitFor(() => expect(screen.getByLabelText('Número de leilões')).toHaveValue(1))
+  expect(state.create).toHaveBeenCalledTimes(3)
+  for (const [request] of state.create.mock.calls) {
+    expect(request).toMatchObject({
+      targetEndsAt: '2026-11-15T00:50:00.000Z',
+      items: [{ itemId: 99, quantity: 4 }],
+    })
+  }
+})
+
+it('keeps the draft for the remaining lots after a partial failure', async () => {
+  state.admin = true
+  state.auctions = []
+  state.now = Date.parse('2026-11-14T21:00:00Z')
+  state.create.mockResolvedValueOnce({ auction: sampleAuction('2026-11-15T00:50:00Z'), deadlineReached: true })
+    .mockRejectedValueOnce(new Error('Falha na API'))
+  render(<MemoryRouter><AuctionListPage /></MemoryRouter>)
+  fireEvent.click(screen.getByRole('button', { name: 'Item 0' }))
+  fireEvent.change(screen.getByLabelText('Número de leilões'), { target: { value: '3' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Criar 3 leilões' }))
+  await waitFor(() => expect(screen.getByLabelText('Número de leilões')).toHaveValue(2))
+  expect(state.create).toHaveBeenCalledTimes(2)
+  expect(screen.getByRole('button', { name: 'Item 99' })).toBeVisible()
+  expect(state.toast).toHaveBeenCalledWith(expect.stringContaining('1 de 3 leilões confirmados'), 'error')
+})
+
+it('defaults to 15 minutes once the Brasília deadline has passed', () => {
+  state.admin = true
+  state.auctions = []
+  state.now = Date.parse('2026-11-15T01:00:00Z')
+  render(<MemoryRouter><AuctionListPage /></MemoryRouter>)
+  expect(screen.getByLabelText('Duração')).toHaveValue('15')
 })
 
 it('adds one unit per RF-ui click, even when the first acknowledgement fails', async () => {
@@ -83,23 +140,28 @@ it('adds one unit per RF-ui click, even when the first acknowledgement fails', a
   state.lookup.mockResolvedValue({ content: [{ id: 35, name: 'Intense Staff', gameCode: 'iwtji40' }], totalPages: 1 })
   const events = [{ id: 'a'.repeat(32), code: 'iwtji40' }, { id: 'b'.repeat(32), code: 'iwtji40' }]
   let acknowledgements = 0
+  let selections = 0
+  state.create.mockResolvedValue({ deadlineReached: true })
   vi.stubGlobal('fetch', vi.fn(async (_url, options) => {
     const { action } = JSON.parse(options.body)
-    if (action === 'read') return Response.json(events)
+    if (action === 'select') selections++
+    if (action === 'read') return Response.json(selections === 1 ? events : [])
     if (action === 'ack' && ++acknowledgements === 1) return new Response(null, { status: 503 })
     return new Response(null, { status: 204 })
   }))
   render(<MemoryRouter><AuctionListPage /></MemoryRouter>)
-  fireEvent.click(screen.getByRole('button', { name: 'Usar como destino na RF-ui' }))
   await waitFor(() => expect(acknowledgements).toBe(2), { timeout: 2000 })
   expect(screen.getByRole('button', { name: 'Item 35' })).toBeVisible()
   expect(screen.getByLabelText('Quantidade')).toHaveValue(2)
   expect(state.lookup).toHaveBeenCalledTimes(1)
   expect(state.create).not.toHaveBeenCalled()
+  fireEvent.change(screen.getByLabelText('Duração'), { target: { value: '15' } })
   fireEvent.click(screen.getByRole('button', { name: 'Criar Leilão' }))
   await waitFor(() => expect(state.create).toHaveBeenCalledWith({
     startsAt: undefined, startLater: undefined, durationMinutes: 15, items: [{ itemId: 35, quantity: 2 }],
   }))
+  await waitFor(() => expect(selections).toBe(2))
+  expect(screen.getByRole('button', { name: 'Item 0' })).toBeVisible()
 })
 
 it.each([false, true])('requires a unique exact Relic code across pages (duplicate: %s)', async (duplicate) => {
@@ -120,7 +182,6 @@ it.each([false, true])('requires a unique exact Relic code across pages (duplica
     return new Response(null, { status: 204 })
   }))
   render(<MemoryRouter><AuctionListPage /></MemoryRouter>)
-  fireEvent.click(screen.getByRole('button', { name: 'Usar como destino na RF-ui' }))
   await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(
     duplicate ? 'Há mais de um cadastro para o código relic004.' : `+1 ${relic.name}`,
   ))
@@ -134,7 +195,7 @@ it.each([false, true])('requires a unique exact Relic code across pages (duplica
 })
 
 it.each([true, false])('copies the lot draft with its target deadline for admins only (%s)', async (admin) => {
-  const endsAt = new Date(Date.now() + 15 * 60_000).toISOString()
+  const endsAt = new Date(Math.floor(Date.now() / 1000) * 1000 + 912_345).toISOString()
   state.admin = admin
   state.auctions = [sampleAuction(endsAt)]
   state.create.mockResolvedValue({ auction: state.auctions[0], deadlineReached: true })
@@ -153,7 +214,7 @@ it.each([true, false])('copies the lot draft with its target deadline for admins
   fireEvent.click(screen.getByRole('button', { name: 'Item 17' }))
   fireEvent.click(screen.getByRole('button', { name: 'Criar Leilão' }))
   await waitFor(() => expect(state.create).toHaveBeenCalledWith({
-    startsAt: undefined, startLater: undefined, durationMinutes: 30, targetEndsAt: endsAt, items: [{ itemId: 99, quantity: 3 }],
+    startsAt: undefined, startLater: undefined, durationMinutes: 30, endsAt, items: [{ itemId: 99, quantity: 3 }],
   }))
 })
 
@@ -167,12 +228,13 @@ it('drops the copied deadline when switching to a scheduled start', async () => 
   fireEvent.click(screen.getByRole('button', { name: 'Criar sem iniciar' }))
   await waitFor(() => expect(state.create).toHaveBeenCalled())
   expect(state.create.mock.calls[0][0]).not.toHaveProperty('targetEndsAt')
+  expect(state.create.mock.calls[0][0]).not.toHaveProperty('endsAt')
   expect(state.create.mock.calls[0][0].startLater).toBe(true)
 })
 
 it('duplicates a scheduled lot into a draft without starting or creating it', async () => {
   state.admin = true
-  const startsAt = new Date(Math.ceil(Date.now() / 60_000) * 60_000 + 600_000).toISOString()
+  const startsAt = new Date(Math.ceil(Date.now() / 60_000) * 60_000 + 612_345).toISOString()
   state.auctions = [{
     ...sampleAuction(new Date(Date.parse(startsAt) + 1_800_000).toISOString()),
     status: 'SCHEDULED', startsAt,
@@ -208,7 +270,6 @@ it.each([409, 'malformed'])('disconnects on a replaced draft or invalid bridge p
     return new Response(null, { status: 204 })
   }))
   render(<MemoryRouter><AuctionListPage /></MemoryRouter>)
-  fireEvent.click(screen.getByRole('button', { name: 'Usar como destino na RF-ui' }))
   await waitFor(() => expect(screen.getByRole('status').textContent).toMatch(/deixou de ser o destino|Resposta inválida/))
   expect(state.lookup).not.toHaveBeenCalled()
   expect(screen.getByRole('button', { name: 'Item 0' })).toBeVisible()
@@ -220,11 +281,40 @@ it('closing the page aborts reading and releases the bridge destination', async 
   const fetch = vi.fn(async (_url, options) => JSON.parse(options.body).action === 'read' ? Response.json([]) : new Response(null, { status: 204 }))
   vi.stubGlobal('fetch', fetch)
   const view = render(<MemoryRouter><AuctionListPage /></MemoryRouter>)
-  fireEvent.click(screen.getByRole('button', { name: 'Usar como destino na RF-ui' }))
   await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2))
   view.unmount()
   expect(JSON.parse(fetch.mock.calls.at(-1)![1].body).action).toBe('close')
   expect(fetch.mock.calls[0][1].signal.aborted).toBe(true)
+})
+
+it('only connects one admin tab and hands over after manual disconnect', async () => {
+  state.admin = true
+  state.auctions = []
+  const fetch = vi.fn(async (_url, options) =>
+    JSON.parse(options.body).action === 'read' ? Response.json([]) : new Response(null, { status: 204 }))
+  vi.stubGlobal('fetch', fetch)
+  const view = () => <MemoryRouter><AuctionListPage /></MemoryRouter>
+  const first = render(view())
+  const second = render(view())
+  const selections = () => fetch.mock.calls.filter(([, opts]) => JSON.parse(opts.body).action === 'select')
+  await waitFor(() => expect(screen.getByText('Aguardando a conexão da RF-ui ficar disponível nesta aba.')).toBeVisible())
+  await waitFor(() => expect(selections()).toHaveLength(1))
+  fireEvent.click(screen.getAllByRole('button', { name: 'Desconectar RF-ui' })[0])
+  await waitFor(() => expect(selections()).toHaveLength(2))
+  second.unmount()
+  expect(screen.getByRole('button', { name: 'Usar como destino na RF-ui' })).toBeVisible()
+  expect(selections()).toHaveLength(2)
+  first.unmount()
+})
+
+it('does not contact the bridge for a non-admin', async () => {
+  state.admin = false
+  state.auctions = []
+  const fetch = vi.fn()
+  vi.stubGlobal('fetch', fetch)
+  render(<MemoryRouter><AuctionListPage /></MemoryRouter>)
+  expect(screen.queryByRole('button', { name: 'Desconectar RF-ui' })).not.toBeInTheDocument()
+  expect(fetch).not.toHaveBeenCalled()
 })
 
 

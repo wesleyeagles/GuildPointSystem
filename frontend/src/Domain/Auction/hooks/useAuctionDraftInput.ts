@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useEffectEvent, useRef, useState } from 'react'
 import { apiClient, ApiError } from '@/Shared/api/client'
 import type { Item, Page } from '@/Domain/types/models'
 import auctionRelicCodes from '../auctionRelicCodes.json'
@@ -41,37 +41,56 @@ async function request(action: string, key: string, signal?: AbortSignal, ids?: 
   })
 }
 
-export function useAuctionDraftInput(enabled: boolean, addItem: (id: number) => void) {
-  const [active, setActive] = useState(false)
+export function useAuctionDraftInput(enabled: boolean, paused: boolean, addItem: (id: number) => void) {
+  const [connected, setConnected] = useState(true)
+  const [lease, setLease] = useState<AbortSignal | null>(null)
   const [message, setMessage] = useState('')
   const session = useRef<AbortController | null>(null)
-  const [wasEnabled, setWasEnabled] = useState(enabled)
+  const receiveItem = useEffectEvent(addItem)
 
-  if (wasEnabled !== enabled) {
-    setWasEnabled(enabled)
-    setActive(false)
-    setMessage('')
+  function suspend() {
+    session.current?.abort()
   }
 
   function stop() {
-    session.current?.abort()
-    session.current = null
-    setActive(false)
+    suspend()
+    setConnected(false)
     setMessage('')
   }
 
+  const requested = enabled && connected
+  const ownsDestination = lease !== null && !lease.aborted
   useEffect(() => {
-    if (enabled) return () => session.current?.abort()
-  }, [enabled])
+    if (!requested) return
+    const lock = new AbortController()
+    let release = () => {}
+    const held = new Promise<void>((resolve) => { release = resolve })
+    void (async () => {
+      try {
+        await navigator.locks.request('auction-rf-ui-draft', { signal: lock.signal }, async () => {
+          if (lock.signal.aborted) return
+          setLease(lock.signal)
+          await held
+        })
+      } catch {
+        if (!lock.signal.aborted) {
+          setConnected(false)
+          setMessage('Não foi possível reservar a conexão nesta aba. Confira as permissões do navegador.')
+        }
+      }
+    })()
+    return () => {
+      lock.abort()
+      release()
+    }
+  }, [requested])
 
-  function start() {
-    if (!enabled || (session.current && !session.current.signal.aborted)) return
+  useEffect(() => {
+    if (!requested || !ownsDestination || paused) return
     const key = Array.from(crypto.getRandomValues(new Uint8Array(16)), (byte) => byte.toString(16).padStart(2, '0')).join('')
     const controller = new AbortController()
     const { signal } = controller
     session.current = controller
-    setActive(true)
-    setMessage('Conectando à RF-ui…')
     let timer: number | undefined
     let selected = false
     const applied = new Set<string>()
@@ -82,10 +101,17 @@ export function useAuctionDraftInput(enabled: boolean, addItem: (id: number) => 
       void request('close', key).catch(() => {})
     }, { once: true })
 
+    function disconnect(reason: string) {
+      controller.abort()
+      setConnected(false)
+      setMessage(reason)
+    }
+
     async function poll() {
       try {
         if (!selected) {
           const response = await request('select', key, signal)
+          if (signal.aborted) return
           if (!response.ok) throw new Error()
           selected = true
           setMessage('RF-ui conectada. Use Ctrl + Alt + clique no inventário.')
@@ -93,8 +119,7 @@ export function useAuctionDraftInput(enabled: boolean, addItem: (id: number) => 
         const response = await request('read', key, signal)
         if (signal.aborted) return
         if (response.status === 409) {
-          stop()
-          setMessage('O rascunho deixou de ser o destino. Selecione-o novamente para continuar.')
+          disconnect('O rascunho deixou de ser o destino. Selecione-o novamente para continuar.')
           return
         }
         if (!response.ok) throw new Error()
@@ -102,8 +127,7 @@ export function useAuctionDraftInput(enabled: boolean, addItem: (id: number) => 
         if (!Array.isArray(events) || events.length > 256 || events.some((event) =>
           !event || typeof event.id !== 'string' || !/^[a-f0-9]{32}$/.test(event.id) ||
           (event.code !== null && (typeof event.code !== 'string' || !/^[A-Za-z0-9]{7}$/.test(event.code))))) {
-          stop()
-          setMessage('Resposta inválida da ponte local. Nenhum item foi adicionado.')
+          disconnect('Resposta inválida da ponte local. Nenhum item foi adicionado.')
           return
         }
         for (const event of events) {
@@ -119,7 +143,7 @@ export function useAuctionDraftInput(enabled: boolean, addItem: (id: number) => 
                 items.set(event.code, item)
               }
               if (signal.aborted) return
-              addItem(item.id)
+              receiveItem(item.id)
               setMessage(`+1 ${item.name}`)
             } catch (error) {
               if (signal.aborted) return
@@ -137,17 +161,25 @@ export function useAuctionDraftInput(enabled: boolean, addItem: (id: number) => 
       } catch {
         if (signal.aborted) return
         if (!selected) {
-          stop()
           setMessage('Ponte da RF-ui indisponível. Abra a ponte local e permita o acesso à rede local se o navegador pedir.')
-          return
+        } else {
+          setMessage('Conexão com a RF-ui ou com o catálogo interrompida. Tentando novamente…')
         }
-        setMessage('Conexão com a RF-ui ou com o catálogo interrompida. Tentando novamente…')
       }
-      if (!signal.aborted) timer = window.setTimeout(() => void poll(), 750)
+      if (!signal.aborted) timer = window.setTimeout(() => void poll(), selected ? 750 : 3000)
     }
 
     void poll()
-  }
+    return () => controller.abort()
+  }, [ownsDestination, paused, requested])
 
-  return { active: enabled && active, message: enabled ? message : '', start, stop }
+  return {
+    active: requested,
+    message: !enabled || paused ? '' : requested && !ownsDestination
+      ? 'Aguardando a conexão da RF-ui ficar disponível nesta aba.'
+      : message,
+    start: () => setConnected(true),
+    stop,
+    suspend,
+  }
 }
