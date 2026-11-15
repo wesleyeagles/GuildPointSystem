@@ -4,6 +4,7 @@ import {
   serverNow,
   useAuctionAdminAction,
   useAuctions,
+  useConfirmAuctionDelivery,
   useCreateAuction,
   useDeleteAuction,
   useStartAuctionBatch,
@@ -22,6 +23,8 @@ import type { Auction } from '@/Domain/types/models'
 import { formatStartsAt, formatTime, pausedSeconds, useCountdown } from '@/Features/Auction/hooks/useCountdown'
 import { useAuctionDraftInput } from '@/Domain/Auction/hooks/useAuctionDraftInput'
 import { ItemQuantity } from '@/Shared/ui/components/ItemQuantity/ItemQuantity'
+import { useGameMail } from '@/Shared/hooks/useGameMail'
+import { getAuctionMailAttachment } from '@/Domain/Auction/auctionMail'
 import './Auction.styles.scss'
 
 const DURATIONS = [
@@ -157,6 +160,7 @@ function AuctionListSection({
   onStart,
   startingId,
   actions,
+  deliveryActions,
 }: {
   title: string
   auctions: Auction[]
@@ -169,6 +173,7 @@ function AuctionListSection({
   onStart?: (auction: Auction) => void
   startingId?: number | null
   actions?: React.ReactNode
+  deliveryActions?: (auction: Auction) => React.ReactNode
 }) {
   const discordBySite = useDiscordBySiteMember()
 
@@ -210,6 +215,7 @@ function AuctionListSection({
                     Ver
                   </Button>
                 </Link>
+                {deliveryActions?.(auction)}
                 {onStart && auction.status === 'SCHEDULED' && (
                   <Button size="sm" loading={startingId === auction.id} onClick={() => onStart(auction)}>
                     Iniciar
@@ -260,6 +266,11 @@ export function AuctionListPage() {
   const { showToast } = useAppToast()
   const { hasRole } = useAuthContext()
   const isAdmin = hasRole('ADMINISTRADOR')
+  const confirmDelivery = useConfirmAuctionDelivery()
+  const { canPrepareMail, preparingMail, prepareMail } = useGameMail(isAdmin, 'boi')
+  const [pendingDeliveryId, setPendingDeliveryId] = useState<number | null>(null)
+  const pendingDelivery = isAdmin ? auctions.find(({ id, status, winnerNickname, deliveredAt }) =>
+    id === pendingDeliveryId && status === 'CLOSED' && winnerNickname && !deliveredAt) : undefined
 
   const [durationMinutes, setDurationMinutes] = useState(15)
   const [copiedEnd, setCopiedEnd] = useState<string | null>(null)
@@ -586,9 +597,46 @@ export function AuctionListPage() {
       <AuctionListSection
         title="Encerrados"
         auctions={closed}
+        deliveryActions={isAdmin ? (auction) => {
+          const winner = auction.winnerNickname
+          if (auction.status !== 'CLOSED' || !winner || auction.deliveredAt) return null
+          const attachment = getAuctionMailAttachment(auction)
+          return <>
+            {canPrepareMail && (
+              <Button variant="secondary" size="sm" disabled={preparingMail}
+                title="Abre o rascunho no jogo para envio manual"
+                onClick={() => void prepareMail(winner, attachment)}>
+                {attachment ? 'Enviar item' : 'Preparar carta'}
+              </Button>
+            )}
+            <Button size="sm" onClick={() => setPendingDeliveryId(auction.id)}>Confirmar envio</Button>
+          </>
+        } : undefined}
         onDelete={isAdmin ? setPendingDelete : undefined}
         deletingId={deleteAuction.isPending ? deleteAuction.variables : null}
       />
+
+      <ConfirmDialog
+        open={!!pendingDelivery}
+        title={pendingDelivery ? `Confirmar envio do leilão ${lotOf(pendingDelivery)}` : ''}
+        code="ADM"
+        variant="primary"
+        confirmLabel="Marcar como enviado"
+        loading={confirmDelivery.isPending}
+        onConfirm={async () => {
+          if (!pendingDelivery) return
+          try {
+            await confirmDelivery.mutateAsync(pendingDelivery.id)
+            setPendingDeliveryId(null)
+            showToast('Envio do leilão confirmado.', 'success')
+          } catch (err) {
+            showToast(err instanceof Error ? err.message : 'Não foi possível confirmar o envio.', 'error')
+          }
+        }}
+        onCancel={() => setPendingDeliveryId(null)}
+      >
+        <p>Confirme após enviar todos os itens do lote para <strong>{pendingDelivery?.winnerNickname}</strong> no jogo.</p>
+      </ConfirmDialog>
 
       <ConfirmDialog
         open={pendingDelete !== null}

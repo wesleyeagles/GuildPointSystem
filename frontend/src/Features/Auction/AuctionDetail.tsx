@@ -12,7 +12,8 @@ import {
 } from '@/Domain/Auction/hooks/useAuction'
 import { useAuthContext } from '@/Features/Auth/contexts/AuthContext'
 import { useAppToast } from '@/Shared/ui/components/AppToast/AppToast'
-import { getGameMailSender, useGameMail } from '@/Shared/hooks/useGameMail'
+import { useGameMail } from '@/Shared/hooks/useGameMail'
+import { getAuctionMailAttachment } from '@/Domain/Auction/auctionMail'
 import { formatAuctionItems, isAuctionFinished } from '@/Domain/types/models'
 import { useCurrentMember } from '@/Domain/Member/hooks/useMembers'
 import { sellBlockedUntil } from '@/Features/Dashboard/utils/sellBlock'
@@ -103,7 +104,7 @@ export function AuctionDetailPage() {
   const { showToast } = useAppToast()
   const { hasRole } = useAuthContext()
   const canManage = hasRole('ADMINISTRADOR') // Líder ranks above Administrador
-  const mailSender = getGameMailSender()
+  const mailSender = 'boi'
   const { canPrepareMail, preparingMail, prepareMail } = useGameMail(canManage, mailSender)
 
   // Someone deleted this auction while we were watching it.
@@ -441,7 +442,7 @@ export function AuctionDetailPage() {
                   <div className="auction-admin">
                     {canPrepareMail && (
                       <Button size="sm" variant="secondary" loading={preparingMail} onClick={() => {
-                        if (auction.winnerNickname) void prepareMail(auction.winnerNickname)
+                        if (auction.winnerNickname) void prepareMail(auction.winnerNickname, getAuctionMailAttachment(auction))
                       }}>Preparar carta ({mailSender})</Button>
                     )}
                     <Button size="sm" onClick={() => setConfirm('delivery')}>Confirmar envio</Button>

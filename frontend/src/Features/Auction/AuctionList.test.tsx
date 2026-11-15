@@ -11,6 +11,7 @@ const state = vi.hoisted(() => ({
   startBatch: vi.fn(),
   now: undefined as number | undefined,
   lookup: vi.fn(),
+  confirm: vi.fn(),
   toast: vi.fn(),
 }))
 vi.mock('@/Shared/api/client', () => ({
@@ -31,6 +32,7 @@ vi.mock('@/Domain/Auction/hooks/useAuction', () => ({
   useDeleteAuction: () => ({}),
   useAuctionAdminAction: () => ({}),
   useStartAuctionBatch: () => ({ mutateAsync: state.startBatch }),
+  useConfirmAuctionDelivery: () => ({ mutateAsync: state.confirm }),
 }))
 vi.mock('@/Domain/Discord/hooks/useDiscordMembers', () => ({ useDiscordBySiteMember: () => new Map() }))
 vi.mock('@/Features/Auth/contexts/AuthContext', () => ({ useAuthContext: () => ({ hasRole: () => state.admin }) }))
@@ -60,6 +62,8 @@ afterEach(() => {
   state.startBatch.mockReset()
   state.now = undefined
   state.lookup.mockReset()
+  state.confirm.mockReset()
+  vi.unstubAllEnvs()
   vi.unstubAllGlobals()
 })
 
@@ -72,6 +76,33 @@ function sampleAuction(endsAt: string): Auction {
     items: [{ itemId: 17, quantity: 3, itemName: 'Item original', imageUrl: null, gameIcon: null }],
   }
 }
+
+it('prepares the exact Relic and quantity from the closed list without recording delivery', async () => {
+  state.admin = true
+  state.auctions = [{
+    ...sampleAuction(new Date().toISOString()),
+    status: 'CLOSED', winnerId: 8, winnerNickname: 'BladeRunner',
+    items: [{ itemId: 17, itemName: 'Freak Vafer Niffer Relic', quantity: 3, imageUrl: null,
+      gameIcon: { category: 'WEAPON', gameIndex: 0, iconId: 0, spriteSheet: '', spriteCols: 1, gameCode: 'relic004' } }],
+  }]
+  vi.stubEnv('VITE_GAME_MAIL_PREVIEW', 'true')
+  const bridge = vi.fn().mockResolvedValue(Response.json({ message: 'Carta preparada.' }))
+  vi.stubGlobal('fetch', bridge)
+  const page = () => <MemoryRouter><AuctionListPage /></MemoryRouter>
+  const view = render(page())
+  fireEvent.click(screen.getByRole('button', { name: 'Enviar item' }))
+  await waitFor(() => expect(bridge).toHaveBeenCalledOnce())
+  expect(JSON.parse(bridge.mock.calls[0][1].body)).toEqual({
+    sender: 'boi', recipient: 'BladeRunner', itemCode: 'iyfig89', quantity: 3,
+  })
+  expect(state.confirm).not.toHaveBeenCalled()
+  fireEvent.click(screen.getByRole('button', { name: 'Confirmar envio' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Marcar como enviado' }))
+  await waitFor(() => expect(state.confirm).toHaveBeenCalledWith(42))
+  state.admin = false
+  view.rerender(page())
+  expect(screen.queryByRole('button', { name: 'Enviar item' })).not.toBeInTheDocument()
+})
 
 it('uses the same Brasília deadline for new auctions and pending lots', async () => {
   state.admin = true
