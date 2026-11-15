@@ -66,6 +66,19 @@ class AuctionBidRulesTest {
         assertEquals(20, service.placeBid(auctionId, 20, second).currentBid());
     }
 
+    @Test void allInHasNoMinimumIncrement() {
+        long first = member(today), poor = member(today), rich = member(today);
+        jdbc.update("UPDATE member SET points=51 WHERE id=?", poor);
+        service.placeBid(auctionId, 50, first);
+        assertEquals(51, service.placeBid(auctionId, 51, poor).currentBid());          // tudo o que tem: passa
+        assertThrows(AppException.class, () -> service.placeBid(auctionId, 55, rich));  // tem 1000: precisa de 61
+        long tiny = member(today);
+        jdbc.update("UPDATE member SET points=5 WHERE id=?", tiny);
+        long other = jdbc.queryForObject("INSERT INTO auction(duration_minutes,status,created_by_id,starts_at,ends_at,current_bid) "
+                + "SELECT 60,'OPEN',created_by_id,NOW(),NOW() + INTERVAL '1 hour',0 FROM auction WHERE id=? RETURNING id", Long.class, auctionId);
+        assertEquals(5, service.placeBid(other, 5, tiny).currentBid());                // 1º lance all-in abaixo de 10
+    }
+
     @Test void tyingWithAllInStillWorks() {
         long first = member(today), poor = member(today);
         jdbc.update("UPDATE member SET points=30 WHERE id=?", poor);

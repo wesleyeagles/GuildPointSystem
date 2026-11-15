@@ -121,18 +121,24 @@ it('asks for at least +10 over the current bid', () => {
   fireEvent.change(input, { target: { value: '15' } })
   fireEvent.click(screen.getByRole('button', { name: 'Lance' }))
   expect(state.bid).not.toHaveBeenCalled()
-  expect(screen.getByText('O lance mínimo é 20 (lance atual 10 + 10).')).toBeVisible()
+  expect(screen.getByText('O lance mínimo é 20 (lance atual 10 + 10), ou all-in com todo o seu saldo.')).toBeVisible()
   fireEvent.click(screen.getByRole('button', { name: '+10' }))
   expect(input).toHaveValue(20)
 })
 
-it('hides all-in when the balance does not reach the minimum and allows tying', () => {
+it('all-in has no +10 minimum, and an exact balance still ties', () => {
   state.admin = false
-  state.auction = openAuction()
+  state.auction = openAuction() // lance atual 10
   state.member = { id: 7, availablePoints: 15, blockedForSellUntil: '2099-12-31' }
   renderAuction(41)
-  expect(screen.queryByRole('button', { name: /All-in/ })).not.toBeInTheDocument()
-  expect(screen.getByText('Seu saldo disponível (15) não cobre o lance mínimo (20).')).toBeVisible()
+  fireEvent.click(screen.getByRole('button', { name: 'All-in (15)' }))
+  expect(state.bid).toHaveBeenCalledWith({ id: 41, amount: 15 })
+  fireEvent.change(screen.getByRole('spinbutton'), { target: { value: '15' } }) // digitado também vale
+  fireEvent.click(screen.getByRole('button', { name: 'Lance' }))
+  expect(state.bid).toHaveBeenCalledTimes(2)
+  fireEvent.change(screen.getByRole('spinbutton'), { target: { value: '14' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Lance' }))
+  expect(state.bid).toHaveBeenCalledTimes(2)
   state.member = { id: 7, availablePoints: 10, blockedForSellUntil: '2099-12-31' }
   cleanup()
   renderAuction(41)

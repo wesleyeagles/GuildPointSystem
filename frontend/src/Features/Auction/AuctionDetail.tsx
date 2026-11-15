@@ -154,9 +154,10 @@ export function AuctionDetailPage() {
   const submitBid = async (amount: number) => {
     if (!amount || amount < 1) return
     const current = auction?.currentBid ?? 0
-    // Igualar (all-in) passa; superar exige +10. O servidor confere de novo.
-    if (amount !== current && amount < current + MIN_INCREMENT) {
-      setFeedback({ kind: 'error', text: `O lance mínimo é ${current + MIN_INCREMENT} (lance atual ${current} + ${MIN_INCREMENT}).` })
+    // Igualar e o all-in (todo o saldo) passam; superar exige +10. O servidor confere de novo.
+    const allIn = amount === (member?.availablePoints ?? -1)
+    if (amount !== current && !allIn && amount < current + MIN_INCREMENT) {
+      setFeedback({ kind: 'error', text: `O lance mínimo é ${current + MIN_INCREMENT} (lance atual ${current} + ${MIN_INCREMENT}), ou all-in com todo o seu saldo.` })
       return
     }
     try {
@@ -251,7 +252,8 @@ export function AuctionDetailPage() {
   const bidLocked = !!member && !sellBlockedUntil(member)
   const canTieAllIn = canBid && !iAmLeading && !bidLocked && auction.currentBid > 0 && myMax === auction.currentBid
   const minBid = auction.currentBid + MIN_INCREMENT
-  const canOutbid = canBid && !iAmLeading && !bidLocked && myMax >= minBid
+  // All-in (todo o saldo) supera mesmo abaixo dos +10.
+  const canOutbid = canBid && !iAmLeading && !bidLocked && myMax > auction.currentBid
 
   // A closed auction still tied at the final amount was decided by the roulette.
   const closedWinnerIndex =
@@ -491,7 +493,7 @@ export function AuctionDetailPage() {
               )}
               <input
                 type="number"
-                min={minBid}
+                min={Math.max(1, Math.min(minBid, myMax))}
                 step={1}
                 disabled={bidLocked}
                 value={bidAmount}
@@ -533,7 +535,7 @@ export function AuctionDetailPage() {
               )}
               {!canOutbid && !canTieAllIn && member && !bidLocked && (
                 <p className="auction-detail__bid-hint">
-                  Seu saldo disponível ({myMax}) não cobre o lance mínimo ({minBid}).
+                  Seu saldo disponível ({myMax}) não cobre o lance atual.
                 </p>
               )}
               {feedback && (

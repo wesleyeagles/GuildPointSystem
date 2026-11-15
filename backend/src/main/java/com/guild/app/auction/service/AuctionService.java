@@ -53,7 +53,7 @@ public class AuctionService {
     static final long EXTENDED_SECONDS = 25;
     static final long DOLE_STEP_SECONDS = 2;
     static final long DOLE_RESCUE_SECONDS = 10;
-    /** Lance novo: no mínimo o atual + isso (o primeiro lance também, a partir de 0). */
+    /** Lance novo: no mínimo o atual + isso (o primeiro também, a partir de 0); o all-in não tem esse mínimo. */
     public static final long MIN_INCREMENT = 10;
     /** Só conta bloqueada para venda no site dá lance (o vencedor não pode vender a conta com o item). */
     public static final String SELL_BLOCK_REQUIRED =
@@ -344,8 +344,8 @@ public class AuctionService {
      */
     @Transactional
     public AuctionResponse placeBid(Long auctionId, long amount, Long actorId) {
-        if (amount < MIN_INCREMENT) {
-            throw new AppException("O lance deve ser de no mínimo " + MIN_INCREMENT + " pontos.", HttpStatus.BAD_REQUEST);
+        if (amount < 1) {
+            throw new AppException("O lance deve ser de no mínimo 1 ponto.", HttpStatus.BAD_REQUEST);
         }
         var auction = auctionRepository.findByIdForUpdate(auctionId)
                 .orElseThrow(() -> new AppException("Leilão não encontrado.", HttpStatus.NOT_FOUND));
@@ -392,10 +392,12 @@ public class AuctionService {
                     + " (" + leaderLabel(previousLeaders) + "), maior que o seu " + amount + ".",
                     HttpStatus.CONFLICT);
         }
-        // Superar exige pelo menos +10 sobre o lance atual; igualar continua só com all-in (abaixo).
-        if (amount > currentBid && amount < currentBid + MIN_INCREMENT) {
+        // Superar exige pelo menos +10 sobre o lance atual, menos no all-in (todo o saldo disponível): quem não
+        // tem os +10 ainda supera com tudo. Igualar continua só com all-in (abaixo).
+        if (amount > currentBid && amount < currentBid + MIN_INCREMENT && amount != available) {
             throw new AppException("Lance recusado: o lance mínimo é " + (currentBid + MIN_INCREMENT)
-                    + " (lance atual " + currentBid + " + " + MIN_INCREMENT + ").", HttpStatus.CONFLICT);
+                    + " (lance atual " + currentBid + " + " + MIN_INCREMENT + "), ou all-in com todo o seu saldo ("
+                    + available + " pts).", HttpStatus.CONFLICT);
         }
         if (amount == currentBid && amount != available) {
             throw new AppException("Lance recusado: o lance atual já é " + currentBid

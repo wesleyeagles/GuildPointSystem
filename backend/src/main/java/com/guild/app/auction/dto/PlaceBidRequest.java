@@ -5,6 +5,6 @@ import jakarta.validation.constraints.NotNull;
 
 public record PlaceBidRequest(
         @NotNull(message = "Informe o valor do lance.")
-        @Min(value = 10, message = "O lance deve ser de no mínimo 10 pontos.")
+        @Min(value = 1, message = "O lance deve ser de no mínimo 1 ponto.")
         Long amount
 ) {}
