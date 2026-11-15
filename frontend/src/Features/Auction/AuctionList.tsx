@@ -655,7 +655,10 @@ export function AuctionListPage() {
             {canPrepareMail && (
               <Button variant="secondary" size="sm" disabled={preparingMail}
                 title="Abre o rascunho no jogo para envio manual"
-                onClick={() => void prepareMail(winner, canAttach ? () => resolveAuctionMailAttachment(auction) : undefined)}>
+                onClick={() => void prepareMail(winner, canAttach ? () => resolveAuctionMailAttachment(auction) : undefined, async () => {
+                  await confirmDelivery.mutateAsync(auction.id)
+                  showToast('Envio confirmado pelo jogo.', 'success')
+                })}>
                 {canAttach ? 'Enviar item' : 'Preparar carta'}
               </Button>
             )}
