@@ -80,7 +80,9 @@ const STATUS_LABEL: Record<string, string> = {
   CANCELLED: 'Cancelado',
 }
 
-const QUICK_INCREMENTS = [5, 10, 50, 100, 500]
+/** Lance novo: no mínimo o atual + isso (o servidor confere também). */
+const MIN_INCREMENT = 10
+const QUICK_INCREMENTS = [10, 50, 100, 500]
 const EXTEND_OPTIONS = [
   { minutes: 1, label: '+1 min' },
   { minutes: 5, label: '+5 min' },
@@ -151,6 +153,12 @@ export function AuctionDetailPage() {
 
   const submitBid = async (amount: number) => {
     if (!amount || amount < 1) return
+    const current = auction?.currentBid ?? 0
+    // Igualar (all-in) passa; superar exige +10. O servidor confere de novo.
+    if (amount !== current && amount < current + MIN_INCREMENT) {
+      setFeedback({ kind: 'error', text: `O lance mínimo é ${current + MIN_INCREMENT} (lance atual ${current} + ${MIN_INCREMENT}).` })
+      return
+    }
     try {
       await placeBid.mutateAsync({ id: auctionId, amount })
       setFeedback({ kind: 'ok', text: `Lance de ${amount} pts aceito.` })
@@ -242,7 +250,8 @@ export function AuctionDetailPage() {
   // Só conta bloqueada para venda no site dá lance (o servidor também recusa).
   const bidLocked = !!member && !sellBlockedUntil(member)
   const canTieAllIn = canBid && !iAmLeading && !bidLocked && auction.currentBid > 0 && myMax === auction.currentBid
-  const canOutbid = canBid && !iAmLeading && !bidLocked && myMax > auction.currentBid
+  const minBid = auction.currentBid + MIN_INCREMENT
+  const canOutbid = canBid && !iAmLeading && !bidLocked && myMax >= minBid
 
   // A closed auction still tied at the final amount was decided by the roulette.
   const closedWinnerIndex =
@@ -482,11 +491,12 @@ export function AuctionDetailPage() {
               )}
               <input
                 type="number"
-                min={1}
+                min={minBid}
+                step={1}
                 disabled={bidLocked}
                 value={bidAmount}
                 onChange={(e) => setBidAmount(e.target.value)}
-                placeholder={`Maior que ${auction.currentBid}`}
+                placeholder={`Mínimo ${minBid}`}
                 className="auction-detail__bid-input"
                 onKeyDown={(e) => e.key === 'Enter' && !bidLocked && submitBid(Number(bidAmount))}
               />
@@ -523,7 +533,7 @@ export function AuctionDetailPage() {
               )}
               {!canOutbid && !canTieAllIn && member && !bidLocked && (
                 <p className="auction-detail__bid-hint">
-                  Seu saldo disponível ({myMax}) não cobre o lance atual.
+                  Seu saldo disponível ({myMax}) não cobre o lance mínimo ({minBid}).
                 </p>
               )}
               {feedback && (

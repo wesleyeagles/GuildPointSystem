@@ -53,6 +53,8 @@ public class AuctionService {
     static final long EXTENDED_SECONDS = 25;
     static final long DOLE_STEP_SECONDS = 2;
     static final long DOLE_RESCUE_SECONDS = 10;
+    /** Lance novo: no mínimo o atual + isso (o primeiro lance também, a partir de 0). */
+    public static final long MIN_INCREMENT = 10;
     /** Só conta bloqueada para venda no site dá lance (o vencedor não pode vender a conta com o item). */
     public static final String SELL_BLOCK_REQUIRED =
             "Sua conta não está bloqueada para venda no site. Peça a um Líder ou Administrador para bloquear antes de dar lances.";
@@ -342,8 +344,8 @@ public class AuctionService {
      */
     @Transactional
     public AuctionResponse placeBid(Long auctionId, long amount, Long actorId) {
-        if (amount < 1) {
-            throw new AppException("O lance deve ser de no mínimo 1 ponto.", HttpStatus.BAD_REQUEST);
+        if (amount < MIN_INCREMENT) {
+            throw new AppException("O lance deve ser de no mínimo " + MIN_INCREMENT + " pontos.", HttpStatus.BAD_REQUEST);
         }
         var auction = auctionRepository.findByIdForUpdate(auctionId)
                 .orElseThrow(() -> new AppException("Leilão não encontrado.", HttpStatus.NOT_FOUND));
@@ -389,6 +391,11 @@ public class AuctionService {
             throw new AppException("Lance recusado: o lance atual já é " + currentBid
                     + " (" + leaderLabel(previousLeaders) + "), maior que o seu " + amount + ".",
                     HttpStatus.CONFLICT);
+        }
+        // Superar exige pelo menos +10 sobre o lance atual; igualar continua só com all-in (abaixo).
+        if (amount > currentBid && amount < currentBid + MIN_INCREMENT) {
+            throw new AppException("Lance recusado: o lance mínimo é " + (currentBid + MIN_INCREMENT)
+                    + " (lance atual " + currentBid + " + " + MIN_INCREMENT + ").", HttpStatus.CONFLICT);
         }
         if (amount == currentBid && amount != available) {
             throw new AppException("Lance recusado: o lance atual já é " + currentBid

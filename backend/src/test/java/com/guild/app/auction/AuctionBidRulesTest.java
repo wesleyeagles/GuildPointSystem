@@ -19,11 +19,11 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/** Só conta bloqueada para venda no site dá lance. */
+/** Regras do lance: conta bloqueada para venda no site e mínimo de +10 sobre o lance atual. */
 @SpringBootTest
 @ActiveProfiles("test")
 @Transactional
-class AuctionSellBlockTest {
+class AuctionBidRulesTest {
 
     @Autowired AuctionService service;
     @Autowired JdbcTemplate jdbc;
@@ -55,6 +55,23 @@ class AuctionSellBlockTest {
             assertEquals(AuctionService.SELL_BLOCK_REQUIRED, e.getMessage());
         }
         assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM auction_bid WHERE auction_id=?", Integer.class, auctionId));
+    }
+
+    @Test void newBidMustBeAtLeastTenOverTheCurrentOne() {
+        long first = member(today), second = member(today);
+        assertThrows(AppException.class, () -> service.placeBid(auctionId, 9, first));   // 1º lance: mínimo 10
+        service.placeBid(auctionId, 10, first);
+        var e = assertThrows(AppException.class, () -> service.placeBid(auctionId, 19, second));
+        assertTrue(e.getMessage().contains("lance mínimo é 20"), e.getMessage());
+        assertEquals(20, service.placeBid(auctionId, 20, second).currentBid());
+    }
+
+    @Test void tyingWithAllInStillWorks() {
+        long first = member(today), poor = member(today);
+        jdbc.update("UPDATE member SET points=30 WHERE id=?", poor);
+        service.placeBid(auctionId, 30, first);
+        var r = service.placeBid(auctionId, 30, poor);                                    // empata com tudo
+        assertTrue(r.tied());
     }
 
     @Test void blockedThroughTodayCanBid() {

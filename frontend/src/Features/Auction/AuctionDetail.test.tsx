@@ -94,7 +94,7 @@ it('blocks bidding with the reason when the account is not blocked for sale', ()
   const lance = screen.getByRole('button', { name: 'Lance bloqueado' })
   expect(lance).toBeDisabled()
   expect(screen.getByRole('spinbutton')).toBeDisabled()
-  expect(screen.getByRole('button', { name: '+10' })).toBeDisabled()
+  expect(screen.getByRole('button', { name: '+50' })).toBeDisabled()
   expect(screen.queryByRole('button', { name: /All-in/ })).not.toBeInTheDocument()
 })
 
@@ -108,4 +108,33 @@ it('lets a member whose account is blocked for sale bid', () => {
   fireEvent.change(screen.getByRole('spinbutton'), { target: { value: '20' } })
   fireEvent.click(screen.getByRole('button', { name: 'Lance' }))
   expect(state.bid).toHaveBeenCalledWith({ id: 41, amount: 20 })
+})
+
+it('asks for at least +10 over the current bid', () => {
+  state.admin = false
+  state.auction = openAuction() // lance atual 10
+  state.member = { id: 7, availablePoints: 500, blockedForSellUntil: '2099-12-31' }
+  renderAuction(41)
+  const input = screen.getByRole('spinbutton')
+  expect(input).toHaveAttribute('placeholder', 'Mínimo 20')
+  expect(screen.queryByRole('button', { name: '+5' })).not.toBeInTheDocument()
+  fireEvent.change(input, { target: { value: '15' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Lance' }))
+  expect(state.bid).not.toHaveBeenCalled()
+  expect(screen.getByText('O lance mínimo é 20 (lance atual 10 + 10).')).toBeVisible()
+  fireEvent.click(screen.getByRole('button', { name: '+10' }))
+  expect(input).toHaveValue(20)
+})
+
+it('hides all-in when the balance does not reach the minimum and allows tying', () => {
+  state.admin = false
+  state.auction = openAuction()
+  state.member = { id: 7, availablePoints: 15, blockedForSellUntil: '2099-12-31' }
+  renderAuction(41)
+  expect(screen.queryByRole('button', { name: /All-in/ })).not.toBeInTheDocument()
+  expect(screen.getByText('Seu saldo disponível (15) não cobre o lance mínimo (20).')).toBeVisible()
+  state.member = { id: 7, availablePoints: 10, blockedForSellUntil: '2099-12-31' }
+  cleanup()
+  renderAuction(41)
+  expect(screen.getByRole('button', { name: 'Empatar com all-in (10)' })).toBeEnabled()
 })
