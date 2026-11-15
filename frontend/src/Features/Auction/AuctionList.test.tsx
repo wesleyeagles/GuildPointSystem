@@ -80,14 +80,18 @@ function sampleAuction(endsAt: string): Auction {
   }
 }
 
-it('prepares the exact Relic and quantity from the closed list without recording delivery', async () => {
-  state.admin = true
-  state.auctions = [{
+function closedAuctionWithRelic(): Auction {
+  return {
     ...sampleAuction(new Date().toISOString()),
     status: 'CLOSED', winnerId: 8, winnerNickname: 'BladeRunner',
     items: [{ itemId: 17, itemName: 'Freak Vafer Niffer Relic', quantity: 3, imageUrl: null,
       gameIcon: { category: 'WEAPON', gameIndex: 0, iconId: 0, spriteSheet: '', spriteCols: 1, gameCode: 'relic004' } }],
-  }]
+  }
+}
+
+it('prepares the exact Relic and quantity from the closed list without recording delivery', async () => {
+  state.admin = true
+  state.auctions = [closedAuctionWithRelic()]
   vi.stubEnv('VITE_GAME_MAIL_PREVIEW', 'true')
   const bridge = vi.fn().mockResolvedValue(Response.json({ message: 'Carta preparada.' }))
   vi.stubGlobal('fetch', bridge)
@@ -105,6 +109,35 @@ it('prepares the exact Relic and quantity from the closed list without recording
   state.admin = false
   view.rerender(page())
   expect(screen.queryByRole('button', { name: 'Enviar item' })).not.toBeInTheDocument()
+})
+
+it('looks up the exact catalog item by ID when the auction has no sprite', async () => {
+  state.admin = true
+  const auction = closedAuctionWithRelic()
+  state.auctions = [{ ...auction, items: [{ ...auction.items[0], gameIcon: null }] }]
+  state.lookup.mockResolvedValue({ gameCode: 'relic004' })
+  vi.stubEnv('VITE_GAME_MAIL_PREVIEW', 'true')
+  const bridge = vi.fn().mockResolvedValue(Response.json({ message: 'Carta preparada.' }))
+  vi.stubGlobal('fetch', bridge)
+  render(<MemoryRouter><AuctionListPage /></MemoryRouter>)
+  fireEvent.click(screen.getByRole('button', { name: 'Enviar item' }))
+  await waitFor(() => expect(bridge).toHaveBeenCalledOnce())
+  expect(state.lookup).toHaveBeenCalledWith('/items/17', expect.objectContaining({ signal: expect.any(AbortSignal) }))
+  expect(JSON.parse(bridge.mock.calls[0][1].body)).toMatchObject({ itemCode: 'iyfig89', quantity: 3 })
+})
+
+it('explains when an auction item has no catalog code for an attachment', async () => {
+  state.admin = true
+  const auction = closedAuctionWithRelic()
+  state.auctions = [{ ...auction, items: [{ ...auction.items[0], gameIcon: null }] }]
+  state.lookup.mockResolvedValue({ gameCode: null })
+  vi.stubEnv('VITE_GAME_MAIL_PREVIEW', 'true')
+  const bridge = vi.fn().mockResolvedValue(Response.json({ message: 'Carta preparada.' }))
+  vi.stubGlobal('fetch', bridge)
+  render(<MemoryRouter><AuctionListPage /></MemoryRouter>)
+  fireEvent.click(screen.getByRole('button', { name: 'Enviar item' }))
+  await waitFor(() => expect(state.toast).toHaveBeenCalledWith(expect.stringContaining('Carta aberta sem anexo'), 'info'))
+  expect(JSON.parse(bridge.mock.calls[0][1].body)).toEqual({ sender: 'boi', recipient: 'BladeRunner' })
 })
 
 it('uses the same Brasília deadline for new auctions and pending lots', async () => {
