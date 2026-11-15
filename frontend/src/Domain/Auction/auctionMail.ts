@@ -19,8 +19,13 @@ function inventoryCode(code?: string | null) {
 export async function resolveAuctionMailAttachment(auction: Auction) {
   if (!canResolveAuctionMailAttachment(auction)) return
   const { itemId, gameIcon, quantity } = auction.items[0]
-  const itemCode = inventoryCode(gameIcon?.gameCode) ?? inventoryCode(
-    (await apiClient<Item>(`/items/${itemId}`, { signal: AbortSignal.timeout(10_000) })).gameCode,
-  )
+  let itemCode = inventoryCode(gameIcon?.gameCode)
+  if (!itemCode) {
+    const item = await apiClient<Item>(`/items/${itemId}`, { signal: AbortSignal.timeout(10_000) })
+    itemCode = inventoryCode(item.gameCode)
+    // The guild's legacy listing uses this exact name for the tradeable token used by the boi.
+    if (!item.gameCode?.trim() && item.id === itemId && item.type === 'MISC' &&
+      item.name?.trim().toLowerCase() === '500 cash coin') itemCode = 'ipcss04'
+  }
   if (itemCode) return { itemCode, quantity }
 }
