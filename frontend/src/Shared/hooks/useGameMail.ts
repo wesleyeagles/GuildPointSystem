@@ -10,11 +10,18 @@ export function useGameMail(allowed: boolean, sender: string) {
     (import.meta.env.DEV && import.meta.env.VITE_GAME_MAIL_PREVIEW === 'true')
   )
 
-  async function prepareMail(recipient: string, attachment?: { itemCode: string; quantity: number }) {
+  async function prepareMail(recipient: string, resolveAttachment?: () => Promise<{ itemCode: string; quantity: number } | undefined>) {
     if (!canPrepareMail || busy.current) return
     busy.current = true
     setPreparingMail(true)
     try {
+      let attachment
+      try {
+        attachment = await resolveAttachment?.()
+      } catch {
+        showToast('Não foi possível consultar o código do item do lote. Tente novamente.', 'error')
+        return
+      }
       const request: RequestInit & { targetAddressSpace: 'loopback' } = {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sender, recipient, ...attachment }), signal: AbortSignal.timeout(30_000),
@@ -22,7 +29,12 @@ export function useGameMail(allowed: boolean, sender: string) {
       }
       const response = await fetch('http://127.0.0.1:15183/prepare-letter', request)
       const result: { message?: string } = await response.json()
-      showToast(result.message ?? 'Não foi possível confirmar o preparo da carta.', response.ok ? 'success' : 'error')
+      const manual = response.ok && resolveAttachment && !attachment
+      showToast(
+        manual ? 'Carta aberta sem anexo. O item do lote está sem um código de catálogo válido.'
+          : result.message ?? 'Não foi possível confirmar o preparo da carta.',
+        manual ? 'info' : response.ok ? 'success' : 'error',
+      )
     } catch {
       showToast('Confira a ponte de cartas e a permissão de acesso local do navegador. Se a carta já abriu no jogo, revise-a antes de tentar novamente.', 'error')
     } finally {

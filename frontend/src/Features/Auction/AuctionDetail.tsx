@@ -14,7 +14,7 @@ import {
 import { useAuthContext } from '@/Features/Auth/contexts/AuthContext'
 import { useAppToast } from '@/Shared/ui/components/AppToast/AppToast'
 import { useGameMail } from '@/Shared/hooks/useGameMail'
-import { getAuctionMailAttachment } from '@/Domain/Auction/auctionMail'
+import { canResolveAuctionMailAttachment, resolveAuctionMailAttachment } from '@/Domain/Auction/auctionMail'
 import { formatAuctionItems, isAuctionFinished } from '@/Domain/types/models'
 import { useCurrentMember } from '@/Domain/Member/hooks/useMembers'
 import { sellBlockedUntil } from '@/Features/Dashboard/utils/sellBlock'
@@ -462,7 +462,8 @@ export function AuctionDetailPage() {
                   <div className="auction-admin">
                     {canPrepareMail && (
                       <Button size="sm" variant="secondary" loading={preparingMail} onClick={() => {
-                        if (auction.winnerNickname) void prepareMail(auction.winnerNickname, getAuctionMailAttachment(auction))
+                        const resolveAttachment = canResolveAuctionMailAttachment(auction) ? () => resolveAuctionMailAttachment(auction) : undefined
+                        if (auction.winnerNickname) void prepareMail(auction.winnerNickname, resolveAttachment)
                       }}>Preparar carta ({mailSender})</Button>
                     )}
                     <Button size="sm" onClick={() => setConfirm('delivery')}>Confirmar envio</Button>

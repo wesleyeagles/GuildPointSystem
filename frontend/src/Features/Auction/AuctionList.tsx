@@ -25,7 +25,7 @@ import { formatStartsAt, formatTime, pausedSeconds, useCountdown } from '@/Featu
 import { useAuctionDraftInput } from '@/Domain/Auction/hooks/useAuctionDraftInput'
 import { ItemQuantity } from '@/Shared/ui/components/ItemQuantity/ItemQuantity'
 import { useGameMail } from '@/Shared/hooks/useGameMail'
-import { getAuctionMailAttachment } from '@/Domain/Auction/auctionMail'
+import { canResolveAuctionMailAttachment, resolveAuctionMailAttachment } from '@/Domain/Auction/auctionMail'
 import './Auction.styles.scss'
 
 const DURATIONS = [
@@ -650,13 +650,13 @@ export function AuctionListPage() {
         deliveryActions={isAdmin ? (auction) => {
           const winner = auction.winnerNickname
           if (auction.status !== 'CLOSED' || !winner || auction.deliveredAt) return null
-          const attachment = getAuctionMailAttachment(auction)
+          const canAttach = canResolveAuctionMailAttachment(auction)
           return <>
             {canPrepareMail && (
               <Button variant="secondary" size="sm" disabled={preparingMail}
                 title="Abre o rascunho no jogo para envio manual"
-                onClick={() => void prepareMail(winner, attachment)}>
-                {attachment ? 'Enviar item' : 'Preparar carta'}
+                onClick={() => void prepareMail(winner, canAttach ? () => resolveAuctionMailAttachment(auction) : undefined)}>
+                {canAttach ? 'Enviar item' : 'Preparar carta'}
               </Button>
             )}
             <Button size="sm" onClick={() => setPendingDeliveryId(auction.id)}>Confirmar envio</Button>
