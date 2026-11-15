@@ -28,6 +28,7 @@ import { Panel } from '@/Shared/ui/components/Panel/Panel'
 import { formatLastLogin } from '@/Shared/utils/memberLastLogin'
 import { publicAssetUrl } from '@/Shared/utils/publicAssetUrl'
 import { SCHEDULE_TIME_ZONE } from '@/Shared/utils/scheduleTimeZone'
+import { MemeVideoOptOut } from './MemeVideoOptOut'
 import './Profile.styles.scss'
 
 const ROLE_OPTIONS: { value: Role; label: string }[] = [
@@ -384,6 +385,8 @@ export function ProfilePage() {
               </Button>
             </form>
           )}
+
+          {isOwn && <MemeVideoOptOut />}
 
           {/* Staff layout (2 columns): Editar Perfil | Ajustar Pontos, Resgates | Conceder Evento,
               then Papel do Membro alone. */}

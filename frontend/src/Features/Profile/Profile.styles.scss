@@ -194,6 +194,18 @@
     align-self: flex-start;
   }
 
+  label.profile-form__check {
+    flex-direction: row;
+    align-items: center;
+    gap: theme.$spacing-sm;
+    text-transform: none;
+
+    input {
+      width: auto;
+      flex: none;
+    }
+  }
+
   &__hint {
     margin: 0 0 theme.$spacing-md;
     font-size: theme.$font-size-base;

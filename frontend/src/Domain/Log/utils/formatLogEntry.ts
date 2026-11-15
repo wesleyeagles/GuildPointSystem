@@ -15,6 +15,7 @@ const LOG_TYPE_LABELS: Record<AuditLogType, string> = {
   PB_BOSS_UPDATED: 'Boss do histórico de PB alterado',
   MARKET_PRICE_ACCESS_UPDATED: 'Lista do preço do market alterada',
   MARKET_WATCH_UPDATED: 'Alerta de item no market alterado',
+  MEME_VIDEO_SENT: 'Vídeo enviado para o jogo',
   DLL_RELEASED: 'Nova versão da DLL',
   PARTY_QUEUE_UPDATED: 'Fila de PT atualizada',
   ROTATION_UPDATED: 'Rotação atualizada',
@@ -111,6 +112,8 @@ export function formatLogDetails(log: AuditLogEntry): string {
         .filter(Boolean).join(', ')
       return `${p.removed ? 'Removido: ' : ''}${str(p.item)}${filters ? ` (${filters})` : ''}`
     }
+    case 'MEME_VIDEO_SENT':
+      return `${str(p.video)}${p.start ? ` (a partir de ${str(p.start)} s)` : ''}`
     case 'RESOURCE_ACCESS_UPDATED':
       return Array.isArray(p.trackers) && p.trackers.length ? `Liberados: ${p.trackers.join(', ')}` : 'Ninguém'
     case 'RESOURCE_MOB_UPDATED':

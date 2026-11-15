@@ -7,6 +7,7 @@ import { useAppToast } from '@/Shared/ui/components/AppToast/AppToast'
 import { ChatTranslatorSettings } from './ChatTranslatorSettings'
 import { MarketPriceSettings } from './MarketPriceSettings'
 import { MarketWatchSettings } from './MarketWatchSettings'
+import { MemeVideoSettings } from './MemeVideoSettings'
 import './DllAdmin.styles.scss'
 
 const VERSION_FORMAT = /^\d{1,5}(\.\d{1,5}){0,3}$/
@@ -218,6 +219,8 @@ export function DllAdminPage() {
       <MarketPriceSettings />
 
       <MarketWatchSettings />
+
+      <MemeVideoSettings />
 
       <Panel title="Histórico de versões" code={`${releases.length}`}>
         {releasesLoading ? (

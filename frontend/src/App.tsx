@@ -31,6 +31,7 @@ import { ResourcesPage } from '@/Features/Resources/Resources'
 import { PbHistoryPage } from '@/Features/PbHistory/PbHistory'
 import { CwAttendancePage } from '@/Features/CwAttendance/CwAttendance'
 import { LocationHistoryPage } from '@/Features/LocationHistory/LocationHistory'
+import { MemeVideoPlayerPage } from '@/Features/MemeVideo/MemeVideoPlayer'
 import { PresenceReporter } from '@/Features/Presence/PresenceReporter'
 import './App.styles.scss'
 
@@ -53,6 +54,7 @@ function App() {
           <Route path="/auth/callback" element={<DiscordCallbackPage />} />
           <Route path="/guild-league-rag" element={<GuildLeagueRagPage />} />
           <Route path="/server-info" element={<ServerInfoListPage />} />
+          <Route path="/meme-video" element={<MemeVideoPlayerPage />} />
           <Route path="/server-info/:slug" element={<ServerInfoTopicPage />} />
 
           <Route element={<ProtectedRoute />}>

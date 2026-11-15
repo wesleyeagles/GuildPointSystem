@@ -53,7 +53,8 @@ public enum AuditLogType {
     RESOURCE_MOB_UPDATED,
     PB_BOSS_UPDATED,
     MARKET_PRICE_ACCESS_UPDATED,
-    MARKET_WATCH_UPDATED;
+    MARKET_WATCH_UPDATED,
+    MEME_VIDEO_SENT;
 
     public boolean isEquipmentPrivate() {
         return this == EQUIPMENT_CHANGED || this == EQUIPMENT_CATALOG_IMPORTED;
