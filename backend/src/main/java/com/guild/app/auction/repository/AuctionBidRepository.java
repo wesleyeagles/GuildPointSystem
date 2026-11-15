@@ -28,6 +28,14 @@ public interface AuctionBidRepository extends JpaRepository<AuctionBid, Long> {
             """)
     List<Long> findAuctionIdsBidBy(Long memberId, Collection<AuctionStatus> statuses);
 
+    /** Other auctions in these statuses where the member holds the top bid (alone or tied). */
+    @Query("""
+            SELECT DISTINCT b.auction.id FROM AuctionBid b
+            WHERE b.member.id = :memberId AND b.auction.id <> :auctionId AND b.auction.status IN :statuses
+              AND b.auction.currentBid > 0 AND b.amount = b.auction.currentBid
+            """)
+    List<Long> findOtherAuctionsLeadBy(Long memberId, Long auctionId, Collection<AuctionStatus> statuses);
+
     /** Latest bids of the auction with the bidder, newest first (history in the game window). */
     @Query("SELECT b FROM AuctionBid b JOIN FETCH b.member WHERE b.auction.id = :auctionId ORDER BY b.id DESC")
     List<AuctionBid> findRecent(Long auctionId, Pageable page);

@@ -59,6 +59,18 @@ public class AuctionService {
     public static final String SELL_BLOCK_REQUIRED =
             "Sua conta não está bloqueada para venda no site. Peça a um Líder ou Administrador para bloquear antes de dar lances.";
 
+    /** Mesmo lote (mesmos itens, mesmas quantidades): quem esta ganhando um nao disputa o outro. */
+    public static String sameLotMessage(long otherAuctionId) {
+        return "Você já está ganhando o leilão #" + String.format("%03d", otherAuctionId)
+                + " com os mesmos itens. Só dá para disputar um leilão do mesmo lote por vez.";
+    }
+
+    /** "itemId x quantidade" ordenado: dois leiloes com a mesma assinatura sao o mesmo lote. */
+    static List<String> lotSignature(AuctionResponse auction) {
+        if (auction.items() == null) return List.of();
+        return auction.items().stream().map(i -> i.itemId() + "x" + i.quantity()).sorted().toList();
+    }
+
     /** Tie-break timeline: announcement countdown → free spin → landing on the drawn winner. */
     static final long TIE_COUNTDOWN_SECONDS = 5;
     static final long TIE_SPIN_SECONDS = 6;
@@ -372,6 +384,16 @@ public class AuctionService {
         }
         if (!member.isBlockedForSellAccount()) {
             throw new AppException(SELL_BLOCK_REQUIRED, HttpStatus.FORBIDDEN);
+        }
+        // Mesmo lote em dois leiloes: quem ja tem o maior lance num nao entra no outro (um vencedor por lote igual).
+        var leading = auctionBidRepository.findOtherAuctionsLeadBy(actorId, auctionId, ACTIVE_STATUSES);
+        if (!leading.isEmpty()) {
+            var lot = lotSignature(getById(auctionId));
+            for (Long other : leading) {
+                if (!lot.isEmpty() && lot.equals(lotSignature(getById(other)))) {
+                    throw new AppException(sameLotMessage(other), HttpStatus.CONFLICT);
+                }
+            }
         }
 
         long currentBid = auction.getCurrentBid();

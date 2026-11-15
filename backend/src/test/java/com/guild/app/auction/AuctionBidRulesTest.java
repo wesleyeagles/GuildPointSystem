@@ -87,6 +87,31 @@ class AuctionBidRulesTest {
         assertTrue(r.tied());
     }
 
+    long lot(long itemId, int quantity) {
+        long id = jdbc.queryForObject("INSERT INTO auction(duration_minutes,status,created_by_id,starts_at,ends_at,current_bid) "
+                + "SELECT 60,'OPEN',created_by_id,NOW(),NOW() + INTERVAL '1 hour',0 FROM auction WHERE id=? RETURNING id", Long.class, auctionId);
+        jdbc.update("INSERT INTO auction_item(auction_id,item_id,quantity) VALUES(?,?,?)", id, itemId, quantity);
+        return id;
+    }
+
+    @Test void winningOneLotBlocksBiddingOnAnotherIdenticalLot() {
+        long item = jdbc.queryForObject("SELECT item_id FROM auction_item WHERE auction_id=?", Long.class, auctionId);
+        long same = lot(item, 1), otherQuantity = lot(item, 10);
+        long ana = member(today), bia = member(today);
+        service.placeBid(auctionId, 50, ana);                                       // Ana ganhando o lote "item x1"
+        var e = assertThrows(AppException.class, () -> service.placeBid(same, 10, ana));
+        assertEquals(HttpStatus.CONFLICT, e.getStatus());
+        assertEquals(AuctionService.sameLotMessage(auctionId), e.getMessage());
+        assertEquals(10, service.placeBid(otherQuantity, 10, ana).currentBid());   // mesma coisa, outra quantidade: pode
+        service.placeBid(auctionId, 60, bia);                                       // Bia passou a Ana no primeiro
+        assertEquals(10, service.placeBid(same, 10, ana).currentBid());            // agora a Ana pode no outro
+        // Empatada (all-in) tambem conta como ganhando.
+        long cara = member(today);
+        jdbc.update("UPDATE member SET points=60 WHERE id=?", cara);
+        assertTrue(service.placeBid(auctionId, 60, cara).tied());
+        assertThrows(AppException.class, () -> service.placeBid(same, 20, cara));
+    }
+
     @Test void blockedThroughTodayCanBid() {
         long id = member(today);
         assertEquals(10, service.placeBid(auctionId, 10, id).currentBid());

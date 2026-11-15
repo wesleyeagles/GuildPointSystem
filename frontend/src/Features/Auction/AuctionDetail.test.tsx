@@ -4,10 +4,11 @@ import { afterEach, expect, it, vi } from 'vitest'
 import type { Auction } from '@/Domain/types/models'
 import { AuctionDetailPage } from './AuctionDetail'
 
-const state = vi.hoisted(() => ({ admin: true, auction: {} as Auction, confirm: vi.fn(), member: undefined as object | undefined, bid: vi.fn() }))
+const state = vi.hoisted(() => ({ admin: true, auction: {} as Auction, confirm: vi.fn(), member: undefined as object | undefined, bid: vi.fn(), others: [] as Auction[] }))
 vi.mock('@/Domain/Auction/hooks/useAuction', () => ({
   serverNow: () => Date.now(),
   useAuction: () => ({ data: state.auction }),
+  useAuctions: () => ({ data: state.others ?? [] }),
   useAuctionTieBreak: () => undefined,
   useCancelAuction: () => ({}),
   useConfirmAuctionDelivery: () => ({ mutateAsync: state.confirm }),
@@ -18,6 +19,7 @@ vi.mock('@/Domain/Auction/hooks/useAuction', () => ({
 }))
 vi.mock('@/Domain/Member/hooks/useMembers', () => ({ useCurrentMember: () => ({ data: state.member }) }))
 vi.mock('@/Domain/Seed/hooks/useItemSeeds', () => ({ useItemSeeds: () => ({}) }))
+vi.mock('@/Domain/Item/hooks/useItems', () => ({ useItem: () => ({ data: undefined }) }))
 vi.mock('@/Features/Auth/contexts/AuthContext', () => ({ useAuthContext: () => ({ hasRole: () => state.admin }) }))
 vi.mock('@/Shared/ui/components/AppToast/AppToast', () => ({ useAppToast: () => ({ showToast: vi.fn() }) }))
 vi.mock('@/Features/Auction/components/AuctionChat/AuctionChat', () => ({ AuctionChat: () => null }))
@@ -30,6 +32,7 @@ afterEach(() => {
   state.confirm.mockReset()
   state.bid.mockReset()
   state.member = undefined
+  state.others = []
   vi.unstubAllEnvs()
   vi.unstubAllGlobals()
 })
@@ -143,4 +146,26 @@ it('all-in has no +10 minimum, and an exact balance still ties', () => {
   cleanup()
   renderAuction(41)
   expect(screen.getByRole('button', { name: 'Empatar com all-in (10)' })).toBeEnabled()
+})
+
+it('blocks bidding on a lot identical to one the member is already winning', () => {
+  state.admin = false
+  const cash = { itemId: 5, itemName: '500 Cash Coin', imageUrl: null, quantity: 10, gameIcon: null }
+  state.auction = { ...openAuction(), items: [cash] }
+  state.member = { id: 7, availablePoints: 500, blockedForSellUntil: '2099-12-31' }
+  state.others = [{ ...openAuction(), id: 47, items: [cash], leaderId: 7, currentBid: 30 }]
+  renderAuction(41)
+  expect(screen.getByRole('status')).toHaveTextContent('Você já está ganhando o leilão #047 com os mesmos itens')
+  expect(screen.getByRole('button', { name: 'Lance bloqueado' })).toBeDisabled()
+  cleanup()
+  // Mesmo item em outra quantidade: pode.
+  state.others = [{ ...openAuction(), id: 47, items: [{ ...cash, quantity: 5 }], leaderId: 7, currentBid: 30 }]
+  renderAuction(41)
+  expect(screen.queryByText(/mesmos itens/)).not.toBeInTheDocument()
+  expect(screen.getByRole('spinbutton')).toBeEnabled()
+  cleanup()
+  // Leilão do mesmo lote já encerrado: não conta.
+  state.others = [{ ...openAuction(), id: 47, items: [cash], leaderId: 7, currentBid: 30, status: 'CLOSED' }]
+  renderAuction(41)
+  expect(screen.getByRole('spinbutton')).toBeEnabled()
 })

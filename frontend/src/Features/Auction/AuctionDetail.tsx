@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
   useAuction,
+  useAuctions,
   useAuctionTieBreak,
   useCancelAuction,
   useConfirmAuctionDelivery,
@@ -25,7 +26,7 @@ import { Button } from '@/Shared/ui/components/Button/Button'
 import { ConfirmDialog } from '@/Shared/ui/components/ConfirmDialog/ConfirmDialog'
 import { Panel } from '@/Shared/ui/components/Panel/Panel'
 import { ItemCard } from '@/Features/Items/components/ItemCard/ItemCard'
-import type { AuctionItem, SeedOption } from '@/Domain/types/models'
+import type { Auction, AuctionItem, SeedOption } from '@/Domain/types/models'
 import { formatStartsAt, formatTime, pausedSeconds, useCountdown } from '@/Features/Auction/hooks/useCountdown'
 import { useFillViewport } from '@/Features/Auction/hooks/useFillViewport'
 import { AuctionChat } from '@/Features/Auction/components/AuctionChat/AuctionChat'
@@ -83,6 +84,18 @@ const STATUS_LABEL: Record<string, string> = {
 
 /** Lance novo: no mínimo o atual + isso (o servidor confere também). */
 const MIN_INCREMENT = 10
+
+/** Mesmo lote = mesmos itens nas mesmas quantidades (a ordem nao importa). */
+function lotKey(auction: Pick<Auction, 'items'>) {
+  return (auction.items ?? []).map((i) => `${i.itemId}x${i.quantity}`).sort().join('|')
+}
+
+/** Com o maior lance (sozinho ou empatado). */
+function leads(auction: Auction, memberId: number) {
+  return auction.tied ? (auction.tiedMemberIds ?? []).includes(memberId) : auction.leaderId === memberId
+}
+
+const ACTIVE = new Set(['OPEN', 'DOLE', 'TIE_BREAK', 'PAUSED'])
 const QUICK_INCREMENTS = [10, 50, 100, 500]
 const EXTEND_OPTIONS = [
   { minutes: 1, label: '+1 min' },
@@ -114,6 +127,7 @@ export function AuctionDetailPage() {
   }, [auctionId, navigate, showToast])
 
   const { data: auction, isLoading, isError } = useAuction(auctionId, onDeleted)
+  const { data: allAuctions = [] } = useAuctions()
   const tieBreak = useAuctionTieBreak(auctionId)
   const { data: member } = useCurrentMember()
   const { data: weaponCasts = [] } = useItemSeeds('WEAPON_CAST')
@@ -250,7 +264,13 @@ export function AuctionDetailPage() {
   // Not leading here → none of my reserve is in this auction, so this is my true maximum.
   const myMax = member?.availablePoints ?? 0
   // Só conta bloqueada para venda no site dá lance (o servidor também recusa).
-  const bidLocked = !!member && !sellBlockedUntil(member)
+  const sellLocked = !!member && !sellBlockedUntil(member)
+  // Ganhando outro leilão do mesmo lote (mesmos itens e quantidades): não disputa este (o servidor também recusa).
+  const sameLotWinning = member && lotKey(auction)
+    ? allAuctions.find((a) => a.id !== auction.id && ACTIVE.has(a.status) && a.currentBid > 0 && leads(a, member.id)
+        && lotKey(a) === lotKey(auction))
+    : undefined
+  const bidLocked = sellLocked || !!sameLotWinning
   const canTieAllIn = canBid && !iAmLeading && !bidLocked && auction.currentBid > 0 && myMax === auction.currentBid
   const minBid = auction.currentBid + MIN_INCREMENT
   // All-in (todo o saldo) supera mesmo abaixo dos +10.
@@ -486,10 +506,17 @@ export function AuctionDetailPage() {
           {/* Bid input — hidden if I'm already leading */}
           {canBid && !iAmLeading && (
             <div className="auction-detail__bid">
-              {bidLocked && (
+              {sellLocked && (
                 <div className="auction-detail__notice auction-detail__notice--locked" role="status">
                   <strong>Lance bloqueado.</strong> Sua conta não está bloqueada para venda no site. Peça a um Líder
                   ou Administrador para bloquear a conta antes de dar lances.
+                </div>
+              )}
+              {!sellLocked && sameLotWinning && (
+                <div className="auction-detail__notice auction-detail__notice--locked" role="status">
+                  <strong>Lance bloqueado.</strong> Você já está ganhando o leilão{' '}
+                  #{String(sameLotWinning.id).padStart(3, '0')} com os mesmos itens. Só dá para disputar um leilão do
+                  mesmo lote por vez.
                 </div>
               )}
               <input
@@ -519,7 +546,8 @@ export function AuctionDetailPage() {
                   onClick={() => submitBid(Number(bidAmount))}
                   loading={placeBid.isPending}
                   disabled={bidLocked || !bidAmount}
-                  title={bidLocked ? 'Conta não bloqueada para venda no site' : undefined}
+                  title={sellLocked ? 'Conta não bloqueada para venda no site'
+                    : sameLotWinning ? 'Você já está ganhando outro leilão do mesmo lote' : undefined}
                 >
                   {bidLocked ? 'Lance bloqueado' : 'Lance'}
                 </Button>
