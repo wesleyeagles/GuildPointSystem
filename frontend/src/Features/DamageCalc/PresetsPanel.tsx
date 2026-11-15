@@ -2,58 +2,41 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Panel } from '@/Shared/ui/components/Panel/Panel'
 import { Button } from '@/Shared/ui/components/Button/Button'
-import { evaluate, sanitizeState, type ItemIndex, type SavedState } from './damageState'
+import { evaluate, type ItemIndex, type SavedState } from './damageState'
 import { KbIcon } from './KbIcon'
+import { MAX_COMPARE, NAME_MAX, usePresets, type Preset } from './usePresets'
 import '@/Features/Auth/Auth.styles.scss'
-
-const PRESETS_KEY = 'damageCalc.presets.v1'
-/** Quantos presets cabem lado a lado na comparação. */
-export const MAX_COMPARE = 3
-const NAME_MAX = 40
-
-export interface Preset { name: string; state: SavedState }
-
-function loadPresets(): Preset[] {
-  try {
-    const raw = JSON.parse(localStorage.getItem(PRESETS_KEY) ?? '[]')
-    if (!Array.isArray(raw)) return []
-    return raw
-      .filter(p => p && typeof p.name === 'string' && p.name.trim())
-      .map(p => ({ name: String(p.name).trim().slice(0, NAME_MAX), state: sanitizeState(p.state) }))
-  } catch {
-    return []
-  }
-}
 
 const fmt = (n: number) => n.toLocaleString('pt-BR')
 const sameName = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase()
 
-/** Salvar a configuração atual com um nome, carregar de volta e comparar até 3 lado a lado. */
+/** Salvar a configuração atual com um nome (no membro), carregar de volta e comparar até 3 lado a lado. */
 export function PresetsPanel({ current, byCode, onLoad }: {
   current: SavedState
   byCode: ItemIndex
   onLoad: (state: SavedState) => void
 }) {
-  const [presets, setPresets] = useState<Preset[]>(loadPresets)
+  const { presets, loading, loadError, save: saveMutation, remove: removeMutation } = usePresets()
   const [name, setName] = useState('')
   const [picked, setPicked] = useState<string[]>([])
   const [comparing, setComparing] = useState(false)
-  useEffect(() => { localStorage.setItem(PRESETS_KEY, JSON.stringify(presets)) }, [presets])
 
   const trimmed = name.trim()
   const overwrites = presets.some(p => sameName(p.name, trimmed))
   const save = (e: React.FormEvent) => {
     e.preventDefault()
     if (!trimmed) return
-    const preset = { name: trimmed.slice(0, NAME_MAX), state: structuredClone(current) }
-    // Mesmo nome substitui no mesmo lugar da lista.
-    setPresets(list => overwrites ? list.map(p => sameName(p.name, trimmed) ? preset : p) : [...list, preset])
-    setName('')
+    // Mesmo nome substitui (no servidor, sem diferenciar maiúscula).
+    saveMutation.mutate({ name: trimmed.slice(0, NAME_MAX), state: structuredClone(current) }, {
+      onSuccess: () => {
+        setName('')
+        setPicked(list => list.map(x => sameName(x, trimmed) ? trimmed : x))
+      },
+    })
   }
-  const remove = (n: string) => {
-    setPresets(list => list.filter(p => p.name !== n))
-    setPicked(list => list.filter(x => x !== n))
-  }
+  const remove = (n: string) =>
+    removeMutation.mutate(n, { onSuccess: () => setPicked(list => list.filter(x => x !== n)) })
+  const error = saveMutation.error ?? removeMutation.error ?? loadError
   const togglePick = (n: string) =>
     setPicked(list => list.includes(n) ? list.filter(x => x !== n) : list.length < MAX_COMPARE ? [...list, n] : list)
 
@@ -67,10 +50,11 @@ export function PresetsPanel({ current, byCode, onLoad }: {
     }>
       <form className="damage-calc__preset-save" onSubmit={save}>
         <input aria-label="Nome do preset" placeholder="Nome do preset" maxLength={NAME_MAX} value={name} onChange={e => setName(e.target.value)} />
-        <Button type="submit" size="sm" disabled={!trimmed}>{overwrites ? 'Substituir' : 'Salvar'}</Button>
+        <Button type="submit" size="sm" disabled={!trimmed} loading={saveMutation.isPending}>{overwrites ? 'Substituir' : 'Salvar'}</Button>
       </form>
-      {!presets.length ? (
-        <p className="damage-calc__hint">Nenhum preset salvo. Monte a arma, os buffs e as relics, dê um nome e salve.</p>
+      {error && <p className="damage-calc__error" role="alert">{error.message}</p>}
+      {loading ? <p className="damage-calc__hint">Carregando presets…</p> : !presets.length ? (
+        <p className="damage-calc__hint">Nenhum preset salvo. Monte a arma, os buffs e as relics, dê um nome e salve. Fica na sua conta.</p>
       ) : (
         <>
           <p className="damage-calc__hint">Marque de 2 a {MAX_COMPARE} para comparar.</p>
@@ -89,7 +73,7 @@ export function PresetsPanel({ current, byCode, onLoad }: {
                   </span>
                   <Button size="sm" variant="secondary" onClick={() => onLoad(structuredClone(p.state))}>Carregar</Button>
                   <button type="button" className="damage-calc__preset-remove" aria-label={`Excluir ${p.name}`} title="Excluir"
-                    onClick={() => remove(p.name)}>✕</button>
+                    disabled={removeMutation.isPending} onClick={() => remove(p.name)}>✕</button>
                 </li>
               )
             })}

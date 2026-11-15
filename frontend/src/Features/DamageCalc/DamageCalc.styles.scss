@@ -59,6 +59,7 @@
   &__preset-save { display: flex; gap: theme.$spacing-xs; margin-bottom: theme.$spacing-sm;
     input { flex: 1; min-width: 0; }
   }
+  &__error { color: theme.$color-danger; font-size: 14px; margin-bottom: theme.$spacing-sm; }
   &__presets { list-style: none; margin: 0; padding: 0; display: grid; gap: theme.$spacing-xs; }
   &__presets li { display: flex; align-items: center; gap: theme.$spacing-sm; padding: 4px 8px; background: theme.$metal-700;
     &.is-picked { outline: 1px solid theme.$color-primary; }
