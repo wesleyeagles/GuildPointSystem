@@ -77,10 +77,13 @@ class MemberRosterTest {
         em.clear();
     }
 
-    @Test void onlyLeadersAndAdmins() throws Exception {
-        mvc.perform(get("/api/members/game/roster").param("character", member)).andExpect(status().isForbidden());
-        mvc.perform(get("/api/members/game/roster")).andExpect(status().isForbidden());
+    @Test void everyApprovedMemberSeesTheList() throws Exception {
+        roster(member);
+        roster(online);
         roster(admin);
+        mvc.perform(get("/api/members/game/roster").param("character", pending)).andExpect(status().isForbidden());
+        mvc.perform(get("/api/members/game/roster").param("character", "ninguem")).andExpect(status().isForbidden());
+        mvc.perform(get("/api/members/game/roster")).andExpect(status().isForbidden());
     }
 
     @Test void listsEveryApprovedMember() throws Exception {

@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.*;
 /**
  * Lista de membros para a DLL (sem login, liberado no SecurityConfig), pelo nome do personagem.
  * Texto UTF-8, uma linha por membro: "nick TAB online(0/1) TAB mapa TAB regiao TAB parado TAB visto TAB exp",
- * tempos em segundos ate agora (-1 = sem dado). 403 se o personagem nao e de Lider/Administrador.
+ * tempos em segundos ate agora (-1 = sem dado). 403 se o personagem nao e de membro aprovado.
  */
 @RestController
 @RequestMapping("/api/members/game/roster")

@@ -6,7 +6,6 @@ import com.guild.app.common.enums.MemberStatus;
 import com.guild.app.common.exception.AppException;
 import com.guild.app.member.entity.Member;
 import com.guild.app.member.repository.MemberRepository;
-import com.guild.app.shout.service.ShoutService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -18,9 +17,9 @@ import java.time.Instant;
 import java.util.*;
 
 /**
- * Lista de membros no jogo (DLL, botao so de Lider/Administrador): todos os membros aprovados do site,
- * das duas guildas, com online, mapa, regiao, tempo parado, ultima vez visto e ultima vez que ganhou EXP.
- * Mesma regra de quem pode dar shout (personagem de Lider/Administrador aprovado).
+ * Lista de membros no jogo (DLL, botao da barra): todos os membros aprovados do site, das duas guildas, com
+ * online, mapa, regiao, tempo parado, ultima vez visto e ultima vez que ganhou EXP. Desde a DLL 1.44.5 qualquer
+ * membro aprovado ve (antes so Lider/Administrador).
  */
 @Service
 @RequiredArgsConstructor
@@ -33,7 +32,6 @@ public class MemberRosterService {
 
     private final MemberRepository members;
     private final CharacterStatusRepository statuses;
-    private final ShoutService shoutService;
     Clock clock = Clock.systemUTC();
 
     private record Cached(Instant at, List<Row> rows) {}
@@ -49,12 +47,19 @@ public class MemberRosterService {
 
     @Transactional(readOnly = true)
     public String forGame(String character) {
-        if (shoutService.sender(character).isEmpty()) {
-            throw new AppException("Só o Líder e os Administradores veem a lista de membros.", HttpStatus.FORBIDDEN);
+        if (!approved(character)) {
+            throw new AppException("Personagem sem conta aprovada no site.", HttpStatus.FORBIDDEN);
         }
         var sb = new StringBuilder();
         for (Row row : rows()) sb.append(row.line());
         return sb.toString();
+    }
+
+    /** Personagem de membro aprovado, com perfil completo, nao excluido nem suspenso. */
+    private boolean approved(String character) {
+        if (character == null || character.isBlank() || character.length() > 32) return false;
+        return members.findByGameCharacter(character.strip()).stream().anyMatch(m -> m.getStatus() == MemberStatus.APROVADO
+                && m.isProfileComplete() && m.getDeletedAt() == null && m.getSuspendedAt() == null);
     }
 
     List<Row> rows() {
