@@ -121,3 +121,49 @@ describe('Relics', () => {
     relicState.mine = []
   })
 })
+
+describe('Presets', () => {
+  it('saves with a name, loads it back and compares up to 3 side by side', async () => {
+    localStorage.setItem('damageCalc.v1', JSON.stringify({ weapon: 'iwswa65' }))
+    render(<DamageCalcPage />)
+    await screen.findByText('2.000', undefined, KBASE_LOAD)
+    const name = screen.getByRole('textbox', { name: 'Nome do preset' })
+    const save = () => fireEvent.click(screen.getByRole('button', { name: /^(Salvar|Substituir)$/ }))
+    fireEvent.change(name, { target: { value: 'Sem keen' } }); save()
+    fireEvent.change(screen.getByRole('combobox', { name: 'Talics Keen' }), { target: { value: '7' } })
+    fireEvent.change(name, { target: { value: 'Keen 7' } }); save()
+    fireEvent.change(screen.getByRole('combobox', { name: 'Talics Keen' }), { target: { value: '4' } })
+    fireEvent.change(name, { target: { value: 'Keen 4' } }); save()
+    fireEvent.change(name, { target: { value: 'Extra' } }); save()
+    expect(JSON.parse(localStorage.getItem('damageCalc.presets.v1')!)).toHaveLength(4)
+
+    // carregar volta a configuração do preset
+    const row = (n: string) => within(screen.getByRole('checkbox', { name: `Comparar ${n}` }).closest('li')!)
+    fireEvent.click(row('Sem keen').getByRole('button', { name: 'Carregar' }))
+    expect(screen.getByRole('combobox', { name: 'Talics Keen' })).toHaveValue('0')
+
+    // mesmo nome substitui
+    fireEvent.change(name, { target: { value: 'extra' } })
+    expect(screen.getByRole('button', { name: 'Substituir' })).toBeTruthy()
+
+    // no máximo 3 marcados
+    const compare = screen.getByRole('button', { name: /^Comparar/ })
+    expect(compare).toBeDisabled()
+    for (const n of ['Sem keen', 'Keen 7', 'Keen 4']) fireEvent.click(screen.getByRole('checkbox', { name: `Comparar ${n}` }))
+    expect(screen.getByRole('checkbox', { name: 'Comparar Extra' })).toBeDisabled()
+    fireEvent.click(compare)
+    const modal = within(screen.getByRole('dialog', { name: 'Comparar presets' }))
+    const col = (n: string) => within(modal.getByRole('region', { name: n }))
+    expect(col('Sem keen').getByText('1.000')).toBeTruthy()
+    expect(col('Keen 7').getByText('3.000')).toBeTruthy() // 1000 × (1 + 200%)
+    expect(col('Keen 7').getByText('6.000')).toHaveClass('is-best')
+    expect(col('Keen 4').getByText('2.900')).toBeTruthy() // 2000 × (1 + 45%)
+    expect(col('Keen 4').getAllByText('Saint Beam Sword')).toBeTruthy()
+    fireEvent.click(modal.getByRole('button', { name: 'Fechar' }))
+    expect(screen.queryByRole('dialog')).toBeNull()
+
+    // excluir
+    fireEvent.click(screen.getByRole('button', { name: 'Excluir Extra' }))
+    expect(JSON.parse(localStorage.getItem('damageCalc.presets.v1')!)).toHaveLength(3)
+  })
+})

@@ -55,7 +55,20 @@
     &--off { opacity: .45; }
   }
 
-  &__result { position: sticky; top: theme.$spacing-md; }
+  &__side { position: sticky; top: theme.$spacing-md; display: grid; gap: theme.$spacing-md; min-width: 0; }
+  &__preset-save { display: flex; gap: theme.$spacing-xs; margin-bottom: theme.$spacing-sm;
+    input { flex: 1; min-width: 0; }
+  }
+  &__presets { list-style: none; margin: 0; padding: 0; display: grid; gap: theme.$spacing-xs; }
+  &__presets li { display: flex; align-items: center; gap: theme.$spacing-sm; padding: 4px 8px; background: theme.$metal-700;
+    &.is-picked { outline: 1px solid theme.$color-primary; }
+  }
+  &__preset-name { flex: 1; min-width: 0; display: grid; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    small { color: theme.$color-amber; font-family: theme.$font-mono; font-size: 13px; }
+  }
+  &__preset-remove { background: none; border: 0; padding: 4px; cursor: pointer; color: theme.$color-text-muted; font-size: 14px;
+    &:hover { color: theme.$color-danger; }
+  }
   &__big { display: flex; align-items: baseline; justify-content: center; gap: theme.$spacing-sm; font-family: theme.$font-mono; color: theme.$color-amber;
     span { font-size: 34px; }
     small { color: theme.$color-text-muted; }
@@ -72,7 +85,7 @@
   @media (max-width: theme.$mobile-breakpoint) {
     &__layout, &__acc { grid-template-columns: 1fr; }
     &__boosts, &__relics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    &__result { position: static; }
+    &__side { position: static; }
   }
 }
 
@@ -101,4 +114,23 @@
       &[aria-selected='true'] { background: rgba(theme.$color-primary, .12); }
       &.damage-calc__options-note { display: block; cursor: default; color: theme.$color-text-muted; font-size: 14px; }
     }
+}
+
+/* Modal de comparação: fica no body (portal). */
+.modal-card.damage-compare { max-width: 820px; }
+.damage-compare {
+  &__grid { display: grid; gap: theme.$spacing-md; }
+  &__col { display: grid; justify-items: center; gap: theme.$spacing-xs; padding: theme.$spacing-md; background: theme.$metal-700; min-width: 0; text-align: center;
+    h3 { margin: 0; font-family: theme.$font-heading; font-size: 16px; text-transform: uppercase; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    dl { margin: theme.$spacing-xs 0 0; display: grid; gap: 2px; }
+    dt { color: theme.$color-text-muted; font-size: 13px; text-transform: uppercase; }
+    dd { margin: 0 0 theme.$spacing-xs; font-family: theme.$font-mono; font-size: 26px; color: theme.$color-text;
+      &.is-best { color: theme.$color-amber; }
+    }
+  }
+  &__weapon { margin: 0; font-size: 14px; color: theme.$color-text-muted; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  &__actions { display: flex; justify-content: flex-end; margin-top: theme.$spacing-md; }
+  @media (max-width: theme.$mobile-breakpoint) {
+    &__grid { grid-template-columns: 1fr !important; }
+  }
 }

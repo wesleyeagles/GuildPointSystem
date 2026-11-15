@@ -3,10 +3,11 @@ import { createPortal } from 'react-dom'
 import { Panel } from '@/Shared/ui/components/Panel/Panel'
 import { Button } from '@/Shared/ui/components/Button/Button'
 import { ADRENAS, BUFFS, GENERATORS, KEEN_PCT, type Boost } from './data/boosts'
-import { calcDamage, defaultMode, type DamageMode, type Effects, type KbAccessory, type KbData, type KbWeapon } from './DamageCalc.utils'
+import { ACC_SLOTS, INITIAL, evaluate, sanitizeState, type ItemIndex, type SavedState } from './damageState'
+import { defaultMode, type DamageMode, type Effects, type KbData, type KbWeapon } from './DamageCalc.utils'
 import { GameIconView, KbIcon } from './KbIcon'
+import { PresetsPanel } from './PresetsPanel'
 import { RelicsPanel } from './RelicsPanel'
-import { DAMAGE_RELICS, relicBonus } from './relics'
 import './DamageCalc.styles.scss'
 
 const STORAGE_KEY = 'damageCalc.v1'
@@ -16,43 +17,10 @@ const WEAPON_TYPES: Record<string, string> = {
   bow: 'Arco', firearm: 'Arma de fogo', throwing: 'Arremesso', launcher: 'Lançador',
   grenade: 'Lança-granadas', staff: 'Cajado', other: 'Outras',
 }
-const ACC_SLOTS = [
-  { key: 'amulet1', label: 'Amuleto 1', list: 'amulets' },
-  { key: 'amulet2', label: 'Amuleto 2', list: 'amulets' },
-  { key: 'ring1', label: 'Anel 1', list: 'rings' },
-  { key: 'ring2', label: 'Anel 2', list: 'rings' },
-] as const
-
-interface SavedState {
-  weaponType: string
-  weapon: string
-  mode: DamageMode
-  keen: number
-  acc: Record<string, string>
-  buffs: string[]
-  adrena: string
-  generator: string
-  /** id da relic → upgrade (0 = base). */
-  relics: Record<string, number>
-  extraAtk: number
-}
-
-const INITIAL: SavedState = {
-  weaponType: 'sword', weapon: '', mode: 'atk', keen: 0, acc: {}, buffs: [], adrena: '', generator: '', relics: {}, extraAtk: 0,
-}
 
 function loadState(): SavedState {
   try {
-    const saved = { ...INITIAL, ...JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}') } as SavedState
-    // buffs/adrenas que saíram da lista (só Cora agora) não podem continuar somando
-    return {
-      ...saved,
-      buffs: saved.buffs.filter(id => BUFFS.some(b => b.id === id)),
-      adrena: ADRENAS.some(a => a.id === saved.adrena) ? saved.adrena : '',
-      generator: GENERATORS.some(g => g.id === saved.generator) ? saved.generator : '',
-      relics: Object.fromEntries(Object.entries(saved.relics ?? {})
-        .filter(([id, up]) => DAMAGE_RELICS.some(r => String(r.id) === id) && Number.isInteger(up) && up >= 0 && up <= 3)),
-    }
+    return sanitizeState(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}'))
   } catch {
     return INITIAL
   }
@@ -221,7 +189,7 @@ export function DamageCalcPage() {
     .filter(w => w.t === s.weaponType)
     .sort((a, b) => b.l - a.l || a.n.localeCompare(b.n)), [kb, s.weaponType])
   const byCode = useMemo(() => {
-    const m = new Map<string, KbWeapon | KbAccessory>()
+    const m: ItemIndex = new Map()
     kb?.weapons.forEach(w => m.set(w.c, w))
     kb?.amulets.forEach(a => m.set(a.c, a))
     kb?.rings.forEach(r => m.set(r.c, r))
@@ -232,26 +200,9 @@ export function DamageCalcPage() {
     rings: [...(kb?.rings ?? [])].sort((a, b) => (b.e.a ?? 0) - (a.e.a ?? 0) || a.n.localeCompare(b.n)),
   }), [kb])
 
-  const weapon = (byCode.get(s.weapon) as KbWeapon | undefined) ?? null
-  const accessories = ACC_SLOTS.map(slot => byCode.get(s.acc[slot.key] ?? '') as KbAccessory | undefined)
-  // Rage Range só vale no ataque físico; Adept só na força
-  const buffs = BUFFS.filter(b => s.buffs.includes(b.id) && (!b.only || b.only === s.mode))
-  const adrena = ADRENAS.find(a => a.id === s.adrena)
+  const { weapon, accessories, buffs, adrena, generator, relics, relicAtk, result } = evaluate(s, byCode)
   const adrenaPct = adrena?.atk ?? 0
-  const generator = GENERATORS.find(g => g.id === s.generator)
   const hasBoth = !!(weapon?.atk && weapon?.fo)
-  const relics = Object.entries(s.relics).map(([id, up]) => relicBonus(Number(id), up, weapon?.k, s.mode))
-  const relicAtk = Math.round(relics.reduce((t, r) => t + r.atk, 0) * 100) / 100
-  const relicCrit = relics.reduce((t, r) => t + r.crit, 0)
-
-  const result = calcDamage({
-    weapon,
-    mode: s.mode,
-    keen: s.keen,
-    effects: [weapon?.e ?? {}, ...accessories.map(a => a?.e ?? {})],
-    bonusPct: [...buffs.map(b => b.atk), adrenaPct, generator?.atk ?? 0, relicAtk, s.extraAtk],
-    bonusCrit: buffs.reduce((t, b) => t + (b.crit ?? 0), 0) + relicCrit,
-  })
 
   const toggleBuff = (id: string) =>
     set({ buffs: s.buffs.includes(id) ? s.buffs.filter(x => x !== id) : [...s.buffs, id] })
@@ -345,7 +296,8 @@ export function DamageCalcPage() {
           </Panel>
         </div>
 
-        <Panel title="Dano final" variant="amber" className="damage-calc__result" aria-live="polite">
+        <div className="damage-calc__side">
+        <Panel title="Dano final" variant="amber" aria-live="polite">
           {!weapon ? <p className="damage-calc__hint">Escolha uma arma.</p> : (
             <>
               <div className="damage-calc__big">
@@ -367,6 +319,8 @@ export function DamageCalcPage() {
             </>
           )}
         </Panel>
+        <PresetsPanel current={s} byCode={byCode} onLoad={state => setS(state)} />
+        </div>
       </div>
     </div>
   )
