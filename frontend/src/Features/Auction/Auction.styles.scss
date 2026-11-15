@@ -540,6 +540,14 @@
     border-color: rgba(theme.$color-amber, 0.5);
     color: theme.$color-amber;
   }
+
+  &--locked {
+    margin-top: 0;
+    width: 100%;
+    border-color: rgba(theme.$color-danger, 0.6);
+    color: theme.$color-danger;
+    font-size: theme.$font-size-base;
+  }
 }
 
 .auction-list__timer--start {

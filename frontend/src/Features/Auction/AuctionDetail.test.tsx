@@ -4,7 +4,7 @@ import { afterEach, expect, it, vi } from 'vitest'
 import type { Auction } from '@/Domain/types/models'
 import { AuctionDetailPage } from './AuctionDetail'
 
-const state = vi.hoisted(() => ({ admin: true, auction: {} as Auction, confirm: vi.fn() }))
+const state = vi.hoisted(() => ({ admin: true, auction: {} as Auction, confirm: vi.fn(), member: undefined as object | undefined, bid: vi.fn() }))
 vi.mock('@/Domain/Auction/hooks/useAuction', () => ({
   serverNow: () => Date.now(),
   useAuction: () => ({ data: state.auction }),
@@ -14,9 +14,9 @@ vi.mock('@/Domain/Auction/hooks/useAuction', () => ({
   useDeleteAuction: () => ({}),
   useAuctionAdminAction: () => ({}),
   useExtendAuction: () => ({}),
-  usePlaceBid: () => ({}),
+  usePlaceBid: () => ({ mutateAsync: state.bid }),
 }))
-vi.mock('@/Domain/Member/hooks/useMembers', () => ({ useCurrentMember: () => ({}) }))
+vi.mock('@/Domain/Member/hooks/useMembers', () => ({ useCurrentMember: () => ({ data: state.member }) }))
 vi.mock('@/Domain/Seed/hooks/useItemSeeds', () => ({ useItemSeeds: () => ({}) }))
 vi.mock('@/Features/Auth/contexts/AuthContext', () => ({ useAuthContext: () => ({ hasRole: () => state.admin }) }))
 vi.mock('@/Shared/ui/components/AppToast/AppToast', () => ({ useAppToast: () => ({ showToast: vi.fn() }) }))
@@ -28,6 +28,8 @@ afterEach(() => {
   cleanup()
   localStorage.removeItem('equipment-mail-sender')
   state.confirm.mockReset()
+  state.bid.mockReset()
+  state.member = undefined
   vi.unstubAllEnvs()
   vi.unstubAllGlobals()
 })
@@ -67,4 +69,43 @@ it('prepares the game letter for the winner and only records delivery after conf
   view.rerender(page())
   expect(screen.getByText(/Item enviado em.*Brasília/)).toBeVisible()
   expect(screen.queryByRole('button', { name: 'Confirmar envio' })).not.toBeInTheDocument()
+})
+
+const openAuction = (): Auction => ({
+  id: 41, status: 'OPEN', items: [], winnerId: null, winnerNickname: null,
+  currentBid: 10, endsAt: new Date(Date.now() + 600_000).toISOString(),
+  durationMinutes: 30, createdAt: '2026-11-14T00:20:00Z', startsAt: null,
+  leaderId: 99, leaderNickname: 'Outro', tiedCount: 0, tied: false, tiedMemberIds: [],
+  tiedMemberNicknames: [], dolePhase: 0, tieBreakPhase: 0, version: 1,
+  serverTime: new Date().toISOString(), pausedRemainingMs: null,
+})
+const renderAuction = (id: number) => render(
+  <MemoryRouter initialEntries={[`/auctions/${id}`]}>
+    <Routes><Route path="/auctions/:id" element={<AuctionDetailPage />} /></Routes>
+  </MemoryRouter>,
+)
+
+it('blocks bidding with the reason when the account is not blocked for sale', () => {
+  state.admin = false
+  state.auction = openAuction()
+  state.member = { id: 7, availablePoints: 500, blockedForSellUntil: null }
+  renderAuction(41)
+  expect(screen.getByRole('status')).toHaveTextContent('Sua conta não está bloqueada para venda no site')
+  const lance = screen.getByRole('button', { name: 'Lance bloqueado' })
+  expect(lance).toBeDisabled()
+  expect(screen.getByRole('spinbutton')).toBeDisabled()
+  expect(screen.getByRole('button', { name: '+10' })).toBeDisabled()
+  expect(screen.queryByRole('button', { name: /All-in/ })).not.toBeInTheDocument()
+})
+
+it('lets a member whose account is blocked for sale bid', () => {
+  state.admin = false
+  state.auction = openAuction()
+  state.member = { id: 7, availablePoints: 500, blockedForSellUntil: '2099-12-31' }
+  renderAuction(41)
+  expect(screen.queryByText(/não está bloqueada para venda/)).not.toBeInTheDocument()
+  expect(screen.getByRole('button', { name: 'All-in (500)' })).toBeEnabled()
+  fireEvent.change(screen.getByRole('spinbutton'), { target: { value: '20' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Lance' }))
+  expect(state.bid).toHaveBeenCalledWith({ id: 41, amount: 20 })
 })

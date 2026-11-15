@@ -53,6 +53,9 @@ public class AuctionService {
     static final long EXTENDED_SECONDS = 25;
     static final long DOLE_STEP_SECONDS = 2;
     static final long DOLE_RESCUE_SECONDS = 10;
+    /** Só conta bloqueada para venda no site dá lance (o vencedor não pode vender a conta com o item). */
+    public static final String SELL_BLOCK_REQUIRED =
+            "Sua conta não está bloqueada para venda no site. Peça a um Líder ou Administrador para bloquear antes de dar lances.";
 
     /** Tie-break timeline: announcement countdown → free spin → landing on the drawn winner. */
     static final long TIE_COUNTDOWN_SECONDS = 5;
@@ -364,6 +367,9 @@ public class AuctionService {
                 .orElseThrow(() -> new AppException("Membro não encontrado.", HttpStatus.NOT_FOUND));
         if (member.getStatus() != MemberStatus.APROVADO) {
             throw new AppException("Apenas membros aprovados podem dar lances.", HttpStatus.FORBIDDEN);
+        }
+        if (!member.isBlockedForSellAccount()) {
+            throw new AppException(SELL_BLOCK_REQUIRED, HttpStatus.FORBIDDEN);
         }
 
         long currentBid = auction.getCurrentBid();

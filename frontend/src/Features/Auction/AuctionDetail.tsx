@@ -15,6 +15,7 @@ import { useAppToast } from '@/Shared/ui/components/AppToast/AppToast'
 import { getGameMailSender, useGameMail } from '@/Shared/hooks/useGameMail'
 import { formatAuctionItems, isAuctionFinished } from '@/Domain/types/models'
 import { useCurrentMember } from '@/Domain/Member/hooks/useMembers'
+import { sellBlockedUntil } from '@/Features/Dashboard/utils/sellBlock'
 import { useItem } from '@/Domain/Item/hooks/useItems'
 import { useItemSeeds } from '@/Domain/Seed/hooks/useItemSeeds'
 import { Roulette } from '@/Features/Auction/components/Roulette/Roulette'
@@ -238,8 +239,10 @@ export function AuctionDetailPage() {
   ))
   // Not leading here → none of my reserve is in this auction, so this is my true maximum.
   const myMax = member?.availablePoints ?? 0
-  const canTieAllIn = canBid && !iAmLeading && auction.currentBid > 0 && myMax === auction.currentBid
-  const canOutbid = canBid && !iAmLeading && myMax > auction.currentBid
+  // Só conta bloqueada para venda no site dá lance (o servidor também recusa).
+  const bidLocked = !!member && !sellBlockedUntil(member)
+  const canTieAllIn = canBid && !iAmLeading && !bidLocked && auction.currentBid > 0 && myMax === auction.currentBid
+  const canOutbid = canBid && !iAmLeading && !bidLocked && myMax > auction.currentBid
 
   // A closed auction still tied at the final amount was decided by the roulette.
   const closedWinnerIndex =
@@ -471,14 +474,21 @@ export function AuctionDetailPage() {
           {/* Bid input — hidden if I'm already leading */}
           {canBid && !iAmLeading && (
             <div className="auction-detail__bid">
+              {bidLocked && (
+                <div className="auction-detail__notice auction-detail__notice--locked" role="status">
+                  <strong>Lance bloqueado.</strong> Sua conta não está bloqueada para venda no site. Peça a um Líder
+                  ou Administrador para bloquear a conta antes de dar lances.
+                </div>
+              )}
               <input
                 type="number"
                 min={1}
+                disabled={bidLocked}
                 value={bidAmount}
                 onChange={(e) => setBidAmount(e.target.value)}
                 placeholder={`Maior que ${auction.currentBid}`}
                 className="auction-detail__bid-input"
-                onKeyDown={(e) => e.key === 'Enter' && submitBid(Number(bidAmount))}
+                onKeyDown={(e) => e.key === 'Enter' && !bidLocked && submitBid(Number(bidAmount))}
               />
               <div className="auction-detail__bid-actions">
                 {QUICK_INCREMENTS.map((inc) => (
@@ -486,7 +496,7 @@ export function AuctionDetailPage() {
                     key={inc}
                     variant="secondary"
                     size="sm"
-                    disabled={auction.currentBid + inc > myMax}
+                    disabled={bidLocked || auction.currentBid + inc > myMax}
                     onClick={() => quickBid(inc)}
                   >
                     +{inc}
@@ -495,9 +505,10 @@ export function AuctionDetailPage() {
                 <Button
                   onClick={() => submitBid(Number(bidAmount))}
                   loading={placeBid.isPending}
-                  disabled={!bidAmount}
+                  disabled={bidLocked || !bidAmount}
+                  title={bidLocked ? 'Conta não bloqueada para venda no site' : undefined}
                 >
-                  Lance
+                  {bidLocked ? 'Lance bloqueado' : 'Lance'}
                 </Button>
               </div>
               {(canOutbid || canTieAllIn) && (
@@ -510,7 +521,7 @@ export function AuctionDetailPage() {
                   {canTieAllIn ? `Empatar com all-in (${myMax})` : `All-in (${myMax})`}
                 </Button>
               )}
-              {!canOutbid && !canTieAllIn && member && (
+              {!canOutbid && !canTieAllIn && member && !bidLocked && (
                 <p className="auction-detail__bid-hint">
                   Seu saldo disponível ({myMax}) não cobre o lance atual.
                 </p>
