@@ -71,6 +71,8 @@ public class AuctionGameController {
     /**
      * Um leilão: a linha "A", "B&lt;TAB&gt;saldo livre para ele&lt;TAB&gt;agora" e as últimas mensagens de lance e do
      * sistema (sem o chat), da mais nova à mais antiga: "M&lt;TAB&gt;quando (s Unix)&lt;TAB&gt;BID|BOT&lt;TAB&gt;texto".
+     * DLL 1.44.1+: o histórico de lances, do mais novo ao mais antigo:
+     * "L&lt;TAB&gt;quando&lt;TAB&gt;valor&lt;TAB&gt;empate (0/1)&lt;TAB&gt;nick" (a 1.44.0 ignora essas linhas).
      */
     @GetMapping(value = "/{id}", produces = "text/plain;charset=UTF-8")
     public ResponseEntity<String> detail(@PathVariable long id, @RequestParam(required = false) String character) {
@@ -78,7 +80,9 @@ public class AuctionGameController {
             var d = service.detail(id, character);
             return row(d.auction()) + "B\t" + d.available() + "\t" + now() + "\n"
                 + d.messages().stream().map(m -> "M\t" + m.atEpoch() + "\t" + m.type() + "\t" + m.text() + "\n")
-                    .collect(Collectors.joining());
+                    .collect(Collectors.joining())
+                + d.bids().stream().map(b -> "L\t" + b.atEpoch() + "\t" + b.amount() + "\t" + (b.tie() ? 1 : 0) + "\t"
+                    + b.nickname() + "\n").collect(Collectors.joining());
         });
     }
 

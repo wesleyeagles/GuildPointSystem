@@ -1,6 +1,7 @@
 package com.guild.app.auction.repository;
 
 import com.guild.app.auction.entity.AuctionBid;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
@@ -26,6 +27,10 @@ public interface AuctionBidRepository extends JpaRepository<AuctionBid, Long> {
             WHERE b.member.id = :memberId AND b.auction.status IN :statuses
             """)
     List<Long> findAuctionIdsBidBy(Long memberId, Collection<AuctionStatus> statuses);
+
+    /** Latest bids of the auction with the bidder, newest first (history in the game window). */
+    @Query("SELECT b FROM AuctionBid b JOIN FETCH b.member WHERE b.auction.id = :auctionId ORDER BY b.id DESC")
+    List<AuctionBid> findRecent(Long auctionId, Pageable page);
 
     /** Latest bid of the auction (null = none): identifies the bid that outbid someone. */
     @Query("SELECT MAX(b.id) FROM AuctionBid b WHERE b.auction.id = :auctionId")

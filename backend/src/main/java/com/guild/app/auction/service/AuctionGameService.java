@@ -132,7 +132,10 @@ public class AuctionGameService {
     /** Mensagem do sistema/lance (sem o chat): segundos Unix, tipo (BID/BOT) e texto. */
     public record Message(long atEpoch, String type, String text) {}
 
-    public record Detail(Row auction, long available, List<Message> messages) {}
+    /** Lance do histórico: quando, quem, quanto e se empatou com o lance anterior (all-in). */
+    public record Bid(long atEpoch, String nickname, long amount, boolean tie) {}
+
+    public record Detail(Row auction, long available, List<Message> messages, List<Bid> bids) {}
 
     @Transactional(readOnly = true)
     public List<Outbid> outbid(String character) {
@@ -173,7 +176,14 @@ public class AuctionGameService {
         List<Message> list = messages.findTop30ByAuction_IdAndTypeInOrderByIdDesc(auctionId, List.of("BID", "BOT")).stream()
             .map(AuctionGameService::message)
             .toList();
-        return new Detail(row(r, member.getId(), participates), points.getAvailablePoints(member, auctionId), list);
+        var recent = bids.findRecent(auctionId, org.springframework.data.domain.PageRequest.of(0, 31));
+        List<Bid> history = new java.util.ArrayList<>();
+        for (int i = 0; i < recent.size() && i < 30; i++) {
+            var b = recent.get(i);
+            boolean tie = i + 1 < recent.size() && recent.get(i + 1).getAmount().equals(b.getAmount());
+            history.add(new Bid(b.getCreatedAt().getEpochSecond(), clean(b.getMember().getNickname(), 40), b.getAmount(), tie));
+        }
+        return new Detail(row(r, member.getId(), participates), points.getAvailablePoints(member, auctionId), list, history);
     }
 
     /** Lance pelo jogo: as mesmas regras do site (bloqueio de venda, saldo, +10, all-in...). */

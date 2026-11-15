@@ -116,6 +116,7 @@ class AuctionGameBidTest {
             .andExpect(status().isOk())
             .andExpect(content().string(containsString("M\t")))
             .andExpect(content().string(containsString("BID\t" + bia + " deu um lance de 60 pts\n")))
+            .andExpect(content().string(matchesPattern("(?s).*\nL\t[0-9]+\t60\t0\t" + bia + "\nL\t[0-9]+\t50\t0\t" + ana + "\n$")))
             .andExpect(content().string(org.hamcrest.Matchers.not(containsString("TEXT\t"))));
         mvc.perform(get("/api/auctions/game/list").param("character", "ninguem")).andExpect(status().isForbidden());
     }
