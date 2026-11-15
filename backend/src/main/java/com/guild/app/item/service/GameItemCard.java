@@ -14,6 +14,8 @@ import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -28,6 +30,8 @@ import java.util.regex.Pattern;
  * janela Relics, em forma curta: "Force attack +3.5%") e o ícone, recortado do mesmo sprite que o site usa
  * (game_lua_item.sprite_sheet + icon_id, baixado do frontend) e entregue como 32x32 BGRA cru, pronto para
  * o StretchDIBits. Dados das relics: game/relicData.json (cópia do frontend, lido do cliente).
+ * Item do site (imagem enviada, sem sprite do jogo): a chave é "/uploads/arquivo.png|0|1" e o ícone é a imagem
+ * inteira reduzida para 32x32 (centralizada, sem distorcer), lida da pasta de uploads.
  */
 @Slf4j
 @Service
@@ -35,9 +39,12 @@ public class GameItemCard {
     public static final int ICON = 32;
     private static final Pattern RELIC = Pattern.compile("relic(\\d{1,4})");
     private static final Pattern SHEET = Pattern.compile("/(sprites|relics|equipment-sprites|icons)/[A-Za-z0-9_.-]+\\.(png|jpg)");
+    /** Imagem enviada no site (UploadController): webp fica de fora (o ImageIO não lê). */
+    private static final Pattern UPLOAD = Pattern.compile("/uploads/([A-Za-z0-9_-]+\\.(png|jpe?g))");
 
     private final JdbcTemplate jdbc;
     private final String frontend;
+    private final Path uploads;
     private final HttpClient http = HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).connectTimeout(Duration.ofSeconds(5))
         .followRedirects(HttpClient.Redirect.NORMAL).build();
     private final Map<String, String> effectNames = new HashMap<>(), effectKinds = new HashMap<>();
@@ -46,9 +53,11 @@ public class GameItemCard {
         @Override protected boolean removeEldestEntry(Map.Entry<String, byte[]> e) { return size() > 500; }
     });
 
-    public GameItemCard(JdbcTemplate jdbc, ObjectMapper json, @Value("${guild.game.icon-base-url:${guild.oauth.frontend-url:http://localhost:5173}}") String frontend) {
+    public GameItemCard(JdbcTemplate jdbc, ObjectMapper json, @Value("${guild.game.icon-base-url:${guild.oauth.frontend-url:http://localhost:5173}}") String frontend,
+                        @Value("${guild.upload.base-path:./uploads}") String uploads) {
         this.jdbc = jdbc;
         this.frontend = frontend.replaceAll("/+$", "");
+        this.uploads = Path.of(uploads);
         try (InputStream in = new ClassPathResource("game/relicData.json").getInputStream()) {
             JsonNode root = json.readTree(in);
             root.path("effects").fields().forEachRemaining(e -> {
@@ -108,9 +117,16 @@ public class GameItemCard {
             .filter(k -> SHEET.matcher(k.substring(0, k.indexOf('|'))).matches()).findFirst().orElse("");
     }
 
+    /** Chave do ícone de uma imagem enviada no site ("/uploads/x.png|0|1"), ou vazio se não dá para usar. */
+    public static String uploadIconKey(String imageUrl) {
+        return imageUrl != null && UPLOAD.matcher(imageUrl).matches() ? imageUrl + "|0|1" : "";
+    }
+
     /** 32x32 BGRA (de cima para baixo) do ícone; vazio se o sprite não é conhecido ou não baixou. */
     public Optional<byte[]> icon(String sheet, int iconId, int cols) {
-        if (sheet == null || !SHEET.matcher(sheet).matches() || iconId < 0 || cols <= 0 || cols > 64) return Optional.empty();
+        if (sheet == null || iconId < 0 || cols <= 0 || cols > 64) return Optional.empty();
+        boolean upload = UPLOAD.matcher(sheet).matches();
+        if (upload ? iconId != 0 || cols != 1 : !SHEET.matcher(sheet).matches()) return Optional.empty();
         String key = sheet + "|" + iconId + "|" + cols;
         byte[] cached = icons.get(key);
         if (cached != null) return cached.length == 0 ? Optional.empty() : Optional.of(cached);
@@ -121,7 +137,7 @@ public class GameItemCard {
         synchronized (renderLock) {
             cached = icons.get(key);
             if (cached != null) return Optional.of(cached);
-            byte[] made = render(sheet, iconId, cols);
+            byte[] made = upload ? renderUpload(sheet) : render(sheet, iconId, cols);
             if (made.length == 0) {
                 failures.put(key, System.currentTimeMillis());
                 return Optional.empty();
@@ -139,6 +155,45 @@ public class GameItemCard {
     private final Map<String, byte[]> sheets = new LinkedHashMap<>(4, 0.75f, true) {
         @Override protected boolean removeEldestEntry(Map.Entry<String, byte[]> e) { return size() > 3; }
     };
+
+    /** Imagem enviada inteira, reduzida para caber em 32x32 sem distorcer, centralizada sobre preto. */
+    byte[] renderUpload(String url) {
+        Matcher m = UPLOAD.matcher(url);
+        if (!m.matches()) return new byte[0];
+        Path file = uploads.resolve(m.group(1)).normalize();
+        try {
+            if (!file.startsWith(uploads.normalize()) || !Files.isRegularFile(file) || Files.size(file) > 5_000_000) return new byte[0];
+            BufferedImage img = ImageIO.read(file.toFile());
+            if (img == null || img.getWidth() <= 0 || img.getHeight() <= 0) return new byte[0];
+            double scale = Math.min((double) ICON / img.getWidth(), (double) ICON / img.getHeight());
+            int w = Math.max(1, (int) Math.round(img.getWidth() * scale)), h = Math.max(1, (int) Math.round(img.getHeight() * scale));
+            BufferedImage out = new BufferedImage(ICON, ICON, BufferedImage.TYPE_INT_ARGB);
+            Graphics2D g = out.createGraphics();
+            g.setColor(java.awt.Color.BLACK);
+            g.fillRect(0, 0, ICON, ICON);
+            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+            g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+            g.drawImage(img, (ICON - w) / 2, (ICON - h) / 2, w, h, null);
+            g.dispose();
+            return bgra(out);
+        } catch (Exception e) {
+            log.warn("Ícone do upload {} não saiu: {}", url, e.toString());
+            return new byte[0];
+        }
+    }
+
+    private static byte[] bgra(BufferedImage out) {
+        byte[] bgra = new byte[ICON * ICON * 4];
+        for (int py = 0; py < ICON; py++)
+            for (int px = 0; px < ICON; px++) {
+                int argb = out.getRGB(px, py), i = (py * ICON + px) * 4;
+                bgra[i] = (byte) argb;
+                bgra[i + 1] = (byte) (argb >> 8);
+                bgra[i + 2] = (byte) (argb >> 16);
+                bgra[i + 3] = (byte) 0xFF;
+            }
+        return bgra;
+    }
 
     private byte[] render(String sheet, int iconId, int cols) {
         try {

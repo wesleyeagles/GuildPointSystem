@@ -125,4 +125,33 @@ class AuctionGameBidTest {
         org.junit.jupiter.api.Assertions.assertEquals(java.util.List.of(auctionId), auctions.participatingIds(anaId));
         org.junit.jupiter.api.Assertions.assertEquals(java.util.List.of(), auctions.participatingIds(biaId));
     }
+
+    @Test void siteItemWithUploadedImageGetsAGameIcon() throws Exception {
+        // Imagem enviada no site (não é sprite do jogo): 64x40 vermelha, vira 32x32 centralizada.
+        String file = UUID.randomUUID() + ".png";
+        java.nio.file.Path dir = java.nio.file.Path.of("./target/test-uploads");
+        java.nio.file.Files.createDirectories(dir);
+        var image = new java.awt.image.BufferedImage(64, 40, java.awt.image.BufferedImage.TYPE_INT_RGB);
+        var g = image.createGraphics();
+        g.setColor(java.awt.Color.RED);
+        g.fillRect(0, 0, 64, 40);
+        g.dispose();
+        javax.imageio.ImageIO.write(image, "png", dir.resolve(file).toFile());
+        jdbc.update("UPDATE item SET image_url=? WHERE id IN (SELECT item_id FROM auction_item WHERE auction_id=?)",
+            "/uploads/" + file, auctionId);
+        String key = "/uploads/" + file + "|0|1";
+        mvc.perform(get("/api/auctions/game/list").param("character", ana))
+            .andExpect(content().string(containsString("\tEspada\t\t" + key + "\n")));
+        byte[] icon = mvc.perform(get("/api/game/icon").param("sheet", "/uploads/" + file).param("icon", "0").param("cols", "1"))
+            .andExpect(status().isOk()).andReturn().getResponse().getContentAsByteArray();
+        org.junit.jupiter.api.Assertions.assertEquals(4096, icon.length);
+        int middle = (16 * 32 + 16) * 4, top = (2 * 32 + 16) * 4;  // centro vermelho; faixa de cima preta (40 -> 20 px)
+        org.junit.jupiter.api.Assertions.assertEquals((byte) 0xFF, icon[middle + 2]);
+        org.junit.jupiter.api.Assertions.assertEquals(0, icon[top + 2]);
+        // Fora da pasta de uploads ou outro formato: nada.
+        mvc.perform(get("/api/game/icon").param("sheet", "/uploads/../x.png").param("icon", "0").param("cols", "1"))
+            .andExpect(status().isNotFound());
+        mvc.perform(get("/api/game/icon").param("sheet", "/uploads/" + file).param("icon", "1").param("cols", "1"))
+            .andExpect(status().isNotFound());
+    }
 }

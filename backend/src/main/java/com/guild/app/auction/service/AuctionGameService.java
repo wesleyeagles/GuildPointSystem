@@ -68,7 +68,7 @@ public class AuctionGameService {
             .map(r -> {
                 String code = firstCode(r);
                 return new GameAuction(r.id(), r.endsAt().getEpochSecond(), r.currentBid() == null ? 0 : r.currentBid(),
-                    items(r), cards.effects(code), cards.iconKey(code));
+                    items(r), cards.effects(code), iconKey(r));
             })
             .toList();
         snapshot = new Snapshot(loaded, now);
@@ -83,6 +83,18 @@ public class AuctionGameService {
             .toList());
         text = text.replaceAll("[\\p{Cntrl}\\u2028\\u2029]+", " ").replaceAll(" {2,}", " ").trim();
         return text.length() > 180 ? text.substring(0, 179) + "…" : text;
+    }
+
+    /**
+     * Ícone do card: o sprite do primeiro item do jogo; sem item do jogo, a imagem enviada no site do primeiro
+     * item que tiver uma (png/jpg).
+     */
+    String iconKey(AuctionResponse auction) {
+        String code = firstCode(auction);
+        if (code != null) return cards.iconKey(code);
+        if (auction.items() == null) return "";
+        return auction.items().stream().map(i -> GameItemCard.uploadIconKey(i.imageUrl()))
+            .filter(k -> !k.isEmpty()).findFirst().orElse("");
     }
 
     /** Código do primeiro item com ícone do jogo (é ele que aparece no card). */
@@ -136,7 +148,7 @@ public class AuctionGameService {
                 Long bidId = bids.findLatestBidId(r.id());
                 return new Outbid(bidId == null ? 0 : bidId, r.id(), r.endsAt().getEpochSecond(), r.currentBid(),
                     minBid(r.currentBid()), points.getAvailablePoints(member, r.id()), items(r),
-                    cards.effects(code), cards.iconKey(code));
+                    cards.effects(code), iconKey(r));
             })
             .filter(o -> o.bidId() > 0)
             .toList();
@@ -183,7 +195,7 @@ public class AuctionGameService {
             : r.endsAt() == null ? 0 : r.endsAt().getEpochSecond();
         String code = firstCode(r);
         return new Row(r.id(), r.status().name(), ends, current, minBid(current), mine, clean(leader, 60), items(r),
-            cards.effects(code), cards.iconKey(code));
+            cards.effects(code), iconKey(r));
     }
 
     private static boolean leads(AuctionResponse r, Long memberId) {
