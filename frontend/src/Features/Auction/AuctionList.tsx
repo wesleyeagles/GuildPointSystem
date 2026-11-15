@@ -7,6 +7,7 @@ import {
   useConfirmAuctionDelivery,
   useCreateAuction,
   useDeleteAuction,
+  useParticipatingAuctions,
   useStartAuctionBatch,
 } from '@/Domain/Auction/hooks/useAuction'
 import { useDiscordBySiteMember, type DiscordMember } from '@/Domain/Discord/hooks/useDiscordMembers'
@@ -150,6 +151,48 @@ function AuctionSubtitle({ auction, discordBySite }: { auction: Auction; discord
   )
 }
 
+/** Com o maior lance (sozinho ou empatado). */
+function isLeading(auction: Auction, memberId: number | undefined) {
+  if (memberId == null) return false
+  return auction.leaderId === memberId || (auction.tiedMemberIds ?? []).includes(memberId)
+}
+
+/** Abas acima de "Em andamento": todos e um por leilão em que o membro deu lance (coroa = ganhando). */
+function AuctionTabs({ auctions, memberId, selected, onSelect, total }: {
+  auctions: Auction[]
+  memberId: number | undefined
+  selected: number | 'all'
+  onSelect: (tab: number | 'all') => void
+  total: number
+}) {
+  if (auctions.length === 0) return null
+  return (
+    <div className="auction-tabs" role="tablist" aria-label="Leilões em que estou participando">
+      <button type="button" role="tab" aria-selected={selected === 'all'}
+        className={`auction-tabs__tab${selected === 'all' ? ' is-active' : ''}`} onClick={() => onSelect('all')}>
+        Todos <span className="auction-tabs__count">{total}</span>
+      </button>
+      {auctions.map((auction) => {
+        const leading = isLeading(auction, memberId)
+        const name = formatAuctionItems(auction.items) || `Leilão #${auction.id}`
+        return (
+          <button key={auction.id} type="button" role="tab" aria-selected={selected === auction.id}
+            title={leading ? 'Você está ganhando este leilão' : 'Seu lance foi superado'}
+            className={`auction-tabs__tab${selected === auction.id ? ' is-active' : ''}${leading ? ' is-leading' : ' is-outbid'}`}
+            onClick={() => onSelect(auction.id)}>
+            {leading
+              ? <span className="auction-tabs__crown" role="img" aria-label="Ganhando">👑</span>
+              : <span className="auction-tabs__outbid" aria-label="Superado">▼</span>}
+            <AuctionItemIcon item={auction.items[0]} size={22} />
+            <span className="auction-tabs__name">#{String(auction.id).padStart(3, '0')} {name}</span>
+            <span className="auction-tabs__bid">{auction.currentBid}</span>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 function AuctionListSection({
   title,
   auctions,
@@ -264,13 +307,15 @@ export function AuctionListPage() {
   const startAuction = useAuctionAdminAction('start')
   const startBatch = useStartAuctionBatch()
   const { showToast } = useAppToast()
-  const { hasRole } = useAuthContext()
+  const { hasRole, user } = useAuthContext()
   const isAdmin = hasRole('ADMINISTRADOR')
   const confirmDelivery = useConfirmAuctionDelivery()
   const { canPrepareMail, preparingMail, prepareMail } = useGameMail(isAdmin, 'boi')
   const [pendingDeliveryId, setPendingDeliveryId] = useState<number | null>(null)
   const pendingDelivery = isAdmin ? auctions.find(({ id, status, winnerNickname, deliveredAt }) =>
     id === pendingDeliveryId && status === 'CLOSED' && winnerNickname && !deliveredAt) : undefined
+  const { data: participatingIds = [] } = useParticipatingAuctions()
+  const [tab, setTab] = useState<number | 'all'>('all')
 
   const [durationMinutes, setDurationMinutes] = useState(15)
   const [copiedEnd, setCopiedEnd] = useState<string | null>(null)
@@ -423,6 +468,10 @@ export function AuctionListPage() {
   if (isLoading) return <p>Carregando leilões...</p>
 
   const active = auctions.filter((a) => !isAuctionFinished(a.status) && a.status !== 'SCHEDULED')
+  const mine = active.filter((a) => participatingIds.includes(a.id))
+  // Aba de um leilão que acabou (ou que saiu da lista): volta para "Todos".
+  const selectedTab = tab !== 'all' && mine.some((a) => a.id === tab) ? tab : 'all'
+  const shownActive = selectedTab === 'all' ? active : active.filter((a) => a.id === selectedTab)
   const upcoming = auctions.filter((a) => a.status === 'SCHEDULED')
   const closed = auctions.filter((a) => isAuctionFinished(a.status))
   const canCloseToday = todayAt2150(serverNow()) !== null
@@ -577,7 +626,8 @@ export function AuctionListPage() {
         </Panel>
       )}
 
-      <AuctionListSection title="Em andamento" auctions={active} emptyText="Nenhum leilão aberto."
+      <AuctionTabs auctions={mine} memberId={user?.memberId} selected={selectedTab} onSelect={setTab} total={active.length} />
+      <AuctionListSection title="Em andamento" auctions={shownActive} emptyText="Nenhum leilão aberto."
         onCopy={isAdmin && !isCreating ? copyAuction : undefined} />
       <AuctionListSection
         title="Em breve"

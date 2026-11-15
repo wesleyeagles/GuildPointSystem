@@ -27,6 +27,12 @@ public class AuctionController {
         return auctionService.listOpen();
     }
 
+    /** Ids dos leilões em andamento em que o membro logado deu lance. */
+    @GetMapping("/participating")
+    public List<Long> participating() {
+        return auctionService.participatingIds(SecurityUtils.currentMember().getId());
+    }
+
     @GetMapping("/{id}")
     public AuctionResponse getById(@PathVariable Long id) {
         return auctionService.getById(id);

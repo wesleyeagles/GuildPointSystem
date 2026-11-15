@@ -1,20 +1,28 @@
 package com.guild.app.auction.service;
 
 import com.guild.app.auction.dto.AuctionResponse;
+import com.guild.app.auction.entity.AuctionMessage;
+import com.guild.app.auction.repository.AuctionBidRepository;
+import com.guild.app.auction.repository.AuctionMessageRepository;
 import com.guild.app.auction.repository.AuctionRepository;
+import com.guild.app.common.exception.AppException;
+import com.guild.app.points.service.PointsService;
 import com.guild.app.common.enums.AuctionStatus;
 import com.guild.app.common.enums.MemberStatus;
 import com.guild.app.item.service.GameItemCard;
 import com.guild.app.member.entity.Member;
 import com.guild.app.member.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Aviso de leilão aberto dentro do jogo, pela DLL (o card do evento, com "Ver leilão" no lugar da senha).
@@ -33,6 +41,9 @@ public class AuctionGameService {
     private final AuctionService auctionService;
     private final MemberRepository members;
     private final GameItemCard cards;
+    private final AuctionBidRepository bids;
+    private final AuctionMessageRepository messages;
+    private final PointsService points;
     private volatile Snapshot snapshot = new Snapshot(List.of(), Instant.EPOCH);
     Clock clock = Clock.systemUTC();
 
@@ -80,6 +91,126 @@ public class AuctionGameService {
         return auction.items().stream().filter(i -> i.gameIcon() != null).map(i -> i.gameIcon().gameCode())
             .findFirst().orElse(null);
     }
+
+    // ---- lance superado, lista e lance pelo jogo ----
+
+    /** Lance mínimo para superar (igual ao site): o atual + 10 (o 1º lance, 10). All-in abaixo disso também vale. */
+    static long minBid(long currentBid) {
+        return Math.max(0, currentBid) + AuctionService.MIN_INCREMENT;
+    }
+
+    /** Status em que ainda dá para dar lance. */
+    static final List<AuctionStatus> BIDDING = List.of(AuctionStatus.OPEN, AuctionStatus.DOLE);
+    /** Lista do jogo: tudo que está em andamento (pausado e roleta aparecem, sem lance). */
+    static final List<AuctionStatus> LISTED = AuctionService.ACTIVE_STATUSES;
+
+    /**
+     * Leilão em que o membro deu lance e outro passou na frente. {@code bidId} = último lance do leilão (o card
+     * volta se for superado de novo depois de fechar). {@code available} é o saldo livre para este leilão.
+     */
+    public record Outbid(long bidId, long auctionId, long endsAtEpoch, long currentBid, long minBid, long available,
+                         String items, String effects, String icon) {}
+
+    /** Uma linha da lista do jogo; {@code mine}: 0 = não participa, 1 = superado, 2 = com o maior lance (ou empatado). */
+    public record Row(long id, String status, long endsAtEpoch, long currentBid, long minBid, int mine, String leader,
+                      String items, String effects, String icon) {}
+
+    public record GameList(long available, List<Row> auctions) {}
+
+    /** Mensagem do sistema/lance (sem o chat): segundos Unix, tipo (BID/BOT) e texto. */
+    public record Message(long atEpoch, String type, String text) {}
+
+    public record Detail(Row auction, long available, List<Message> messages) {}
+
+    @Transactional(readOnly = true)
+    public List<Outbid> outbid(String character) {
+        Optional<Member> found = member(character);
+        if (found.isEmpty()) return List.of();
+        Member member = found.get();
+        return bids.findAuctionIdsBidBy(member.getId(), BIDDING).stream()
+            .map(auctionService::getById)
+            .filter(r -> r.currentBid() != null && r.currentBid() > 0 && !leads(r, member.getId()))
+            .sorted((a, b) -> Long.compare(b.id(), a.id()))
+            .map(r -> {
+                String code = firstCode(r);
+                Long bidId = bids.findLatestBidId(r.id());
+                return new Outbid(bidId == null ? 0 : bidId, r.id(), r.endsAt().getEpochSecond(), r.currentBid(),
+                    minBid(r.currentBid()), points.getAvailablePoints(member, r.id()), items(r),
+                    cards.effects(code), cards.iconKey(code));
+            })
+            .filter(o -> o.bidId() > 0)
+            .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public GameList list(String character) {
+        Member member = member(character).orElseThrow(AuctionGameService::notMember);
+        var mine = new HashSet<>(bids.findAuctionIdsBidBy(member.getId(), LISTED));
+        List<Row> rows = auctions.findByStatusInOrderByCreatedAtDesc(LISTED).stream()
+            .map(a -> row(auctionService.getById(a.getId()), member.getId(), mine.contains(a.getId())))
+            .toList();
+        return new GameList(points.getAvailablePoints(member, null), rows);
+    }
+
+    @Transactional(readOnly = true)
+    public Detail detail(long auctionId, String character) {
+        Member member = member(character).orElseThrow(AuctionGameService::notMember);
+        AuctionResponse r = auctionService.getById(auctionId);
+        if (!LISTED.contains(r.status())) throw new AppException("Este leilão não está em andamento.", HttpStatus.NOT_FOUND);
+        boolean participates = bids.findAuctionIdsBidBy(member.getId(), LISTED).contains(auctionId);
+        List<Message> list = messages.findTop30ByAuction_IdAndTypeInOrderByIdDesc(auctionId, List.of("BID", "BOT")).stream()
+            .map(AuctionGameService::message)
+            .toList();
+        return new Detail(row(r, member.getId(), participates), points.getAvailablePoints(member, auctionId), list);
+    }
+
+    /** Lance pelo jogo: as mesmas regras do site (bloqueio de venda, saldo, +10, all-in...). */
+    public AuctionResponse bid(long auctionId, String character, String body) {
+        Member member = member(character).orElseThrow(AuctionGameService::notMember);
+        String text = body == null ? "" : body.strip().replace(".", "");
+        if (!text.matches("\\d{1,12}")) throw new AppException("Digite o valor do lance em pontos.", HttpStatus.BAD_REQUEST);
+        return auctionService.placeBid(auctionId, Long.parseLong(text), member.getId());
+    }
+
+    private Row row(AuctionResponse r, Long memberId, boolean participates) {
+        long current = r.currentBid() == null ? 0 : r.currentBid();
+        int mine = leads(r, memberId) ? 2 : participates ? 1 : 0;
+        String leader = r.tied() && r.tiedMemberNicknames() != null && r.tiedMemberNicknames().size() > 1
+            ? String.join(", ", r.tiedMemberNicknames())
+            : r.leaderNickname() == null ? "" : r.leaderNickname();
+        long ends = r.status() == AuctionStatus.PAUSED && r.pausedRemainingMs() != null
+            ? clock.instant().plusMillis(r.pausedRemainingMs()).getEpochSecond()
+            : r.endsAt() == null ? 0 : r.endsAt().getEpochSecond();
+        String code = firstCode(r);
+        return new Row(r.id(), r.status().name(), ends, current, minBid(current), mine, clean(leader, 60), items(r),
+            cards.effects(code), cards.iconKey(code));
+    }
+
+    private static boolean leads(AuctionResponse r, Long memberId) {
+        if (r.tiedMemberIds() != null && r.tiedMemberIds().contains(memberId)) return true;
+        return memberId.equals(r.leaderId());
+    }
+
+    private static Message message(AuctionMessage m) {
+        return new Message(m.getCreatedAt().getEpochSecond(), m.getType(), clean(m.getContent(), 200));
+    }
+
+    /** Uma linha só, sem TAB, cortada. */
+    static String clean(String text, int max) {
+        if (text == null) return "";
+        String out = text.replaceAll("[\\p{Cntrl}\\u2028\\u2029]+", " ").replaceAll(" {2,}", " ").trim();
+        return out.length() > max ? out.substring(0, max - 1) + "…" : out;
+    }
+
+    private static AppException notMember() {
+        return new AppException("Personagem sem conta aprovada no site.", HttpStatus.FORBIDDEN);
+    }
+
+    private Optional<Member> member(String character) {
+        if (character == null || character.isBlank() || character.length() > 32) return Optional.empty();
+        return members.findByGameCharacter(character.strip()).stream().filter(AuctionGameService::eligible).findFirst();
+    }
+
 
     /** Testes: esquece os leilões guardados. */
     void forget() {

@@ -435,7 +435,21 @@ public class AuctionService {
         publishPointsUpdate(actorId);
         // Outbid leaders get their reserve released (a tie keeps it reserved, but refresh anyway).
         previousLeaders.forEach(this::publishPointsUpdate);
+        // Superados (não no empate, em que continuam com o maior lance): aviso só para eles no site.
+        if (!tie) {
+            var items = activeItems.getOrDefault(auctionId, List.of());
+            for (Long outbid : previousLeaders) {
+                webSocketPublisher.publishAuctionOutbid(outbid, Map.of(
+                        "auctionId", auctionId, "amount", amount, "bidder", member.getNickname(), "items", items));
+            }
+        }
         return response;
+    }
+
+    /** Leilões em andamento em que o membro já deu lance (abas "participando" do site). */
+    @Transactional(readOnly = true)
+    public List<Long> participatingIds(Long memberId) {
+        return auctionBidRepository.findAuctionIdsBidBy(memberId, ACTIVE_STATUSES);
     }
 
     @Transactional

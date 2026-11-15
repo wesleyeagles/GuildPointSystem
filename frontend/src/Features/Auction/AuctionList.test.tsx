@@ -13,6 +13,7 @@ const state = vi.hoisted(() => ({
   lookup: vi.fn(),
   confirm: vi.fn(),
   toast: vi.fn(),
+  participating: [] as number[],
 }))
 vi.mock('@/Shared/api/client', () => ({
   apiClient: state.lookup,
@@ -33,9 +34,10 @@ vi.mock('@/Domain/Auction/hooks/useAuction', () => ({
   useAuctionAdminAction: () => ({}),
   useStartAuctionBatch: () => ({ mutateAsync: state.startBatch }),
   useConfirmAuctionDelivery: () => ({ mutateAsync: state.confirm }),
+  useParticipatingAuctions: () => ({ data: state.participating }),
 }))
 vi.mock('@/Domain/Discord/hooks/useDiscordMembers', () => ({ useDiscordBySiteMember: () => new Map() }))
-vi.mock('@/Features/Auth/contexts/AuthContext', () => ({ useAuthContext: () => ({ hasRole: () => state.admin }) }))
+vi.mock('@/Features/Auth/contexts/AuthContext', () => ({ useAuthContext: () => ({ hasRole: () => state.admin, user: { memberId: 7 } }) }))
 vi.mock('@/Shared/ui/components/AppToast/AppToast', () => ({ useAppToast: () => ({ showToast: state.toast }) }))
 vi.mock('./components/AuctionItemPicker/AuctionItemPicker', () => ({
   AuctionItemPicker: ({ itemId, onChange }: { itemId: number; onChange: (id: number) => void }) => (
@@ -64,6 +66,7 @@ afterEach(() => {
   state.lookup.mockReset()
   state.confirm.mockReset()
   vi.unstubAllEnvs()
+  state.participating = []
   vi.unstubAllGlobals()
 })
 
@@ -382,4 +385,34 @@ it('shows each item quantity in its own badge, separate from numbers in the name
     expect(title.parentElement?.querySelector(`[aria-label="${label}"]`)).not.toBeNull()
   }
   expect(screen.queryByText('500 CASH COIN x10')).toBeNull()
+})
+
+it('shows a tab per auction I bid on, with a crown where I am winning, and filters the list', () => {
+  state.admin = false
+  const endsAt = new Date(Date.now() + 3_600_000).toISOString()
+  const base = sampleAuction(endsAt)
+  state.auctions = [
+    { ...base, id: 1, leaderId: 7, items: [{ ...base.items[0], itemName: 'Ganhando' }] },
+    { ...base, id: 2, leaderId: 9, items: [{ ...base.items[0], itemName: 'Superado' }] },
+    { ...base, id: 3, leaderId: 9, items: [{ ...base.items[0], itemName: 'Outro' }] },
+  ]
+  state.participating = [1, 2]
+  render(<MemoryRouter><AuctionListPage /></MemoryRouter>)
+  const tabs = screen.getAllByRole('tab')
+  expect(tabs.map((t) => t.textContent)).toEqual([
+    expect.stringContaining('Todos'), expect.stringContaining('#001'), expect.stringContaining('#002'),
+  ])
+  expect(tabs[1].querySelector('[aria-label="Ganhando"]')).not.toBeNull()
+  expect(tabs[2].querySelector('[aria-label="Ganhando"]')).toBeNull()
+  expect(screen.getAllByText('Outro').length).toBeGreaterThan(0)
+  fireEvent.click(tabs[2])
+  expect(screen.queryByText('Outro')).toBeNull()
+  expect(tabs[2]).toHaveAttribute('aria-selected', 'true')
+})
+
+it('has no tabs when I am not in any running auction', () => {
+  state.admin = false
+  state.auctions = [sampleAuction(new Date(Date.now() + 3_600_000).toISOString())]
+  render(<MemoryRouter><AuctionListPage /></MemoryRouter>)
+  expect(screen.queryByRole('tablist')).toBeNull()
 })

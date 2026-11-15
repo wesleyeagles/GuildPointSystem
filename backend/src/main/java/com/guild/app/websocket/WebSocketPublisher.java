@@ -58,6 +58,11 @@ public class WebSocketPublisher {
         send("/topic/auctions/" + auctionId + "/viewers", payload);
     }
 
+    /** Só para quem tinha o maior lance e foi superado. */
+    public void publishAuctionOutbid(Long memberId, Object payload) {
+        send("/topic/auctions/outbid/" + memberId, payload);
+    }
+
     public void publishAuctionList(Object payload) {
         send("/topic/auctions", payload);
     }

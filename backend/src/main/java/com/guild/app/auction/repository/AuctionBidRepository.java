@@ -4,6 +4,9 @@ import com.guild.app.auction.entity.AuctionBid;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
+import com.guild.app.common.enums.AuctionStatus;
+
+import java.util.Collection;
 import java.util.List;
 
 public interface AuctionBidRepository extends JpaRepository<AuctionBid, Long> {
@@ -16,4 +19,15 @@ public interface AuctionBidRepository extends JpaRepository<AuctionBid, Long> {
             ORDER BY MIN(b.id) ASC
             """)
     List<Long> findTiedMemberIds(Long auctionId, Long amount);
+
+    /** Auctions in these statuses where the member has placed at least one bid. */
+    @Query("""
+            SELECT DISTINCT b.auction.id FROM AuctionBid b
+            WHERE b.member.id = :memberId AND b.auction.status IN :statuses
+            """)
+    List<Long> findAuctionIdsBidBy(Long memberId, Collection<AuctionStatus> statuses);
+
+    /** Latest bid of the auction (null = none): identifies the bid that outbid someone. */
+    @Query("SELECT MAX(b.id) FROM AuctionBid b WHERE b.auction.id = :auctionId")
+    Long findLatestBidId(Long auctionId);
 }

@@ -93,7 +93,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/events/game").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/events/game/*/claim").permitAll()
                         // Aviso de leilao aberto no jogo pela DLL: so responde a personagem de membro aprovado.
-                        .requestMatchers(HttpMethod.GET, "/api/auctions/game").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/auctions/game", "/api/auctions/game/**").permitAll()
+                        // Lance pelo jogo (card de lance superado e janela de leiloes): mesmas regras do site.
+                        .requestMatchers(HttpMethod.POST, "/api/auctions/game/*/bid").permitAll()
                         // Pontos por aproximacao pela DLL da referencia: so responde a personagem de membro aprovado.
                         .requestMatchers(HttpMethod.GET, "/api/proximity-points/game").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/proximity-points/game/*").permitAll()

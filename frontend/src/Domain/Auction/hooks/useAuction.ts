@@ -19,6 +19,7 @@ export const auctionKeys = {
   detail: (id: number) => ['auctions', id] as const,
   messages: (id: number) => ['auctions', id, 'messages'] as const,
   tieBreak: (id: number) => ['auctions', id, 'tieBreak'] as const,
+  participating: ['auctions', 'participating'] as const,
 }
 
 // ─── Server clock ─────────────────────────────────────────────────────────────
@@ -318,6 +319,7 @@ export function usePlaceBid() {
     onSuccess: (auction) => {
       if (auction) applyAuction(queryClient, auction)
       queryClient.invalidateQueries({ queryKey: memberKeys.me })
+      queryClient.invalidateQueries({ queryKey: auctionKeys.participating, exact: true })
     },
   })
 }
@@ -451,4 +453,38 @@ export function usePointsSubscription(memberId: number | undefined) {
       queryClient.invalidateQueries({ queryKey: memberKeys.all })
     })
   }, [memberId, queryClient])
+}
+
+/** Ids dos leilões em andamento em que o membro logado já deu lance (abas da lista). */
+export function useParticipatingAuctions(enabled = true) {
+  const queryClient = useQueryClient()
+  useEffect(
+    () => onSocketReconnect(() => queryClient.invalidateQueries({ queryKey: auctionKeys.participating, exact: true })),
+    [queryClient],
+  )
+  return useQuery({
+    queryKey: auctionKeys.participating,
+    queryFn: () => apiClient<number[]>('/auctions/participating'),
+    enabled,
+    staleTime: 30_000,
+  })
+}
+
+/** Aviso privado de que outro membro passou o seu lance. */
+export interface AuctionOutbid {
+  auctionId: number
+  amount: number
+  bidder: string
+  items: Auction['items']
+}
+
+export function useAuctionOutbidSubscription(memberId: number | undefined, onOutbid: (outbid: AuctionOutbid) => void) {
+  const queryClient = useQueryClient()
+  useEffect(() => {
+    if (!memberId) return
+    return subscribeTopicEffect(`/topic/auctions/outbid/${memberId}`, (message) => {
+      queryClient.invalidateQueries({ queryKey: auctionKeys.participating, exact: true })
+      onOutbid(JSON.parse(message.body) as AuctionOutbid)
+    })
+  }, [memberId, onOutbid, queryClient])
 }

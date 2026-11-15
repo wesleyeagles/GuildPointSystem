@@ -15,6 +15,7 @@ import { EventHeaderTimers } from '@/Shared/ui/Layout/EventHeaderTimers'
 import { SCHEDULE_TIME_ZONE, SERVER_TIME_ZONE } from '@/Shared/utils/scheduleTimeZone'
 import { ScheduleAlertListener } from '@/Features/Schedule/ScheduleAlertListener'
 import { AuctionCreatedListener } from '@/Features/Auction/AuctionCreatedListener'
+import { AuctionOutbidListener } from '@/Features/Auction/AuctionOutbidListener'
 import { AuctionNavBadge } from '@/Features/Auction/components/AuctionNavBadge/AuctionNavBadge'
 import { AccountDeletedListener } from '@/Features/Auth/AccountDeletedListener'
 import { PartyGameInviteListener } from '@/Features/Party/PartyGameInviteListener'
@@ -156,6 +157,7 @@ function LayoutShell() {
     <div className={`layout${drawerOpen ? ' layout--drawer-open' : ''}`}>
       <ScheduleAlertListener />
       <AuctionCreatedListener />
+      <AuctionOutbidListener />
       <AccountDeletedListener />
       <PartyGameInviteListener />
       {hasRole('MODERADOR') && <ApprovalsListener />}

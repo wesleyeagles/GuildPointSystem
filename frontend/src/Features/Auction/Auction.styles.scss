@@ -623,3 +623,55 @@
   0%, 100% { border-color: rgba(theme.$color-amber, 0.35); }
   50%      { border-color: rgba(theme.$color-amber, 0.8); }
 }
+
+// ── Abas "participando" acima de Em andamento ────────────────────────────────
+.auction-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: theme.$spacing-xs;
+  margin-bottom: calc(-1 * theme.$spacing-lg + theme.$spacing-xs);
+
+  &__tab {
+    display: inline-flex;
+    align-items: center;
+    gap: theme.$spacing-sm;
+    max-width: 320px;
+    padding: theme.$spacing-xs theme.$spacing-md;
+    background: theme.$metal-700;
+    border: 1px solid theme.$color-border;
+    border-bottom-width: 2px;
+    color: theme.$color-text-muted;
+    font-family: theme.$font-heading;
+    font-size: theme.$font-size-ui;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+
+    &:hover { color: theme.$color-text; border-color: theme.$color-border-strong; }
+
+    &.is-active {
+      background: theme.$metal-600;
+      color: theme.$color-text;
+      border-bottom-color: theme.$color-primary;
+    }
+
+    &.is-leading { border-bottom-color: theme.$color-amber; }
+    &.is-leading.is-active { color: theme.$color-amber; }
+    &.is-outbid .auction-tabs__bid { color: theme.$color-danger; }
+  }
+
+  &__name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__count,
+  &__bid {
+    font-family: theme.$font-mono;
+    color: theme.$color-amber;
+  }
+
+  &__crown { font-size: 1.05em; line-height: 1; }
+  &__outbid { color: theme.$color-danger; font-size: 0.8em; }
+}

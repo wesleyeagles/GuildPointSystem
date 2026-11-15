@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
 import java.util.List;
 
 public interface AuctionMessageRepository extends JpaRepository<AuctionMessage, Long> {
@@ -18,4 +19,7 @@ public interface AuctionMessageRepository extends JpaRepository<AuctionMessage, 
             ORDER BY m.createdAt ASC
             """)
     List<AuctionMessage> findByAuctionIdOrderByCreatedAtAsc(@Param("auctionId") Long auctionId);
+
+    /** Latest messages of these types (lances e avisos do sistema, sem o chat), newest first. */
+    List<AuctionMessage> findTop30ByAuction_IdAndTypeInOrderByIdDesc(Long auctionId, Collection<String> types);
 }
