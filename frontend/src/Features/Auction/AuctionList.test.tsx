@@ -101,6 +101,7 @@ it('prepares the exact Relic and quantity from the closed list without recording
   await waitFor(() => expect(bridge).toHaveBeenCalledOnce())
   expect(JSON.parse(bridge.mock.calls[0][1].body)).toEqual({
     sender: 'boi', recipient: 'BladeRunner', itemCode: 'iyfig89', quantity: 3,
+    tracking: expect.stringMatching(/^[0-9a-f]{32}$/),
   })
   expect(state.confirm).not.toHaveBeenCalled()
   fireEvent.click(screen.getByRole('button', { name: 'Confirmar envio' }))
@@ -152,6 +153,30 @@ it('resolves the guild cash coin item to the agreed boi token and the lot quanti
   fireEvent.click(screen.getByRole('button', { name: 'Enviar item' }))
   await waitFor(() => expect(bridge).toHaveBeenCalledOnce())
   expect(JSON.parse(bridge.mock.calls[0][1].body)).toMatchObject({ itemCode: 'ipcss04', quantity: 10 })
+})
+
+it.each(['sent', 'rejected'])('records delivery only for a matching bridge receipt (%s)', async (delivery) => {
+  state.admin = true
+  state.auctions = [closedAuctionWithRelic()]
+  vi.stubEnv('VITE_GAME_MAIL_PREVIEW', 'true')
+  let statusReply: (response: Response) => void = () => undefined
+  const bridge = vi.fn()
+    .mockResolvedValueOnce(Response.json({ tracking: true }))
+    .mockImplementationOnce(() => new Promise<Response>((resolve) => { statusReply = resolve }))
+  vi.stubGlobal('fetch', bridge)
+  render(<MemoryRouter><AuctionListPage /></MemoryRouter>)
+  fireEvent.click(screen.getByRole('button', { name: 'Enviar item' }))
+  await waitFor(() => expect(bridge).toHaveBeenCalledTimes(2))
+  expect(bridge.mock.calls[1][0]).toMatch(/\/delivery-status$/)
+  expect(JSON.parse(bridge.mock.calls[1][1].body).tracking).toBe(JSON.parse(bridge.mock.calls[0][1].body).tracking)
+  expect(state.confirm).not.toHaveBeenCalled()
+  statusReply(Response.json({ delivery }))
+  if (delivery === 'sent') await waitFor(() => expect(state.confirm).toHaveBeenCalledExactlyOnceWith(42))
+  else {
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(state.confirm).not.toHaveBeenCalled()
+    expect(screen.getByRole('button', { name: 'Confirmar envio' })).toBeVisible()
+  }
 })
 
 it('uses the same Brasília deadline for new auctions and pending lots', async () => {

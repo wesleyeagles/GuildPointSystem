@@ -463,7 +463,10 @@ export function AuctionDetailPage() {
                     {canPrepareMail && (
                       <Button size="sm" variant="secondary" loading={preparingMail} onClick={() => {
                         const resolveAttachment = canResolveAuctionMailAttachment(auction) ? () => resolveAuctionMailAttachment(auction) : undefined
-                        if (auction.winnerNickname) void prepareMail(auction.winnerNickname, resolveAttachment)
+                        if (auction.winnerNickname) void prepareMail(auction.winnerNickname, resolveAttachment, async () => {
+                          await confirmDelivery.mutateAsync(auctionId)
+                          showToast('Envio confirmado pelo jogo.', 'success')
+                        })
                       }}>Preparar carta ({mailSender})</Button>
                     )}
                     <Button size="sm" onClick={() => setConfirm('delivery')}>Confirmar envio</Button>
