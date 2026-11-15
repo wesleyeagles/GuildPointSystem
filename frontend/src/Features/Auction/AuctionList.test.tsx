@@ -140,6 +140,20 @@ it('explains when an auction item has no catalog code for an attachment', async 
   expect(JSON.parse(bridge.mock.calls[0][1].body)).toEqual({ sender: 'boi', recipient: 'BladeRunner' })
 })
 
+it('resolves the guild cash coin item to the agreed boi token and the lot quantity', async () => {
+  state.admin = true
+  const auction = closedAuctionWithRelic()
+  state.auctions = [{ ...auction, id: 49, items: [{ ...auction.items[0], quantity: 10, gameIcon: null }] }]
+  state.lookup.mockResolvedValue({ id: 17, name: '500 CASH COIN', type: 'MISC', gameCode: null })
+  vi.stubEnv('VITE_GAME_MAIL_PREVIEW', 'true')
+  const bridge = vi.fn().mockResolvedValue(Response.json({ message: 'Carta preparada.' }))
+  vi.stubGlobal('fetch', bridge)
+  render(<MemoryRouter><AuctionListPage /></MemoryRouter>)
+  fireEvent.click(screen.getByRole('button', { name: 'Enviar item' }))
+  await waitFor(() => expect(bridge).toHaveBeenCalledOnce())
+  expect(JSON.parse(bridge.mock.calls[0][1].body)).toMatchObject({ itemCode: 'ipcss04', quantity: 10 })
+})
+
 it('uses the same Brasília deadline for new auctions and pending lots', async () => {
   state.admin = true
   state.now = Date.parse('2026-11-14T00:00:00Z') // 21h on November 13 in Brasília
