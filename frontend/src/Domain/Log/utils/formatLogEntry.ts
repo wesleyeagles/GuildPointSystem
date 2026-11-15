@@ -176,11 +176,10 @@ export function formatLogDetails(log: AuditLogEntry): string {
     case 'AUCTION_DELIVERED':
       return `#${str(p.auctionId)}`
     case 'AUCTION_CLOSED': {
-      const winner =
-        p.winnerId === 'none' || p.winnerId == null
-          ? 'Sem vencedor'
-          : `Vencedor #${str(p.winnerId)}`
-      return `${winner} · ${str(p.amount)} pts`
+      if (p.winnerId === 'none' || p.winnerId == null) return `#${str(p.auctionId)} · Sem vencedor`
+      // O vencedor aparece como "Membro" do log; aqui vai o que saiu dos pontos dele.
+      const charged = p.charged ?? p.amount
+      return `#${str(p.auctionId)} · Vencedor: -${str(charged)} pts (lance ${str(p.amount)})`
     }
     case 'AUCTION_CANCELLED': {
       const released = Array.isArray(p.releasedMemberIds) ? p.releasedMemberIds.length : 0

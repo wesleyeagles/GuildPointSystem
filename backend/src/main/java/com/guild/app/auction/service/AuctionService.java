@@ -780,8 +780,9 @@ public class AuctionService {
 
         long charged = 0;
         String winnerNickname = null;
+        Member winner = null;
         if (winnerId != null) {
-            var winner = memberRepository.findByIdForUpdate(winnerId).orElseThrow();
+            winner = memberRepository.findByIdForUpdate(winnerId).orElseThrow();
             winnerNickname = winner.getNickname();
             // Reserve rules make this the full bid; cap it so an admin correction can't wedge the scheduler.
             charged = Math.min(auction.getCurrentBid(), Math.max(0, winner.getPoints()));
@@ -792,7 +793,8 @@ public class AuctionService {
             publishPointsUpdate(winnerId);
         }
 
-        auditLogService.log(AuditLogType.AUCTION_CLOSED, auction.getCreatedBy(), null, Map.of(
+        // Vencedor como membro do log: a cobrança aparece no filtro por membro e no perfil de quem ganhou.
+        auditLogService.log(AuditLogType.AUCTION_CLOSED, auction.getCreatedBy(), winner, Map.of(
                 "auctionId", auction.getId(),
                 "winnerId", winnerId != null ? winnerId : "none",
                 "amount", auction.getCurrentBid(),
