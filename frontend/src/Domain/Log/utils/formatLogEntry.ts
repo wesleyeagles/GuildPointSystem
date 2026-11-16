@@ -116,7 +116,7 @@ export function formatLogDetails(log: AuditLogEntry): string {
     case 'MEME_VIDEO_SENT':
       return `${str(p.video)}${p.start ? ` (a partir de ${str(p.start)} s)` : ''}`
     case 'ROULETTE_SPUN':
-      return `${str(p.prize)} · Vencedor: ${str(p.winner)}${Array.isArray(p.entries) ? ` · Na roleta: ${p.entries.join(', ')}` : ''}${p.leadersOnly ? ' · Só o Líder viu (teste)' : ''}`
+      return `${str(p.prize)} · Vencedor: ${str(p.winner)}${Array.isArray(p.entries) ? ` · Na roleta: ${p.entries.join(', ')}` : ''}${p.allMembers ? ' · Todos viram' : p.viewers ? ` · ${str(p.viewers)} viram` : ''}`
     case 'RESOURCE_ACCESS_UPDATED':
       return Array.isArray(p.trackers) && p.trackers.length ? `Liberados: ${p.trackers.join(', ')}` : 'Ninguém'
     case 'RESOURCE_MOB_UPDATED':

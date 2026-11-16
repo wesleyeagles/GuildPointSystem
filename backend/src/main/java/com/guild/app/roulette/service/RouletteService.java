@@ -31,6 +31,7 @@ import java.util.function.IntUnaryOperator;
 /**
  * Roleta no jogo: Admin/Líder escolhe os membros e escreve o prêmio (ou o motivo). O vencedor é sorteado aqui, na
  * hora de criar; a DLL (1.47.0+) busca em GET /api/roulettes/game e mostra a roleta no meio da tela de quem pode ver.
+ * Quem vê é escolhido na criação: uma lista de membros (ex.: só os participantes) ou todos os membros.
  * Todo mundo vê a mesma coisa porque a resposta traz quanto tempo passou desde a criação:
  * {@link #LEAD} de contagem, {@link #SPIN} girando e {@link #HOLD} mostrando o vencedor. Uma roleta por vez.
  */
@@ -55,10 +56,11 @@ public class RouletteService {
     /** Testes: sorteio previsível (recebe o número de participantes, devolve a posição). */
     public void useDraw(Random random) { draw = random::nextInt; }
 
-    public record NewRoulette(String prize, List<Long> memberIds, Boolean leadersOnly) {}
-    /** winner fica null até a roleta parar (o site não estraga a surpresa). */
-    public record Sent(long id, String prize, String createdBy, boolean leadersOnly, List<String> entries, String winner,
-                       Instant createdAt, boolean spinning) {}
+    /** viewerIds: quem vê no jogo; ignorado com allMembers. */
+    public record NewRoulette(String prize, List<Long> memberIds, List<Long> viewerIds, Boolean allMembers) {}
+    /** winner fica null até a roleta parar (o site não estraga a surpresa). viewers vazio com allMembers. */
+    public record Sent(long id, String prize, String createdBy, boolean allMembers, List<String> viewers, List<String> entries,
+                       String winner, Instant createdAt, boolean spinning) {}
     /** Vazio para quem não é Admin/Líder. */
     public record View(boolean canCreate, List<Sent> recent) {}
     public record GameRoulette(long id, long elapsedMs, int winner, String prize, List<String> entries) {}
@@ -89,18 +91,21 @@ public class RouletteService {
 
     private List<Sent> recent() {
         Instant now = clock.instant();
-        record Row(long id, String prize, String by, boolean leadersOnly, int winner, Instant createdAt) {}
+        record Row(long id, String prize, String by, boolean allMembers, int winner, Instant createdAt) {}
         List<Row> rows = jdbc.query("""
             SELECT r.*, m.nickname AS creator FROM roulette r LEFT JOIN member m ON m.id=r.created_by
             ORDER BY r.created_at DESC, r.id DESC LIMIT 15""",
-            (r, n) -> new Row(r.getLong("id"), r.getString("prize"), r.getString("creator"), r.getBoolean("leaders_only"),
+            (r, n) -> new Row(r.getLong("id"), r.getString("prize"), r.getString("creator"), r.getBoolean("all_viewers"),
                 r.getInt("winner_index"), r.getTimestamp("created_at").toInstant()));
         List<Sent> out = new ArrayList<>();
         for (Row row : rows) {
             List<String> entries = entries(row.id());
             boolean spinning = now.isBefore(row.createdAt().plus(LEAD).plus(SPIN));
             String winner = spinning || row.winner() >= entries.size() ? null : entries.get(row.winner());
-            out.add(new Sent(row.id(), row.prize(), row.by(), row.leadersOnly(), entries, winner, row.createdAt(), spinning));
+            List<String> viewers = row.allMembers() ? List.of() : jdbc.queryForList("""
+                SELECT m.nickname FROM roulette_viewer v JOIN member m ON m.id=v.member_id WHERE v.roulette_id=?
+                ORDER BY lower(m.nickname)""", String.class, row.id());
+            out.add(new Sent(row.id(), row.prize(), row.by(), row.allMembers(), viewers, entries, winner, row.createdAt(), spinning));
         }
         return out;
     }
@@ -122,32 +127,42 @@ public class RouletteService {
         if (ids.size() < MIN_ENTRIES) throw new AppException("Escolha pelo menos " + MIN_ENTRIES + " membros.", HttpStatus.BAD_REQUEST);
         if (ids.size() > MAX_ENTRIES) throw new AppException("No máximo " + MAX_ENTRIES + " membros na roleta.", HttpStatus.BAD_REQUEST);
         List<Member> entrants = new ArrayList<>();
-        for (Long id : ids) {
-            Member m = members.findById(id).filter(RouletteService::eligible)
-                .orElseThrow(() -> new AppException("Membro não encontrado", HttpStatus.NOT_FOUND));
-            entrants.add(m);
+        for (Long id : ids) entrants.add(eligibleMember(id));
+        boolean allMembers = Boolean.TRUE.equals(body.allMembers());
+        LinkedHashSet<Long> viewerIds = new LinkedHashSet<>();
+        if (!allMembers) {
+            if (body.viewerIds() != null) viewerIds.addAll(body.viewerIds());
+            viewerIds.remove(null);
+            if (viewerIds.isEmpty()) throw new AppException("Escolha quem vê a roleta no jogo.", HttpStatus.BAD_REQUEST);
+            for (Long id : viewerIds) eligibleMember(id);
         }
         Instant now = clock.instant();
         // Uma por vez: a de agora ainda está na tela de alguém.
         if (Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM roulette WHERE created_at>?)",
                 Boolean.class, Timestamp.from(now.minus(SHOWN)))))
             throw new AppException("Já tem uma roleta girando. Espere ela terminar.", HttpStatus.CONFLICT);
-        boolean leadersOnly = !Boolean.FALSE.equals(body.leadersOnly());
         int winner = draw.applyAsInt(entrants.size());
         if (winner < 0 || winner >= entrants.size()) winner = 0;
         Long id = jdbc.queryForObject("""
-            INSERT INTO roulette(created_by,prize,leaders_only,winner_index,created_at) VALUES(?,?,?,?,?) RETURNING id""",
-            Long.class, admin.getId(), prize, leadersOnly, winner, Timestamp.from(now));
+            INSERT INTO roulette(created_by,prize,all_viewers,winner_index,created_at) VALUES(?,?,?,?,?) RETURNING id""",
+            Long.class, admin.getId(), prize, allMembers, winner, Timestamp.from(now));
         for (int i = 0; i < entrants.size(); i++)
             jdbc.update("INSERT INTO roulette_entry(roulette_id,position,member_id,nickname) VALUES(?,?,?,?)",
                 id, i, entrants.get(i).getId(), entrants.get(i).getNickname());
+        for (Long viewer : viewerIds) jdbc.update("INSERT INTO roulette_viewer(roulette_id,member_id) VALUES(?,?)", id, viewer);
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("prize", prize);
         payload.put("winner", entrants.get(winner).getNickname());
         payload.put("entries", entrants.stream().map(Member::getNickname).toList());
-        if (leadersOnly) payload.put("leadersOnly", true);
+        if (allMembers) payload.put("allMembers", true);
+        else payload.put("viewers", viewerIds.size());
         audit.log(AuditLogType.ROULETTE_SPUN, admin, entrants.get(winner), payload);
         return new View(true, recent());
+    }
+
+    private Member eligibleMember(Long id) {
+        return members.findById(id).filter(RouletteService::eligible)
+            .orElseThrow(() -> new AppException("Membro não encontrado", HttpStatus.NOT_FOUND));
     }
 
     // ---------------------------------------------------------------- jogo
@@ -158,16 +173,19 @@ public class RouletteService {
         if (character == null || character.isBlank() || character.length() > 32) return Optional.empty();
         Instant now = clock.instant();
         // A DLL de todo mundo consulta a cada 5 s: sem roleta na tela, nem procura o membro.
-        record Row(long id, boolean leadersOnly, int winner, String prize, Instant createdAt) {}
+        record Row(long id, boolean allMembers, int winner, String prize, Instant createdAt) {}
         Optional<Row> row = jdbc.query("""
-            SELECT id,leaders_only,winner_index,prize,created_at FROM roulette WHERE created_at>? AND created_at<=?
+            SELECT id,all_viewers,winner_index,prize,created_at FROM roulette WHERE created_at>? AND created_at<=?
             ORDER BY created_at DESC, id DESC LIMIT 1""",
             (r, n) -> new Row(r.getLong(1), r.getBoolean(2), r.getInt(3), r.getString(4), r.getTimestamp(5).toInstant()),
             Timestamp.from(now.minus(SHOWN)), Timestamp.from(now)).stream().findFirst();
         if (row.isEmpty()) return Optional.empty();
         Optional<Member> member = members.findByGameCharacter(character.strip()).stream().filter(RouletteService::eligible).findFirst();
         if (member.isEmpty()) return Optional.empty();
-        if (row.get().leadersOnly() && member.get().getRole() != Role.LIDER) return Optional.empty();
+        if (!row.get().allMembers() && !Boolean.TRUE.equals(jdbc.queryForObject(
+                "SELECT EXISTS(SELECT 1 FROM roulette_viewer WHERE roulette_id=? AND member_id=?)",
+                Boolean.class, row.get().id(), member.get().getId())))
+            return Optional.empty();
         List<String> entries = entries(row.get().id());
         if (row.get().winner() >= entries.size()) return Optional.empty();
         long elapsed = Duration.between(row.get().createdAt(), now).toMillis();

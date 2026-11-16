@@ -256,13 +256,16 @@
   }
 }
 
-.chat-glossary__list-row {
-  display: flex;
-  align-items: flex-start;
-  gap: theme.$spacing-sm;
-  margin-bottom: theme.$spacing-sm;
+.roulette {
+  &__row {
+    align-items: center;
+    margin: 0 0 theme.$spacing-sm;
+  }
 
-  .chat-glossary__list { flex: 1; }
+  &__chips {
+    flex-basis: 100%;
+    order: 10;
+  }
 }
 
 .market-watch {

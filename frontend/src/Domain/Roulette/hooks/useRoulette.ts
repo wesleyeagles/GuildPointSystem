@@ -10,8 +10,10 @@ export interface SentRoulette {
   id: number
   prize: string
   createdBy: string | null
-  /** Teste: só personagem de Líder vê no jogo. */
-  leadersOnly: boolean
+  /** Todos os membros veem no jogo (viewers vem vazio). */
+  allMembers: boolean
+  /** Quem vê no jogo, quando não são todos. */
+  viewers: string[]
   entries: string[]
   /** Fica null enquanto a roleta gira (não estraga a surpresa). */
   winner: string | null
@@ -37,7 +39,7 @@ export function useRoulettes() {
 export function useCreateRoulette() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (body: { prize: string; memberIds: number[]; leadersOnly: boolean }) =>
+    mutationFn: (body: { prize: string; memberIds: number[]; viewerIds: number[]; allMembers: boolean }) =>
       apiClient<RouletteView>('/roulettes', { method: 'POST', body }),
     onSuccess: (data) => queryClient.setQueryData(rouletteKeys.all, data),
   })

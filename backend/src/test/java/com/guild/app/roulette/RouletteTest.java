@@ -72,22 +72,22 @@ class RouletteTest {
     @Test void onlyAdminOrLeaderCreates() {
         assertFalse(service.view(as(aId)).canCreate());
         AppException e = assertThrows(AppException.class,
-            () -> service.create(new NewRoulette("Arma +7", List.of(aId, bId), true), as(aId)));
+            () -> service.create(new NewRoulette("Arma +7", List.of(aId, bId), List.of(adminId), false), as(aId)));
         assertEquals(403, e.getStatus().value());
         assertTrue(service.view(as(adminId)).canCreate());
     }
 
     @Test void validatesPrizeAndEntries() {
-        assertThrows(AppException.class, () -> service.create(new NewRoulette("  ", List.of(aId, bId), true), as(adminId)));
-        assertThrows(AppException.class, () -> service.create(new NewRoulette("x".repeat(61), List.of(aId, bId), true), as(adminId)));
+        assertThrows(AppException.class, () -> service.create(new NewRoulette("  ", List.of(aId, bId), List.of(adminId), false), as(adminId)));
+        assertThrows(AppException.class, () -> service.create(new NewRoulette("x".repeat(61), List.of(aId, bId), List.of(adminId), false), as(adminId)));
         // Repetido conta uma vez: só um membro.
-        assertThrows(AppException.class, () -> service.create(new NewRoulette("Arma", List.of(aId, aId), true), as(adminId)));
-        assertThrows(AppException.class, () -> service.create(new NewRoulette("Arma", List.of(aId, 999_999_999L), true), as(adminId)));
+        assertThrows(AppException.class, () -> service.create(new NewRoulette("Arma", List.of(aId, aId), List.of(adminId), false), as(adminId)));
+        assertThrows(AppException.class, () -> service.create(new NewRoulette("Arma", List.of(aId, 999_999_999L), List.of(adminId), false), as(adminId)));
     }
 
     @Test void drawsWinnerAndHidesItWhileSpinning() {
         service.useDraw(new Random(1) { @Override public int nextInt(int bound) { return 1; } });
-        Sent sent = service.create(new NewRoulette("  Arma\t+7\n PvP ", List.of(aId, bId), false), as(leaderId)).recent().get(0);
+        Sent sent = service.create(new NewRoulette("  Arma\t+7\n PvP ", List.of(aId, bId), List.of(), true), as(leaderId)).recent().get(0);
         assertEquals("Arma +7 PvP", sent.prize());
         assertEquals(List.of(a, b), sent.entries());
         assertTrue(sent.spinning());
@@ -100,30 +100,41 @@ class RouletteTest {
     }
 
     @Test void oneAtATime() {
-        service.create(new NewRoulette("Um", List.of(aId, bId), true), as(adminId));
+        service.create(new NewRoulette("Um", List.of(aId, bId), List.of(adminId), false), as(adminId));
         AppException e = assertThrows(AppException.class,
-            () -> service.create(new NewRoulette("Dois", List.of(aId, bId), true), as(adminId)));
+            () -> service.create(new NewRoulette("Dois", List.of(aId, bId), List.of(adminId), false), as(adminId)));
         assertEquals(409, e.getStatus().value());
         at(NOW.plus(RouletteService.SHOWN).plusSeconds(1));
-        assertDoesNotThrow(() -> service.create(new NewRoulette("Dois", List.of(aId, bId), true), as(adminId)));
+        assertDoesNotThrow(() -> service.create(new NewRoulette("Dois", List.of(aId, bId), List.of(adminId), false), as(adminId)));
     }
 
-    @Test void gameShowsOnlyToLeaderWhileTesting() throws Exception {
+    @Test void gameShowsOnlyToChosenViewers() throws Exception {
         service.useDraw(new Random(1) { @Override public int nextInt(int bound) { return 0; } });
-        long id = service.create(new NewRoulette("Capa rara", List.of(aId, bId, leaderId), true), as(adminId)).recent().get(0).id();
+        long id = service.create(new NewRoulette("Capa rara", List.of(aId, bId, leaderId), List.of(leaderId, bId), false), as(adminId))
+            .recent().get(0).id();
+        Sent sent = service.view(as(adminId)).recent().get(0);
+        assertFalse(sent.allMembers());
+        assertEquals(2, sent.viewers().size());
         at(NOW.plusMillis(1500));
         MvcResult r = game(leader);
         assertEquals(200, r.getResponse().getStatus());
         assertEquals(id + "\t1500\t7000\t10000\t12000\t0\tCapa rara\n" + a + "\n" + b + "\n" + leader + "\n",
             r.getResponse().getContentAsString(StandardCharsets.UTF_8));
-        assertEquals(204, game(a).getResponse().getStatus());
+        assertEquals(200, game(b).getResponse().getStatus());
+        assertEquals(204, game(a).getResponse().getStatus());  // participa, mas não foi escolhido para ver
         assertEquals(204, game("ninguem").getResponse().getStatus());
         at(NOW.plus(RouletteService.SHOWN).plusMillis(1));
         assertEquals(204, game(leader).getResponse().getStatus());
     }
 
+    @Test void needsSomeoneToWatch() {
+        AppException e = assertThrows(AppException.class,
+            () -> service.create(new NewRoulette("Arma", List.of(aId, bId), List.of(), false), as(adminId)));
+        assertEquals(400, e.getStatus().value());
+    }
+
     @Test void gameShowsToEveryoneWhenOpen() throws Exception {
-        service.create(new NewRoulette("Todos", List.of(aId, bId), false), as(adminId));
+        service.create(new NewRoulette("Todos", List.of(aId, bId), List.of(), true), as(adminId));
         assertEquals(200, game(a).getResponse().getStatus());
         assertEquals(200, game(leader).getResponse().getStatus());
     }
