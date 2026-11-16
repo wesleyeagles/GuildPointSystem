@@ -89,6 +89,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/shout/game").permitAll()
                         // Lista de membros no jogo pela DLL: so personagem de Lider/Admin (mesma regra do shout).
                         .requestMatchers(HttpMethod.GET, "/api/members/game/roster").permitAll()
+                        // Status dos PBs da kbase no painel da DLL: so personagem de membro aprovado.
+                        .requestMatchers(HttpMethod.GET, "/api/pb-status/game").permitAll()
                         // Card de evento no jogo pela DLL: so responde/resgata para personagem de membro aprovado.
                         .requestMatchers(HttpMethod.GET, "/api/events/game").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/events/game/*/claim").permitAll()
