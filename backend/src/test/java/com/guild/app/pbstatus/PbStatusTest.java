@@ -100,14 +100,34 @@ class PbStatusTest {
         assertEquals(PbStatusPage.State.KILLED, belphegor.state());
         assertEquals("Liberty", belphegor.killer());
         assertEquals("Espada", belphegor.guild());
-        assertEquals(msk("2026-11-17 00:00:00"), belphegor.respawn().getEpochSecond(), "o proximo nascimento, nao o ultimo");
+        assertEquals(msk("2026-11-17 00:00:00"), belphegor.respawn().getEpochSecond(), "normal: 18:00 de Brasilia");
+        assertEquals(msk("2026-11-17 20:00:00"), belphegor.extra().getEpochSecond(), "extra: o proximo das 14:00, nao o de sabado");
+        assertNull(bosses.get(1).extra(), "so um horario: sem extra");
         assertTrue(bosses.get(1).guildPb());
         assertEquals(PbStatusPage.State.LIVE, bosses.get(2).state());
         assertNull(bosses.get(2).respawn());
-        assertEquals(msk("2026-11-17 00:00:00"), bosses.get(3).respawn().getEpochSecond());
+        assertEquals(msk("2026-11-17 00:00:00"), bosses.get(3).respawn().getEpochSecond(), "extra listado primeiro nao vira o normal");
+        assertEquals(msk("2026-11-17 20:00:00"), bosses.get(3).extra().getEpochSecond());
         assertEquals(List.of("Solus", "Haram"), bosses.subList(4, 6).stream().map(PbStatusPage.Boss::map).toList(),
                 "o mesmo PB de guilda em mapas diferentes nao e duplicata");
         assertEquals(PbStatusPage.State.DEAD, bosses.get(4).state());
+    }
+
+    @Test void elanOnlyAtFourteenHasNoExtra() {
+        var bosses = PbStatusPage.dedupe(PbStatusPage.parse(page(region("Элан"),
+                row("0AB07", "[61]Каменолицый", "Killed by A [B]", "2026-11-17 20:00:00"),
+                row("0AB07", "[61]Каменолицый", "Killed by A [B]", "2026-11-23 20:00:00"))));
+        assertEquals(msk("2026-11-17 20:00:00"), bosses.get(0).respawn().getEpochSecond());
+        assertNull(bosses.get(0).extra());
+    }
+
+    @Test void otherHoursFallBackToFirstRowAsRegular() {
+        var bosses = PbStatusPage.dedupe(PbStatusPage.parse(page(region("Солус"),
+                row("01A05", "[45]x", "Dead", "2026-11-18 08:00:00"),
+                row("01A05", "[45]x", "Dead", "2026-11-17 16:00:00"),
+                row("01A05", "[45]x", "Dead", "2026-11-17 08:00:00"))));
+        assertEquals(msk("2026-11-17 08:00:00"), bosses.get(0).respawn().getEpochSecond());
+        assertEquals(msk("2026-11-17 16:00:00"), bosses.get(0).extra().getEpochSecond());
     }
 
     @Test void liveWinsOverScheduledRow() {
@@ -121,14 +141,17 @@ class PbStatusTest {
 
     @Test void gameListsMapsAndBossesOnceThenOnlySerialUntilChange() throws Exception {
         when(source.page()).thenReturn(Optional.of(REAL));
+        game(character, null);  // a primeira leitura da kbase vai em segundo plano: a resposta nao espera
+        assertTrue(service.refresh());
         String body = game(character, null);
         var lines = body.split("\n");
         assertTrue(lines[0].matches("S\t1\t\\d+"), lines[0]);
         assertEquals("M\tVolcano", lines[1]);
-        assertEquals("B\t06D07\t[60]Бельфегор\tK\tLiberty\tEspada\t" + msk("2026-11-17 00:00:00") + "\t0", lines[2]);
+        assertEquals("B\t06D07\t[60]Бельфегор\tK\tLiberty\tEspada\t" + msk("2026-11-17 00:00:00") + "\t0\t"
+                + msk("2026-11-17 20:00:00"), lines[2]);
         assertEquals(1, body.lines().filter(l -> l.startsWith("B\t06D07\t")).count(), "sem duplicata");
-        assertTrue(body.contains("B\t11507\t[63]Трашер\tL\t\t\t0\t0\n"));
-        assertTrue(body.contains("M\tSolus\nB\t93400\t[ПБ Гильдий]РазрушительУпсилон\tD\t\t\t" + msk("2026-11-17 00:00:00") + "\t1\n"));
+        assertTrue(body.contains("B\t11507\t[63]Трашер\tL\t\t\t0\t0\t0\n"));
+        assertTrue(body.contains("M\tSolus\nB\t93400\t[ПБ Гильдий]РазрушительУпсилон\tD\t\t\t" + msk("2026-11-17 00:00:00") + "\t1\t0\n"));
 
         assertEquals("S\t1\t0\n", game(character, 1L), "sem mudanca: so o serial");
 
@@ -139,11 +162,13 @@ class PbStatusTest {
         service.refresh();
         String changed = game(character, 1L);
         assertTrue(changed.startsWith("S\t2\t"));
-        assertTrue(changed.contains("B\t11507\t[63]Трашер\tK\tZed\tQUlT\t0\t0\n"));
+        assertTrue(changed.contains("B\t11507\t[63]Трашер\tK\tZed\tQUlT\t0\t0\t0\n"));
     }
 
     @Test void kbaseDownKeepsLastGoodList() throws Exception {
         when(source.page()).thenReturn(Optional.of(REAL));
+        game(character, null);  // a primeira leitura da kbase vai em segundo plano: a resposta nao espera
+        assertTrue(service.refresh());
         game(character, null);
         when(source.page()).thenReturn(Optional.empty());
         assertFalse(service.refresh());

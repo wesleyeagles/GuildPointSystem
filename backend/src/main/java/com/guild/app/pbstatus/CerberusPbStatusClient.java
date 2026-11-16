@@ -62,7 +62,7 @@ public class CerberusPbStatusClient implements PbStatusSource {
     }
 
     private String get(String url) throws Exception {
-        HttpResponse<String> response = http.send(HttpRequest.newBuilder(URI.create(url)).timeout(Duration.ofSeconds(10))
+        HttpResponse<String> response = http.send(HttpRequest.newBuilder(URI.create(url)).timeout(Duration.ofSeconds(20))
                 .header("User-Agent", UA).GET().build(), HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
         if (response.statusCode() != 200) throw new IllegalStateException("HTTP " + response.statusCode() + " em " + url);
         return response.body();

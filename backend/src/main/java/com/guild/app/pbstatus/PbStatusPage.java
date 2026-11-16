@@ -51,8 +51,12 @@ public final class PbStatusPage {
     /** Uma linha da pagina. respawn null = "Не запланировано" (vivo, sem agendamento). */
     public record Row(String region, String code, String name, State state, String killer, String guild, Instant respawn) {}
 
-    /** Um boss por mapa, depois de juntar as linhas repetidas. */
-    public record Boss(String map, String code, String name, State state, String killer, String guild, Instant respawn) {
+    /**
+     * Um boss por mapa, depois de juntar as linhas repetidas. respawn = proximo nascimento normal; extra = proximo
+     * nascimento extra (null = sem extra agendado).
+     */
+    public record Boss(String map, String code, String name, State state, String killer, String guild, Instant respawn,
+                       Instant extra) {
         public boolean guildPb() { return name.startsWith("[ПБ Гильдий]"); }
     }
 
@@ -94,23 +98,55 @@ public final class PbStatusPage {
         }
     }
 
-    /** Uma linha por (mapa, codigo), na ordem em que o boss aparece primeiro; mapas desconhecidos ficam com o nome russo. */
+    /**
+     * Horario dos nascimentos extras: 14:00 de Brasilia (20:00 em Moscou), junto dos PBs de Elan/Major. Ex.: o Middle
+     * nasce as 18:00 e, terca e sabado, tem um extra as 14:00; a Colonia tambem. Boss que so nasce nesse horario
+     * (Elan, Major) nao tem extra: 14:00 e o normal dele.
+     */
+    static final LocalTime EXTRA_SLOT = LocalTime.of(20, 0);
+
+    /**
+     * Uma linha por (mapa, codigo), na ordem em que o boss aparece primeiro; mapas desconhecidos ficam com o nome
+     * russo. Vivo se alguma linha diz vivo. As linhas do boss em mais de um horario do dia se dividem em normal e
+     * extra: o extra e o {@link #EXTRA_SLOT}; se nenhuma cai nele, o normal e o horario da primeira linha (a kbase
+     * lista o agendamento normal primeiro) e o resto e extra.
+     */
     public static List<Boss> dedupe(List<Row> rows) {
-        var byKey = new LinkedHashMap<String, Boss>();
+        var byKey = new LinkedHashMap<String, List<Row>>();
         for (Row r : rows) {
             String map = MAPS.getOrDefault(r.region(), r.region());
-            Boss next = new Boss(map, r.code(), r.name(), r.state(), r.killer(), r.guild(), r.respawn());
-            byKey.merge(map + "\t" + r.code(), next, PbStatusPage::pick);
+            byKey.computeIfAbsent(map + "	" + r.code(), k -> new ArrayList<>()).add(r);
         }
-        return List.copyOf(byKey.values());
+        var out = new ArrayList<Boss>();
+        for (var entry : byKey.entrySet()) {
+            List<Row> group = entry.getValue();
+            String map = entry.getKey().substring(0, entry.getKey().indexOf('	'));
+            Row first = group.get(0);
+            Row live = group.stream().filter(r -> r.state() == State.LIVE).findFirst().orElse(null);
+            Row shown = live != null ? live : first;
+            var times = new LinkedHashSet<LocalTime>();
+            for (Row r : group) if (r.respawn() != null) times.add(slot(r.respawn()));
+            Set<LocalTime> extraTimes = new HashSet<>();
+            if (times.size() > 1) {
+                if (times.contains(EXTRA_SLOT)) extraTimes.add(EXTRA_SLOT);
+                else { extraTimes.addAll(times); extraTimes.remove(times.iterator().next()); }
+            }
+            Instant regular = null, extra = null;
+            for (Row r : group) {
+                if (r.respawn() == null) continue;
+                if (extraTimes.contains(slot(r.respawn()))) extra = earliest(extra, r.respawn());
+                else regular = earliest(regular, r.respawn());
+            }
+            out.add(new Boss(map, first.code(), first.name(), shown.state(), shown.killer(), shown.guild(), regular, extra));
+        }
+        return List.copyOf(out);
     }
 
-    /** Vivo vence; entre mortos fica o nascimento mais cedo (o proximo); sem hora perde para com hora. */
-    private static Boss pick(Boss a, Boss b) {
-        if (a.state() == State.LIVE) return a;
-        if (b.state() == State.LIVE) return b;
-        if (a.respawn() == null) return b.respawn() == null ? a : b;
-        if (b.respawn() == null) return a;
-        return b.respawn().isBefore(a.respawn()) ? b : a;
+    private static LocalTime slot(Instant when) {
+        return LocalTime.ofInstant(when, SERVER_ZONE);
+    }
+
+    private static Instant earliest(Instant a, Instant b) {
+        return a == null || b.isBefore(a) ? b : a;
     }
 }

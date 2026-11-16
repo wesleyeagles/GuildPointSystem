@@ -14,7 +14,9 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Status dos PBs da kbase da Cerberus para o painel da DLL (botao da barra, qualquer membro aprovado).
@@ -38,6 +40,7 @@ public class PbStatusService {
 
     private volatile Snapshot snapshot = new Snapshot(0, Instant.EPOCH, List.of(), "");
     private volatile Instant wantedUntil = Instant.EPOCH;
+    private final AtomicBoolean reading = new AtomicBoolean();
     private final Map<String, Instant> approvedUntil = new ConcurrentHashMap<>();
 
     public PbStatusService(PbStatusSource source, MemberRepository members) {
@@ -72,7 +75,8 @@ public class PbStatusService {
     /**
      * Texto UTF-8 para a DLL. Primeira linha "S TAB serial TAB segundos desde a leitura"; se {@code since} ja e o
      * serial atual, so ela. Senao, por mapa "M TAB nome" e por boss
-     * "B TAB codigo TAB nome russo TAB L|D|K TAB quem matou TAB guild TAB nascimento (unix s, 0 = sem) TAB pb de guild 0/1".
+     * "B TAB codigo TAB nome russo TAB L|D|K TAB quem matou TAB guild TAB nascimento normal (unix s, 0 = sem) TAB pb de guild 0/1
+     * TAB nascimento extra (unix s, 0 = sem; 14:00 de Brasilia, ver PbStatusPage.EXTRA_SLOT)".
      */
     @Transactional(readOnly = true)
     public String forGame(String character, Long since) {
@@ -80,7 +84,9 @@ public class PbStatusService {
         Instant now = clock.instant();
         boolean first = !now.isBefore(wantedUntil);
         wantedUntil = now.plus(WANTED);
-        if (first || snapshot.serial() == 0) refresh();  // primeiro painel aberto depois de um tempo: le na hora
+        // Primeiro painel aberto depois de um tempo: le ja, em segundo plano (a kbase as vezes leva 10 s ou mais).
+        if ((first || snapshot.serial() == 0) && reading.compareAndSet(false, true))
+            CompletableFuture.runAsync(() -> { try { refresh(); } finally { reading.set(false); } });
         Snapshot s = snapshot;
         long age = s.serial() == 0 ? -1 : Math.max(0, Duration.between(s.readAt(), now).toSeconds());
         String head = "S\t" + s.serial() + "\t" + age + "\n";
@@ -96,7 +102,8 @@ public class PbStatusService {
               .append(switch (b.state()) { case LIVE -> 'L'; case DEAD -> 'D'; case KILLED -> 'K'; }).append('\t')
               .append(clean(b.killer())).append('\t').append(clean(b.guild())).append('\t')
               .append(b.respawn() == null ? 0 : b.respawn().getEpochSecond()).append('\t')
-              .append(b.guildPb() ? 1 : 0).append('\n');
+              .append(b.guildPb() ? 1 : 0).append('\t')
+              .append(b.extra() == null ? 0 : b.extra().getEpochSecond()).append('\n');
         }
         return sb.toString();
     }
