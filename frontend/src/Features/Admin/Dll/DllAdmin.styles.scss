@@ -256,6 +256,15 @@
   }
 }
 
+.chat-glossary__list-row {
+  display: flex;
+  align-items: flex-start;
+  gap: theme.$spacing-sm;
+  margin-bottom: theme.$spacing-sm;
+
+  .chat-glossary__list { flex: 1; }
+}
+
 .market-watch {
   &__form {
     display: flex;

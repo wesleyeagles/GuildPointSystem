@@ -101,6 +101,8 @@ public class SecurityConfig {
                         // Video meme no jogo pela DLL: so responde a personagem de membro aprovado.
                         .requestMatchers(HttpMethod.GET, "/api/meme-videos/game").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/meme-videos/game/*/played").permitAll()
+                        // Roleta no jogo pela DLL: so responde a personagem de membro aprovado (teste: so Lider).
+                        .requestMatchers(HttpMethod.GET, "/api/roulettes/game").permitAll()
                         // Pontos por aproximacao pela DLL da referencia: so responde a personagem de membro aprovado.
                         .requestMatchers(HttpMethod.GET, "/api/proximity-points/game").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/proximity-points/game/*").permitAll()
