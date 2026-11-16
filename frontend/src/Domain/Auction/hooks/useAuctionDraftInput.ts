@@ -8,11 +8,16 @@ const bridge = 'http://127.0.0.1:15184/draft'
 
 async function findExactItem(code: string, signal: AbortSignal): Promise<DraftItem | undefined> {
   let match: DraftItem | undefined
+  // The legacy catalog reuses ipcss04 for a potion; the live EDF uses it for the cash token.
+  const cashCoin = code === 'ipcss04'
   for (let page = 0; ; page++) {
-    const params = new URLSearchParams({ search: code, page: String(page), size: '24' })
+    const params = new URLSearchParams({ search: cashCoin ? '500 CASH COIN' : code, page: String(page), size: '24' })
     const result = await apiClient<Page<Item>>(`/items?${params}`, { signal })
     for (const item of result.content) {
-      if (item.gameCode?.toLowerCase() !== code) continue
+      if (cashCoin) {
+        if (item.type !== 'MISC' || item.name?.trim().toLowerCase() !== '500 cash coin' ||
+          (item.gameCode?.trim() && item.gameCode.trim().toLowerCase() !== code)) continue
+      } else if (item.gameCode?.toLowerCase() !== code) continue
       if (match) throw new ApiError(`Há mais de um cadastro para o código ${code}.`, 409)
       match = item
     }
@@ -20,7 +25,7 @@ async function findExactItem(code: string, signal: AbortSignal): Promise<DraftIt
   }
 }
 
-async function lookupDraftItem(inventoryCode: string, signal: AbortSignal): Promise<DraftItem> {
+export async function lookupDraftItem(inventoryCode: string, signal: AbortSignal): Promise<DraftItem> {
   const code = inventoryCode.toLowerCase()
   const exact = await findExactItem(code, signal)
   if (exact) return exact
