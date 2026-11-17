@@ -1,16 +1,22 @@
 package com.guild.app.loot;
 
+import com.guild.app.auth.security.MemberPrincipal;
 import com.guild.app.common.exception.AppException;
 import com.guild.app.loot.service.LootService;
 import com.guild.app.loot.service.LootService.Kind;
 import com.guild.app.loot.service.LootService.Loot;
+import com.guild.app.loot.service.LootService.Page;
+import com.guild.app.member.repository.MemberRepository;
 import com.guild.app.websocket.WebSocketPublisher;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -35,6 +41,7 @@ class LootTest {
     @Autowired JdbcTemplate jdbc;
     @Autowired MockMvc mvc;
     @Autowired LootService service;
+    @Autowired MemberRepository members;
     @MockitoBean WebSocketPublisher ws;
     String a, b, c;
     long aId;
@@ -94,6 +101,28 @@ class LootTest {
         at(NOW.plus(LootService.MERGE).plusSeconds(1));
         assertEquals(1, service.ingest(c, line));
         assertEquals(3, count());
+    }
+
+    @AfterEach void logout() { SecurityContextHolder.clearContext(); }
+
+    @Test void pagesNewestFirst() {
+        jdbc.update("DELETE FROM member_loot");
+        StringBuilder lines = new StringBuilder();
+        for (int i = 1; i <= 7; i++) lines.append(a).append(" has acquired Item ").append(i).append(".\n");
+        assertEquals(7, service.ingest(b, lines.toString()));
+        String adminNick = nick("Adm");
+        jdbc.update("INSERT INTO member(nickname,role,status,profile_complete) VALUES(?,'ADMINISTRADOR','APROVADO',true)", adminNick);
+        long admin = jdbc.queryForObject("SELECT id FROM member WHERE nickname=?", Long.class, adminNick);
+        MemberPrincipal p = new MemberPrincipal(members.findById(admin).orElseThrow());
+        SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(p, null, p.getAuthorities()));
+        Page first = service.query(a, null, null, 7, 0, 3);
+        assertEquals(7, first.total());
+        assertEquals(3, first.items().size());
+        assertEquals("Item 7", first.items().get(0).item());  // mesmo horário: o id maior vem primeiro
+        Page last = service.query(a, null, "drop", 7, 2, 3);
+        assertEquals(1, last.items().size());
+        assertEquals("Item 1", last.items().get(0).item());
+        assertEquals(0, service.query(a, "nada", null, 7, 0, 3).total());
     }
 
     @Test void rejectsUnknownReporter() {

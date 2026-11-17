@@ -37,6 +37,17 @@
     th { color: theme.$color-text-muted; font-weight: 500; }
   }
 
+  &__pager {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: theme.$spacing-sm;
+    margin-top: theme.$spacing-md;
+
+    .loot-page__muted { margin: 0 theme.$spacing-sm; }
+  }
+
   &__when { white-space: nowrap; color: theme.$color-text-muted; font-variant-numeric: tabular-nums; }
 
   &__kind {

@@ -19,22 +19,34 @@ export interface LootRow {
   seenBy: number
 }
 
+export interface LootPage {
+  items: LootRow[]
+  /** Linhas no filtro inteiro. */
+  total: number
+  page: number
+  size: number
+}
+
+export const LOOT_PAGE_SIZE = 50
+
 export interface LootQuery {
   nickname: string
   item: string
   kind: LootKind | ''
   days: number
+  /** A partir de 0. */
+  page: number
 }
 
 export function useLoot(query: LootQuery) {
   return useQuery({
     queryKey: ['loot', query],
     queryFn: () => {
-      const params = new URLSearchParams({ days: String(query.days) })
+      const params = new URLSearchParams({ days: String(query.days), page: String(query.page), size: String(LOOT_PAGE_SIZE) })
       if (query.nickname.trim()) params.set('nickname', query.nickname.trim())
       if (query.item.trim()) params.set('item', query.item.trim())
       if (query.kind) params.set('kind', query.kind)
-      return apiClient<LootRow[]>(`/loot?${params}`)
+      return apiClient<LootPage>(`/loot?${params}`)
     },
     refetchInterval: 30_000,
     placeholderData: (previous) => previous,

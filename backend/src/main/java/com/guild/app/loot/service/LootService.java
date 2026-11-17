@@ -136,37 +136,49 @@ public class LootService {
     public record Row(long id, long memberId, String nickname, String looter, Kind kind, String item, int quantity,
                       Instant lootedAt, int seenBy) {}
 
-    /** Administrador+: loot dos últimos {@code days} dias, mais novo primeiro (até 1000 linhas). */
+    /** Uma página da consulta: {@code total} = linhas no filtro inteiro. */
+    public record Page(List<Row> items, long total, int page, int size) {}
+
+    public static final int PAGE_SIZE = 50, MAX_PAGE_SIZE = 200;
+
+    /** Administrador+: loot dos últimos {@code days} dias, mais novo primeiro, de {@code size} em {@code size}. */
     @Transactional(readOnly = true)
-    public List<Row> query(String nickname, String item, String kind, int days) {
+    public Page query(String nickname, String item, String kind, int days, int page, int size) {
         SecurityUtils.requireRole(Role.ADMINISTRADOR);
         Instant since = clock.instant().minus(Duration.ofDays(Math.max(1, Math.min(days, KEEP.toDays()))));
-        StringBuilder sql = new StringBuilder("""
-            SELECT l.id,l.member_id,m.nickname,l.looter,l.kind,l.item,l.quantity,l.looted_at,
-                   (SELECT count(*) FROM member_loot_report r WHERE r.loot_id=l.id) AS seen
-            FROM member_loot l JOIN member m ON m.id=l.member_id WHERE l.looted_at>?""");
+        StringBuilder where = new StringBuilder(" FROM member_loot l JOIN member m ON m.id=l.member_id WHERE l.looted_at>?");
         List<Object> args = new ArrayList<>(List.of(Timestamp.from(since)));
         if (nickname != null && !nickname.isBlank()) {
-            sql.append(" AND (m.nickname ILIKE ? OR l.looter ILIKE ?)");
+            where.append(" AND (m.nickname ILIKE ? OR l.looter ILIKE ?)");
             String like = "%" + like(nickname) + "%";
             args.add(like);
             args.add(like);
         }
         if (item != null && !item.isBlank()) {
-            sql.append(" AND l.item ILIKE ?");
+            where.append(" AND l.item ILIKE ?");
             args.add("%" + like(item) + "%");
         }
         if (kind != null && !kind.isBlank()) {
             Kind k;
             try { k = Kind.valueOf(kind.strip().toUpperCase(Locale.ROOT)); }
             catch (IllegalArgumentException e) { throw new AppException("Tipo inválido.", HttpStatus.BAD_REQUEST); }
-            sql.append(" AND l.kind=?");
+            where.append(" AND l.kind=?");
             args.add(k.name());
         }
-        sql.append(" ORDER BY l.looted_at DESC, l.id DESC LIMIT 1000");
-        return jdbc.query(sql.toString(), (r, n) -> new Row(r.getLong("id"), r.getLong("member_id"), r.getString("nickname"),
-            r.getString("looter"), Kind.valueOf(r.getString("kind")), r.getString("item"), r.getInt("quantity"),
-            r.getTimestamp("looted_at").toInstant(), r.getInt("seen")), args.toArray());
+        int pageSize = Math.max(1, Math.min(size, MAX_PAGE_SIZE));
+        int pageIndex = Math.max(0, page);
+        Long total = jdbc.queryForObject("SELECT count(*)" + where, Long.class, args.toArray());
+        List<Object> pageArgs = new ArrayList<>(args);
+        pageArgs.add(pageSize);
+        pageArgs.add((long) pageIndex * pageSize);
+        List<Row> items = jdbc.query("""
+            SELECT l.id,l.member_id,m.nickname,l.looter,l.kind,l.item,l.quantity,l.looted_at,
+                   (SELECT count(*) FROM member_loot_report r WHERE r.loot_id=l.id) AS seen""" + where
+                + " ORDER BY l.looted_at DESC, l.id DESC LIMIT ? OFFSET ?",
+            (r, n) -> new Row(r.getLong("id"), r.getLong("member_id"), r.getString("nickname"),
+                r.getString("looter"), Kind.valueOf(r.getString("kind")), r.getString("item"), r.getInt("quantity"),
+                r.getTimestamp("looted_at").toInstant(), r.getInt("seen")), pageArgs.toArray());
+        return new Page(items, total == null ? 0 : total, pageIndex, pageSize);
     }
 
     private static String like(String text) {
