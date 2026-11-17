@@ -199,6 +199,7 @@ it('uses the same Brasília deadline for new auctions and pending lots', async (
 
 it.each([
   ['2026-11-14T00:50:00Z', true],
+  ['2026-11-14T01:00:00Z', true],
   ['2026-11-13T22:00:00Z', false],
 ] as const)('creates a lot ending tomorrow at 21h50 from %s', async (now, defaultsToTomorrow) => {
   state.admin = true
@@ -274,14 +275,6 @@ it('keeps the draft for the remaining lots after a partial failure', async () =>
   expect(screen.getByRole('button', { name: 'Item 99' })).toBeVisible()
   expect(state.toast).toHaveBeenCalledWith(expect.stringContaining('1 de 3 leilões confirmados'), 'error')
   expect(screen.getByText(/1 de 3 leilões confirmados.*Falha na API/)).toBeVisible()
-})
-
-it('defaults to 15 minutes once the Brasília deadline has passed', () => {
-  state.admin = true
-  state.auctions = []
-  state.now = Date.parse('2026-11-15T01:00:00Z')
-  render(<MemoryRouter><AuctionListPage /></MemoryRouter>)
-  expect(screen.getByLabelText('Duração')).toHaveValue('15')
 })
 
 it('adds one unit per RF-ui click, even when the first acknowledgement fails', async () => {
