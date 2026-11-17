@@ -128,7 +128,11 @@ class MarketWatchTest {
     @Test void relicEffectsAndIconForTheGameCard() throws Exception {
         assertEquals("Force attack +3.5%", cards.effects("relic020"));
         assertEquals("Force attack +3.5%", cards.effects("iyfip06"));   // código do market
-        assertEquals("", cards.effects("iwshi28"));
+        assertEquals("", cards.effects("naoexiste99"));
+        // Item que não é relic: os Special Effects do site, com o nome do jogo (V132: "Damage avoidance 10" -> "Dodge +10").
+        assertEquals("Dodge +10", cards.effects("iicca87"));
+        // Anéis e amuletos: o banco diz 128 colunas, mas o sprite tem 32 (como o site recorta).
+        assertEquals("/sprites/ringseamulets.png|100|32", cards.iconKey("iicca87"));
         assertTrue(cards.iconKey("iyfip06").startsWith("/relics/item-1-6.jpg|951|32"), cards.iconKey("iyfip06"));
         assertTrue(cards.icon("../etc/passwd", 1, 32).isEmpty());
         service.add(new NewWatch(coxinhaId, "relic020", "(2GR) Brutal Rex Relic", null, null), as(leaderId));

@@ -43,6 +43,7 @@ public class GameItemCard {
     private static final Pattern UPLOAD = Pattern.compile("/uploads/([A-Za-z0-9_-]+\\.(png|jpe?g))");
 
     private final JdbcTemplate jdbc;
+    private final ObjectMapper json;
     private final String frontend;
     private final Path uploads;
     private final HttpClient http = HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).connectTimeout(Duration.ofSeconds(5))
@@ -56,6 +57,7 @@ public class GameItemCard {
     public GameItemCard(JdbcTemplate jdbc, ObjectMapper json, @Value("${guild.game.icon-base-url:${guild.oauth.frontend-url:http://localhost:5173}}") String frontend,
                         @Value("${guild.upload.base-path:./uploads}") String uploads) {
         this.jdbc = jdbc;
+        this.json = json;
         this.frontend = frontend.replaceAll("/+$", "");
         this.uploads = Path.of(uploads);
         try (InputStream in = new ClassPathResource("game/relicData.json").getInputStream()) {
@@ -82,17 +84,53 @@ public class GameItemCard {
         return relic != null ? relic : c;
     }
 
-    /** "Force attack +3.5%, Dodge +1.30" para relic; vazio para o resto. */
+    /** A DLL descarta a linha inteira com mais de 300 bytes de efeitos (EventCard::MaxEffectsBytes). */
+    static final int MAX_EFFECTS = 280;
+
+    /**
+     * "Force attack +3.5%, Dodge +1.30" para relic; para os outros itens, os Special Effects do site
+     * (item_weapon/armor/accessory, ex.: "Dodge +10"). Vazio se não tem.
+     */
     public String effects(String code) {
         String c = catalogCode(code);
-        if (c == null) return "";
+        if (c == null || c.isEmpty()) return "";
         Matcher m = RELIC.matcher(c);
-        if (!m.matches()) return "";
+        if (!m.matches()) return fit(itemEffects(c));
         List<double[]> level = relicLevel0.get(Integer.parseInt(m.group(1)));
         if (level == null) return "";
         StringJoiner out = new StringJoiner(", ");
         for (double[] e : level) out.add(effect((int) e[0], e[1]));
-        return out.toString();
+        return fit(out.toString());
+    }
+
+    private String itemEffects(String code) {
+        List<String> rows = jdbc.queryForList("""
+            SELECT COALESCE(w.special_effects, a.special_effects, c.special_effects)::text FROM item i
+            LEFT JOIN item_weapon w ON w.item_id=i.id LEFT JOIN item_armor a ON a.item_id=i.id
+            LEFT JOIN item_accessory c ON c.item_id=i.id
+            WHERE lower(i.game_code)=? ORDER BY i.id LIMIT 1""", String.class, code);
+        if (rows.isEmpty() || rows.get(0) == null) return "";
+        try {
+            StringJoiner out = new StringJoiner(", ");
+            for (JsonNode e : json.readTree(rows.get(0))) {
+                String text = e.asText("").strip();
+                if (!text.isEmpty()) out.add(text);
+            }
+            return out.toString();
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    /** Uma linha só, sem TAB, e cabendo no limite da DLL (corta no último efeito inteiro). */
+    static String fit(String effects) {
+        String text = effects.replaceAll("\\p{Cntrl}", " ").strip();
+        if (text.getBytes(java.nio.charset.StandardCharsets.UTF_8).length <= MAX_EFFECTS) return text;
+        String cut = text.substring(0, Math.min(text.length(), MAX_EFFECTS - 3));
+        int comma = cut.lastIndexOf(", ");
+        if (comma > 0) cut = cut.substring(0, comma);
+        while (cut.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > MAX_EFFECTS - 3) cut = cut.substring(0, cut.length() - 1);
+        return cut + "...";
     }
 
     String effect(int code, double value) {
@@ -108,12 +146,23 @@ public class GameItemCard {
         return name + " " + (value < 0 ? "-" : "+") + amount;
     }
 
+    /**
+     * Colunas de cada sprite local, como o site recorta (SHEET_LAYOUTS em spriteUtils.ts). Vale mais que o
+     * sprite_cols do banco: os anéis/amuletos vêm com 128 no banco, mas o ringseamulets.png tem 32 colunas
+     * (células de 64 px em 2048 px); com 128 o recorte saía um pedaço de 16 px e a DLL nem aceitava a chave.
+     */
+    static final Map<String, Integer> SHEET_COLS = Map.ofEntries(
+        Map.entry("/sprites/weapon.png", 32), Map.entry("/sprites/helmet.png", 32), Map.entry("/sprites/upper.png", 32),
+        Map.entry("/sprites/lower.png", 32), Map.entry("/sprites/gloves.png", 32), Map.entry("/sprites/shoes.png", 32),
+        Map.entry("/sprites/potion.png", 32), Map.entry("/sprites/booty.png", 32), Map.entry("/sprites/ringseamulets.png", 32),
+        Map.entry("/sprites/shield.png", 8), Map.entry("/sprites/resource.png", 16), Map.entry("/relics/item-1-6.jpg", 32));
+
     /** Onde está o ícone do item: "sprite|ícone|colunas" (para GET /api/game/icon), ou vazio. */
     public String iconKey(String code) {
         String c = catalogCode(code);
         if (c == null || c.isEmpty()) return "";
         return jdbc.query("SELECT sprite_sheet, icon_id, sprite_cols FROM game_lua_item WHERE game_code=? LIMIT 1",
-                (r, n) -> r.getString(1) + "|" + r.getInt(2) + "|" + r.getInt(3), c).stream()
+                (r, n) -> r.getString(1) + "|" + r.getInt(2) + "|" + SHEET_COLS.getOrDefault(r.getString(1), r.getInt(3)), c).stream()
             .filter(k -> SHEET.matcher(k.substring(0, k.indexOf('|'))).matches()).findFirst().orElse("");
     }
 
