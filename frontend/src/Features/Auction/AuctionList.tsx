@@ -25,6 +25,7 @@ import { formatStartsAt, formatTime, pausedSeconds, useCountdown } from '@/Featu
 import { useAuctionDraftInput } from '@/Domain/Auction/hooks/useAuctionDraftInput'
 import { ItemQuantity } from '@/Shared/ui/components/ItemQuantity/ItemQuantity'
 import { useGameMail } from '@/Shared/hooks/useGameMail'
+import { useServerNow } from '@/Shared/utils/useServerNow'
 import { canResolveAuctionMailAttachment, resolveAuctionMailAttachment } from '@/Domain/Auction/auctionMail'
 import './Auction.styles.scss'
 
@@ -43,6 +44,7 @@ const DURATIONS = [
 type ItemEntry = { itemId: number; quantity: number }
 
 type StartMode = 'now' | 'at' | 'later'
+type DeadlineDay = 'today' | 'tomorrow'
 
 const MAX_LOTS = 30
 
@@ -62,8 +64,13 @@ const auctionDate = new Intl.DateTimeFormat('pt-BR', {
 
 const brasiliaDay = new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Sao_Paulo' })
 
+function at2150(now: number, day: DeadlineDay) {
+  const date = brasiliaDay.format(now + (day === 'tomorrow' ? 86_400_000 : 0))
+  return new Date(`${date}T21:50:00-03:00`)
+}
+
 function todayAt2150(now: number) {
-  const end = new Date(`${brasiliaDay.format(now)}T21:50:00-03:00`)
+  const end = at2150(now, 'today')
   return end.getTime() > now ? end.toISOString() : null
 }
 
@@ -319,7 +326,10 @@ export function AuctionListPage() {
 
   const [durationMinutes, setDurationMinutes] = useState(15)
   const [copiedEnd, setCopiedEnd] = useState<string | null>(null)
-  const [closeAt2150, setCloseAt2150] = useState(() => todayAt2150(serverNow()) !== null)
+  const [deadlineDay, setDeadlineDay] = useState<DeadlineDay | null>()
+  const now = useServerNow()
+  const canCloseToday = todayAt2150(now) !== null
+  const shownDeadlineDay = deadlineDay === undefined ? (canCloseToday ? 'today' : 'tomorrow') : deadlineDay
   const durationField = useRef<HTMLSelectElement>(null)
   const [startMode, setStartMode] = useState<StartMode>('now')
   const [startsAtInput, setStartsAtInput] = useState('')
@@ -368,7 +378,7 @@ export function AuctionListPage() {
     setStartsAtInput(futureStart)
     setCopiedStart(futureStart ? auction.startsAt : null)
     setCopiedEnd(scheduled ? null : auction.endsAt)
-    setCloseAt2150(false)
+    setDeadlineDay(null)
     setEntries(auction.items.length
       ? auction.items.map(({ itemId, quantity }) => ({ itemId, quantity }))
       : [emptyEntry()])
@@ -381,8 +391,10 @@ export function AuctionListPage() {
     const validItems = entries.filter((entry) => entry.itemId > 0 && entry.quantity >= 1)
     const count = Number(lotCount)
     if (creating.current || validItems.length === 0 || !Number.isInteger(count) || count < 1 || count > MAX_LOTS) return
-    const endsAt = closeAt2150 ? todayAt2150(serverNow()) : copiedEnd
-    if ((closeAt2150 || copiedEnd) && (!endsAt || Date.parse(endsAt) <= serverNow())) {
+    const now = serverNow()
+    const selectedDay = deadlineDay === undefined ? (todayAt2150(now) ? 'today' : 'tomorrow') : deadlineDay
+    const endsAt = selectedDay ? at2150(now, selectedDay).toISOString() : copiedEnd
+    if (endsAt && Date.parse(endsAt) <= now) {
       showToast('O horário de encerramento já passou. Escolha outra duração.', 'error')
       return
     }
@@ -421,7 +433,7 @@ export function AuctionListPage() {
         const result = await createAuction.mutateAsync(request)
         created++
         if (count > 1) setCreationSummary(`Criando leilões: ${created} de ${count} confirmados…`)
-        if (closeAt2150 && !result.deadlineReached) {
+        if (selectedDay && !result.deadlineReached) {
           uncheckedDeadlines.push(lotOf(result.auction))
         }
       }
@@ -447,7 +459,7 @@ export function AuctionListPage() {
     } else if (startMode === 'at') showToast(`Leilão agendado para ${formatStartsAt(startsAt!)}.`, 'success')
     else if (startMode === 'later') showToast('Leilão criado em "Em breve". Inicie quando quiser.', 'success')
     setCopiedEnd(null)
-    setCloseAt2150(todayAt2150(serverNow()) !== null)
+    setDeadlineDay(undefined)
     setDurationMinutes(15)
     setStartMode('now')
     setStartsAtInput('')
@@ -474,7 +486,6 @@ export function AuctionListPage() {
   const shownActive = selectedTab === 'all' ? active : active.filter((a) => a.id === selectedTab)
   const upcoming = auctions.filter((a) => a.status === 'SCHEDULED')
   const closed = auctions.filter((a) => isAuctionFinished(a.status))
-  const canCloseToday = todayAt2150(serverNow()) !== null
 
   const handleStartBatch = async () => {
     const endsAt = todayAt2150(serverNow())
@@ -513,19 +524,27 @@ export function AuctionListPage() {
                 <select
                   ref={durationField}
                   disabled={isCreating}
-                  value={closeAt2150 ? 'today' : copiedEnd ? 'copied' : durationMinutes}
+                  value={shownDeadlineDay ?? (copiedEnd ? 'copied' : durationMinutes)}
                   onChange={(e) => {
-                    const selectedToday = e.target.value === 'today'
+                    const value = e.target.value
+                    if (value === 'copied') return
                     setCopiedEnd(null)
-                    setCloseAt2150(selectedToday)
-                    if (!selectedToday) setDurationMinutes(Number(e.target.value))
+                    if (value === 'today' || value === 'tomorrow') {
+                      setDeadlineDay(value)
+                    } else {
+                      setDeadlineDay(null)
+                      setDurationMinutes(Number(value))
+                    }
                   }}
                 >
                   {copiedEnd && (
                     <option value="copied">Até {auctionDate.format(new Date(copiedEnd))} (Brasília)</option>
                   )}
-                  {startMode === 'now' && (canCloseToday || closeAt2150) && (
+                  {startMode === 'now' && (
                     <option value="today" disabled={!canCloseToday}>Até 21h50 de hoje (Brasília)</option>
+                  )}
+                  {startMode === 'now' && (
+                    <option value="tomorrow">Até amanhã às 21h50 (Brasília)</option>
                   )}
                   {DURATIONS.map((d) => (
                     <option key={d.value} value={d.value}>
@@ -539,7 +558,7 @@ export function AuctionListPage() {
                 <select value={startMode} disabled={isCreating} onChange={(e) => {
                   setCopiedEnd(null)
                   setCopiedStart(null)
-                  setCloseAt2150(e.target.value === 'now' && canCloseToday)
+                  setDeadlineDay(e.target.value === 'now' ? undefined : null)
                   setStartMode(e.target.value as StartMode)
                 }}>
                   <option value="now">Agora</option>
