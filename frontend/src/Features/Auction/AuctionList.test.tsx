@@ -36,6 +36,7 @@ vi.mock('@/Domain/Auction/hooks/useAuction', () => ({
   useConfirmAuctionDelivery: () => ({ mutateAsync: state.confirm }),
   useParticipatingAuctions: () => ({ data: state.participating }),
 }))
+vi.mock('@/Shared/utils/serverClock', () => ({ serverNow: () => state.now ?? Date.now() }))
 vi.mock('@/Domain/Discord/hooks/useDiscordMembers', () => ({ useDiscordBySiteMember: () => new Map() }))
 vi.mock('@/Features/Auth/contexts/AuthContext', () => ({ useAuthContext: () => ({ hasRole: () => state.admin, user: { memberId: 7 } }) }))
 vi.mock('@/Shared/ui/components/AppToast/AppToast', () => ({ useAppToast: () => ({ showToast: state.toast }) }))
@@ -196,6 +197,33 @@ it('uses the same Brasília deadline for new auctions and pending lots', async (
   await waitFor(() => expect(state.startBatch).toHaveBeenCalledWith({ auctionIds: [42, 43], endsAt }))
 })
 
+it.each([
+  ['2026-11-14T00:50:00Z', true],
+  ['2026-11-14T01:00:00Z', true],
+  ['2026-11-13T22:00:00Z', false],
+] as const)('creates a lot ending tomorrow at 21h50 from %s', async (now, defaultsToTomorrow) => {
+  state.admin = true
+  state.now = Date.parse(now)
+  const endsAt = '2026-11-15T00:50:00.000Z'
+  state.create.mockResolvedValue({ auction: sampleAuction(endsAt), deadlineReached: true })
+  render(<MemoryRouter><AuctionListPage /></MemoryRouter>)
+  const duration = screen.getByLabelText('Duração')
+  expect(duration).toHaveValue(defaultsToTomorrow ? 'tomorrow' : 'today')
+  if (!defaultsToTomorrow) fireEvent.change(duration, { target: { value: 'tomorrow' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Item 0' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Criar Leilão' }))
+  await waitFor(() => expect(state.create).toHaveBeenCalledWith(expect.objectContaining({ targetEndsAt: endsAt })))
+})
+
+it('updates the default deadline at 21h50 even with the creation form already open', async () => {
+  state.admin = true
+  state.now = Date.parse('2026-11-14T00:49:59Z')
+  render(<MemoryRouter><AuctionListPage /></MemoryRouter>)
+  expect(screen.getByLabelText('Duração')).toHaveValue('today')
+  state.now += 1000
+  await waitFor(() => expect(screen.getByLabelText('Duração')).toHaveValue('tomorrow'), { timeout: 2000 })
+})
+
 it('creates multiple lots with the same items and target time', async () => {
   state.admin = true
   state.auctions = []
@@ -247,14 +275,6 @@ it('keeps the draft for the remaining lots after a partial failure', async () =>
   expect(screen.getByRole('button', { name: 'Item 99' })).toBeVisible()
   expect(state.toast).toHaveBeenCalledWith(expect.stringContaining('1 de 3 leilões confirmados'), 'error')
   expect(screen.getByText(/1 de 3 leilões confirmados.*Falha na API/)).toBeVisible()
-})
-
-it('defaults to 15 minutes once the Brasília deadline has passed', () => {
-  state.admin = true
-  state.auctions = []
-  state.now = Date.parse('2026-11-15T01:00:00Z')
-  render(<MemoryRouter><AuctionListPage /></MemoryRouter>)
-  expect(screen.getByLabelText('Duração')).toHaveValue('15')
 })
 
 it('adds one unit per RF-ui click, even when the first acknowledgement fails', async () => {
