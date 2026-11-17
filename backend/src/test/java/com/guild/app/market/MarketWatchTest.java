@@ -131,6 +131,10 @@ class MarketWatchTest {
         assertEquals("", cards.effects("naoexiste99"));
         // Item que não é relic: os Special Effects do site, com o nome do jogo (V132: "Damage avoidance 10" -> "Dodge +10").
         assertEquals("Dodge +10", cards.effects("iicca87"));
+        // Lista de leilões do site: os efeitos de cada item pelo id.
+        long armlet = jdbc.queryForObject("SELECT min(id) FROM item WHERE game_code='iicca87'", Long.class);
+        assertEquals(List.of("Dodge +10"), cards.effectsByItemId(List.of(armlet, 999_999_999L)).get(armlet));
+        assertFalse(cards.effectsByItemId(List.of(999_999_999L)).containsKey(999_999_999L));
         // Anéis e amuletos: o banco diz 128 colunas, mas o sprite tem 32 (como o site recorta).
         assertEquals("/sprites/ringseamulets.png|100|32", cards.iconKey("iicca87"));
         assertTrue(cards.iconKey("iyfip06").startsWith("/relics/item-1-6.jpg|951|32"), cards.iconKey("iyfip06"));

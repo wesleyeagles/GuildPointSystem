@@ -97,6 +97,7 @@ public class AuctionService {
     private final AuctionMessageReactionRepository auctionMessageReactionRepository;
     private final ItemRepository itemRepository;
     private final GameLuaItemRepository gameLuaItemRepository;
+    private final com.guild.app.item.service.GameItemCard gameItemCard;
     private final MemberRepository memberRepository;
     private final PointsService pointsService;
     private final AuditLogService auditLogService;
@@ -943,6 +944,7 @@ public class AuctionService {
                 ? Map.<String, GameLuaItem>of()
                 : gameLuaItemRepository.findByGameCodeIn(gameCodes).stream()
                         .collect(Collectors.toMap(GameLuaItem::getGameCode, l -> l, (a, b) -> a));
+        var effectsById = gameItemCard.effectsByItemId(auctionItems.stream().map(ai -> ai.getItem().getId()).toList());
         return auctionItems.stream()
                 .map(ai -> {
                     var lua = ai.getItem().getGameCode() != null ? luaByCode.get(ai.getItem().getGameCode()) : null;
@@ -953,7 +955,8 @@ public class AuctionService {
                             ai.getQuantity(),
                             lua == null ? null : new ItemResponse.GameIcon(
                                     lua.getCategory(), lua.getGameIndex(), lua.getGameCode(),
-                                    lua.getIconId(), lua.getSpriteSheet(), lua.getSpriteCols()));
+                                    lua.getIconId(), lua.getSpriteSheet(), lua.getSpriteCols()),
+                            effectsById.getOrDefault(ai.getItem().getId(), List.of()));
                 })
                 .toList();
     }

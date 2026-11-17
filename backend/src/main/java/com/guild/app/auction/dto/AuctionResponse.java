@@ -53,5 +53,7 @@ public record AuctionResponse(
             String itemName,
             String imageUrl,
             int quantity,
-            ItemResponse.GameIcon gameIcon) {}
+            ItemResponse.GameIcon gameIcon,
+            /** Special Effects do item (ex.: "Dodge +10"); vazio para relic, que o site monta pelo código. */
+            java.util.List<String> effects) {}
 }

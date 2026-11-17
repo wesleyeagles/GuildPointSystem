@@ -103,6 +103,34 @@ public class GameItemCard {
         return fit(out.toString());
     }
 
+    /** Special Effects de cada item do site (arma/armadura/acessório), por id; item sem efeito fica de fora. */
+    public Map<Long, List<String>> effectsByItemId(Collection<Long> ids) {
+        Map<Long, List<String>> out = new HashMap<>();
+        if (ids == null || ids.isEmpty()) return out;
+        List<Long> list = ids.stream().filter(Objects::nonNull).distinct().toList();
+        if (list.isEmpty()) return out;
+        String marks = String.join(",", Collections.nCopies(list.size(), "?"));
+        jdbc.query("""
+            SELECT i.id, COALESCE(w.special_effects, a.special_effects, c.special_effects)::text FROM item i
+            LEFT JOIN item_weapon w ON w.item_id=i.id LEFT JOIN item_armor a ON a.item_id=i.id
+            LEFT JOIN item_accessory c ON c.item_id=i.id
+            WHERE i.id IN (""" + marks + ")", rs -> {
+            String raw = rs.getString(2);
+            if (raw == null) return;
+            try {
+                List<String> effects = new ArrayList<>();
+                for (JsonNode e : json.readTree(raw)) {
+                    String text = e.asText("").strip();
+                    if (!text.isEmpty()) effects.add(text);
+                }
+                if (!effects.isEmpty()) out.put(rs.getLong(1), effects);
+            } catch (Exception ignored) {
+                // JSON quebrado: o item fica sem efeitos na lista
+            }
+        }, list.toArray());
+        return out;
+    }
+
     private String itemEffects(String code) {
         List<String> rows = jdbc.queryForList("""
             SELECT COALESCE(w.special_effects, a.special_effects, c.special_effects)::text FROM item i

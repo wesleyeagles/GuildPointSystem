@@ -295,11 +295,11 @@ function AuctionListSection({
   )
 }
 
-/** Base bonus of the relics in the lot, so the list shows what each one gives. */
+/** What each item in the lot gives: the base bonus of relics, the Special Effects of everything else. */
 function AuctionRelicEffects({ auction }: { auction: Auction }) {
   const texts = auction.items.flatMap((item) => {
     const id = relicIdFromGameCode(item.gameIcon?.gameCode)
-    return id === null ? [] : relicUpgradeTexts(id)[0] ?? []
+    return id === null ? item.effects ?? [] : relicUpgradeTexts(id)[0] ?? []
   })
   if (texts.length === 0) return null
   return <span className="auction-list__effects">{texts.join(' · ')}</span>

@@ -33,6 +33,7 @@ class AuctionDraftTest {
     @Mock MemberRepository members;
     @Mock AuditLogService audit;
     @Mock WebSocketPublisher websocket;
+    @Mock com.guild.app.item.service.GameItemCard cards;
     @InjectMocks AuctionService service;
     MemberPrincipal actor;
     @BeforeEach void authenticate() {

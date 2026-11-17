@@ -322,6 +322,8 @@ export interface AuctionItem {
   quantity: number
   /** Game-catalog items render from a sprite instead of `imageUrl`. */
   gameIcon: ItemGameIcon | null
+  /** Special Effects of the item (e.g. "Dodge +10"); empty for relics, built from the code. */
+  effects?: string[]
 }
 
 /** "Name x5, Other" — quantity only when more than one. */
