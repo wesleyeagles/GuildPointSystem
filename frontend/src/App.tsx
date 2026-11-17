@@ -29,6 +29,7 @@ import { PartyPage } from '@/Features/Party/Party'
 import { RaidPage } from '@/Features/Raid/Raid'
 import { ResourcesPage } from '@/Features/Resources/Resources'
 import { PbHistoryPage } from '@/Features/PbHistory/PbHistory'
+import { LootPage } from '@/Features/Loot/Loot'
 import { CwAttendancePage } from '@/Features/CwAttendance/CwAttendance'
 import { LocationHistoryPage } from '@/Features/LocationHistory/LocationHistory'
 import { MemeVideoPlayerPage } from '@/Features/MemeVideo/MemeVideoPlayer'
@@ -92,6 +93,7 @@ function App() {
                     <Route path="dll" element={<DllAdminPage />} />
                     <Route path="resources" element={<ResourcesPage />} />
                     <Route path="pb-history" element={<PbHistoryPage />} />
+                    <Route path="loot" element={<LootPage />} />
                     <Route path="cw" element={<Navigate to="/cw" replace />} />
                   </Route>
                 </Route>

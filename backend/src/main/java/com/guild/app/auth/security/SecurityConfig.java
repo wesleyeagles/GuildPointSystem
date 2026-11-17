@@ -116,6 +116,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/market/game/price", "/api/market/game/access", "/api/market/game/alerts", "/api/game/icon").permitAll()
                         // Fim da CW pela DLL (mensagem do chat): so aceita personagem de membro aprovado.
                         .requestMatchers(HttpMethod.POST, "/api/cw-attendance/game").permitAll()
+                        // Loot dos membros lido no chat do sistema pela DLL: so aceita personagem de membro aprovado.
+                        .requestMatchers(HttpMethod.POST, "/api/loot/game").permitAll()
                         // Mapa de recursos pela DLL: so aceita personagem de membro aprovado.
                         .requestMatchers(HttpMethod.POST, "/api/resources/game").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/pb-history/game").permitAll()

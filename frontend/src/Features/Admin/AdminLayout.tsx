@@ -11,6 +11,7 @@ const ADMIN_TABS: { to: string; label: string; minRole: Role }[] = [
   { to: '/admin/dll', label: 'DLL', minRole: 'ADMINISTRADOR' },
   { to: '/admin/resources', label: 'Recursos', minRole: 'ADMINISTRADOR' },
   { to: '/admin/pb-history', label: 'Histórico de PB', minRole: 'ADMINISTRADOR' },
+  { to: '/admin/loot', label: 'Loot', minRole: 'ADMINISTRADOR' },
 ]
 
 function useAdminTabs() {
