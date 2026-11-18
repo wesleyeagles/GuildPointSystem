@@ -25,6 +25,14 @@
     tbody td:nth-child(4) { width: 32%; }
     tbody td:nth-child(5) { width: 42%; }
     tbody tr:nth-child(even) { background: rgba(theme.$metal-700, .3); }
+    tbody tr[aria-current='time'] {
+      background: rgba(theme.$color-primary, .16);
+      th, td {
+        border-top: 1px solid theme.$color-primary;
+        border-bottom-color: theme.$color-primary;
+      }
+      th { box-shadow: inset 3px 0 theme.$color-primary; }
+    }
     td { vertical-align: middle; }
   }
   &__assignments { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 6px; }

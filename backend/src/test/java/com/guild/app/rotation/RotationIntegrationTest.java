@@ -43,7 +43,7 @@ class RotationIntegrationTest {
     @BeforeEach void setup() throws Exception {
         admin=member("ADMINISTRADOR"); player=member("MEMBRO");
         SecurityContextHolder.getContext().setAuthentication(auth(admin));
-        try(var stream=new ClassPathResource("db/migration/V76__boss_rotation.sql").getInputStream()) {
+        try(var stream=new ClassPathResource("db/migration/V134__publish_daily_boss_rotation.sql").getInputStream()) {
             var seed=new String(stream.readAllBytes(),java.nio.charset.StandardCharsets.UTF_8).split("\\$rotation\\$")[1];
             jdbc.update("UPDATE boss_rotation SET slots=?::jsonb,version=0 WHERE id=1",seed);
         }
@@ -52,6 +52,7 @@ class RotationIntegrationTest {
     @Test void officialEquipmentMigrationAndRotationMigrationCoexist() {
         assertEquals("equipment game client origin",jdbc.queryForObject("SELECT description FROM flyway_schema_history WHERE version='72' AND success",String.class));
         assertEquals("boss rotation",jdbc.queryForObject("SELECT description FROM flyway_schema_history WHERE version='76' AND success",String.class));
+        assertEquals("publish daily boss rotation",jdbc.queryForObject("SELECT description FROM flyway_schema_history WHERE version='134' AND success",String.class));
     }
     @Test void suppliedScheduleTotalsMatchImage() {
         var schedule=service.read();
@@ -80,10 +81,10 @@ class RotationIntegrationTest {
         String nick=jdbc.queryForObject("SELECT nickname FROM member WHERE id=?",String.class,player);
         var text=service.gameText(nick.toUpperCase()).orElseThrow();
         assertEquals(List.of(
-            "02:00\t\tBlood King Twizer / Rex Cannibal (Rhino)",
+            "02:00\t\tHeavy Anabola / Great Lava",
             "14:00\tRatmoth / Beach (Vafer)\t",
-            "18:00\tSplinter\tRex Cannibal (Rhino)",
-            "22:00\tWarbeast / Splinter / Ratmoth\t"),List.of(text.split("\n")));
+            "18:00\tBeach (Vafer)\tBrutal Rex (Mantis)",
+            "22:00\tSplinter / Ratmoth / Beach (Vafer)\t"),List.of(text.split("\n")));
         assertTrue(service.gameText("Ninguem"+UUID.randomUUID()).isEmpty());
         assertTrue(service.gameText(null).isEmpty());
         String pending="Pend"+UUID.randomUUID().toString().substring(0,8);

@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useAuthContext } from '@/Features/Auth/contexts/AuthContext'
 import { guilds, useRotation, useSaveRotation, type Assignment, type Guild, type Rotation, type RotationSlot } from '@/Domain/Rotation/hooks/useRotation'
 import { Panel } from '@/Shared/ui/components/Panel/Panel'
 import { Button } from '@/Shared/ui/components/Button/Button'
-import { rotationTime, rotationTotals } from './Rotation.utils'
+import { serverNow } from '@/Shared/utils/serverClock'
+import { activeRotationTime, brasiliaRotationTime, rotationTime, rotationTotals } from './Rotation.utils'
 import './Rotation.styles.scss'
 
 const zones = [{ label: 'Brasília', offset: 0 }, { label: 'Moscou', offset: 6 }, { label: 'Jacarta', offset: 10 }]
@@ -58,6 +59,12 @@ export function RotationPage() {
   const [tab, setTab] = useState<'bosses' | 'exp'>('bosses')
   const [filter, setFilter] = useState('')
   const [editing, setEditing] = useState(false)
+  const [now, setNow] = useState(() => brasiliaRotationTime(serverNow()))
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(brasiliaRotationTime(serverNow())), 1000)
+    return () => window.clearInterval(timer)
+  }, [])
+  const activeTime = data && activeRotationTime(data.slots, now)
   return <div className="rotation">
     <div className="rotation__heading"><h1>Rotação</h1><div className="rotation__tabs" aria-label="Tipo de rotação">
       <Button variant={tab === 'bosses' ? 'primary' : 'ghost'} aria-pressed={tab === 'bosses'} disabled={editing} onClick={() => setTab('bosses')}>Bosses</Button>
@@ -77,7 +84,7 @@ export function RotationPage() {
         })}</div>
         <Panel title="Divisão diária" flush><div className="rotation__table-wrap"><table className="rotation__table">
           <thead><tr>{zones.map(z => <th scope="col" key={z.label}>{z.label}</th>)}<th scope="col">Divisão dos QGs</th><th scope="col">Divisão dos Outposts</th></tr></thead>
-          <tbody>{data.slots.filter(s => !filter || [...s.qg, ...s.outpost].some(a => a.guild === filter)).map(slot => <tr key={slot.time}>
+          <tbody>{data.slots.filter(s => !filter || [...s.qg, ...s.outpost].some(a => a.guild === filter)).map(slot => <tr key={slot.time} aria-current={slot.time === activeTime ? 'time' : undefined}>
             {zones.map((z, i) => i === 0 ? <th scope="row" key={z.label}>{rotationTime(slot.time, z.offset)}</th> : <td className="rotation__time" key={z.label}>{rotationTime(slot.time, z.offset)}</td>)}
             <td><Assignments entries={slot.qg} filter={filter} /></td><td><Assignments entries={slot.outpost} filter={filter} /></td>
           </tr>)}</tbody>

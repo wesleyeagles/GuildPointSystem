@@ -1,4 +1,26 @@
 import type { Guild, RotationSlot } from '@/Domain/Rotation/hooks/useRotation'
+import { SCHEDULE_TIME_ZONE } from '@/Shared/utils/scheduleTimeZone'
+
+const brasiliaClock = new Intl.DateTimeFormat('en-GB', {
+  timeZone: SCHEDULE_TIME_ZONE,
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23',
+})
+
+export function brasiliaRotationTime(timestamp: number) {
+  return brasiliaClock.format(timestamp)
+}
+
+export function activeRotationTime(slots: RotationSlot[], time: string) {
+  let latest: string | undefined
+  let active: string | undefined
+  for (const slot of slots) {
+    if (!latest || slot.time > latest) latest = slot.time
+    if (slot.time <= time && (!active || slot.time > active)) active = slot.time
+  }
+  return active ?? latest
+}
 
 export function rotationTime(time: string, offset: number) {
   const [hour, minute] = time.split(':').map(Number)
