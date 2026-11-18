@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { RotationPage } from './Rotation'
 import { rotationTime, rotationTotals } from './Rotation.utils'
@@ -10,7 +10,7 @@ vi.mock('@/Domain/Rotation/hooks/useRotation', async importOriginal => ({
   useRotation: () => ({ data: state.data, isPending: false }),
   useSaveRotation: () => ({ mutate: state.save, isPending: false }),
 }))
-afterEach(() => { cleanup(); state.admin = false; state.save.mockClear() })
+afterEach(() => { cleanup(); vi.useRealTimers(); state.admin = false; state.save.mockClear() })
 const fixture: Rotation = { version: 3, updatedAt: '2026-10-26T22:00:00Z', slots: [
   { time: '18:00', qg: [{ guild: 'Quit', bosses: ['Warbeast', 'Splinter'] }], outpost: [{ guild: 'Energy', bosses: ['Great Lava'] }] },
 ] }
@@ -29,6 +29,24 @@ describe('Rotação', () => {
     expect(screen.queryByText('Great Lava')).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'EXP' }))
     expect(screen.getByText('A rotação de EXP ainda não foi publicada.')).toBeInTheDocument()
+  })
+  it('only highlights the current Brasília respawn and advances across midnight', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-11-18T21:00:00Z'))
+    state.data = { ...fixture, slots: ['02:00', '18:00', '22:00'].map(time => ({ ...fixture.slots[0], time })) }
+    const { container } = render(<RotationPage />)
+    const highlighted = () => Array.from(container.querySelectorAll('tr[aria-current="time"] th'), cell => cell.textContent)
+    expect(highlighted()).toEqual(['18:00'])
+    const advanceTo = (iso: string) => act(() => {
+      vi.setSystemTime(new Date(iso))
+      vi.advanceTimersByTime(1000)
+    })
+    advanceTo('2026-11-19T01:00:00Z')
+    expect(highlighted()).toEqual(['22:00'])
+    advanceTo('2026-11-19T03:00:00Z')
+    expect(highlighted()).toEqual(['22:00'])
+    advanceTo('2026-11-19T05:00:00Z')
+    expect(highlighted()).toEqual(['02:00'])
   })
   it('edits a draft without changing the published data and submits its original version', () => {
     state.data = fixture; state.admin = true
