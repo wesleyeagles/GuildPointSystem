@@ -421,26 +421,19 @@ export function AuctionListPage() {
     setCreationSummary(count > 1 ? `Criando 0 de ${count} leilões…` : '')
     draftInput.suspend()
     let created = 0
-    const uncheckedDeadlines: string[] = []
-    const deadlineWarning = () => uncheckedDeadlines.length
-      ? ` Confira o cronômetro dos lotes ${uncheckedDeadlines.join(', ')}. O ajuste de prazo ficou incompleto.`
-      : ''
     try {
       while (created < count) {
         if (startsAt && Date.parse(startsAt) <= serverNow() + 30_000) {
           throw new Error('O início agendado está próximo demais.')
         }
-        const result = await createAuction.mutateAsync(request)
+        await createAuction.mutateAsync(request)
         created++
         if (count > 1) setCreationSummary(`Criando leilões: ${created} de ${count} confirmados…`)
-        if (selectedDay && !result.deadlineReached) {
-          uncheckedDeadlines.push(lotOf(result.auction))
-        }
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Não foi possível criar o leilão.'
       if (count > 1) {
-        const summary = `${created} de ${count} leilões confirmados. ${message}${deadlineWarning()} Confira a lista antes de repetir.`
+        const summary = `${created} de ${count} leilões confirmados. ${message} Confira a lista antes de repetir.`
         setCreationSummary(summary)
         showToast(summary, 'error')
         setLotCount(String(Math.max(1, count - created)))
@@ -452,10 +445,10 @@ export function AuctionListPage() {
       creating.current = false
       setIsCreating(false)
     }
-    if (count > 1 || uncheckedDeadlines.length) {
-      const summary = `${count === 1 ? '1 leilão criado.' : `${count} leilões criados.`}${deadlineWarning()}`
+    if (count > 1) {
+      const summary = `${count} leilões criados.`
       setCreationSummary(summary)
-      showToast(summary, uncheckedDeadlines.length ? 'error' : 'success')
+      showToast(summary, 'success')
     } else if (startMode === 'at') showToast(`Leilão agendado para ${formatStartsAt(startsAt!)}.`, 'success')
     else if (startMode === 'later') showToast('Leilão criado em "Em breve". Inicie quando quiser.', 'success')
     setCopiedEnd(null)

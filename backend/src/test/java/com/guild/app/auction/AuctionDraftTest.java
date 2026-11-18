@@ -57,6 +57,25 @@ class AuctionDraftTest {
         assertEquals(0L, result.currentBid()); assertNull(result.winnerId());
         verify(auctionItems).save(argThat(a -> a.getQuantity() == 3));
     }
+    @Test void targetEndIsAnnouncedImmediatelyAndPermitsBidExtensions() {
+        arrangeSave();
+        var end = Instant.now().plusSeconds(36 * 3600);
+        var result = service.createWithTargetEnd(request(end, null, false), actor);
+        assertEquals(end, result.endsAt());
+        assertEquals(AuctionStatus.OPEN, result.status());
+        assertFalse(result.fixedDeadline());
+        verify(auctions).save(argThat(a -> end.equals(a.getEndsAt())));
+        verify(websocket).publishAuctionList(Map.of("type", "AUCTION_CREATED", "auction", result));
+    }
+    @Test void rejectsMissingOrInvalidTargetEndsBeforeWriting() {
+        var now = Instant.now();
+        for (var request : List.of(request(null, null, false), request(now.minusSeconds(1), null, false),
+                request(now.plusSeconds(49 * 3600), null, false), request(now.plusSeconds(300), null, true),
+                request(now.plusSeconds(300), now.plusSeconds(60), false))) {
+            assertThrows(AppException.class, () -> service.createWithTargetEnd(request, actor));
+        }
+        verifyNoInteractions(auctions, auctionItems);
+    }
     @Test void rejectsExpiredTooDistantOrScheduledDeadlineBeforeWriting() {
         var end = Instant.now().plusSeconds(300);
         for (var request : List.of(request(Instant.now().minusSeconds(1), null, false),

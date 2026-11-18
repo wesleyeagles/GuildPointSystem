@@ -50,6 +50,12 @@ public class AuctionController {
         return auctionService.createWithDeadline(request, SecurityUtils.currentMember());
     }
 
+    @PostMapping("/target-end")
+    @ResponseStatus(HttpStatus.CREATED)
+    public AuctionResponse createWithTargetEnd(@Valid @RequestBody CreateAuctionRequest request) {
+        return auctionService.createWithTargetEnd(request, SecurityUtils.currentMember());
+    }
+
     @PostMapping("/start-batch")
     public List<AuctionResponse> startBatch(@Valid @RequestBody StartAuctionBatch request) {
         return auctionService.startBatch(request.auctionIds(), request.endsAt(), SecurityUtils.currentMember());

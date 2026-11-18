@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { ApiError } from '@/Shared/api/client'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import type { Auction } from '@/Domain/types/models'
@@ -185,7 +186,7 @@ it('uses the same Brasília deadline for new auctions and pending lots', async (
   state.now = Date.parse('2026-11-14T00:00:00Z') // 21h on November 13 in Brasília
   const endsAt = '2026-11-14T00:50:00.000Z'
   const pending = { ...sampleAuction(endsAt), status: 'SCHEDULED' as const }
-  state.create.mockResolvedValue({ auction: pending, deadlineReached: true })
+  state.create.mockResolvedValue(pending)
   state.auctions = [pending, { ...pending, id: 43 }, { ...pending, id: 44, status: 'OPEN' }]
   state.startBatch.mockResolvedValue(state.auctions.slice(0, 2))
   render(<MemoryRouter><AuctionListPage /></MemoryRouter>)
@@ -205,7 +206,7 @@ it.each([
   state.admin = true
   state.now = Date.parse(now)
   const endsAt = '2026-11-15T00:50:00.000Z'
-  state.create.mockResolvedValue({ auction: sampleAuction(endsAt), deadlineReached: true })
+  state.create.mockResolvedValue(sampleAuction(endsAt))
   render(<MemoryRouter><AuctionListPage /></MemoryRouter>)
   const duration = screen.getByLabelText('Duração')
   expect(duration).toHaveValue(defaultsToTomorrow ? 'tomorrow' : 'today')
@@ -228,7 +229,7 @@ it('creates multiple lots with the same items and target time', async () => {
   state.admin = true
   state.auctions = []
   state.now = Date.parse('2026-11-14T21:00:00Z')
-  state.create.mockResolvedValue({ auction: sampleAuction('2026-11-15T00:50:00Z'), deadlineReached: true })
+  state.create.mockResolvedValue(sampleAuction('2026-11-15T00:50:00Z'))
   render(<MemoryRouter><AuctionListPage /></MemoryRouter>)
   fireEvent.click(screen.getByRole('button', { name: 'Item 0' }))
   fireEvent.change(screen.getByLabelText('Quantidade'), { target: { value: '4' } })
@@ -244,27 +245,11 @@ it('creates multiple lots with the same items and target time', async () => {
   }
 })
 
-it('creates all four lots even when the first deadline adjustment fails', async () => {
-  state.admin = true
-  state.auctions = []
-  state.now = Date.parse('2026-11-14T21:00:00Z')
-  const auction = sampleAuction('2026-11-15T00:49:00Z')
-  state.create.mockResolvedValueOnce({ auction, deadlineReached: false })
-    .mockResolvedValue({ auction, deadlineReached: true })
-  render(<MemoryRouter><AuctionListPage /></MemoryRouter>)
-  fireEvent.click(screen.getByRole('button', { name: 'Item 0' }))
-  fireEvent.change(screen.getByLabelText('Número de leilões'), { target: { value: '4' } })
-  fireEvent.click(screen.getByRole('button', { name: 'Criar 4 leilões' }))
-  expect(await screen.findByText(/4 leilões criados.*#042.*ajuste de prazo/)).toBeVisible()
-  expect(state.create).toHaveBeenCalledTimes(4)
-  expect(screen.getByRole('button', { name: 'Item 0' })).toBeVisible()
-})
-
 it('keeps the draft for the remaining lots after a partial failure', async () => {
   state.admin = true
   state.auctions = []
   state.now = Date.parse('2026-11-14T21:00:00Z')
-  state.create.mockResolvedValueOnce({ auction: sampleAuction('2026-11-15T00:50:00Z'), deadlineReached: true })
+  state.create.mockResolvedValueOnce(sampleAuction('2026-11-15T00:50:00Z'))
     .mockRejectedValueOnce(new Error('Falha na API'))
   render(<MemoryRouter><AuctionListPage /></MemoryRouter>)
   fireEvent.click(screen.getByRole('button', { name: 'Item 0' }))
@@ -280,11 +265,11 @@ it('keeps the draft for the remaining lots after a partial failure', async () =>
 it('adds one unit per RF-ui click, even when the first acknowledgement fails', async () => {
   state.admin = true
   state.auctions = []
-  state.lookup.mockResolvedValue({ content: [{ id: 35, name: 'Intense Staff', gameCode: 'iwtji40' }], totalPages: 1 })
+  state.lookup.mockResolvedValue({ id: 35, name: 'Intense Staff' })
   const events = [{ id: 'a'.repeat(32), code: 'iwtji40' }, { id: 'b'.repeat(32), code: 'iwtji40' }]
   let acknowledgements = 0
   let selections = 0
-  state.create.mockResolvedValue({ deadlineReached: true })
+  state.create.mockResolvedValue(sampleAuction('2026-11-15T00:50:00Z'))
   vi.stubGlobal('fetch', vi.fn(async (_url, options) => {
     const { action } = JSON.parse(options.body)
     if (action === 'select') selections++
@@ -312,6 +297,7 @@ it.each([false, true])('requires a unique exact Relic code across pages (duplica
   state.auctions = []
   const relic = { id: 44, name: '(1GR) Freak Vafer Niffer Relic', gameCode: 'relic004' }
   state.lookup
+    .mockRejectedValueOnce(new ApiError('Rota indisponível', 404))
     .mockResolvedValueOnce({ content: [{ ...relic, name: 'iyfig89', gameCode: 'other01' }], totalPages: 1 })
     .mockResolvedValueOnce({ content: [relic], totalPages: 2 })
     .mockResolvedValueOnce({ content: duplicate ? [{ ...relic, id: 45 }] : [], totalPages: 2 })
@@ -330,6 +316,7 @@ it.each([false, true])('requires a unique exact Relic code across pages (duplica
   ))
   expect(screen.getByRole('button', { name: duplicate ? 'Item 0' : 'Item 44' })).toBeVisible()
   expect(state.lookup.mock.calls.map(([path]) => path)).toEqual([
+    '/items/auction-code/iyfig89',
     '/items?search=iyfig89&page=0&size=24',
     '/items?search=relic004&page=0&size=24',
     '/items?search=relic004&page=1&size=24',
@@ -341,7 +328,7 @@ it.each([true, false])('copies the lot draft with its target deadline for admins
   const endsAt = new Date(Math.floor(Date.now() / 1000) * 1000 + 912_345).toISOString()
   state.admin = admin
   state.auctions = [sampleAuction(endsAt)]
-  state.create.mockResolvedValue({ auction: state.auctions[0], deadlineReached: true })
+  state.create.mockResolvedValue(state.auctions[0])
   render(<MemoryRouter><AuctionListPage /></MemoryRouter>)
 
   if (!admin) {
