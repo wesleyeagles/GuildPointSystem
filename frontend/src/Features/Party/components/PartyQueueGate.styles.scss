@@ -2,7 +2,12 @@
 .party-queue-gate {
   display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;
   gap: $spacing-sm; padding: $spacing-sm $spacing-md; border-bottom: 1px solid $color-border;
-  > div { display: grid; gap: 2px; }
+  > div { display: flex; align-items: center; flex-wrap: wrap; gap: $spacing-sm $spacing-md; }
+  &__summary { flex-basis: 100%; }
+  &__opening, &__leveling { display: flex; align-items: baseline; flex-wrap: wrap; gap: $spacing-xs $spacing-md; }
+  &__opening > span, &__leveling > span { white-space: nowrap; }
+  &__leveling b { color: $color-text; font-weight: 600; }
+  &__override:empty { display: none; }
   strong { color: $color-warning; }
   &.is-open strong { color: $color-success; }
   span { color: $color-text-muted; font-size: $font-size-base; }

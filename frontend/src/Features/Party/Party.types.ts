@@ -198,6 +198,7 @@ export interface PartyQueueAccess {
 }
 
 export interface PartyBoard {
+  notice?: string
   queueAccess?: PartyQueueAccess
 
 

@@ -23,6 +23,9 @@ public class PartySettings {
     @Column(name = "lfg_locked", nullable = false)
     private boolean lfgLocked;
 
+    @Column(nullable = false, length = 1000)
+    private String notice = "";
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "updated_by_id")
     private Member updatedBy;

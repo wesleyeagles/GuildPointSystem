@@ -34,6 +34,7 @@ import { PartyCreateModal, type PartyCreateMode } from '@/Features/Party/compone
 import { PartyLfgList, WaitingTime } from '@/Features/Party/components/PartyLfgList'
 import { PartyAfkControl } from '@/Features/Party/components/PartyAfkControl'
 import { PartyQueueGate } from '@/Features/Party/components/PartyQueueGate'
+import { PartyNotice } from '@/Features/Party/components/PartyNotice'
 import { PartyQueueControls } from '@/Features/Party/components/PartyQueueControls'
 import { PartyLfgAddModal } from '@/Features/Party/components/PartyLfgAddModal'
 import { PartyLocationPointsModal } from '@/Features/Party/components/PartyLocationPointsModal'
@@ -532,6 +533,7 @@ export function PartyPage() {
 
   return (
     <div className="party-page">
+      {board && <PartyNotice text={board.notice} canEdit={hasRole('ADMINISTRADOR')} />}
       {createModal && (
         <PartyCreateModal
           mode={createModal}

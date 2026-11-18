@@ -14,5 +14,6 @@ public record PartyBoardResponse(
         boolean lfgLocked,
         MyPartyState my,
         Instant serverTime,
-        PartyQueueAccess queueAccess
+        PartyQueueAccess queueAccess,
+        String notice
 ) {}
