@@ -9,5 +9,6 @@ public record PartyMemberSummary(
         Float expPercent,
         boolean leader,
         java.time.Instant afkUntil,
-        java.time.LocalDate blockedForSellUntil
+        java.time.LocalDate blockedForSellUntil,
+        java.time.Instant joinedAt
 ) {}

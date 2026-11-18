@@ -31,6 +31,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class PartyService {
 
+    private static final int AFK_LIMIT_SECONDS = 8 * 60;
+
     private final PartyRepository partyRepository;
     private final PartyMemberRepository partyMemberRepository;
     private final PartyPendingRepository partyPendingRepository;
@@ -678,7 +680,7 @@ public class PartyService {
         if(current.getAfkUntil()!=null && !current.getAfkUntil().isAfter(now))
             throw new AppException("O prazo de AFK encerrou. Aguarde a atualização da fila.",HttpStatus.CONFLICT);
         if(request.active() && current.getAfkUntil()==null) {
-            current.setAfkUntil(now.plusSeconds(15*60).truncatedTo(java.time.temporal.ChronoUnit.MICROS));
+            current.setAfkUntil(now.plusSeconds(AFK_LIMIT_SECONDS).truncatedTo(java.time.temporal.ChronoUnit.MICROS));
             audit.log(AuditLogType.PARTY_QUEUE_UPDATED,acting,memberRepository.getReferenceById(memberId),
                 Map.of("action","AFK_STARTED","until",current.getAfkUntil().toString()));
         } else if(!request.active() && current.getAfkUntil()!=null) {
@@ -709,7 +711,7 @@ public class PartyService {
             partyLfgRepository.save(entry);
             audit.log(AuditLogType.PARTY_QUEUE_UPDATED,(Member)null,member,
                 Map.of("action","AFK_EXPIRED","partyId",party.getId()));
-            publishReturnedToLfgNotice(member.getId(),"Você completou 15 minutos de AFK e foi para o final da fila.",party.getId(),party.getMap());
+            publishReturnedToLfgNotice(member.getId(),"Seu prazo de AFK terminou e você foi para o final da fila.",party.getId(),party.getMap());
             changed=true;
         }
         if(changed) publishBoard();
@@ -1020,7 +1022,7 @@ public class PartyService {
                     if (m == null) {
                         throw new AppException("Membro da PT não encontrado", HttpStatus.INTERNAL_SERVER_ERROR);
                     }
-                    return toMemberSummary(m, leaderId != null && pm.getMemberId().equals(leaderId),pm.getAfkUntil());
+                    return toMemberSummary(m, leaderId != null && pm.getMemberId().equals(leaderId), pm);
                 })
                 .toList();
         return new PartySummary(
@@ -1034,10 +1036,10 @@ public class PartyService {
     }
 
     private PartyMemberSummary toMemberSummary(Member m, boolean leader) {
-        return toMemberSummary(m,leader,null);
+        return toMemberSummary(m, leader, null);
     }
 
-    private PartyMemberSummary toMemberSummary(Member m, boolean leader, Instant afkUntil) {
+    private PartyMemberSummary toMemberSummary(Member m, boolean leader, PartyMember membership) {
         var cls = m.getCharacterClass();
         var gs = characterStatusRepository
                 .findFirstByMemberIdOrderByUpdatedAtDesc(m.getId()).orElse(null);
@@ -1049,8 +1051,9 @@ public class PartyService {
                 gameLevel(m, gs),
                 gs != null ? gs.getExpPercent() : null,
                 leader,
-                afkUntil,
-                m.isBlockedForSellAccount() ? m.getBlockedForSellUntil() : null
+                membership != null ? membership.getAfkUntil() : null,
+                m.isBlockedForSellAccount() ? m.getBlockedForSellUntil() : null,
+                membership != null ? membership.getJoinedAt() : null
         );
     }
 

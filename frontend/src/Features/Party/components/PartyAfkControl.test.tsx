@@ -9,16 +9,16 @@ vi.mock('@/Shared/utils/useServerNow', () => ({ useServerNow: () => state.now })
 beforeEach(() => { state.mutate.mockReset(); state.toast.mockReset(); state.pending = false; state.now = Date.parse('2026-10-28T12:00:00Z') })
 afterEach(cleanup)
 
-it('starts a 15 minute notice, counts down on server time and lets the player return', () => {
+it('starts an 8 minute notice, counts down on server time and lets the player return', () => {
   const view = render(<PartyAfkControl memberId={1} nickname="Player" canControl />)
-  expect(screen.getByRole('button', { name: 'Iniciar AFK de 15 minutos para Player' })).toHaveTextContent(/^AFK$/)
-  fireEvent.click(screen.getByRole('button', { name: 'Iniciar AFK de 15 minutos para Player' }))
+  expect(screen.getByRole('button', { name: 'Iniciar AFK de 8 minutos para Player' })).toHaveTextContent(/^AFK$/)
+  fireEvent.click(screen.getByRole('button', { name: 'Iniciar AFK de 8 minutos para Player' }))
   expect(state.mutate.mock.calls[0][0]).toEqual({ memberId: 1, active: true })
-  view.rerender(<PartyAfkControl memberId={1} nickname="Player" until="2026-10-28T12:15:00Z" canControl />)
-  expect(screen.getByText('AFK · 15:00')).toBeInTheDocument()
+  view.rerender(<PartyAfkControl memberId={1} nickname="Player" until="2026-10-28T12:08:00Z" canControl />)
+  expect(screen.getByText('AFK · 8:00')).toBeInTheDocument()
   state.now += 60_000
-  view.rerender(<PartyAfkControl memberId={1} nickname="Player" until="2026-10-28T12:15:00Z" canControl />)
-  expect(screen.getByText('AFK · 14:00')).toBeInTheDocument()
+  view.rerender(<PartyAfkControl memberId={1} nickname="Player" until="2026-10-28T12:08:00Z" canControl />)
+  expect(screen.getByText('AFK · 7:00')).toBeInTheDocument()
   fireEvent.click(screen.getByRole('button', { name: 'Marcar retorno de Player' }))
   expect(state.mutate.mock.calls[1][0]).toEqual({ memberId: 1, active: false })
 })

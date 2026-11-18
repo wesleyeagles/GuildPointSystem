@@ -55,11 +55,23 @@ class PartyAfkIntegrationTest {
         return roster.findByMemberId(id).orElseThrow().getAfkUntil();
     }
     PartyLfgEntry waiting(long id) { return service.getBoard(principal(id)).my().lfg(); }
-    @Test void startsFor15MinutesWithoutExtendingOnRepeatedRequestsAndAllowsEarlyReturn() {
+    @Test void publishesTheOriginalJoinTimeForEachPartyMember() {
+        entities.flush();
+        entities.clear();
+        var rows = service.getPublicSnapshot().parties().stream()
+            .filter(summary -> summary.id().equals(party)).findFirst().orElseThrow().members();
+        assertEquals(2, rows.size());
+        for (var row : rows) {
+            assertNotNull(row.joinedAt());
+            assertEquals(roster.findByMemberId(row.id()).orElseThrow().getJoinedAt(), row.joinedAt());
+        }
+    }
+
+    @Test void startsFor8MinutesWithoutExtendingOnRepeatedRequestsAndAllowsEarlyReturn() {
         Instant before=Instant.now();
         Instant until=start(player);
-        assertFalse(until.isBefore(before.plusSeconds(900)));
-        assertFalse(until.isAfter(Instant.now().plusSeconds(900)));
+        assertFalse(until.isBefore(before.plusSeconds(480)));
+        assertFalse(until.isAfter(Instant.now().plusSeconds(480)));
         service.setAfk(player,new PartyAfkRequest(true),principal(player));
         assertEquals(until,roster.findByMemberId(player).orElseThrow().getAfkUntil());
         service.setAfk(player,new PartyAfkRequest(false),principal(player));

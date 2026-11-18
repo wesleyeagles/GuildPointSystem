@@ -251,6 +251,15 @@
   text-align: right;
 }
 
+.party-card__roster-time {
+  flex-shrink: 0;
+  white-space: nowrap;
+  font-family: theme.$font-mono;
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  color: theme.$color-accent;
+}
+
 @media (max-width: theme.$mobile-breakpoint) {
   .party-card__roster-meta {
     font-size: 12px;
