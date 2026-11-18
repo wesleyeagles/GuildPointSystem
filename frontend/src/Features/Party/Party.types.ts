@@ -63,6 +63,7 @@ export interface PartyMemberSummary {
   leader: boolean
 
   afkUntil?: string | null
+  joinedAt?: string | null
 
   /** Account blocked for sale through this day (yyyy-mm-dd), or null. */
   blockedForSellUntil?: string | null

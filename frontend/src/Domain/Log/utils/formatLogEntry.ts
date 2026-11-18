@@ -196,9 +196,9 @@ export function formatLogDetails(log: AuditLogEntry): string {
     case 'PARTY_QUEUE_UPDATED':
       if (p.action === 'LOCKED') return 'Lista de espera bloqueada · ninguém entra por conta própria'
       if (p.action === 'UNLOCKED') return 'Lista de espera desbloqueada'
-      if (p.action === 'AFK_STARTED') return 'AFK avisado · limite de 15 minutos'
+      if (p.action === 'AFK_STARTED') return 'AFK avisado · contagem iniciada'
       if (p.action === 'AFK_CANCELLED') return 'AFK cancelado · voltou antes do prazo'
-      if (p.action === 'AFK_EXPIRED') return '15 minutos de AFK · enviado ao final da fila'
+      if (p.action === 'AFK_EXPIRED') return 'Prazo de AFK encerrado · enviado ao final da fila'
       if (p.action === 'AFK_RETURNED') return 'Retornou do AFK · permanece na fila'
       if (p.action === 'UNANSWERED') return 'Chamado, não respondeu · movido ao final entre os mesmos pontos'
       if (p.action === 'RESET') return `Entrou em uma PT · prioridade ${str(p.oldPoints)} → 0`

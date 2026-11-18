@@ -253,6 +253,11 @@ function PartyRoster({
                 Lv {member.level}
                 {member.expPercent != null ? ` · ${member.expPercent.toFixed(2)}%` : ''}
               </span>
+              {member.joinedAt && (
+                <span className="party-card__roster-time" title="Tempo na PT">
+                  <WaitingTime since={member.joinedAt} />
+                </span>
+              )}
               {(canManage || member.id === viewerId || member.afkUntil) && <PartyAfkControl
                 memberId={member.id} nickname={member.nickname} until={member.afkUntil}
                 canControl={canManage || member.id === viewerId} />}
@@ -802,7 +807,7 @@ export function PartyPage() {
                 }
               />
             )}
-            <p className="party-afk-policy">O limite de tempo pra ficar AFK <strong>SEM QUE TENHA SIDO AVISADO É DE 15 MINUTOS</strong>. Em caso de precisar ficar AFK, cair internet, luz, ou algo do tipo, tente avisar no discord.</p>
+            <p className="party-afk-policy">O limite de tempo pra ficar AFK <strong>SEM QUE TENHA SIDO AVISADO É DE 8 MINUTOS</strong>. Em caso de precisar ficar AFK, cair internet, luz, ou algo do tipo, tente avisar no discord.</p>
           </Panel>
         </div>
       )}
