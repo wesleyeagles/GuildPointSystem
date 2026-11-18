@@ -43,6 +43,15 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
 
     List<Member> findByStatusOrderByPointsDesc(com.guild.app.common.enums.MemberStatus status);
 
+    // Same effective character level as the equipment board, including the latest snapshot tie-break.
+    @Query(value = """
+        SELECT m.* FROM member m
+        LEFT JOIN LATERAL (SELECT level FROM character_status WHERE member_id=m.id
+            ORDER BY updated_at DESC,id DESC LIMIT 1) cs ON true
+        WHERE m.status='APROVADO' AND COALESCE(cs.level,m.level)=50
+        """, nativeQuery = true)
+    List<Member> findApprovedLevel50ForBd();
+
     @Query("SELECT m FROM Member m LEFT JOIN FETCH m.characterClass WHERE m.id IN :ids")
     List<Member> findAllByIdInWithClass(Collection<Long> ids);
 }

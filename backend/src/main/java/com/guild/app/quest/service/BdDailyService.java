@@ -67,7 +67,7 @@ public class BdDailyService {
         if (day == null) day = LocalDate.now(ZONE);
         Map<String, Instant> done = completions.forDay(day);
         Map<String, Row> rows = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
-        for (Member member : members.findByStatusOrderByPointsDesc(MemberStatus.APROVADO)) {
+        for (Member member : members.findApprovedLevel50ForBd()) {
             if (!eligible(member)) continue;
             String nick = member.getNickname();
             rows.putIfAbsent(nick, new Row(nick, done.get(nick.toLowerCase(Locale.ROOT))));

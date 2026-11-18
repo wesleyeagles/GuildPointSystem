@@ -18,9 +18,9 @@ class BdDailyServiceTest {
     final BdCompletionRepository repository = mock(BdCompletionRepository.class, withSettings().mockMaker(org.mockito.MockMakers.SUBCLASS));
     final BdDailyService service = new BdDailyService(members, repository);
     BdDailyServiceTest() {
-        Member meow = new Member(); meow.setNickname("meow"); meow.setStatus(MemberStatus.APROVADO); meow.setProfileComplete(true);
+        Member meow = new Member(); meow.setNickname("meow"); meow.setLevel(50); meow.setStatus(MemberStatus.APROVADO); meow.setProfileComplete(true);
         when(members.findByGameCharacter("meow")).thenReturn(List.of(meow));
-        when(members.findByStatusOrderByPointsDesc(MemberStatus.APROVADO)).thenReturn(List.of(meow));
+        when(members.findApprovedLevel50ForBd()).thenReturn(List.of(meow));
     }
     BdCompletionRequest event(String code, int complete) {
         return new BdCompletionRequest("meow", code, Instant.parse("2026-11-17T02:59:00Z").getEpochSecond(), 1, complete, BdDailyService.HASH);
@@ -42,5 +42,13 @@ class BdDailyServiceTest {
         when(repository.forDay(any())).thenReturn(Map.of("meow", Instant.parse("2026-11-17T13:30:00Z")));
         String body = service.forGame("meow");
         assertTrue(body.startsWith("BD1\t")); assertTrue(body.contains("meow\t10:30:00\n"));
+    }
+    @Test void keepsEligibilityChecksAndCompletionHistoryIndependentOfDisplayFilter() {
+        Member suspended = new Member(); suspended.setNickname("suspended"); suspended.setStatus(MemberStatus.APROVADO);
+        suspended.setProfileComplete(true); suspended.setSuspendedAt(Instant.now());
+        when(members.findApprovedLevel50ForBd()).thenReturn(List.of(suspended));
+        assertEquals("BD1\t" + LocalDate.now(BdDailyService.ZONE) + "\n", service.forGame("meow"));
+        service.ingest(event("Q070613", 104));
+        verify(repository).record(any(), any(), any());
     }
 }
