@@ -39,7 +39,7 @@ class Auction070RepairTest {
         var deadline = Instant.now().plusSeconds(3600);
         var script = new ClassPathResource("db/migration/V135__reopen_auction_070.sql")
             .getContentAsString(StandardCharsets.UTF_8)
-            .replace("target_id constant bigint := 70", "target_id constant bigint := " + lot)
+            .replace("repair_auction_id constant bigint := 70", "repair_auction_id constant bigint := " + lot)
             .replace("'2026-11-18 21:50:00 America/Sao_Paulo'", "'" + deadline + "'")
             .replace("nickname = 'CKP'", "id = " + player);
         jdbc.execute(script);
