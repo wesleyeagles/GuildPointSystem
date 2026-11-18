@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuests, useQuestPairing, useQuestRevoke, useLiveQuestPairing } from '@/Domain/Quest/hooks/useQuests'
 import { QuestDailyList, QuestPlayerPanel } from './QuestLivePanels'
 import { QuestRewards } from './rewards/QuestRewards'
+import { QuestGuildDaily } from './QuestGuildDaily'
 import type { QuestObservation, QuestState } from '@/Domain/Quest/types'
 import { Panel } from '@/Shared/ui/components/Panel/Panel'
 import { Button } from '@/Shared/ui/components/Button/Button'
@@ -18,15 +19,16 @@ function category(o: QuestObservation) {
   if (e.group === 1 && e.type === 1) return ['Q071356', 'Q071396'].includes(e.code) ? 'NPC · caso validado' : 'NPC candidata · mapeamento não validado'
   return e.group === 0 && e.type === 0 ? 'Comum candidata' : 'Origem indeterminada'
 }
-type QuestTab = 'checklist' | 'rewards'
-const tabs: { id: QuestTab; label: string }[] = [{ id: 'checklist', label: 'Checklist' }, { id: 'rewards', label: 'Recompensas' }]
+type QuestTab = 'checklist' | 'rewards' | 'guild-daily'
+const tabs: { id: QuestTab; label: string }[] = [{ id: 'checklist', label: 'Checklist' }, { id: 'rewards', label: 'Recompensas' }, { id: 'guild-daily', label: 'BD da guilda' }]
 
 export function QuestsPage() {
   const [tab, setTab] = useState<QuestTab>('checklist')
   return <div className="quests">
     <div className="items-tabs" role="tablist" aria-label="Área de quests" onKeyDown={e => {
       if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return
-      const next = tabs[(tabs.findIndex(t => t.id === tab) + 1) % tabs.length].id
+      e.preventDefault()
+      const next = tabs[(tabs.findIndex(t => t.id === tab) + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length].id
       setTab(next); document.getElementById(`quests-${next}-tab`)?.focus()
     }}>
       {tabs.map(t => <button key={t.id} id={`quests-${t.id}-tab`} type="button" role="tab" tabIndex={tab === t.id ? 0 : -1} aria-selected={tab === t.id}
@@ -34,7 +36,7 @@ export function QuestsPage() {
         aria-controls={`quests-${t.id}-panel`} onClick={() => setTab(t.id)}>{t.label}</button>)}
     </div>
     <div id={`quests-${tab}-panel`} role="tabpanel" aria-labelledby={`quests-${tab}-tab`} className="quests__panel">
-      {tab === 'checklist' ? <QuestChecklist /> : <QuestRewards />}
+      {tab === 'checklist' ? <QuestChecklist /> : tab === 'rewards' ? <QuestRewards /> : <QuestGuildDaily />}
     </div>
   </div>
 }
