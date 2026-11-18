@@ -59,6 +59,42 @@ class QuestIntegrationTest {
             "fa5e6d236cce98265cae4fc3bc5374ba8560824bbdef94ffb0ed8ec269456e98",
             "0d1df9a6f52f3984cd6248b833da423856268627ec112413404753e5f4aa4831",1,1,slot,state);
     }
+    @Autowired com.guild.app.quest.service.BdDailyService bdDaily;
+    @Autowired com.guild.app.equipment.repository.EquipmentRepository equipment;
+
+    @Test void bdUsesExactLevel50FromEquipmentIncludingLatestSnapshotAndFallback() {
+        var viewer = members.findById(memberId).orElseThrow();
+        viewer.setNickname("BdViewer"); members.saveAndFlush(viewer);
+        List<Long> ids = new ArrayList<>();
+        for (Integer profileLevel : List.of(49, 50, 51, 1, 49, 50, 50)) {
+            long id = createMember(); ids.add(id);
+            jdbc.update("UPDATE member SET level=? WHERE id=?", profileLevel, id);
+        }
+        for (int i = 4; i < ids.size(); i++) {
+            // Equal timestamps must use the newest id, as the equipment board does.
+            for (int level : new int[]{50, i == 4 ? 50 : i == 5 ? 49 : 51}) {
+                jdbc.update("""
+                    INSERT INTO character_status(member_id,gid,character_name,level,exp_percent,hp,hp_max,fp,fp_max,sp,sp_max,updated_at)
+                    VALUES (?,?,'BD test',?,0,1,1,1,1,1,1,now())
+                    """, ids.get(i), level == 50 ? 1 : 2, level);
+                if (i == 4) break;
+            }
+        }
+        var expected = Set.of(ids.get(1), ids.get(4));
+        var boardIds = equipment.board().stream().filter(m -> ids.contains(m.memberId()) && m.level() == 50)
+                .map(m -> m.memberId()).collect(java.util.stream.Collectors.toSet());
+        assertEquals(expected, boardIds);
+        assertEquals(expected, members.findApprovedLevel50ForBd().stream().filter(m -> ids.contains(m.getId()))
+                .map(m -> m.getId()).collect(java.util.stream.Collectors.toSet()));
+        var historyNames = bdDaily.forSite(LocalDate.now()).members().stream().map(m -> m.character()).toList();
+        String game = bdDaily.forGame(members.findById(memberId).orElseThrow().getNickname());
+        for (long id : ids) {
+            String name = members.findById(id).orElseThrow().getNickname();
+            assertEquals(expected.contains(id), historyNames.contains(name));
+            assertEquals(expected.contains(id), game.contains(name + "\t"));
+        }
+    }
+
     @Test void experienceQuestsRespectNpcLevelsAndKeepExistingQuests() {
         var exp=catalog.coupons.quests().stream().filter(q->q.minLevel()!=null).toList();
         assertEquals(35,exp.size());
