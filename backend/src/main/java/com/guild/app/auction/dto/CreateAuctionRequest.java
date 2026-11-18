@@ -17,7 +17,7 @@ public record CreateAuctionRequest(
         Instant startsAt,
         /** true without {@code startsAt}: create it "em breve", to be started by hand. */
         Boolean startLater,
-        /** Optional exact deadline for a copy of an open auction. Incompatible with scheduling. */
+        /** Optional exact initial deadline for an immediate start. Incompatible with scheduling. */
         Instant endsAt
 ) {
     public record AuctionItemEntry(

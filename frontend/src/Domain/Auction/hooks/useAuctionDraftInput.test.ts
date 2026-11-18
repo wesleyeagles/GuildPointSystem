@@ -36,6 +36,9 @@ it('rejects duplicate cash token entries across pages', async () => {
 it('also accepts the corrected catalog code and preserves other exact matches', async () => {
   api.mockResolvedValueOnce({ content: [{ ...coin, gameCode: 'ipcss04' }], totalPages: 1 })
   await expect(lookupDraftItem('IPCSS04', new AbortController().signal)).resolves.toMatchObject({ id: 17 })
-  api.mockResolvedValueOnce({ content: [{ id: 35, name: 'Staff', gameCode: 'iwtji40' }], totalPages: 1 })
+  api.mockResolvedValueOnce({ id: 35, name: 'Staff' })
   await expect(lookupDraftItem('iwtji40', new AbortController().signal)).resolves.toMatchObject({ id: 35 })
+  expect(api.mock.calls.map(([path]) => path)).toEqual([
+    '/items?search=500+CASH+COIN&page=0&size=24', '/items/auction-code/iwtji40',
+  ])
 })

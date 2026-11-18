@@ -12,7 +12,6 @@ import { serverNow, trackServerTime } from '@/Shared/utils/serverClock'
 import { isAuctionFinished } from '@/Domain/types/models'
 import type { Auction, AuctionBidResult, AuctionMessage, AuctionMessageReaction } from '@/Domain/types/models'
 import { memberKeys } from '@/Domain/Member/hooks/useMembers'
-import { createAuctionNearDeadline } from './auctionDeadline'
 
 export const auctionKeys = {
   all: ['auctions'] as const,
@@ -349,7 +348,7 @@ export function useSendAuctionMessage() {
 export function useCreateAuction() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async ({ targetEndsAt, ...body }: {
+    mutationFn: ({ targetEndsAt, ...body }: {
       durationMinutes: number
       endsAt?: string
       targetEndsAt?: string
@@ -360,14 +359,13 @@ export function useCreateAuction() {
       startLater?: boolean
     }) => {
       if (targetEndsAt) {
-        return createAuctionNearDeadline(Date.parse(targetEndsAt), serverNow(),
-          (durationMinutes) => apiClient<Auction>('/auctions', { method: 'POST', body: { ...body, durationMinutes } }),
-          extendAuctionTime)
+        return apiClient<Auction>('/auctions/target-end', { method: 'POST', body: { ...body, endsAt: targetEndsAt } })
       }
-      const auction = await apiClient<Auction>(body.endsAt ? '/auctions/fixed-end' : '/auctions', { method: 'POST', body })
-      return { auction, deadlineReached: true }
+      return apiClient<Auction>(body.endsAt ? '/auctions/fixed-end' : '/auctions', { method: 'POST', body })
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: auctionKeys.all, exact: true }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: auctionKeys.all, exact: true })
+    },
   })
 }
 

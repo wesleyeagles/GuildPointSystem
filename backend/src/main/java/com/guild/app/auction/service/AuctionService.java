@@ -147,6 +147,18 @@ public class AuctionService {
 
     @Transactional
     public AuctionResponse create(CreateAuctionRequest request, MemberPrincipal actor) {
+        return create(request, actor, request.endsAt() != null);
+    }
+
+    @Transactional
+    public AuctionResponse createWithTargetEnd(CreateAuctionRequest request, MemberPrincipal actor) {
+        if (request.endsAt() == null) {
+            throw new AppException("Informe o horário de encerramento.", HttpStatus.BAD_REQUEST);
+        }
+        return create(request, actor, false);
+    }
+
+    private AuctionResponse create(CreateAuctionRequest request, MemberPrincipal actor, boolean fixedDeadline) {
         SecurityUtils.requireRole(Role.ADMINISTRADOR);
         if (!ALLOWED_DURATIONS.contains(request.durationMinutes())) {
             throw new AppException("Duração inválida.", HttpStatus.BAD_REQUEST);
@@ -155,9 +167,10 @@ public class AuctionService {
         var now = Instant.now();
         var startsAt = request.startsAt();
         var endsAt = request.endsAt();
+        int maxDeadlineHours = fixedDeadline ? 24 : 48;
         if (endsAt != null && (startsAt != null || Boolean.TRUE.equals(request.startLater())
-                || !endsAt.isAfter(now) || endsAt.isAfter(now.plus(Duration.ofDays(1))))) {
-            throw new AppException("O encerramento deve estar nas próximas 24 horas, sem agendamento.",
+                || !endsAt.isAfter(now) || endsAt.isAfter(now.plus(Duration.ofHours(maxDeadlineHours))))) {
+            throw new AppException("O encerramento deve estar nas próximas " + maxDeadlineHours + " horas, sem agendamento.",
                     HttpStatus.BAD_REQUEST);
         }
         boolean timed = startsAt != null && startsAt.isAfter(now.plusSeconds(SCHEDULE_MIN_LEAD_SECONDS));
@@ -169,7 +182,7 @@ public class AuctionService {
 
         var auction = new Auction();
         auction.setDurationMinutes(request.durationMinutes());
-        auction.setFixedDeadline(endsAt != null);
+        auction.setFixedDeadline(fixedDeadline);
         auction.setCreatedBy(memberRepository.getReferenceById(actor.getId()));
         if (scheduled) {
             auction.setStatus(AuctionStatus.SCHEDULED);

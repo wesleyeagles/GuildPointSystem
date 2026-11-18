@@ -27,6 +27,13 @@ async function findExactItem(code: string, signal: AbortSignal): Promise<DraftIt
 
 export async function lookupDraftItem(inventoryCode: string, signal: AbortSignal): Promise<DraftItem> {
   const code = inventoryCode.toLowerCase()
+  if (code !== 'ipcss04') {
+    try {
+      return await apiClient<DraftItem>(`/items/auction-code/${encodeURIComponent(code)}`, { signal })
+    } catch (error) {
+      if (!(error instanceof ApiError) || error.status !== 404) throw error
+    }
+  }
   const exact = await findExactItem(code, signal)
   if (exact) return exact
   // Tradable inventory codes verified against Item.edf and catalog migration V120 (#45).
@@ -171,7 +178,7 @@ export function useAuctionDraftInput(enabled: boolean, paused: boolean, addItem:
           setMessage('Conexão com a RF-ui ou com o catálogo interrompida. Tentando novamente…')
         }
       }
-      if (!signal.aborted) timer = window.setTimeout(() => void poll(), selected ? 750 : 3000)
+      if (!signal.aborted) timer = window.setTimeout(() => void poll(), selected ? 300 : 3000)
     }
 
     void poll()
