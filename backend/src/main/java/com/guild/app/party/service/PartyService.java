@@ -9,6 +9,7 @@ import com.guild.app.common.enums.Role;
 import com.guild.app.common.enums.PartyPendingKind;
 import com.guild.app.common.enums.PartyPendingStatus;
 import com.guild.app.common.exception.AppException;
+import com.guild.app.common.security.SecurityUtils;
 import com.guild.app.characterstatus.entity.CharacterStatus;
 import com.guild.app.characterstatus.repository.CharacterStatusRepository;
 import com.guild.app.member.entity.Member;
@@ -38,6 +39,7 @@ public class PartyService {
     private final PartyPendingRepository partyPendingRepository;
     private final PartyLfgRepository partyLfgRepository;
     private final PartyQueueAccessService queueAccess;
+    private final PartySettingsRepository partySettingsRepository;
     private final MemberRepository memberRepository;
     private final CharacterStatusRepository characterStatusRepository;
     private final WebSocketPublisher webSocketPublisher;
@@ -50,14 +52,28 @@ public class PartyService {
         var member = requireApproved(actor);
         var board = loadPublicBoard();
         var my = buildMyState(member, board.memberLookup(), board.displayNumbers());
-        return new PartyBoardResponse(board.parties(), board.lfg(), !board.queueAccess().open(), my, board.serverTime(),board.queueAccess());
+        return new PartyBoardResponse(board.parties(), board.lfg(), !board.queueAccess().open(), my, board.serverTime(), board.queueAccess(), board.notice());
     }
 
     /** Board without personal state, broadcast to every client by {@link PartyBoardBroadcaster}. */
     @Transactional(readOnly = true)
     public PartyBoardSnapshot getPublicSnapshot() {
         var board = loadPublicBoard();
-        return new PartyBoardSnapshot(board.parties(), board.lfg(), !board.queueAccess().open(), board.serverTime(),board.queueAccess());
+        return new PartyBoardSnapshot(board.parties(), board.lfg(), !board.queueAccess().open(), board.serverTime(), board.queueAccess(), board.notice());
+    }
+
+    @Transactional
+    public PartyBoardResponse setNotice(PartyNoticeRequest request, MemberPrincipal actor) {
+        SecurityUtils.requireRole(Role.ADMINISTRADOR);
+        var member = requireApproved(actor);
+        var text = request.text().strip();
+        if (partySettingsRepository.updateNotice(text) != 1) {
+            throw new AppException("Configuração da party não encontrada.", HttpStatus.CONFLICT);
+        }
+        audit.log(AuditLogType.PARTY_QUEUE_UPDATED, member, null,
+                Map.of("action", "NOTICE_UPDATED", "text", text));
+        publishBoard();
+        return getBoard(actor);
     }
 
     private record PublicBoard(
@@ -66,7 +82,8 @@ public class PartyService {
             PartyQueueAccess queueAccess,
             Map<Long, Member> memberLookup,
             Map<Long, Integer> displayNumbers,
-            Instant serverTime) {}
+            Instant serverTime,
+            String notice) {}
 
     private PublicBoard loadPublicBoard() {
         var parties = partyRepository.findAllByOrderByMapAscCreatedAtAsc();
@@ -106,7 +123,8 @@ public class PartyService {
                 .map(row -> toLfgEntry(row, memberLookup))
                 .toList();
 
-        return new PublicBoard(partySummaries, lfg, queueAccess.current(), memberLookup, displayNumbers, Instant.now());
+        var notice = partySettingsRepository.findById(PartySettings.SINGLETON_ID).map(PartySettings::getNotice).orElse("");
+        return new PublicBoard(partySummaries, lfg, queueAccess.current(), memberLookup, displayNumbers, Instant.now(), notice);
     }
 
     @Transactional

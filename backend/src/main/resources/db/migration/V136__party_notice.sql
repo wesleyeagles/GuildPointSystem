@@ -1,0 +1,1 @@
+ALTER TABLE party_settings ADD COLUMN notice VARCHAR(1000) NOT NULL DEFAULT '';

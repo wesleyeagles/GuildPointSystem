@@ -1,0 +1,36 @@
+.party-notice {
+  @include theme.panel;
+  padding: theme.$spacing-sm theme.$spacing-md;
+  border-left: 3px solid theme.$color-accent;
+
+  &__header, &__actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: theme.$spacing-sm;
+  }
+
+  &__header {
+    justify-content: space-between;
+    color: theme.$color-accent;
+  }
+
+  &__text {
+    margin: theme.$spacing-sm 0 0;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  &__editor {
+    display: grid;
+    gap: theme.$spacing-sm;
+    margin-top: theme.$spacing-sm;
+
+    textarea {
+      @include theme.field-input;
+      width: 100%;
+      box-sizing: border-box;
+      resize: vertical;
+    }
+  }
+}

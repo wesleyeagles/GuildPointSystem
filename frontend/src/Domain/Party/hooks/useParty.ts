@@ -74,6 +74,14 @@ export function usePartyBoard() {
 
 }
 
+export function useSetPartyNotice() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (text: string) => apiClient<PartyBoard>('/parties/notice', { method: 'PUT', body: { text } }),
+    onSuccess: (data) => setBoard(queryClient, data),
+  })
+}
+
 export function useCreateParty() {
   const queryClient = useQueryClient()
   return useMutation({

@@ -21,6 +21,11 @@ public class PartyController {
         return partyService.getBoard(SecurityUtils.currentMember());
     }
 
+    @PutMapping("/notice")
+    public PartyBoardResponse setNotice(@Valid @RequestBody PartyNoticeRequest request) {
+        return partyService.setNotice(request, SecurityUtils.currentMember());
+    }
+
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public PartyBoardResponse create(@Valid @RequestBody CreatePartyRequest request) {

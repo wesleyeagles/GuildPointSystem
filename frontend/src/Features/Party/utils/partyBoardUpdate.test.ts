@@ -82,6 +82,12 @@ const publicBoard = (overrides: Partial<PublicPartyBoard> = {}): PublicPartyBoar
 })
 
 describe('applyPublicBoard', () => {
+  it('updates or removes the pinned notice from a websocket snapshot', () => {
+    const updated = applyPublicBoard(board({ notice: 'Aviso anterior' }), publicBoard({ notice: 'Up Z nos níveis 48' }))
+    expect(updated.notice).toBe('Up Z nos níveis 48')
+    expect(applyPublicBoard(updated, publicBoard({ notice: '' })).notice).toBe('')
+  })
+
   it('applies an administrator opening or closing the queue through websocket', () => {
     const queueAccess = { open: false, manual: true, nextChangeAt: '2026-10-31T21:00:00Z' }
     const next = applyPublicBoard(board(), publicBoard({ queueAccess }))
