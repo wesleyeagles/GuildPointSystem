@@ -3,6 +3,8 @@ package com.guild.app.pbauto;
 import com.guild.app.characterstatus.dto.CharacterStatusIngestRequest;
 import com.guild.app.characterstatus.service.CharacterStatusService;
 import com.guild.app.member.repository.MemberRepository;
+import com.guild.app.pbauto.service.AutoPointRule;
+import com.guild.app.pbauto.service.AutoPointRuleRepository;
 import com.guild.app.pbauto.service.PbAutoService;
 import com.guild.app.shout.service.ShoutService;
 import com.guild.app.websocket.WebSocketPublisher;
@@ -19,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Timestamp;
 import java.time.*;
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -33,6 +36,7 @@ class PbAutoTest {
     @Autowired MemberRepository members;
     @Autowired JdbcTemplate jdbc;
     @Autowired EntityManager em;
+    @Autowired AutoPointRuleRepository rules;
     @MockitoBean WebSocketPublisher ws;
 
     /** 01:52 de Brasília (UTC−3) de 11/11/2026: horário do RG do PB Colônia das 02:00. */
@@ -61,6 +65,7 @@ class PbAutoTest {
         b = member("MEMBRO");
         c = member("MEMBRO");
         admin = member("ADMINISTRADOR");
+        service.reload();   // regras de outro teste (transação desfeita) não ficam na memória
     }
     @AfterEach void clear() { service.useClock(Clock.systemUTC()); }
 
@@ -164,5 +169,41 @@ class PbAutoTest {
         clock(rg.plus(Duration.ofMinutes(14)));
         service.tick();
         assertEquals(before + 20, points(a));
+    }
+
+    /** Regra nova do menu: só presença (sem RG), mapa inteiro, só sábado, 23:50–00:10 (passa da meia-noite). */
+    @Test void menuRulePresenceOnlyWholeMapOnSaturdayAcrossMidnight() {
+        jdbc.update("INSERT INTO objective(name,points,type,created_by_id) VALUES('Evento Crag',7,'NORMAL',?)", admin);
+        int saturday = 1 << (DayOfWeek.SATURDAY.getValue() - 1);
+        rules.insert(new AutoPointRule(0, "", "Evento Crag", true, saturday, List.of(5), "Evento em Crag às 23:50", null,
+                null, new AutoPointRule.Presence(LocalTime.of(23, 50), LocalTime.of(0, 10), "Crag Mine", List.of(), "Evento Crag")));
+        service.reload();
+        Instant sat2350 = Instant.parse("2026-11-22T02:50:00Z");                    // sábado 21/11 23:50 em Brasília
+        clock(sat2350.minus(Duration.ofMinutes(5)).plusSeconds(5));
+        service.tick();
+        assertEquals("Evento em Crag às 23:50", shouts.forGame(nick(a)).orElseThrow().message());
+        service.record(a, nick(a), "Crag Mine", "Qualquer região", sat2350.plus(Duration.ofMinutes(15)));  // 00:05 de domingo
+        service.record(b, nick(b), "Haram", "Shadow Wood", sat2350.plus(Duration.ofMinutes(5)));          // outro mapa
+        long beforeA = points(a), beforeB = points(b);
+        clock(sat2350.plus(Duration.ofMinutes(20)).plusSeconds(10));                // 00:10:10 de domingo
+        service.tick();
+        assertEquals(beforeA + 7, points(a));
+        assertEquals(beforeB, points(b));
+        // Domingo 22/11 não é dia da regra: presença não conta.
+        Instant sun2350 = sat2350.plus(Duration.ofDays(1));
+        service.record(b, nick(b), "Crag Mine", "X", sun2350.plus(Duration.ofMinutes(5)));
+        clock(sun2350.plus(Duration.ofMinutes(20)).plusSeconds(10));
+        service.tick();
+        assertEquals(beforeB, points(b));
+    }
+
+    @Test void disabledRuleDoesNothing() {
+        jdbc.update("UPDATE auto_point_rule SET enabled=false WHERE code='COLONIA_02'");
+        service.reload();
+        place(a, "Cora HQ", "Cora Outpost", rg.minusSeconds(30));
+        long before = points(a);
+        clock(rg.plusSeconds(10));
+        service.tick();
+        assertEquals(before, points(a));
     }
 }

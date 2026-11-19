@@ -32,46 +32,28 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Pontos automáticos dos PBs diários. Para cada PB da lista {@link #RUNS}, todo dia (horário de Brasília):
+ * Pontos automáticos (Admin → Pontos automáticos, regras em {@link AutoPointRuleRepository}). Para cada regra ligada,
+ * nos dias da semana dela (horário de Brasília):
  * <ul>
- *   <li>shouts do "Sistema" no jogo nos minutos marcados antes do RG;</li>
- *   <li>no horário do RG, Pontos de RG para quem está na base (local da DLL com até 3 min, AFK ou não);</li>
- *   <li>do RG até o fim da janela, cada envio da DLL nas regiões do PB marca presença; no fim da janela quem
- *       passou por lá recebe o objetivo do PB (os pontos entram sozinhos, como na CW).</li>
+ *   <li>shouts do "Sistema" no jogo nos minutos marcados antes do início;</li>
+ *   <li>RG (opcional): no horário, Pontos de RG para quem está no local (local da DLL com até 3 min, AFK ou não);</li>
+ *   <li>presença (opcional): cada envio da DLL no local durante a janela marca presença; no fim da janela quem
+ *       passou por lá recebe o objetivo (os pontos entram sozinhos, como na CW).</li>
  * </ul>
- * Cada passo é idempotente (tabelas pb_auto_*): o tick a cada 30 s e reinícios do backend não pontuam duas vezes.
+ * Cada passo é idempotente (tabelas pb_auto_*, pelo código da regra): o tick a cada 30 s e reinícios do backend não
+ * pontuam duas vezes.
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class PbAutoService {
 
-    /**
-     * Um PB diário automático. {@code shoutsBefore} = minutos antes do RG; presença vale de {@code rgAt} até
-     * {@code endAt}. {@code shoutEn}: o shout para os "English Players", com o horário de Jacarta (UTC+7). Mapas e regiões são os nomes que a DLL envia (sem diferença de maiúscula).
-     */
-    public record Run(String code, String label, LocalTime rgAt, LocalTime endAt, List<Integer> shoutsBefore,
-                      String shout, String shoutEn, String rgMap, Set<String> rgRegions, long rgPoints,
-                      String pbMap, Set<String> pbRegions, String objective) {}
-
-    public static final List<Run> RUNS = List.of(
-            new Run("COLONIA_02", "PB Colônia 02:00", LocalTime.of(1, 52), LocalTime.of(2, 5), List.of(12, 7, 2),
-                    "RG Base Avançada, Pontos de RG as 01:52",
-                    "RG at the Outpost, RG points at 11:52 (Jakarta time)",
-                    "Cora HQ", Set.of("Cora Outpost"), 2,
-                    "Haram", Set.of("Shadow Wood", "Rock Cavern"), "PB Colônia"),
-            new Run("HQ_22", "PB HQ 22:00", LocalTime.of(21, 52), LocalTime.of(22, 5), List.of(12, 7, 2),
-                    "RG Base Avançada, Pontos de RG as 21:52",
-                    "RG at the Outpost, RG points at 07:52 (Jakarta time)",
-                    "Cora HQ", Set.of("Cora Outpost"), 2,
-                    "Cora HQ", Set.of("Dark Plain", "Hunter Cave"), "PB HQ"));
-
     static final ZoneId BRT = GameEventDefinitions.SCHEDULE_ZONE;
     /** Local mais velho que isso não conta para o RG (a DLL envia a cada ~1 min). */
     static final Duration FRESH_LOCATION = Duration.ofMinutes(3);
     /** Até quanto tempo depois do horário o tick ainda dá o RG / o objetivo (backend fora do ar no minuto exato). */
     static final Duration RG_GRACE = Duration.ofMinutes(3);
-    /** Quem chega na base até isso depois do horário do RG ainda recebe (local enviado até lá). */
+    /** Quem chega no local até isso depois do horário do RG ainda recebe (local enviado até lá). */
     static final Duration RG_LATE = Duration.ofMinutes(1);
     static final Duration AWARD_GRACE = Duration.ofHours(1);
 
@@ -84,6 +66,9 @@ public class PbAutoService {
     private final WebSocketPublisher webSocketPublisher;
     private final CharacterStatusRepository statusRepository;
     private final ShoutService shoutService;
+    private final AutoPointRuleRepository rules;
+    /** Regras em memória (cada envio da DLL passa por {@link #record}); recarregadas a cada tick e ao salvar. */
+    private volatile List<AutoPointRule> cached;
     /** Shouts já dados ("data|código|minutos"). */
     private final Set<String> shouted = ConcurrentHashMap.newKeySet();
     private Clock clock = Clock.systemUTC();
@@ -91,24 +76,36 @@ public class PbAutoService {
     /** Testes: relógio fixo. */
     public void useClock(Clock value) { clock = value; }
 
-    static Instant at(LocalDate day, LocalTime time) { return day.atTime(time).atZone(BRT).toInstant(); }
+    /** Recarrega as regras do banco (depois de criar/editar/apagar uma regra). */
+    public void reload() { cached = rules.findAll(); }
+
+    private List<AutoPointRule> active() {
+        List<AutoPointRule> list = cached;
+        if (list == null) { reload(); list = cached; }
+        return list.stream().filter(r -> r.enabled() && (r.rg() != null || r.presence() != null)).toList();
+    }
 
     // ---- Presença (cada envio de status da DLL) ----
 
-    /** Envio de status: dentro da janela de um PB e numa das regiões dele, marca presença. */
+    /** Envio de status: dentro da janela de presença de uma regra e no local dela, marca presença. */
     @Transactional
     public void record(long memberId, String character, String map, String region, Instant now) {
-        if (map == null || region == null) return;
-        LocalDate day = now.atZone(BRT).toLocalDate();
-        for (Run run : RUNS) {
-            if (now.isBefore(at(day, run.rgAt())) || now.isAfter(at(day, run.endAt()))) continue;
-            if (!same(map, run.pbMap()) || run.pbRegions().stream().noneMatch(r -> same(region, r))) continue;
-            jdbc.update("""
-                    INSERT INTO pb_auto_presence(run_date,code,member_id,first_seen_at,last_seen_at,character_name,region_name)
-                    VALUES(?,?,?,?,?,?,?)
-                    ON CONFLICT (run_date,code,member_id) DO UPDATE SET last_seen_at=EXCLUDED.last_seen_at""",
-                    Date.valueOf(day), run.code(), memberId, Timestamp.from(now), Timestamp.from(now),
-                    character, region.strip());
+        if (map == null) return;
+        LocalDate today = now.atZone(BRT).toLocalDate();
+        for (AutoPointRule run : active()) {
+            var p = run.presence();
+            if (p == null || !AutoPointRule.matches(map, region, p.map(), p.regions())) continue;
+            for (LocalDate day : List.of(today.minusDays(1), today)) {
+                if (!run.runsOn(day)) continue;
+                if (now.isBefore(AutoPointRule.at(run.presenceFrom(day)))
+                        || now.isAfter(AutoPointRule.at(run.presenceTo(day)))) continue;
+                jdbc.update("""
+                        INSERT INTO pb_auto_presence(run_date,code,member_id,first_seen_at,last_seen_at,character_name,region_name)
+                        VALUES(?,?,?,?,?,?,?)
+                        ON CONFLICT (run_date,code,member_id) DO UPDATE SET last_seen_at=EXCLUDED.last_seen_at""",
+                        Date.valueOf(day), run.code(), memberId, Timestamp.from(now), Timestamp.from(now),
+                        character, region == null ? null : region.strip());
+            }
         }
     }
 
@@ -119,51 +116,71 @@ public class PbAutoService {
     public void tick() {
         Instant now = clock.instant();
         LocalDate today = now.atZone(BRT).toLocalDate();
-        for (LocalDate day : List.of(today.minusDays(1), today)) {
-            for (Run run : RUNS) {
-                Instant rgAt = at(day, run.rgAt());
-                for (int minutes : run.shoutsBefore()) {
-                    Instant shoutAt = rgAt.minus(Duration.ofMinutes(minutes));
-                    if (!now.isBefore(shoutAt) && now.isBefore(shoutAt.plus(Duration.ofMinutes(1)))
-                            && shouted.add(day + "|" + run.code() + "|" + minutes)) {
-                        shoutService.system(run.shout(), run.shoutEn());
-                    }
+        reload();
+        // Ontem também: presença que passa da meia-noite (+ 1 h de folga); amanhã: shout antes da meia-noite.
+        for (LocalDate day : List.of(today.minusDays(1), today, today.plusDays(1))) {
+            for (AutoPointRule run : active()) {
+                if (!run.runsOn(day)) continue;
+                shouts(day, run, now);
+                if (run.rg() != null) {
+                    Instant rgAt = run.rgAt(day);
+                    if (!now.isBefore(rgAt) && now.isBefore(rgAt.plus(RG_GRACE))) rg(day, run, now);
                 }
-                if (!now.isBefore(rgAt) && now.isBefore(rgAt.plus(RG_GRACE))) rg(day, run, now);
-                Instant endAt = at(day, run.endAt());
-                if (!now.isBefore(endAt) && now.isBefore(endAt.plus(AWARD_GRACE))) award(day, run, now);
+                if (run.presence() != null) {
+                    Instant endAt = AutoPointRule.at(run.presenceTo(day));
+                    if (!now.isBefore(endAt) && now.isBefore(endAt.plus(AWARD_GRACE))) award(day, run, now);
+                }
             }
         }
         shouted.removeIf(k -> k.compareTo(today.minusDays(2).toString()) < 0);
     }
 
+    private void shouts(LocalDate day, AutoPointRule run, Instant now) {
+        String shout = Objects.toString(run.shout(), "").strip();
+        if (shout.isEmpty()) return;
+        String en = Objects.toString(run.shoutEn(), "").strip();
+        Instant start = AutoPointRule.at(run.start(day));
+        for (int minutes : run.shoutsBefore()) {
+            Instant shoutAt = start.minus(Duration.ofMinutes(minutes));
+            if (!now.isBefore(shoutAt) && now.isBefore(shoutAt.plus(Duration.ofMinutes(1)))
+                    && shouted.add(day + "|" + run.code() + "|" + minutes)) {
+                try {
+                    shoutService.system(shout, en.isEmpty() ? shout : en);
+                } catch (IllegalArgumentException e) {
+                    log.warn("Pontos automáticos {}: shout inválido ({})", run.code(), e.getMessage());
+                }
+            }
+        }
+    }
+
     /**
-     * Pontos de RG para quem está na base (AFK ou não). Roda em todo tick do {@link #RG_GRACE}: quem chega até
+     * Pontos de RG para quem está no local (AFK ou não). Roda em todo tick do {@link #RG_GRACE}: quem chega até
      * {@link #RG_LATE} depois do horário (local enviado até lá) também recebe, uma vez só.
      */
-    private void rg(LocalDate day, Run run, Instant now) {
+    private void rg(LocalDate day, AutoPointRule run, Instant now) {
+        var step = run.rg();
         Date date = Date.valueOf(day);
         jdbc.update("INSERT INTO pb_auto_run(run_date,code) VALUES(?,?) ON CONFLICT DO NOTHING", date, run.code());
         boolean first = jdbc.update("UPDATE pb_auto_run SET rg_at=? WHERE run_date=? AND code=? AND rg_at IS NULL",
                 Timestamp.from(now), date, run.code()) > 0;
-        Instant lateUntil = at(day, run.rgAt()).plus(RG_LATE);
+        Instant lateUntil = run.rgAt(day).plus(RG_LATE);
         var here = new TreeSet<Long>();
         for (CharacterStatus s : statusRepository.findByLocationAtAfter(now.minus(FRESH_LOCATION))) {
             // Depois do atraso só vale local enviado até o limite (o primeiro tick vale tudo: backend fora do ar na hora).
             if (!first && now.isAfter(lateUntil) && s.getLocationAt().isAfter(lateUntil)) continue;
-            if (same(s.getMapName(), run.rgMap()) && run.rgRegions().stream().anyMatch(r -> same(s.getRegionName(), r)))
+            if (AutoPointRule.matches(s.getMapName(), s.getRegionName(), step.map(), step.regions()))
                 here.add(s.getMember().getId());
         }
-        String place = String.join(", ", run.rgRegions()) + " · " + run.rgMap();
+        String place = step.regions().isEmpty() ? step.map() : String.join(", ", step.regions()) + " · " + step.map();
         String reason = "Pontos de RG: " + place + " (" + run.label() + " " + brtDay(day) + ")";
         for (Long id : here) {
             Member member = members.findByIdForUpdate(id).orElse(null);
             if (member == null || !eligible(member)) continue;
             if (jdbc.update("INSERT INTO pb_auto_award(run_date,code,member_id,kind,points) VALUES(?,?,?,'RG',?) ON CONFLICT DO NOTHING",
-                    date, run.code(), id, run.rgPoints()) == 0) continue;
-            pointsService.adjustPoints(member, member, run.rgPoints(), PointsModality.AJUSTE, reason);
+                    date, run.code(), id, step.points()) == 0) continue;
+            pointsService.adjustPoints(member, member, step.points(), PointsModality.AJUSTE, reason);
             audit.log(AuditLogType.POINTS_ADJUSTED, member, member, Map.of(
-                    "amount", run.rgPoints(),
+                    "amount", step.points(),
                     "modality", PointsModality.AJUSTE.name(),
                     "reason", reason,
                     // Mesmo filtro "Evento" dos logs que o "Pontos de RG" manual.
@@ -173,16 +190,16 @@ public class PbAutoService {
         }
     }
 
-    /** Objetivo do PB para quem passou pelas regiões do PB na janela. Sem o objetivo cadastrado, tenta de novo no próximo tick. */
-    private void award(LocalDate day, Run run, Instant now) {
+    /** Objetivo para quem passou pelo local na janela. Sem o objetivo cadastrado, tenta de novo no próximo tick. */
+    private void award(LocalDate day, AutoPointRule run, Instant now) {
         Date date = Date.valueOf(day);
         jdbc.update("INSERT INTO pb_auto_run(run_date,code) VALUES(?,?) ON CONFLICT DO NOTHING", date, run.code());
         boolean pending = !jdbc.queryForList("SELECT 1 FROM pb_auto_run WHERE run_date=? AND code=? AND awarded_at IS NULL FOR UPDATE",
                 date, run.code()).isEmpty();
         if (!pending) return;
-        Objective objective = objective(run.objective()).orElse(null);
+        Objective objective = objective(run.presence().objective()).orElse(null);
         if (objective == null) {
-            log.warn("PB automático {}: objetivo \"{}\" não existe; ninguém pontuou ainda", run.code(), run.objective());
+            log.warn("Pontos automáticos {}: objetivo \"{}\" não existe; ninguém pontuou ainda", run.code(), run.presence().objective());
             return;
         }
         jdbc.update("UPDATE pb_auto_run SET awarded_at=?, objective_id=? WHERE run_date=? AND code=?",
@@ -214,7 +231,7 @@ public class PbAutoService {
         }
     }
 
-    private Optional<Objective> objective(String name) {
+    Optional<Objective> objective(String name) {
         String wanted = key(name);
         return objectives.findByDeletedFalseOrderByCreatedAtDesc().stream()
                 .filter(o -> key(o.getName()).equals(wanted))
@@ -230,10 +247,8 @@ public class PbAutoService {
         return m.getStatus() == MemberStatus.APROVADO && m.getDeletedAt() == null && m.getSuspendedAt() == null;
     }
 
-    private static boolean same(String a, String b) { return a != null && b != null && a.strip().equalsIgnoreCase(b.strip()); }
-
     /** Sem acento e sem maiúscula: "PB Colonia" acha "PB Colônia". */
-    private static String key(String s) {
+    static String key(String s) {
         return Normalizer.normalize(Objects.toString(s, "").strip(), Normalizer.Form.NFD)
                 .replaceAll("\\p{M}", "").toLowerCase(Locale.ROOT);
     }

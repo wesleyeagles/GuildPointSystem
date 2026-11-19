@@ -1,0 +1,146 @@
+.auto-points {
+  display: flex;
+  flex-direction: column;
+  gap: theme.$spacing-lg;
+
+  &__muted { margin: 0 0 theme.$spacing-sm; color: theme.$color-text-muted; font-size: 0.9rem; }
+  &__error { color: theme.$color-danger; }
+
+  &__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: theme.$spacing-sm;
+  }
+
+  &__rule {
+    padding: theme.$spacing-sm theme.$spacing-md;
+    border: 1px solid theme.$color-border;
+    border-radius: 6px;
+
+    &--off { opacity: 0.55; }
+  }
+
+  &__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: theme.$spacing-sm;
+    margin-bottom: 4px;
+  }
+
+  &__spacer { flex: 1; }
+  &__days { color: theme.$color-gold; font-size: 0.85rem; }
+
+  &__tag {
+    padding: 1px 8px;
+    border: 1px solid theme.$color-border;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    color: theme.$color-text-muted;
+  }
+
+  &__step { font-size: 0.9rem; margin: 2px 0; }
+
+  &__kind {
+    display: inline-block;
+    min-width: 64px;
+    margin-right: theme.$spacing-sm;
+    color: theme.$color-gold;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+
+    &--presence { color: theme.$color-success; }
+  }
+
+  &__runs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: theme.$spacing-md;
+    margin-top: 4px;
+    color: theme.$color-text-muted;
+    font-size: 0.8rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__form {
+    display: flex;
+    flex-direction: column;
+    gap: theme.$spacing-md;
+    margin-bottom: theme.$spacing-lg;
+    padding: theme.$spacing-md;
+    border: 1px solid theme.$color-border;
+    border-radius: 6px;
+
+    h3 { margin: 0; }
+
+    label {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      color: theme.$color-text-muted;
+      font-size: 0.85rem;
+    }
+
+    input:not([type='checkbox']), select { @include theme.field-input; }
+  }
+
+  &__fieldset {
+    display: flex;
+    flex-direction: column;
+    gap: theme.$spacing-sm;
+    margin: 0;
+    padding: theme.$spacing-sm theme.$spacing-md theme.$spacing-md;
+    border: 1px solid theme.$color-border;
+    border-radius: 6px;
+
+    legend { padding: 0 4px; color: theme.$color-text; }
+  }
+
+  &__row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: theme.$spacing-md;
+  }
+
+  &__grow { flex: 1; min-width: 200px; }
+
+  &__form &__check {
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+    color: theme.$color-text;
+    font-size: 0.9rem;
+  }
+
+  &__chips {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+  }
+
+  &__chip {
+    padding: 3px 10px;
+    border: 1px solid theme.$color-border;
+    border-radius: 999px;
+    background: transparent;
+    color: theme.$color-text-muted;
+    font-size: 0.85rem;
+    cursor: pointer;
+
+    &--on {
+      border-color: theme.$color-gold;
+      color: theme.$color-gold;
+    }
+  }
+
+  &__place { display: flex; flex-direction: column; gap: theme.$spacing-sm; }
+  &__regions { display: flex; flex-direction: column; gap: 4px; }
+  &__form &__extra { width: 200px; padding: 3px 8px; font-size: 0.85rem; }
+
+  &__actions { display: flex; justify-content: flex-end; gap: theme.$spacing-sm; }
+}

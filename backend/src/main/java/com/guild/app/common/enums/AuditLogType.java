@@ -55,7 +55,8 @@ public enum AuditLogType {
     MARKET_PRICE_ACCESS_UPDATED,
     MARKET_WATCH_UPDATED,
     MEME_VIDEO_SENT,
-    ROULETTE_SPUN;
+    ROULETTE_SPUN,
+    AUTO_POINT_RULE_UPDATED;
 
     public boolean isEquipmentPrivate() {
         return this == EQUIPMENT_CHANGED || this == EQUIPMENT_CATALOG_IMPORTED;

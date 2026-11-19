@@ -7,6 +7,7 @@ import './AdminLayout.styles.scss'
 /** Abas da Administração (cada uma continua com o próprio endereço, /admin/...). */
 const ADMIN_TABS: { to: string; label: string; minRole: Role }[] = [
   { to: '/admin/approvals', label: 'Aprovações', minRole: 'MODERADOR' },
+  { to: '/admin/auto-points', label: 'Pontos automáticos', minRole: 'ADMINISTRADOR' },
   { to: '/admin/online', label: 'Online', minRole: 'ADMINISTRADOR' },
   { to: '/admin/dll', label: 'DLL', minRole: 'ADMINISTRADOR' },
   { to: '/admin/resources', label: 'Recursos', minRole: 'ADMINISTRADOR' },

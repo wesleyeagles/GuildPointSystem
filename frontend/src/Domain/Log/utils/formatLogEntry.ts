@@ -17,6 +17,7 @@ const LOG_TYPE_LABELS: Record<AuditLogType, string> = {
   MARKET_WATCH_UPDATED: 'Alerta de item no market alterado',
   MEME_VIDEO_SENT: 'Vídeo enviado para o jogo',
   ROULETTE_SPUN: 'Roleta no jogo',
+  AUTO_POINT_RULE_UPDATED: 'Regra de pontos automáticos alterada',
   DLL_RELEASED: 'Nova versão da DLL',
   PARTY_QUEUE_UPDATED: 'Fila de PT atualizada',
   ROTATION_UPDATED: 'Rotação atualizada',
@@ -117,6 +118,8 @@ export function formatLogDetails(log: AuditLogEntry): string {
       return `${str(p.video)}${p.start ? ` (a partir de ${str(p.start)} s)` : ''}`
     case 'ROULETTE_SPUN':
       return `${str(p.prize)} · Vencedor: ${str(p.winner)}${Array.isArray(p.entries) ? ` · Na roleta: ${p.entries.join(', ')}` : ''}${p.allMembers ? ' · Todos viram' : p.viewers ? ` · ${str(p.viewers)} viram` : ''}`
+    case 'AUTO_POINT_RULE_UPDATED':
+      return `${p.action === 'DELETED' ? 'Apagada' : p.action === 'CREATED' ? 'Criada' : 'Editada'}: ${str(p.autoPointRule)}`
     case 'RESOURCE_ACCESS_UPDATED':
       return Array.isArray(p.trackers) && p.trackers.length ? `Liberados: ${p.trackers.join(', ')}` : 'Ninguém'
     case 'RESOURCE_MOB_UPDATED':
