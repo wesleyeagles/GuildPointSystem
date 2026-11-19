@@ -1,5 +1,6 @@
 package com.guild.app.shout.controller;
 
+import com.guild.app.dll.service.DllDisplaySettingsService;
 import com.guild.app.dll.service.DllReleaseService;
 import com.guild.app.shout.service.GameLanguage;
 import com.guild.app.shout.service.ShoutService;
@@ -20,7 +21,12 @@ public class ShoutController {
     /** Última versão da DLL publicada com atualização automática (lido pela DLL 1.33.0+, site_http.hpp). */
     public static final String LATEST_HEADER = "X-Cerberus-Latest";
 
+    /** Tamanho das setas da PT e da guild do jogo, em % (Admin -> DLL; lido pela DLL 1.50.0+). */
+    public static final String PARTY_ARROW_HEADER = "X-Cerberus-Party-Arrow";
+    public static final String GUILD_ARROW_HEADER = "X-Cerberus-Guild-Arrow";
+
     private final ShoutService service;
+    private final DllDisplaySettingsService display;
     private final DllReleaseService dllReleases;
     private final GameLanguage language;
 
@@ -34,6 +40,9 @@ public class ShoutController {
         HttpHeaders headers = new HttpHeaders();
         String latest = dllReleases.announcedVersion();
         if (!latest.isEmpty()) headers.set(LATEST_HEADER, latest);
+        DllDisplaySettingsService.Scales arrows = display.arrowScales();
+        headers.set(PARTY_ARROW_HEADER, Integer.toString(arrows.party()));
+        headers.set(GUILD_ARROW_HEADER, Integer.toString(arrows.guild()));
         if (character != null && !character.isBlank()) headers.set(GameLanguage.HEADER, language.code(character));
         return service.forGame(character)
             .map(s -> ResponseEntity.ok().headers(headers).body(s.id() + "\t" + s.author() + "\t" + s.message() + "\n"))

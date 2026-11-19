@@ -8,6 +8,7 @@ import { ChatTranslatorSettings } from './ChatTranslatorSettings'
 import { MarketPriceSettings } from './MarketPriceSettings'
 import { MarketWatchSettings } from './MarketWatchSettings'
 import { MemeVideoSettings } from './MemeVideoSettings'
+import { ArrowSizeSettings } from './ArrowSizeSettings'
 import { RouletteSettings } from './RouletteSettings'
 import './DllAdmin.styles.scss'
 
@@ -214,6 +215,8 @@ export function DllAdminPage() {
           </table>
         )}
       </Panel>
+
+      <ArrowSizeSettings />
 
       <ChatTranslatorSettings />
 

@@ -342,3 +342,28 @@
 }
 
 .dll-admin__error { color: theme.$color-danger; }
+
+// Setas da PT e da guild: uma régua por seta, com o nome à esquerda e o valor à direita.
+.arrow-size {
+  display: flex;
+  align-items: center;
+  gap: theme.$spacing-sm;
+  max-width: 520px;
+  margin-bottom: theme.$spacing-sm;
+
+  &__label {
+    min-width: 11ch;
+    color: theme.$color-text-muted;
+  }
+
+  input[type='range'] {
+    flex: 1;
+    accent-color: theme.$color-primary;
+  }
+
+  &__value {
+    min-width: 4ch;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+}

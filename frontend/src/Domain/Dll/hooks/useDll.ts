@@ -144,3 +144,30 @@ export function usePublishDll() {
     },
   })
 }
+
+/** Ajustes visuais que a DLL de todos aplica (Admin -> DLL): % das setas da PT e da guild do jogo. */
+export interface DllDisplaySettings {
+  partyArrowScale: number
+  guildArrowScale: number
+  updatedBy: string | null
+  updatedAt: string | null
+}
+
+export const ARROW_SCALE_MIN = 50
+export const ARROW_SCALE_MAX = 500
+
+export function useDllDisplaySettings() {
+  return useQuery({
+    queryKey: ['dll', 'display'] as const,
+    queryFn: () => apiClient<DllDisplaySettings>('/dll/display'),
+  })
+}
+
+export function useUpdateDllDisplaySettings() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (body: { partyArrowScale: number; guildArrowScale: number }) =>
+      apiClient<DllDisplaySettings>('/dll/display', { method: 'PUT', body }),
+    onSuccess: (data) => queryClient.setQueryData(['dll', 'display'], data),
+  })
+}
