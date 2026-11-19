@@ -1,7 +1,7 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { RotationPage } from './Rotation'
-import { rotationTime, rotationTotals } from './Rotation.utils'
+import { activeRotationTime, rotationTime, rotationTotals } from './Rotation.utils'
 import type { Rotation } from '@/Domain/Rotation/hooks/useRotation'
 const state = vi.hoisted(() => ({ admin: false, save: vi.fn(), data: null as Rotation | null }))
 vi.mock('@/Features/Auth/contexts/AuthContext', () => ({ useAuthContext: () => ({ hasRole: () => state.admin }) }))
@@ -30,23 +30,33 @@ describe('Rotação', () => {
     fireEvent.click(screen.getByRole('button', { name: 'EXP' }))
     expect(screen.getByText('A rotação de EXP ainda não foi publicada.')).toBeInTheDocument()
   })
-  it('only highlights the current Brasília respawn and advances across midnight', () => {
+  it('finds the next respawn in unordered schedules and handles an empty schedule', () => {
+    const slots = ['22:00', '02:00', '18:00'].map(time => ({ ...fixture.slots[0], time }))
+    expect(activeRotationTime(slots, '21:56')).toBe('22:00')
+    expect(activeRotationTime(slots, '22:01')).toBe('02:00')
+    expect(activeRotationTime([], '21:56')).toBeUndefined()
+  })
+  it('highlights the next Brasília respawn and advances across midnight', () => {
     vi.useFakeTimers()
-    vi.setSystemTime(new Date('2026-11-18T21:00:00Z'))
+    vi.setSystemTime(new Date('2026-11-19T00:56:00Z')) // 21:56 em Brasília
     state.data = { ...fixture, slots: ['02:00', '18:00', '22:00'].map(time => ({ ...fixture.slots[0], time })) }
     const { container } = render(<RotationPage />)
     const highlighted = () => Array.from(container.querySelectorAll('tr[aria-current="time"] th'), cell => cell.textContent)
-    expect(highlighted()).toEqual(['18:00'])
+    expect(highlighted()).toEqual(['22:00'])
     const advanceTo = (iso: string) => act(() => {
       vi.setSystemTime(new Date(iso))
       vi.advanceTimersByTime(1000)
     })
     advanceTo('2026-11-19T01:00:00Z')
     expect(highlighted()).toEqual(['22:00'])
+    advanceTo('2026-11-19T01:01:00Z')
+    expect(highlighted()).toEqual(['02:00'])
     advanceTo('2026-11-19T03:00:00Z')
-    expect(highlighted()).toEqual(['22:00'])
+    expect(highlighted()).toEqual(['02:00'])
     advanceTo('2026-11-19T05:00:00Z')
     expect(highlighted()).toEqual(['02:00'])
+    advanceTo('2026-11-19T05:01:00Z')
+    expect(highlighted()).toEqual(['18:00'])
   })
   it('edits a draft without changing the published data and submits its original version', () => {
     state.data = fixture; state.admin = true

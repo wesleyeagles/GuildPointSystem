@@ -13,13 +13,13 @@ export function brasiliaRotationTime(timestamp: number) {
 }
 
 export function activeRotationTime(slots: RotationSlot[], time: string) {
-  let latest: string | undefined
-  let active: string | undefined
+  let earliest: string | undefined
+  let next: string | undefined
   for (const slot of slots) {
-    if (!latest || slot.time > latest) latest = slot.time
-    if (slot.time <= time && (!active || slot.time > active)) active = slot.time
+    if (!earliest || slot.time < earliest) earliest = slot.time
+    if (slot.time >= time && (!next || slot.time < next)) next = slot.time
   }
-  return active ?? latest
+  return next ?? earliest
 }
 
 export function rotationTime(time: string, offset: number) {
