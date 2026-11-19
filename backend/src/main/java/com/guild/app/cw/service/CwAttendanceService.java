@@ -29,7 +29,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.time.*;
-import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 /**
@@ -82,9 +81,8 @@ public class CwAttendanceService {
     public static final Duration FRESH_LOCATION = Duration.ofMinutes(3);
     /** Objetivos (criados na aba Objetivos) dados na CW. */
     public static final String OBJECTIVE_CW = "CW", OBJECTIVE_CW_MAJOR = "CW Major";
-    /** PB Major: a cada 4 dias a partir de 27/09/2026 (Brasília); nesse dia as 3 CWs valem "CW Major". */
-    public static final LocalDate PB_MAJOR_ANCHOR = LocalDate.of(2026, 9, 27);
-    public static final int PB_MAJOR_EVERY_DAYS = 4;
+    /** PB Major: terça e sábado, 14:00 de Brasília (como no painel e na DLL); nesse dia as 3 CWs valem "CW Major". */
+    public static final Set<DayOfWeek> PB_MAJOR_DAYS = EnumSet.of(DayOfWeek.TUESDAY, DayOfWeek.SATURDAY);
     public static final String END_MESSAGE = "Due to the result of Chip War";
     /** Shouts no jogo antes do bônus de 10 min antes (minutos antes da CW → minutos até os pontos). */
     public static final Map<Integer, Integer> RG_SHOUTS = Map.of(15, 5, 12, 2);
@@ -136,8 +134,7 @@ public class CwAttendanceService {
         public static Slot of(LocalDate date, int slot) { return new Slot(date, WINDOWS.get(slot - 1)); }
         /** Dia de Brasília do início: PB Major vale para as 3 CWs desse dia. */
         public boolean major() {
-            long days = ChronoUnit.DAYS.between(PB_MAJOR_ANCHOR, startsAt().atZone(BRT).toLocalDate());
-            return Math.floorMod(days, PB_MAJOR_EVERY_DAYS) == 0;
+            return PB_MAJOR_DAYS.contains(startsAt().atZone(BRT).getDayOfWeek());
         }
     }
 

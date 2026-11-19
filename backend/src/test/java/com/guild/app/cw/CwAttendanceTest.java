@@ -122,16 +122,19 @@ class CwAttendanceTest {
         assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM cw_award WHERE member_id=? AND kind='CW'", Integer.class, a));
     }
 
-    @Test void windowsAreServerTimeAndPbMajorEveryFourDays() {
+    @Test void windowsAreServerTimeAndPbMajorOnTuesdayAndSaturday() {
         assertEquals(2, CwAttendanceService.slotAt(t0).orElseThrow().window().slot());
         assertTrue(CwAttendanceService.slotAt(t0.minusSeconds(1)).isEmpty());                    // 13:59 Moscou
         var cw3 = CwAttendanceService.slotAt(Instant.parse("2026-11-08T20:59:00Z")).orElseThrow();  // 23:59 Moscou
         assertEquals(3, cw3.window().slot());
         assertEquals(LocalDate.of(2026, 11, 8), cw3.date());
         assertFalse(cw3.major());
-        assertTrue(CwAttendanceService.Slot.of(LocalDate.of(2026, 11, 10), 1).major());           // 27/09 + 44 dias
+        assertTrue(CwAttendanceService.Slot.of(LocalDate.of(2026, 11, 10), 1).major());           // terça
         assertTrue(CwAttendanceService.Slot.of(LocalDate.of(2026, 11, 10), 3).major());
         assertFalse(CwAttendanceService.Slot.of(LocalDate.of(2026, 11, 11), 2).major());
+        assertTrue(CwAttendanceService.Slot.of(LocalDate.of(2026, 11, 14), 2).major());           // sábado
+        assertTrue(CwAttendanceService.Slot.of(LocalDate.of(2026, 11, 17), 2).major());           // terça
+        assertFalse(CwAttendanceService.Slot.of(LocalDate.of(2026, 11, 18), 1).major());          // quarta (era major pela conta de 4 dias)
     }
 
     @Test void cwPointsGoToWhoStayed45PercentWithoutAfk() {
