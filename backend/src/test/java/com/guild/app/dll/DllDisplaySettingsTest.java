@@ -41,17 +41,19 @@ class DllDisplaySettingsTest {
     @Test void adminSetsTheArrowSizesAndTheShoutHeadersCarryThem() throws Exception {
         var admin = member("ADMINISTRADOR");
         mvc.perform(put("/api/dll/display").with(user(admin)).contentType(MediaType.APPLICATION_JSON)
-                .content("{\"partyArrowScale\":180,\"guildArrowScale\":250}"))
+                .content("{\"partyArrowScale\":180,\"guildArrowScale\":250,\"arrowDistance\":60}"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.partyArrowScale").value(180))
             .andExpect(jsonPath("$.guildArrowScale").value(250))
+            .andExpect(jsonPath("$.arrowDistance").value(60))
             .andExpect(jsonPath("$.updatedBy").value(admin.getNickname()));
         mvc.perform(get("/api/dll/display").with(user(admin)))
             .andExpect(jsonPath("$.partyArrowScale").value(180))
             .andExpect(jsonPath("$.guildArrowScale").value(250));
         mvc.perform(get("/api/shout/game").param("character", "ninguem"))
             .andExpect(header().string("X-Cerberus-Party-Arrow", "180"))
-            .andExpect(header().string("X-Cerberus-Guild-Arrow", "250"));
+            .andExpect(header().string("X-Cerberus-Guild-Arrow", "250"))
+            .andExpect(header().string("X-Cerberus-Arrow-Distance", "60"));
     }
 
     @Test void outOfRangeIsRejectedAndMembersCannotChangeIt() throws Exception {

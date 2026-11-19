@@ -27,6 +27,10 @@ public class DllDisplaySettings {
     @Column(name = "guild_arrow_scale", nullable = false)
     private int guildArrowScale = 100;
 
+    /** Distância das setas até o alvo, em % da distância normal (0..200; 100 = como no tamanho normal). */
+    @Column(name = "arrow_distance", nullable = false)
+    private int arrowDistance = 100;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "updated_by_id")
     private Member updatedBy;

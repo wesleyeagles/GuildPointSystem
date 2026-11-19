@@ -24,6 +24,8 @@ public class ShoutController {
     /** Tamanho das setas da PT e da guild do jogo, em % (Admin -> DLL; lido pela DLL 1.50.0+). */
     public static final String PARTY_ARROW_HEADER = "X-Cerberus-Party-Arrow";
     public static final String GUILD_ARROW_HEADER = "X-Cerberus-Guild-Arrow";
+    /** Distância das setas até o alvo, em % da normal (lido pela DLL 1.50.1+). */
+    public static final String ARROW_DISTANCE_HEADER = "X-Cerberus-Arrow-Distance";
 
     private final ShoutService service;
     private final DllDisplaySettingsService display;
@@ -43,6 +45,7 @@ public class ShoutController {
         DllDisplaySettingsService.Scales arrows = display.arrowScales();
         headers.set(PARTY_ARROW_HEADER, Integer.toString(arrows.party()));
         headers.set(GUILD_ARROW_HEADER, Integer.toString(arrows.guild()));
+        headers.set(ARROW_DISTANCE_HEADER, Integer.toString(arrows.distance()));
         if (character != null && !character.isBlank()) headers.set(GameLanguage.HEADER, language.code(character));
         return service.forGame(character)
             .map(s -> ResponseEntity.ok().headers(headers).body(s.id() + "\t" + s.author() + "\t" + s.message() + "\n"))

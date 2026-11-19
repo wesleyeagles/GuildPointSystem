@@ -23,14 +23,17 @@ public class DllDisplaySettingsService {
     public static final int MIN_SCALE = 50;
     public static final int MAX_SCALE = 500;
     public static final int DEFAULT_SCALE = 100;
+    public static final int MIN_DISTANCE = 0;
+    public static final int MAX_DISTANCE = 200;
+    public static final int DEFAULT_DISTANCE = 100;
     static final long CACHE_MS = 30_000;
 
-    public record View(int partyArrowScale, int guildArrowScale, String updatedBy, Instant updatedAt) {}
+    public record View(int partyArrowScale, int guildArrowScale, int arrowDistance, String updatedBy, Instant updatedAt) {}
 
-    /** % de cada seta; 100 = como o jogo desenha. */
-    public record Scales(int party, int guild) {}
+    /** % de cada seta e da distância até o alvo; 100 = como o jogo desenha. */
+    public record Scales(int party, int guild, int distance) {}
 
-    private static final Scales DEFAULTS = new Scales(DEFAULT_SCALE, DEFAULT_SCALE);
+    private static final Scales DEFAULTS = new Scales(DEFAULT_SCALE, DEFAULT_SCALE, DEFAULT_DISTANCE);
 
     private final DllDisplaySettingsRepository repository;
     private final MemberRepository members;
@@ -43,7 +46,7 @@ public class DllDisplaySettingsService {
         long now = clock.millis();
         if (cachedAt == Long.MIN_VALUE || now - cachedAt >= CACHE_MS) {
             cached = repository.findById(DllDisplaySettings.SINGLETON_ID)
-                    .map(s -> new Scales(s.getPartyArrowScale(), s.getGuildArrowScale())).orElse(DEFAULTS);
+                    .map(DllDisplaySettingsService::scales).orElse(DEFAULTS);
             cachedAt = now;
         }
         return cached;
@@ -52,11 +55,11 @@ public class DllDisplaySettingsService {
     @Transactional(readOnly = true)
     public View view() {
         return repository.findById(DllDisplaySettings.SINGLETON_ID).map(this::toView)
-                .orElse(new View(DEFAULT_SCALE, DEFAULT_SCALE, null, null));
+                .orElse(new View(DEFAULT_SCALE, DEFAULT_SCALE, DEFAULT_DISTANCE, null, null));
     }
 
     @Transactional
-    public View update(int partyArrowScale, int guildArrowScale, MemberPrincipal by) {
+    public View update(int partyArrowScale, int guildArrowScale, int arrowDistance, MemberPrincipal by) {
         DllDisplaySettings s = repository.findById(DllDisplaySettings.SINGLETON_ID).orElseGet(() -> {
             DllDisplaySettings created = new DllDisplaySettings();
             created.setId(DllDisplaySettings.SINGLETON_ID);
@@ -64,18 +67,23 @@ public class DllDisplaySettingsService {
         });
         s.setPartyArrowScale(clamp(partyArrowScale));
         s.setGuildArrowScale(clamp(guildArrowScale));
+        s.setArrowDistance(Math.max(MIN_DISTANCE, Math.min(MAX_DISTANCE, arrowDistance)));
         s.setUpdatedBy(by == null ? null : members.getReferenceById(by.getId()));
         s.setUpdatedAt(clock.instant());
         repository.save(s);
-        cached = new Scales(s.getPartyArrowScale(), s.getGuildArrowScale());
+        cached = scales(s);
         cachedAt = clock.millis();
         return toView(s);
     }
 
     private static int clamp(int scale) { return Math.max(MIN_SCALE, Math.min(MAX_SCALE, scale)); }
 
+    private static Scales scales(DllDisplaySettings s) {
+        return new Scales(s.getPartyArrowScale(), s.getGuildArrowScale(), s.getArrowDistance());
+    }
+
     private View toView(DllDisplaySettings s) {
-        return new View(s.getPartyArrowScale(), s.getGuildArrowScale(),
+        return new View(s.getPartyArrowScale(), s.getGuildArrowScale(), s.getArrowDistance(),
                 s.getUpdatedBy() == null ? null : s.getUpdatedBy().getNickname(), s.getUpdatedAt());
     }
 }

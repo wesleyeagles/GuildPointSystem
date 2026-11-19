@@ -149,12 +149,16 @@ export function usePublishDll() {
 export interface DllDisplaySettings {
   partyArrowScale: number
   guildArrowScale: number
+  /** Distância das setas até o alvo, em % da normal (100 = centro da seta onde ficaria no tamanho normal). */
+  arrowDistance: number
   updatedBy: string | null
   updatedAt: string | null
 }
 
 export const ARROW_SCALE_MIN = 50
 export const ARROW_SCALE_MAX = 500
+export const ARROW_DISTANCE_MIN = 0
+export const ARROW_DISTANCE_MAX = 200
 
 export function useDllDisplaySettings() {
   return useQuery({
@@ -166,7 +170,7 @@ export function useDllDisplaySettings() {
 export function useUpdateDllDisplaySettings() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (body: { partyArrowScale: number; guildArrowScale: number }) =>
+    mutationFn: (body: { partyArrowScale: number; guildArrowScale: number; arrowDistance: number }) =>
       apiClient<DllDisplaySettings>('/dll/display', { method: 'PUT', body }),
     onSuccess: (data) => queryClient.setQueryData(['dll', 'display'], data),
   })

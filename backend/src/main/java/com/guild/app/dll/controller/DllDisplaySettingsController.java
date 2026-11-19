@@ -20,7 +20,8 @@ public class DllDisplaySettingsController {
 
     public record UpdateRequest(
             @Min(DllDisplaySettingsService.MIN_SCALE) @Max(DllDisplaySettingsService.MAX_SCALE) int partyArrowScale,
-            @Min(DllDisplaySettingsService.MIN_SCALE) @Max(DllDisplaySettingsService.MAX_SCALE) int guildArrowScale) {}
+            @Min(DllDisplaySettingsService.MIN_SCALE) @Max(DllDisplaySettingsService.MAX_SCALE) int guildArrowScale,
+            @Min(DllDisplaySettingsService.MIN_DISTANCE) @Max(DllDisplaySettingsService.MAX_DISTANCE) Integer arrowDistance) {}
 
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMINISTRADOR','LIDER')")
@@ -29,6 +30,7 @@ public class DllDisplaySettingsController {
     @PutMapping
     @PreAuthorize("hasAnyRole('ADMINISTRADOR','LIDER')")
     public View update(@Valid @RequestBody UpdateRequest body) {
-        return service.update(body.partyArrowScale(), body.guildArrowScale(), SecurityUtils.currentMember());
+        return service.update(body.partyArrowScale(), body.guildArrowScale(),
+                body.arrowDistance() == null ? DllDisplaySettingsService.DEFAULT_DISTANCE : body.arrowDistance(), SecurityUtils.currentMember());
     }
 }
