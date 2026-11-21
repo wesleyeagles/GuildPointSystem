@@ -89,6 +89,9 @@ public class SecurityConfig {
                         // Shout no jogo pela DLL: ver/enviar so para personagem de membro aprovado (enviar: Lider/Admin).
                         .requestMatchers(HttpMethod.GET, "/api/shout/game", "/api/shout/game/sender").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/shout/game").permitAll()
+                        // Seta de marcação da guild (DLL 1.52.0): pelo nome do personagem, como o shout.
+                        .requestMatchers(HttpMethod.GET, "/api/marker/game").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/marker/game").permitAll()
                         // Lista de membros no jogo pela DLL: so personagem de Lider/Admin (mesma regra do shout).
                         .requestMatchers(HttpMethod.GET, "/api/members/game/roster").permitAll()
                         // Status dos PBs da kbase no painel da DLL: so personagem de membro aprovado.

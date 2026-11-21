@@ -151,6 +151,9 @@ export interface DllDisplaySettings {
   guildArrowScale: number
   /** Distância das setas até o alvo, em % da normal (100 = centro da seta onde ficaria no tamanho normal). */
   arrowDistance: number
+  /** Seta de marcação da guild (Ctrl+Shift+clique de Líder/Admin): tamanho em % e cor RRGGBB. */
+  markerArrowScale: number
+  markerColor: string
   updatedBy: string | null
   updatedAt: string | null
 }
@@ -170,7 +173,13 @@ export function useDllDisplaySettings() {
 export function useUpdateDllDisplaySettings() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (body: { partyArrowScale: number; guildArrowScale: number; arrowDistance: number }) =>
+    mutationFn: (body: {
+      partyArrowScale: number
+      guildArrowScale: number
+      arrowDistance: number
+      markerArrowScale: number
+      markerColor: string
+    }) =>
       apiClient<DllDisplaySettings>('/dll/display', { method: 'PUT', body }),
     onSuccess: (data) => queryClient.setQueryData(['dll', 'display'], data),
   })

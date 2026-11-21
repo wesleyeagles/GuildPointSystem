@@ -31,6 +31,13 @@ public class DllDisplaySettings {
     @Column(name = "arrow_distance", nullable = false)
     private int arrowDistance = 100;
 
+    /** Seta de marcação da guild: tamanho em % (50..500) e cor RRGGBB. */
+    @Column(name = "marker_arrow_scale", nullable = false)
+    private int markerArrowScale = 100;
+
+    @Column(name = "marker_color", nullable = false, length = 6)
+    private String markerColor = "FF2828";
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "updated_by_id")
     private Member updatedBy;
