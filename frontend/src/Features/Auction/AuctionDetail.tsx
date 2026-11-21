@@ -32,6 +32,7 @@ import { useFillViewport } from '@/Features/Auction/hooks/useFillViewport'
 import { AuctionChat } from '@/Features/Auction/components/AuctionChat/AuctionChat'
 import { AuctionViewers } from '@/Features/Auction/components/AuctionViewers/AuctionViewers'
 import { ItemQuantity } from '@/Shared/ui/components/ItemQuantity/ItemQuantity'
+import { ManageAuctionBids } from './components/ManageAuctionBids/ManageAuctionBids'
 import './Auction.styles.scss'
 
 // ─── Single auction item card (fetches full data) ─────────────────────────────
@@ -460,6 +461,7 @@ export function AuctionDetailPage() {
                 <p>Entrega pendente</p>
                 {canManage && (
                   <div className="auction-admin">
+            <ManageAuctionBids auction={auction} />
                     {canPrepareMail && (
                       <Button size="sm" variant="secondary" loading={preparingMail} onClick={() => {
                         const resolveAttachment = canResolveAuctionMailAttachment(auction) ? () => resolveAuctionMailAttachment(auction) : undefined
@@ -586,6 +588,7 @@ export function AuctionDetailPage() {
         {/* Leadership actions (Líder / Administrador) */}
         {canManage && (
           <div className="auction-admin">
+            <ManageAuctionBids auction={auction} />
             {isFinished ? (
               <Button variant="danger" size="sm" onClick={() => setConfirm('delete')}>
                 Excluir leilão

@@ -36,6 +36,7 @@ const LOG_TYPE_LABELS: Record<AuditLogType, string> = {
   AUCTION_CLOSED: 'Leilão encerrado',
   AUCTION_DELIVERED: 'Entrega de leilão confirmada',
   AUCTION_CANCELLED: 'Leilão cancelado',
+  AUCTION_BID_CANCELLED: 'Lance cancelado',
   AUCTION_DELETED: 'Leilão excluído',
   PROFILE_UPDATED: 'Perfil alterado',
   MEMBER_APPROVED: 'Cadastro aprovado',
@@ -190,6 +191,8 @@ export function formatLogDetails(log: AuditLogEntry): string {
       const charged = p.charged ?? p.amount
       return `#${str(p.auctionId)} · Vencedor: -${str(charged)} pts (lance ${str(p.amount)})`
     }
+    case 'AUCTION_BID_CANCELLED':
+      return `#${str(p.auctionId)} · Lance #${str(p.bidId)}: ${str(p.amount)} pts · ${str(p.reason)} · Atual: ${str(p.currentBid)} pts`
     case 'AUCTION_CANCELLED': {
       const released = Array.isArray(p.releasedMemberIds) ? p.releasedMemberIds.length : 0
       return `#${str(p.auctionId)} · lance ${str(p.amount)} pts · ${released} reserva(s) devolvida(s)`

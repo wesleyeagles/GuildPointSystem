@@ -97,6 +97,18 @@ public class AuctionController {
         auctionService.delete(id, SecurityUtils.currentMember());
     }
 
+    @GetMapping("/{id}/bids")
+    public org.springframework.data.domain.Page<AuctionBidResponse> bids(
+            @PathVariable Long id, @RequestParam(defaultValue = "0") int page) {
+        return auctionService.bids(id, page);
+    }
+
+    @PostMapping("/{id}/bids/{bidId}/cancel")
+    public AuctionResponse cancelBid(@PathVariable Long id, @PathVariable Long bidId,
+                                     @Valid @RequestBody CancelAuctionBidRequest request) {
+        return auctionService.cancelBid(id, bidId, request.reason(), SecurityUtils.currentMember());
+    }
+
     @PostMapping("/{id}/bids")
     public AuctionResponse placeBid(@PathVariable Long id, @Valid @RequestBody PlaceBidRequest request) {
         return auctionService.placeBid(id, request, SecurityUtils.currentMember());

@@ -14,8 +14,8 @@ import static org.mockito.Mockito.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 class BdDailyServiceTest {
-    final MemberRepository members = mock(MemberRepository.class, withSettings().mockMaker(org.mockito.MockMakers.SUBCLASS));
-    final BdCompletionRepository repository = mock(BdCompletionRepository.class, withSettings().mockMaker(org.mockito.MockMakers.SUBCLASS));
+    final MemberRepository members = mock(MemberRepository.class);
+    final BdCompletionRepository repository = mock(BdCompletionRepository.class);
     final BdDailyService service = new BdDailyService(members, repository);
     BdDailyServiceTest() {
         Member meow = new Member(); meow.setNickname("meow"); meow.setLevel(50); meow.setStatus(MemberStatus.APROVADO); meow.setProfileComplete(true);
