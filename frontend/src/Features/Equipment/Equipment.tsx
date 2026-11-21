@@ -17,6 +17,7 @@ import { useAppToast } from '@/Shared/ui/components/AppToast/AppToast'
 import { getGameMailSender, useGameMail } from '@/Shared/hooks/useGameMail'
 import { EquipmentIcon, EmptyEquipmentSlot } from './EquipmentIcon'
 import { EquipmentRelics } from './EquipmentRelics'
+import { TeleportMail } from './TeleportMail'
 import { formatEquipmentEffect } from '@/Domain/Equipment/utils/equipmentEffects'
 import { SCHEDULE_TIME_ZONE } from '@/Shared/utils/scheduleTimeZone'
 import { serverNow } from '@/Shared/utils/serverClock'
@@ -271,6 +272,7 @@ export function EquipmentPage() {
     <div className={`equipment-workspace${managing && inspected ? ' equipment-workspace--split' : ''}${canPrepareMail ? ' equipment-workspace--mail' : ''}`}>
     {managing && <Panel className="equipment-workspace__roster" title="Personagens" code={`${members.length} PERSONAGENS`}>
       <div className="equipment-toolbar">
+        {admin && <TeleportMail members={members} allowed={canPrepareMail} />}
         {canPrepareMail && <label>Personagem remetente<select value={mailSender} disabled={preparingMail} onChange={e => {
           setMailSender(e.target.value)
           localStorage.setItem('equipment-mail-sender', e.target.value)

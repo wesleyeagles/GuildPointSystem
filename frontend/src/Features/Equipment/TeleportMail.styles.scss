@@ -1,0 +1,17 @@
+.confirm-dialog:has(.teleport-mail) { max-width: 760px; }
+.teleport-mail {
+  display: grid; gap: 12px; max-height: 65vh; overflow-y: auto; min-width: 0;
+  p { margin: 0; } fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+  label { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  input:not([type='checkbox']) { @include theme.field-input; min-width: 0; width: 100%; }
+  input[type='checkbox'] { accent-color: theme.$color-primary; }
+  &__setup { display: grid; gap: 12px; }
+  &__items { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px;
+    > div { border: 1px solid theme.$color-border; padding: 10px; display: grid; gap: 8px; }
+  }
+  &__items:has(> div:only-child) { grid-template-columns: 1fr; }
+  &__selection { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  &__players { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); max-height: 180px; overflow-y: auto; gap: 6px; }
+  details { padding: 10px; border: 1px solid theme.$color-border; } summary { cursor: pointer; } ul { padding-left: 18px; }
+  @media (max-width: 520px) { &__items, &__players { grid-template-columns: 1fr; } }
+}

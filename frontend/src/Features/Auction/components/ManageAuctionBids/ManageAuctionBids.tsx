@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useAuctionBids, useCancelAuctionBid } from '@/Domain/Auction/hooks/useAuction'
 import type { Auction, AuctionBidHistory } from '@/Domain/types/models'
+import { ApiError } from '@/Shared/api/client'
 import { Button } from '@/Shared/ui/components/Button/Button'
 import { ConfirmDialog } from '@/Shared/ui/components/ConfirmDialog/ConfirmDialog'
 import './ManageAuctionBids.styles.scss'
@@ -14,6 +15,9 @@ export function ManageAuctionBids({ auction }: { auction: Auction }) {
   const history = useAuctionBids(auction.id, page, open)
   const cancel = useCancelAuctionBid(auction.id)
   const canCancel = ['OPEN', 'DOLE', 'PAUSED'].includes(auction.status)
+  const historyError = history.error instanceof ApiError && [404, 405].includes(history.error.status)
+    ? 'O backend publicado ainda não disponibiliza o histórico e o cancelamento de lances. É necessário publicar o backend atualizado da main.'
+    : history.error instanceof Error ? history.error.message : 'Não foi possível carregar os lances.'
   const back = () => {
     if (cancel.isPending) return
     if (selected) setSelected(null)
@@ -45,7 +49,7 @@ export function ManageAuctionBids({ auction }: { auction: Auction }) {
           onChange={(e) => setReason(e.target.value)} /></label>
       </div> : <div className="auction-bid-history">
         {history.isLoading && <p>Carregando lances…</p>}
-        {history.isError && <p role="alert">Não foi possível carregar os lances.
+        {history.isError && <p role="alert">{historyError}
           <Button variant="secondary" onClick={() => void history.refetch()}>Tentar novamente</Button></p>}
         {history.data?.content.length === 0 && <p>Nenhum lance registrado.</p>}
         {history.data?.content.map((bid) => <div key={bid.id} className={`auction-bid-history__row${bid.cancelledAt ? ' is-cancelled' : ''}`}>

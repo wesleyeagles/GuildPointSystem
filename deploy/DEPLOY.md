@@ -98,6 +98,19 @@ If deploy builds but healthcheck fails (`Could not connect to localhost:8080`):
 
 Alternative reference stack: [`deploy/docker-compose.prod.yml`](docker-compose.prod.yml).
 
+### Auction bid history and cancellation (PR #67)
+
+A green GitHub CI or a successful Vercel deployment does not prove that Coolify replaced the backend container. If bid history fails, check the registered routes without authenticating or changing a real bid:
+
+```bash
+curl -sS -X OPTIONS -D - -o /dev/null https://backend.guildsystem.com.br/api/auctions/0/bids
+curl -sS -X OPTIONS -D - -o /dev/null https://backend.guildsystem.com.br/api/auctions/0/bids/0/cancel
+```
+
+Do not add an `Origin` header: these are MVC method checks, not CORS preflight checks. The first response must allow **GET, HEAD, POST, OPTIONS**; the second must allow **POST, OPTIONS**. `POST, OPTIONS` on the first route or a 404 on the second means that the old backend is still running. The zero IDs do not need to exist and OPTIONS does not execute either bid action.
+
+Deploy the backend application from `main`, including PR #67 (commit `a38919c`) or a descendant. Confirm successful startup and Flyway `V141__auction_bid_cancellation.sql`, then repeat the two read-only checks. Keep the existing database, JWT secret, environment variables and upload volume. Do not reset Flyway or manually alter bids to fix a missing route. Once the routes are present, open **Gerenciar lances** and verify the history with an admin account; no cancellation is necessary.
+
 ### WebSocket
 
 Coolify/Caddy proxies WebSocket upgrades by default. After deploy, verify `https://backend.guildsystem.com.br/ws/info` returns SockJS info JSON.

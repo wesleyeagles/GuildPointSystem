@@ -374,6 +374,7 @@ describe('Equipamentos', () => {
     expect(screen.queryByRole('button', { name: 'Destinatário local' })).not.toBeInTheDocument()
     expect(screen.queryByLabelText('Destinatário')).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Ver jogadores' }))
+    expect(screen.queryByRole('button', { name: 'Enviar teleportes' })).not.toBeInTheDocument()
     const roster=screen.getByRole('list', { name: 'Equipamentos dos personagens' })
     const names=() => within(roster).getAllByRole('button', { name: /^(Player local|Destinatário local)$/ }).map(b=>b.textContent)
     expect(names()).toEqual(['Player local','Destinatário local'])

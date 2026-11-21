@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
-import { apiClient } from '@/Shared/api/client'
+import { apiClient, ApiError } from '@/Shared/api/client'
 import {
   getSocketState,
   onSocketReconnect,
@@ -356,6 +356,7 @@ export function useAuctionBids(id: number, page: number, enabled: boolean) {
   return useQuery({
     queryKey: [...auctionKeys.bids(id), page],
     queryFn: () => apiClient<Page<AuctionBidHistory>>(`/auctions/${id}/bids?page=${page}`),
+    retry: (failures, error) => !(error instanceof ApiError && error.status >= 400 && error.status < 500) && failures < 1,
     enabled,
   })
 }

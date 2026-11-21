@@ -1,17 +1,19 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import type { Auction, AuctionBidHistory } from '@/Domain/types/models'
+import { ApiError } from '@/Shared/api/client'
 import { ManageAuctionBids } from './ManageAuctionBids'
-const state = vi.hoisted(() => ({ mutate: vi.fn(), pending: false, rows: [] as AuctionBidHistory[], enabled: false }))
+const state = vi.hoisted(() => ({ mutate: vi.fn(), pending: false, rows: [] as AuctionBidHistory[], enabled: false, error: null as Error | null }))
 vi.mock('@/Domain/Auction/hooks/useAuction', () => ({
   useAuctionBids: (_id: number, _page: number, enabled: boolean) => {
     state.enabled = enabled
-    return { data: { content: state.rows, totalPages: 1 } }
+    return { data: state.error ? undefined : { content: state.rows, totalPages: 1 }, isError: !!state.error, error: state.error }
   },
   useCancelAuctionBid: () => ({ mutateAsync: state.mutate, isPending: state.pending }),
 }))
 const auction = { id: 17, status: 'OPEN' } as Auction
 beforeEach(() => {
+  state.error = null
   state.pending = false
   state.mutate.mockReset().mockResolvedValue(auction)
   state.rows = [{ id: 22, memberId: 4, nickname: 'Jogador', amount: 50, createdAt: '2026-11-21T15:00:00Z',
@@ -54,4 +56,17 @@ it('keeps cancelled bids with their admin and reason in history', () => {
   open()
   expect(screen.getByText(/Cancelado por Administrador.*Missclick/)).toBeVisible()
   expect(screen.queryByRole('button', { name: 'Cancelar lance' })).not.toBeInTheDocument()
+})
+
+it.each([404, 405])('explains an outdated backend on HTTP %s without offering a cancellation', (status) => {
+  state.error = new ApiError('Method not allowed', status)
+  open()
+  expect(screen.getByRole('alert')).toHaveTextContent('É necessário publicar o backend atualizado da main')
+  expect(screen.queryByRole('button', { name: 'Cancelar lance' })).not.toBeInTheDocument()
+  expect(state.mutate).not.toHaveBeenCalled()
+})
+it('preserves the real server error and request code', () => {
+  state.error = new ApiError('Erro no servidor (código req-123)', 500, 'req-123')
+  open()
+  expect(screen.getByRole('alert')).toHaveTextContent('Erro no servidor (código req-123)')
 })
