@@ -46,6 +46,7 @@ export type AuditLogType =
   | 'AUCTION_CLOSED'
   | 'AUCTION_DELIVERED'
   | 'AUCTION_CANCELLED'
+  | 'AUCTION_BID_CANCELLED'
   | 'AUCTION_DELETED'
   | 'MEMBER_DELETED'
   | 'MEMBER_SUSPENDED'
@@ -435,6 +436,17 @@ export interface AuditLogEntry {
   targetNickname: string | null
   payload: Record<string, unknown>
   createdAt: string
+}
+
+export interface AuctionBidHistory {
+  id: number
+  memberId: number
+  nickname: string
+  amount: number
+  createdAt: string
+  cancelledAt: string | null
+  cancelledBy: string | null
+  cancellationReason: string | null
 }
 
 export interface Page<T> {

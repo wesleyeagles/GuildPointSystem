@@ -30,4 +30,13 @@ public class AuctionBid {
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt = Instant.now();
+
+    private Instant cancelledAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "cancelled_by_id")
+    private Member cancelledBy;
+
+    @Column(length = 300)
+    private String cancellationReason;
 }

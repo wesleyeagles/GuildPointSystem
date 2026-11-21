@@ -1,0 +1,23 @@
+.auction-bid-history {
+  display: grid;
+  gap: 12px;
+  max-height: 55vh;
+  overflow-y: auto;
+  text-align: left;
+
+  &__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid #26364a;
+    overflow-wrap: anywhere;
+    small { display: block; font-size: 12px; color: #92a5ba; }
+    .btn { flex-shrink: 0; }
+    &.is-cancelled strong { text-decoration: line-through; }
+  }
+  &__pages { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  label { display: grid; gap: 6px; }
+  input { width: 100%; min-width: 0; }
+}

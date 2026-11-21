@@ -43,15 +43,17 @@ public interface AuctionRepository extends JpaRepository<Auction, Long> {
             SELECT COALESCE(SUM(a.currentBid), 0) FROM Auction a
             WHERE a.status IN :statuses AND a.currentBid > 0 AND a.id <> :excludeAuctionId
               AND EXISTS (SELECT 1 FROM AuctionBid b
-                          WHERE b.auction = a AND b.member.id = :memberId AND b.amount = a.currentBid)
+                          WHERE b.auction = a AND b.member.id = :memberId AND b.amount = a.currentBid AND b.cancelledAt IS NULL)
             """)
     long sumReservedBy(Long memberId, Collection<AuctionStatus> statuses, Long excludeAuctionId);
 
     /** Same reserve for every member at once, as {@code [memberId, reserved]} rows (members without one are absent). */
     @Query("""
-            SELECT b.member.id, SUM(a.currentBid) FROM AuctionBid b JOIN b.auction a
-            WHERE a.status IN :statuses AND a.currentBid > 0 AND b.amount = a.currentBid
-            GROUP BY b.member.id
+            SELECT m.id, SUM(a.currentBid) FROM Member m, Auction a
+            WHERE a.status IN :statuses AND a.currentBid > 0
+              AND EXISTS (SELECT 1 FROM AuctionBid b WHERE b.auction = a AND b.member = m
+                          AND b.amount = a.currentBid AND b.cancelledAt IS NULL)
+            GROUP BY m.id
             """)
     List<Object[]> sumReservedByMember(Collection<AuctionStatus> statuses);
 
@@ -60,7 +62,7 @@ public interface AuctionRepository extends JpaRepository<Auction, Long> {
             SELECT a.id FROM Auction a
             WHERE a.status IN :statuses AND a.currentBid > 0
               AND EXISTS (SELECT 1 FROM AuctionBid b
-                          WHERE b.auction = a AND b.member.id = :memberId AND b.amount = a.currentBid)
+                          WHERE b.auction = a AND b.member.id = :memberId AND b.amount = a.currentBid AND b.cancelledAt IS NULL)
             ORDER BY a.createdAt DESC
             """)
     List<Long> findIdsLedBy(Long memberId, Collection<AuctionStatus> statuses);

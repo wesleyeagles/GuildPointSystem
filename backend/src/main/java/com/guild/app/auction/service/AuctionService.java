@@ -400,15 +400,7 @@ public class AuctionService {
             throw new AppException(SELL_BLOCK_REQUIRED, HttpStatus.FORBIDDEN);
         }
         // Mesmo lote em dois leiloes: quem ja tem o maior lance num nao entra no outro (um vencedor por lote igual).
-        var leading = auctionBidRepository.findOtherAuctionsLeadBy(actorId, auctionId, ACTIVE_STATUSES);
-        if (!leading.isEmpty()) {
-            var lot = lotSignature(getById(auctionId));
-            for (Long other : leading) {
-                if (!lot.isEmpty() && lot.equals(lotSignature(getById(other)))) {
-                    throw new AppException(sameLotMessage(other), HttpStatus.CONFLICT);
-                }
-            }
-        }
+        requireNoOtherIdenticalLot(actorId, auctionId);
 
         long currentBid = auction.getCurrentBid();
         var previousLeaders = currentBid > 0
@@ -479,6 +471,93 @@ public class AuctionService {
                         "auctionId", auctionId, "amount", amount, "bidder", member.getNickname(), "items", items));
             }
         }
+        return response;
+    }
+
+    private void requireNoOtherIdenticalLot(Long memberId, Long auctionId) {
+        var leading = auctionBidRepository.findOtherAuctionsLeadBy(memberId, auctionId, ACTIVE_STATUSES);
+        if (leading.isEmpty()) return;
+        var lot = lotSignature(getById(auctionId));
+        for (Long other : leading) {
+            if (!lot.isEmpty() && lot.equals(lotSignature(getById(other)))) {
+                throw new AppException(sameLotMessage(other), HttpStatus.CONFLICT);
+            }
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public org.springframework.data.domain.Page<AuctionBidResponse> bids(Long auctionId, int page) {
+        SecurityUtils.requireRole(Role.ADMINISTRADOR);
+        if (page < 0) throw new AppException("Página inválida.", HttpStatus.BAD_REQUEST);
+        return auctionBidRepository.findByAuctionIdOrderByIdDesc(auctionId,
+                org.springframework.data.domain.PageRequest.of(page, 20)).map(AuctionBidResponse::from);
+    }
+
+    @Transactional
+    public AuctionResponse cancelBid(Long auctionId, Long bidId, String reason, MemberPrincipal actor) {
+        SecurityUtils.requireRole(Role.ADMINISTRADOR);
+        if (reason == null || reason.isBlank() || reason.length() > 300) {
+            throw new AppException("Informe um motivo de até 300 caracteres.", HttpStatus.BAD_REQUEST);
+        }
+        var auction = auctionRepository.findByIdForUpdate(auctionId)
+                .orElseThrow(() -> new AppException("Leilão não encontrado.", HttpStatus.NOT_FOUND));
+        var bid = auctionBidRepository.findById(bidId)
+                .filter(b -> b.getAuction().getId().equals(auctionId))
+                .orElseThrow(() -> new AppException("Lance não encontrado neste leilão.", HttpStatus.NOT_FOUND));
+        if (bid.getCancelledAt() != null) return toResponse(auction);
+        var now = Instant.now();
+        if (!(auction.getStatus() == AuctionStatus.OPEN || auction.getStatus() == AuctionStatus.DOLE
+                || auction.getStatus() == AuctionStatus.PAUSED)
+                || (auction.getStatus() == AuctionStatus.OPEN && !auction.getEndsAt().isAfter(now))) {
+            throw new AppException("Só é possível cancelar lances em leilões abertos ou pausados, antes do sorteio.",
+                    HttpStatus.CONFLICT);
+        }
+        var previous = auctionBidRepository.findTiedMemberIds(auctionId, auction.getCurrentBid());
+        long highest = auctionBidRepository.highestWithout(auctionId, bidId);
+        var leaders = highest == 0 ? List.<Long>of() : auctionBidRepository.leadersWithout(auctionId, bidId, highest);
+        // A bidder may have spent their released reserve elsewhere after being outbid.
+        for (Long id : leaders.stream().filter(id -> !previous.contains(id)).sorted().toList()) {
+            var member = memberRepository.findByIdForUpdate(id)
+                    .orElseThrow(() -> new AppException("Membro não encontrado.", HttpStatus.NOT_FOUND));
+            if (member.getStatus() != MemberStatus.APROVADO || !member.isBlockedForSellAccount()
+                    || pointsService.getAvailablePoints(member, auctionId) < highest) {
+                throw new AppException("O lance anterior não pode voltar a liderar: confira o saldo e o bloqueio de venda de "
+                        + member.getNickname() + ".", HttpStatus.CONFLICT);
+            }
+            requireNoOtherIdenticalLot(id, auctionId);
+        }
+        var actorMember = memberRepository.getReferenceById(actor.getId());
+        bid.setCancelledAt(now);
+        bid.setCancelledBy(actorMember);
+        bid.setCancellationReason(reason.strip());
+        auctionBidRepository.save(bid);
+        long oldAmount = auction.getCurrentBid();
+        auction.setCurrentBid(highest);
+        if (!previous.equals(leaders)) {
+            if (auction.getStatus() == AuctionStatus.DOLE) {
+                auction.setStatus(AuctionStatus.OPEN);
+                auction.setDolePhase(0);
+                auction.setEndsAt(now.plusSeconds(DOLE_RESCUE_SECONDS));
+            } else if (auction.getStatus() == AuctionStatus.OPEN && !auction.isFixedDeadline()
+                    && auction.getEndsAt().isBefore(now.plusSeconds(DOLE_RESCUE_SECONDS))) {
+                auction.setEndsAt(now.plusSeconds(DOLE_RESCUE_SECONDS));
+            }
+        }
+        auction.bumpVersion();
+        auctionRepository.save(auction);
+        auditLogService.log(AuditLogType.AUCTION_BID_CANCELLED, actorMember, bid.getMember(), Map.of(
+                "auctionId", auctionId, "bidId", bidId, "amount", bid.getAmount(),
+                "reason", reason.strip(), "oldCurrentBid", oldAmount, "currentBid", highest));
+        var response = toResponse(auction, leaders);
+        publishAuctionUpdate(response);
+        webSocketPublisher.publishAuction(auctionId, Map.of("type", "BID_CANCELLED", "bidId", bidId,
+                "version", auction.getStateVersion()));
+        addBotMessage(auction, "Lance #" + bidId + " de " + bid.getMember().getNickname() + " (" + bid.getAmount()
+                + " pts) cancelado por " + actor.getNickname() + ": " + reason.strip()
+                + ". Lance atual: " + highest + " pts.");
+        var affected = new HashSet<>(previous);
+        affected.addAll(leaders);
+        affected.forEach(this::publishPointsUpdate);
         return response;
     }
 

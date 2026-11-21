@@ -10,7 +10,7 @@ import {
 } from '@/Shared/websocket/socketClient'
 import { serverNow, trackServerTime } from '@/Shared/utils/serverClock'
 import { isAuctionFinished } from '@/Domain/types/models'
-import type { Auction, AuctionBidResult, AuctionMessage, AuctionMessageReaction } from '@/Domain/types/models'
+import type { Auction, AuctionBidHistory, Page, AuctionBidResult, AuctionMessage, AuctionMessageReaction } from '@/Domain/types/models'
 import { memberKeys } from '@/Domain/Member/hooks/useMembers'
 
 export const auctionKeys = {
@@ -19,6 +19,7 @@ export const auctionKeys = {
   messages: (id: number) => ['auctions', id, 'messages'] as const,
   tieBreak: (id: number) => ['auctions', id, 'tieBreak'] as const,
   participating: ['auctions', 'participating'] as const,
+  bids: (id: number) => ['auctions', id, 'bids'] as const,
 }
 
 // ─── Server clock ─────────────────────────────────────────────────────────────
@@ -127,6 +128,7 @@ export function useAuction(id: number, onDeleted?: () => void) {
     return onSocketReconnect(() => {
       queryClient.invalidateQueries({ queryKey: auctionKeys.detail(id), exact: true })
       queryClient.invalidateQueries({ queryKey: auctionKeys.messages(id), exact: true })
+      queryClient.invalidateQueries({ queryKey: auctionKeys.bids(id) })
     })
   }, [id, queryClient])
 
@@ -146,12 +148,17 @@ export function useAuction(id: number, onDeleted?: () => void) {
 
       switch (payload.type) {
         case 'AUCTION_UPDATE':
+          queryClient.invalidateQueries({ queryKey: auctionKeys.bids(id) })
           if (payload.auction) applyAuction(queryClient, payload.auction)
           break
         case 'CHAT':
         case 'BOT':
         case 'BID':
           if (payload.message) appendMessage(queryClient, id, payload.message)
+          break
+        case 'BID_CANCELLED':
+          queryClient.invalidateQueries({ queryKey: auctionKeys.bids(id) })
+          queryClient.invalidateQueries({ queryKey: auctionKeys.participating })
           break
         case 'REACTION':
           if (payload.messageId != null && payload.reactions) {
@@ -342,6 +349,29 @@ export function useSendAuctionMessage() {
       }),
     // No invalidation needed — the sender receives their own WS CHAT push
     // which appends directly via setQueryData in useAuction.
+  })
+}
+
+export function useAuctionBids(id: number, page: number, enabled: boolean) {
+  return useQuery({
+    queryKey: [...auctionKeys.bids(id), page],
+    queryFn: () => apiClient<Page<AuctionBidHistory>>(`/auctions/${id}/bids?page=${page}`),
+    enabled,
+  })
+}
+
+export function useCancelAuctionBid(id: number) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ bidId, reason }: { bidId: number; reason: string }) =>
+      apiClient<Auction>(`/auctions/${id}/bids/${bidId}/cancel`, { method: 'POST', body: { reason } }),
+    onSuccess: (auction) => {
+      applyAuction(queryClient, auction)
+      void queryClient.invalidateQueries({ queryKey: auctionKeys.bids(id) })
+      void queryClient.invalidateQueries({ queryKey: auctionKeys.participating })
+      void queryClient.invalidateQueries({ queryKey: memberKeys.me })
+      void queryClient.invalidateQueries({ queryKey: memberKeys.all })
+    },
   })
 }
 
