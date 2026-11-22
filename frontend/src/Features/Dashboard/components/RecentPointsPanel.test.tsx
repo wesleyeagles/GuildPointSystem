@@ -10,6 +10,8 @@ vi.mock('@/Domain/Log/hooks/useLogs', () => ({
   useCancelRecentRound: () => ({ mutate: state.cancel, isPending: false, isError: false, error: null }),
 }))
 
+vi.mock('@/Features/Events/EventRewardMail', () => ({ EventRewardMail: () => <button>Enviar recompensa</button> }))
+
 afterEach(cleanup)
 
 describe('Últimos pontos', () => {

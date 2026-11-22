@@ -14,6 +14,7 @@ interface ConfirmDialogProps {
   cancelLabel?: string
   variant?: 'danger' | 'primary'
   loading?: boolean
+  confirmDisabled?: boolean
   onConfirm: () => void
   onCancel: () => void
 }
@@ -31,6 +32,7 @@ export function ConfirmDialog({
   cancelLabel = 'Cancelar',
   variant = 'danger',
   loading = false,
+  confirmDisabled = false,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
@@ -69,7 +71,7 @@ export function ConfirmDialog({
             <Button data-autofocus type="button" variant="secondary" onClick={onCancel} disabled={loading}>
               {cancelLabel}
             </Button>
-            <Button type="button" variant={variant} onClick={onConfirm} loading={loading}>
+            <Button type="button" variant={variant} onClick={onConfirm} loading={loading} disabled={confirmDisabled}>
               {confirmLabel}
             </Button>
           </div>

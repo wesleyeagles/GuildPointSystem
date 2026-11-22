@@ -4,10 +4,10 @@ import { useAppToast } from '@/Shared/ui/components/AppToast/AppToast'
 type MailAttachment = { itemCode: string; quantity: number }
 type MailReply = { message?: string; tracking?: boolean; delivery?: string }
 
-function gameMailRequest(path: 'prepare-letter' | 'delivery-status', body: object) {
+export function gameMailRequest(path: 'prepare-letter' | 'delivery-status' | 'teleport-plan' | 'teleport-start' | 'teleport-status' | 'teleport-control', body: object) {
   const request: RequestInit & { targetAddressSpace: 'loopback' } = {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body), signal: AbortSignal.timeout(path === 'prepare-letter' ? 30_000 : 10_000),
+    body: JSON.stringify(body), signal: AbortSignal.timeout(path === 'prepare-letter' || path === 'teleport-plan' ? 30_000 : 10_000),
     credentials: 'omit', redirect: 'error', targetAddressSpace: 'loopback',
   }
   return fetch(`http://127.0.0.1:15183/${path}`, request)

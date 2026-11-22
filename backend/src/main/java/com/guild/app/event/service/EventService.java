@@ -12,6 +12,8 @@ import com.guild.app.event.dto.CreateEventRequest;
 import com.guild.app.event.dto.DenyClaimRequest;
 import com.guild.app.event.dto.EventClaimResponse;
 import com.guild.app.event.dto.EventResponse;
+import com.guild.app.event.dto.RewardRecipientsResponse;
+import com.guild.app.event.dto.RewardRecipientsResponse.Recipient;
 import com.guild.app.event.entity.EventClaim;
 import com.guild.app.event.entity.GuildEvent;
 import com.guild.app.event.repository.EventClaimRepository;
@@ -29,6 +31,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Comparator;
+import java.util.Objects;
+import java.util.stream.Collectors;
 import java.util.Map;
 import java.util.Set;
 
@@ -50,6 +55,35 @@ public class EventService {
     public List<EventResponse> listActive(MemberPrincipal actor) {
         return guildEventRepository.findByActiveTrueAndExpiresAtAfterOrderByCreatedAtDesc(Instant.now())
                 .stream().map(e -> toResponse(e, actor.getId())).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public RewardRecipientsResponse rewardRecipients(List<Long> ids) {
+        SecurityUtils.requireRole(Role.ADMINISTRADOR);
+        if (ids == null || ids.isEmpty() || ids.size() > 500 || ids.stream().anyMatch(id -> id == null || id <= 0)
+                || ids.stream().distinct().count() != ids.size())
+            throw new AppException("Resgates inválidos.", HttpStatus.BAD_REQUEST);
+        var claims = eventClaimRepository.findByIdIn(ids);
+        if (claims.size() != ids.size() || claims.stream().anyMatch(c -> c.isDenied() || c.getPoints() <= 0))
+            throw new AppException("Os participantes mudaram. Atualize o evento antes de enviar.", HttpStatus.CONFLICT);
+        var first = claims.getFirst();
+        var eventId = first.getEvent() == null ? null : first.getEvent().getId();
+        if (claims.stream().anyMatch(c -> !c.getObjective().getId().equals(first.getObjective().getId())
+                || !Objects.equals(eventId, c.getEvent() == null ? null : c.getEvent().getId())))
+            throw new AppException("Selecione uma única rodada de evento.", HttpStatus.BAD_REQUEST);
+        if (eventId == null) {
+            var times = claims.stream().map(EventClaim::getClaimedAt).sorted().toList();
+            for (int i = 1; i < times.size(); i++)
+                if (times.get(i).isAfter(times.get(i - 1).plusSeconds(600)))
+                    throw new AppException("Selecione uma única rodada de evento.", HttpStatus.BAD_REQUEST);
+        }
+        var grouped = claims.stream().collect(Collectors.groupingBy(c -> c.getMember().getId()));
+        var recipients = grouped.values().stream().map(rows -> new Recipient(
+                rows.getFirst().getMember().getId(), rows.getFirst().getMember().getNickname(),
+                rows.stream().map(EventClaim::getId).sorted().toList()))
+                .sorted(Comparator.comparing(Recipient::nickname,
+                        String.CASE_INSENSITIVE_ORDER)).toList();
+        return new RewardRecipientsResponse(first.getObjective().getName(), recipients);
     }
 
     @Transactional

@@ -5,6 +5,8 @@ import com.guild.app.event.dto.ClaimEventRequest;
 import com.guild.app.event.dto.CreateEventRequest;
 import com.guild.app.event.dto.DenyClaimRequest;
 import com.guild.app.event.dto.EventResponse;
+import com.guild.app.event.dto.RewardRecipientsRequest;
+import com.guild.app.event.dto.RewardRecipientsResponse;
 import com.guild.app.event.service.EventService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -39,6 +41,12 @@ public class EventController {
     @PostMapping("/{id}/cancel")
     public EventResponse cancel(@PathVariable Long id) {
         return eventService.cancel(id, SecurityUtils.currentMember());
+    }
+
+    @PostMapping("/claims/recipients")
+    public RewardRecipientsResponse rewardRecipients(
+            @Valid @RequestBody RewardRecipientsRequest request) {
+        return eventService.rewardRecipients(request.claimIds());
     }
 
     @PostMapping("/claims/{claimId}/deny")

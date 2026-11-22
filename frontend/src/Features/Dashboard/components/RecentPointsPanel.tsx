@@ -1,3 +1,4 @@
+import { EventRewardMail } from '@/Features/Events/EventRewardMail'
 import { useLayoutEffect, useRef, useState } from 'react'
 import { useCancelRecentRound, useRecentPoints, type RecentPointsEntry } from '@/Domain/Log/hooks/useLogs'
 import { Button } from '@/Shared/ui/components/Button/Button'
@@ -76,6 +77,7 @@ function Row({ entry }: { entry: RecentPointsEntry }) {
         </span>
       ) : null}
       {/* Só vem com claimIds (Administrador+). */}
+      {entry.kind === 'EVENT' && !!entry.claimIds?.length && <EventRewardMail claimIds={entry.claimIds} />}
       <CancelRound entry={entry} />
     </li>
   )

@@ -3,10 +3,14 @@ package com.guild.app.event.repository;
 import com.guild.app.event.entity.EventClaim;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.EntityGraph;
 
 import java.util.List;
 
 public interface EventClaimRepository extends JpaRepository<EventClaim, Long> {
+    @EntityGraph(attributePaths = {"member", "event", "objective"})
+    List<EventClaim> findByIdIn(List<Long> ids);
+
 
     boolean existsByEventIdAndMemberId(Long eventId, Long memberId);
 
