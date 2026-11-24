@@ -6,6 +6,7 @@ import { useAuthContext } from '@/Features/Auth/contexts/AuthContext'
 import { syncAccessKeys, useSyncAccess, type SyncAccessView } from '@/Domain/CharacterStatus/hooks/useSyncAccess'
 import {
   dllDownloadUrl,
+  dllReleaseNoticeEnabled,
   dllUpdatesItself,
   useDllReleaseSubscription,
   useLatestDll,
@@ -375,7 +376,7 @@ export function SyncAccessGate({ children }: { children: ReactNode }) {
     !sync.synced &&
     (dismissedAt === null || navigation.count - dismissedAt >= NAVIGATIONS_BETWEEN_WARNINGS)
 
-  const outdated = !!sync?.synced && sync.dllOutdated && !!latestDll
+  const outdated = !!sync?.synced && sync.dllOutdated && !!latestDll && dllReleaseNoticeEnabled(latestDll)
   // 1.2.0+ se troca sozinha: nem modal nem selo. O aviso é só para quem está abaixo da 1.2.0 (troca à mão);
   // membro novo, sem DLL, vê o aviso de sincronização (SyncWarningDialog).
   const autoUpdating = outdated && dllUpdatesItself(sync.dllVersion, latestDll)

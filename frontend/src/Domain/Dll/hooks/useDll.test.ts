@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { dllAtLeast, dllUpdatesItself, type DllRelease } from './useDll'
+import { dllAtLeast, dllReleaseNoticeEnabled, dllUpdatesItself, type DllRelease } from './useDll'
 
 const release = (autoUpdate: boolean): DllRelease => ({
   id: 1,
@@ -21,6 +21,24 @@ describe('dllUpdatesItself', () => {
     expect(dllUpdatesItself('1.2.0', release(false))).toBe(false)
     expect(dllUpdatesItself(null, release(true))).toBe(false)
     expect(dllUpdatesItself('x.y', release(true))).toBe(false)
+  })
+})
+
+describe('dllReleaseNoticeEnabled', () => {
+  it('quiets only the manual 1.52.2 release', () => {
+    expect(dllReleaseNoticeEnabled({ ...release(false), version: '1.52.2' })).toBe(false)
+    expect(dllReleaseNoticeEnabled(null)).toBe(false)
+    expect(dllReleaseNoticeEnabled(undefined)).toBe(false)
+  })
+
+  it('restores normal notices for signed 1.52.2 and every other release', () => {
+    expect(dllReleaseNoticeEnabled({ ...release(true), version: '1.52.2' })).toBe(true)
+    for (const version of ['1.52.1', '1.52.3', '1.53.0']) {
+      expect(dllReleaseNoticeEnabled({ ...release(false), version })).toBe(true)
+      expect(dllReleaseNoticeEnabled({ ...release(true), version })).toBe(true)
+    }
+    expect(dllUpdatesItself('1.52.1', { ...release(true), version: '1.52.2' })).toBe(true)
+    expect(dllUpdatesItself('1.1.0', { ...release(true), version: '1.52.2' })).toBe(false)
   })
 })
 
