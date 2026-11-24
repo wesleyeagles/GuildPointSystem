@@ -56,6 +56,11 @@ export function dllUpdatesItself(installed: string | null | undefined, latest: D
   return !!latest?.autoUpdate && dllAtLeast(installed, FIRST_AUTO_UPDATE_VERSION)
 }
 
+/** Temporarily quiet this manual release; signed or subsequent releases use normal notices. */
+export function dllReleaseNoticeEnabled(latest: DllRelease | null | undefined) {
+  return !!latest && (latest.version !== '1.52.2' || latest.autoUpdate)
+}
+
 /** Link do botão "Download DLL": sempre a versão mais recente publicada. */
 export function dllDownloadUrl(latest: DllRelease | null | undefined) {
   return latest ? `${API_BASE}/dll/download?v=${encodeURIComponent(latest.version)}` : FALLBACK_DOWNLOAD_URL
