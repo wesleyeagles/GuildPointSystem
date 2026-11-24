@@ -45,6 +45,11 @@ public class CharacterStatusService {
 
     @Transactional
     public void ingest(CharacterStatusIngestRequest request, String dllVersion) {
+        ingest(request, dllVersion, null);
+    }
+
+    @Transactional
+    public void ingest(CharacterStatusIngestRequest request, String dllVersion, String uploadIp) {
         List<Member> members = memberRepository.findByGameCharacter(request.character());
         if (members.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Nenhum membro com esse nome de personagem");
@@ -56,14 +61,14 @@ public class CharacterStatusService {
         }
 
         Instant now = Instant.now();
-        for (Member member : members) save(member, request, dllVersion, now);
+        for (Member member : members) save(member, request, dllVersion, uploadIp, now);
 
         String map = trimToNull(request.map());
         String region = trimToNull(request.region());
         if (map != null && region != null) gameRegionRepository.seen(map, region, now);
     }
 
-    private void save(Member member, CharacterStatusIngestRequest request, String dllVersion, Instant now) {
+    private void save(Member member, CharacterStatusIngestRequest request, String dllVersion, String uploadIp, Instant now) {
         CharacterStatus status = statusRepository
                 .findByMemberIdAndGid(member.getId(), request.gid())
                 .orElseGet(() -> {
@@ -78,6 +83,7 @@ public class CharacterStatusService {
         if (active != null && (status.getActiveAt() == null || active.isAfter(status.getActiveAt()))) status.setActiveAt(active);
         status.setCharacterName(request.character());
         status.setDllVersion(dllVersion);
+        status.setUploadIp(uploadIp);
         status.setLevel(request.level());
         status.setExpPercent(request.expPercent());
         status.setHp(request.hp());

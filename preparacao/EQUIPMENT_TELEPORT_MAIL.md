@@ -30,3 +30,11 @@ A extensão de envio e seus testes/binários permanecem exclusivamente na varian
 - Prévia de navegador testada com dois envios simulados concluídos e um lote interrompido na primeira confirmação incerta. Nenhum item real foi enviado.
 
 A validação deste pacote é automatizada e simulada. O envio real em jogo ainda precisa de uma conferência operacional com destinatário e quantidades autorizados; não foi executado durante a preparação deste PR. Ver [publicação conjunta](SITE_MAIL_RELEASE.md).
+
+## Assunto e envio automático
+
+O campo **Assunto (opcional)** vale para todas as cartas do lote. Vazio usa `1`; o limite é de 31 bytes CP1252, conferido também pela ponte e pela DLL. O assunto é congelado no plano e conferido antes de Send/OK e no envio real.
+
+A correção privada de 23/11 usa a reserva nativa do correio para validar o anexo; a pilha restante na bag pode mudar de identidade ou ficar vazia. A DLL continua usando os handlers nativos de Send/OK e aguardando a confirmação do servidor antes de avançar. A ponte e a candidata privada compatíveis precisam estar atualizadas; a DLL privada não acompanha o PR do site.
+
+Lotes antigos marcados como incertos não são retomados automaticamente. Se uma carta foi enviada manualmente depois da interrupção, exclua esse destinatário do próximo lote após conferir o recebimento; não repita o envio por suposição.

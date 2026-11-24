@@ -101,6 +101,21 @@ export function useMemberDlls() {
   return useQuery({ queryKey: dllKeys.members, queryFn: () => apiClient<MemberDll[]>('/dll/members') })
 }
 
+/** Admin-only recent game uploads; IPs never travel on public socket topics. */
+export interface DllConnection {
+  memberId: number
+  nickname: string
+  character: string
+  ip: string
+  lastUploadAt: string
+  dllVersion: string | null
+  sameIpCharacters: number
+}
+
+export function useDllConnections() {
+  return useQuery({ queryKey: ['dll', 'connections'], queryFn: () => apiClient<DllConnection[]>('/dll/connections') })
+}
+
 export function usePublishDll() {
   const queryClient = useQueryClient()
   return useMutation({

@@ -60,6 +60,10 @@ public class CharacterStatus {
     @Column(name = "dll_version", length = 32)
     private String dllVersion;
 
+    /** Last upload source, exposed only through the admin DLL connection DTO. */
+    @Column(name = "upload_ip", length = 45)
+    private String uploadIp;
+
     /** Local no ultimo envio: mapa, regiao do mini-mapa e grade X/Y. Null = DLL sem leitura de local. */
     @Column(name = "map_name", length = 64)
     private String mapName;

@@ -10,6 +10,7 @@ import { MarketWatchSettings } from './MarketWatchSettings'
 import { MemeVideoSettings } from './MemeVideoSettings'
 import { ArrowSizeSettings } from './ArrowSizeSettings'
 import { RouletteSettings } from './RouletteSettings'
+import { DllConnections } from './DllConnections'
 import './DllAdmin.styles.scss'
 
 const VERSION_FORMAT = /^\d{1,5}(\.\d{1,5}){0,3}$/
@@ -171,6 +172,8 @@ export function DllAdminPage() {
           </div>
         </form>
       </Panel>
+
+      <DllConnections />
 
       <Panel
         title="Versão de cada membro"
