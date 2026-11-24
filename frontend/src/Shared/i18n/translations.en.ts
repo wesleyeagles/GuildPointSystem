@@ -2079,4 +2079,18 @@ export const EN: Record<string, string> = {
   'Este membro não tem e-mail cadastrado: ele entra pelo Discord.': 'This member has no email registered: they log in with Discord.',
   'Para trocar a sua própria senha, use o seu perfil.': 'To change your own password, use your profile.',
   'Sua conta entra pelo Discord e não tem e-mail para login com senha.': 'Your account logs in with Discord and has no email for password login.',
+  // Admin-only DLL connection snapshot.
+  "Conexões recentes da DLL": "Recent DLL connections",
+  "Atualizar conexões": "Refresh connections",
+  "Uploads nos 3 minutos anteriores à consulta. IP compartilhado não comprova que seja a mesma pessoa.": "Uploads received in the 3 minutes before this query. A shared IP does not prove it is the same person.",
+  "Somente IPs compartilhados": "Shared IPs only",
+  "Consulta: {0} (Brasília) · {1} personagens": "Queried: {0} (Brasília) · {1} characters",
+  "Carregando conexões...": "Loading connections...",
+  "Não foi possível consultar os IPs. {0}": "Could not load IP addresses. {0}",
+  "Nenhum upload recente com IP identificado. Aguarde novos envios e confira a configuração do proxy no backend.": "No recent uploads with an identified IP. Wait for new uploads and check the backend proxy configuration.",
+  "Nenhum IP compartilhado nesta consulta.": "No shared IPs in this query.",
+  "IP do upload": "Upload IP",
+  "Último envio (Brasília)": "Last upload (Brasília)",
+  "Personagens neste IP": "Characters on this IP",
+
 }

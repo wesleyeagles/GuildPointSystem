@@ -1,6 +1,7 @@
 package com.guild.app.dll.controller;
 
 import com.guild.app.dll.dto.DllReleaseView;
+import com.guild.app.dll.dto.DllConnectionView;
 import com.guild.app.dll.dto.DllUpdateManifest;
 import com.guild.app.dll.dto.MemberDllView;
 import com.guild.app.dll.service.DllReleaseService;
@@ -82,6 +83,11 @@ public class DllReleaseController {
                         .header(HttpHeaders.CACHE_CONTROL, "no-cache")
                         .body(bytes))
                 .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/connections")
+    public List<DllConnectionView> connections() {
+        return service.connections();
     }
 
     @GetMapping("/members")

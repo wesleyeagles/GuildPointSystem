@@ -1,6 +1,8 @@
 package com.guild.app.characterstatus.controller;
 
 import com.guild.app.auth.security.MemberPrincipal;
+import com.guild.app.characterstatus.UploadIpResolver;
+import jakarta.servlet.http.HttpServletRequest;
 import com.guild.app.characterstatus.dto.CharacterStatusIngestRequest;
 import com.guild.app.characterstatus.dto.CharacterStatusView;
 import com.guild.app.characterstatus.dto.SyncAccessView;
@@ -21,6 +23,7 @@ import java.util.List;
 public class CharacterStatusController {
 
     private final CharacterStatusService service;
+    private final UploadIpResolver uploadIpResolver;
     private final SyncAccessService syncAccessService;
 
     /**
@@ -30,8 +33,8 @@ public class CharacterStatusController {
     @PostMapping("/ingest")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void ingest(@Valid @RequestBody CharacterStatusIngestRequest request,
-                       @RequestHeader(value = "User-Agent", required = false) String userAgent) {
-        service.ingest(request, DllVersion.fromUserAgent(userAgent));
+                       @RequestHeader(value = "User-Agent", required = false) String userAgent, HttpServletRequest http) {
+        service.ingest(request, DllVersion.fromUserAgent(userAgent), uploadIpResolver.resolve(http));
     }
 
     /** Ranking da guilda: todos os personagens que ativaram o envio. */

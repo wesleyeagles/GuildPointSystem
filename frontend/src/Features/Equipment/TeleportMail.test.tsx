@@ -32,6 +32,18 @@ describe('Lote de teleportes', () => {
     expect(state.start).toHaveBeenCalledWith(expect.objectContaining({ sender: 'OutroSender', recipients: ['Alpha'], items: [{ kind: 'taraven', quantity: 3 }, { kind: 'ether', quantity: 4 }] }))
     expect(localStorage.getItem('teleport-mail-sender')).toBe('OutroSender')
   })
+  it('includes a trimmed optional subject and omits it when blank for title 1', async () => {
+    open()
+    expect(screen.getByLabelText('Assunto da carta')).toHaveAttribute('placeholder', '1')
+    fireEvent.change(screen.getByLabelText('Assunto da carta'), { target: { value: '  Teleportes  ' } })
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Conferir e iniciar envios' })) })
+    expect(state.start).toHaveBeenCalledWith(expect.objectContaining({ subject: 'Teleportes' }))
+    cleanup(); state.start.mockClear()
+    open()
+    fireEvent.change(screen.getByLabelText('Assunto da carta'), { target: { value: '   ' } })
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Conferir e iniciar envios' })) })
+    expect(state.start.mock.calls[0][0]).not.toHaveProperty('subject')
+  })
   it('blocks an empty selection and invalid quantities', () => {
     open()
     fireEvent.click(screen.getByRole('button', { name: 'Desmarcar todos' }))

@@ -5,8 +5,8 @@ import { gameMailRequest } from '@/Shared/hooks/useGameMail'
 export type TeleportKind = 'taraven' | 'ether' | 'cash499'
 export interface EventReward { name: string; claims: Record<string, number[]> }
 export interface RewardRecipients { name: string; recipients: { memberId: number; nickname: string; claimIds: number[] }[] }
-export interface TeleportRequest { id: string; sender: string; recipients: string[]; items: { kind: TeleportKind; quantity: number }[]; reward?: EventReward }
-export interface TeleportLetter { recipient: string; name: string; itemCode: string; quantity: number; state: string; tracking: string; claimIds?: number[]; sentAt?: number }
+export interface TeleportRequest { id: string; sender: string; subject?: string; recipients: string[]; items: { kind: TeleportKind; quantity: number }[]; reward?: EventReward }
+export interface TeleportLetter { subject?: string; recipient: string; name: string; itemCode: string; quantity: number; state: string; tracking: string; claimIds?: number[]; sentAt?: number }
 export interface TeleportBatch { id: string; sender: string; state: string; control: string | null; error: string | null; createdAt: number; request?: TeleportRequest; letters: TeleportLetter[] }
 const key = ['teleport-mail']
 const terminal = new Set(['completed', 'cancelled', 'uncertain'])

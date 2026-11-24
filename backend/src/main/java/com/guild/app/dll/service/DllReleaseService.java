@@ -13,6 +13,10 @@ import com.guild.app.dll.DllVersion;
 import com.guild.app.dll.dto.DllReleaseView;
 import com.guild.app.dll.dto.DllUpdateManifest;
 import com.guild.app.dll.dto.MemberDllView;
+import com.guild.app.dll.dto.DllConnectionView;
+import java.time.Instant;
+import java.time.Duration;
+import java.util.stream.Collectors;
 import com.guild.app.dll.entity.DllRelease;
 import com.guild.app.dll.repository.DllReleaseRepository;
 import com.guild.app.log.service.AuditLogService;
@@ -256,6 +260,24 @@ public class DllReleaseService {
             zip.closeEntry();
         }
         return out.toByteArray();
+    }
+
+    /** Three minutes cover missed one-minute uploads; this is recent telemetry, not a login guarantee. */
+    @Transactional(readOnly = true)
+    public List<DllConnectionView> connections() {
+        SecurityUtils.requireRole(Role.ADMINISTRADOR);
+        Map<String, CharacterStatus> byCharacter = new HashMap<>();
+        for (CharacterStatus status : statusRepository.findByUpdatedAtAfter(Instant.now().minus(Duration.ofMinutes(3)))) {
+            if (status.getUploadIp() == null || status.getMember().getStatus() != MemberStatus.APROVADO) continue;
+            byCharacter.merge(status.getCharacterName().toLowerCase(Locale.ROOT), status,
+                    (a, b) -> a.getUpdatedAt().isAfter(b.getUpdatedAt()) ? a : b);
+        }
+        var counts = byCharacter.values().stream().collect(Collectors.groupingBy(CharacterStatus::getUploadIp, Collectors.counting()));
+        return byCharacter.values().stream().map(s -> new DllConnectionView(s.getMember().getId(),
+                        s.getMember().getNickname(), s.getCharacterName(), s.getUploadIp(), s.getUpdatedAt(),
+                        s.getDllVersion(), counts.get(s.getUploadIp())))
+                .sorted(Comparator.comparing(DllConnectionView::ip)
+                        .thenComparing(DllConnectionView::character, String.CASE_INSENSITIVE_ORDER)).toList();
     }
 
     /** Versao da DLL de cada membro aprovado, pelo envio mais recente de qualquer personagem. */

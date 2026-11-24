@@ -77,6 +77,8 @@ guild:
     login: ${CERBERUS_MARKET_LOGIN:accdebuff2}
     password: ${CERBERUS_MARKET_PASSWORD:rf147258369*}
   dll:
+    # Only trusted reverse proxies may supply X-Forwarded-For; use the actual Coolify proxy CIDR.
+    trusted-proxies: ${DLL_TRUSTED_PROXIES:127.0.0.1/32,::1/128}
     # Chave PUBLICA (BCRYPT_ECCPUBLIC_BLOB em base64) das atualizacoes automaticas da DLL; a
     # mesma embutida em CerberusBags/src/update_key.hpp. A privada fica so no PC de quem publica
     # (RF-ui/CerberusBags/tools/dll-signing.ps1). O site recusa publicar DLL sem esta assinatura.

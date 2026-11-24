@@ -22,6 +22,14 @@ describe('Ponte de envio em lote', () => {
     expect(JSON.parse(fetch.mock.calls[1][1].body)).toEqual({ id: data.id })
     expect(fetch.mock.calls[0][1]).toMatchObject({ credentials: 'omit', redirect: 'error', targetAddressSpace: 'loopback' })
   })
+  it('preserves the subject in the immutable plan and starts only that batch id', async () => {
+    const fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ id: data.id }) })
+    vi.stubGlobal('fetch', fetch)
+    const { result } = hook()
+    await act(async () => { await result.current.start.mutateAsync({ ...data, subject: 'Teleportes' }) })
+    expect(JSON.parse(fetch.mock.calls[0][1].body)).toMatchObject({ ...data, subject: 'Teleportes' })
+    expect(JSON.parse(fetch.mock.calls[1][1].body)).toEqual({ id: data.id })
+  })
   it('does not start on a rejected preflight, and never retries a timed out start', async () => {
     const fetch = vi.fn().mockResolvedValueOnce({ ok: false, json: async () => ({ message: 'Estoque insuficiente' }) })
     vi.stubGlobal('fetch', fetch)

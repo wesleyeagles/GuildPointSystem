@@ -21,6 +21,7 @@ export function TeleportMailDialog({ members, allowed, close, reward }: {
   members: Pick<MemberEquipment, 'memberId' | 'nickname' | 'level'>[]; allowed: boolean; close: () => void; reward?: EventReward
 }) {
   const [sender, setSender] = useState(() => localStorage.getItem(reward ? 'reward-mail-sender' : 'teleport-mail-sender') || (reward ? 'boi' : 'meow'))
+  const [subject, setSubject] = useState('')
   const [selected, setSelected] = useState<number[]>(() => members.filter(m => (!!reward || m.level === 50) && m.nickname.toLocaleLowerCase() !== sender.toLocaleLowerCase()).map(m => m.memberId))
   const [items, setItems] = useState<Record<TeleportKind, { selected: boolean; quantity: number }>>({
     taraven: { selected: !reward, quantity: 10 }, ether: { selected: !reward, quantity: 10 }, cash499: { selected: !!reward, quantity: 10 },
@@ -51,7 +52,7 @@ export function TeleportMailDialog({ members, allowed, close, reward }: {
         if (!valid || busy.current || !allowed || (simulationRequired && !simulation)) return
         busy.current = true
         localStorage.setItem(reward ? 'reward-mail-sender' : 'teleport-mail-sender', sender.trim())
-        void start.mutateAsync({ id: crypto.randomUUID().replaceAll('-', ''), sender: sender.trim(), recipients: recipients.map(m => m.nickname),
+        void start.mutateAsync({ id: crypto.randomUUID().replaceAll('-', ''), sender: sender.trim(), ...(subject.trim() ? { subject: subject.trim() } : {}), recipients: recipients.map(m => m.nickname),
           items: chosen.map(kind => ({ kind, quantity: items[kind].quantity })),
           ...(reward ? { reward: { ...reward, claims: Object.fromEntries(recipients.map(m => [m.nickname, reward.claims[m.nickname]])) } } : {}) })
           .then(() => setSubmitted(true)).catch(() => setSubmitted(true)).finally(() => { busy.current = false })
@@ -61,6 +62,7 @@ export function TeleportMailDialog({ members, allowed, close, reward }: {
         {simulationRequired && !simulation && <p role="alert">Aguardando a ponte em modo simulado. Envios reais estão bloqueados nesta prévia.</p>}
         <fieldset disabled={locked} className="teleport-mail__setup">
           <label>Remetente no jogo<input aria-label={reward ? "Remetente da recompensa" : "Remetente dos teleportes"} maxLength={16} value={sender} onChange={e => setSender(e.target.value)} /></label>
+          <label>Assunto (opcional)<input aria-label="Assunto da carta" maxLength={31} placeholder="1" value={subject} onChange={e => setSubject(e.target.value)} /></label>
           <div className="teleport-mail__items">{kinds.map(kind => <div key={kind}>
             <label><input type="checkbox" checked={items[kind].selected} onChange={e => setItems(old => ({ ...old, [kind]: { ...old[kind], selected: e.target.checked } }))} />{names[kind]}</label>
             <label>Quantidade por personagem<input type="number" min={1} max={255} step={1} aria-label={`Quantidade de ${names[kind]}`} value={Number.isFinite(items[kind].quantity) ? items[kind].quantity : ''}

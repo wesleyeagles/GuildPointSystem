@@ -2072,4 +2072,18 @@ export const RU: Record<string, string> = {
   'Este membro não tem e-mail cadastrado: ele entra pelo Discord.': 'У этого участника нет e-mail: он входит через Discord.',
   'Para trocar a sua própria senha, use o seu perfil.': 'Чтобы сменить свой пароль, используйте свой профиль.',
   'Sua conta entra pelo Discord e não tem e-mail para login com senha.': 'Ваш аккаунт входит через Discord и не имеет e-mail для входа по паролю.',
+  // Admin-only DLL connection snapshot.
+  "Conexões recentes da DLL": "Недавние подключения DLL",
+  "Atualizar conexões": "Обновить подключения",
+  "Uploads nos 3 minutos anteriores à consulta. IP compartilhado não comprova que seja a mesma pessoa.": "Данные за 3 минуты до запроса. Общий IP не доказывает, что это один человек.",
+  "Somente IPs compartilhados": "Только общие IP",
+  "Consulta: {0} (Brasília) · {1} personagens": "Запрос: {0} (Бразилиа) · персонажей: {1}",
+  "Carregando conexões...": "Загрузка подключений...",
+  "Não foi possível consultar os IPs. {0}": "Не удалось загрузить IP-адреса. {0}",
+  "Nenhum upload recente com IP identificado. Aguarde novos envios e confira a configuração do proxy no backend.": "Нет недавних данных с определённым IP. Дождитесь отправки данных и проверьте настройки прокси сервера.",
+  "Nenhum IP compartilhado nesta consulta.": "В этом запросе общие IP не найдены.",
+  "IP do upload": "IP отправки",
+  "Último envio (Brasília)": "Последняя отправка (Бразилиа)",
+  "Personagens neste IP": "Персонажей на этом IP",
+
 }
