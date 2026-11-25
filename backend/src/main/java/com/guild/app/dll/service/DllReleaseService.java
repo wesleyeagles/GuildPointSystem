@@ -31,6 +31,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
@@ -72,7 +73,16 @@ public class DllReleaseService {
     public Optional<DllRelease> latestFile() {
         return latest().flatMap(view -> releaseRepository.findById(view.id()))
                 .map(release -> {
-                    release.getFileData(); // carrega os bytes dentro da transacao
+                    byte[] dll = release.getUpdateData();
+                    if (dll != null && dll.length > 0) {
+                        // Build a download copy without changing the persisted release or auto-update.
+                        var download = new DllRelease();
+                        download.setFileName("CerberusBags-" + release.getVersion() + ".zip");
+                        try { download.setFileData(zipDll(dll)); }
+                        catch (IOException e) { throw new UncheckedIOException(e); }
+                        return download;
+                    }
+                    release.getFileData(); // legacy package-only releases
                     return release;
                 });
     }
@@ -254,7 +264,10 @@ public class DllReleaseService {
 
     private static byte[] zipDll(byte[] dll) throws IOException {
         var out = new ByteArrayOutputStream();
-        try (var zip = new ZipOutputStream(out)) {
+        try (var zip = new ZipOutputStream(out);
+             var notices = DllReleaseService.class.getResourceAsStream("/licenses/MinGW-w64-runtime.txt")) {
+            if (notices == null) throw new IOException("Missing runtime license notices");
+            zip.setComment(new String(notices.readAllBytes(), StandardCharsets.UTF_8));
             zip.putNextEntry(new ZipEntry("version.dll"));
             zip.write(dll);
             zip.closeEntry();
