@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { dllAtLeast, dllReleaseNoticeEnabled, dllUpdatesItself, type DllRelease } from './useDll'
+import { dllDownloadUrl, dllAtLeast, dllReleaseNoticeEnabled, dllUpdatesItself, type DllRelease } from './useDll'
 
 const release = (autoUpdate: boolean): DllRelease => ({
   id: 1,
@@ -51,5 +51,27 @@ describe('dllAtLeast', () => {
     expect(dllAtLeast('1.7', [1, 7, 0])).toBe(true)
     expect(dllAtLeast(null, [1, 7, 0])).toBe(false)
     expect(dllAtLeast('x', [1, 7, 0])).toBe(false)
+  })
+})
+
+
+describe('dllDownloadUrl', () => {
+  it('serves the signed 1.52.3 package from the frontend', () => {
+    expect(dllDownloadUrl({ ...release(true), version: '1.52.3' })).toBe('/downloads/CerberusBags-1.52.3.zip')
+  })
+
+  it('uses the backend for earlier and later versions', () => {
+    for (const version of ['1.52.2', '1.52.4', '1.53.0']) {
+      expect(dllDownloadUrl({ ...release(true), version })).toContain(`/dll/download?v=${version}`)
+    }
+  })
+
+  it('keeps unsigned releases on the backend', () => {
+    expect(dllDownloadUrl({ ...release(false), version: '1.52.3' })).toContain('/dll/download?v=1.52.3')
+  })
+
+  it('preserves the pre-release fallback', () => {
+    expect(dllDownloadUrl(null)).toBe('/version.rar?v=1.0.0')
+    expect(dllDownloadUrl(undefined)).toBe('/version.rar?v=1.0.0')
   })
 })
