@@ -63,6 +63,7 @@ export function dllReleaseNoticeEnabled(latest: DllRelease | null | undefined) {
 
 /** Link do botão "Download DLL": sempre a versão mais recente publicada. */
 export function dllDownloadUrl(latest: DllRelease | null | undefined) {
+  if (latest?.version === '1.52.3' && latest.autoUpdate) return '/downloads/CerberusBags-1.52.3.zip'
   return latest ? `${API_BASE}/dll/download?v=${encodeURIComponent(latest.version)}` : FALLBACK_DOWNLOAD_URL
 }
 
