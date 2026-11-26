@@ -7,6 +7,7 @@ import { useAppToast } from '@/Shared/ui/components/AppToast/AppToast'
 import { ChatTranslatorSettings } from './ChatTranslatorSettings'
 import { MarketPriceSettings } from './MarketPriceSettings'
 import { MarketWatchSettings } from './MarketWatchSettings'
+import { EnemyRadarSettings } from './EnemyRadarSettings'
 import { MemeVideoSettings } from './MemeVideoSettings'
 import { ArrowSizeSettings } from './ArrowSizeSettings'
 import { RouletteSettings } from './RouletteSettings'
@@ -226,6 +227,8 @@ export function DllAdminPage() {
       <MarketPriceSettings />
 
       <MarketWatchSettings />
+
+      <EnemyRadarSettings />
 
       <MemeVideoSettings />
 

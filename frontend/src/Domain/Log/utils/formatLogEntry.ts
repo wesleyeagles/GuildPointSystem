@@ -15,6 +15,7 @@ const LOG_TYPE_LABELS: Record<AuditLogType, string> = {
   PB_BOSS_UPDATED: 'Boss do histórico de PB alterado',
   MARKET_PRICE_ACCESS_UPDATED: 'Lista do preço do market alterada',
   MARKET_WATCH_UPDATED: 'Alerta de item no market alterado',
+  ENEMY_GUILD_UPDATED: 'Radar de guilds inimigas alterado',
   MEME_VIDEO_SENT: 'Vídeo enviado para o jogo',
   ROULETTE_SPUN: 'Roleta no jogo',
   AUTO_POINT_RULE_UPDATED: 'Regra de pontos automáticos alterada',
@@ -115,6 +116,8 @@ export function formatLogDetails(log: AuditLogEntry): string {
         .filter(Boolean).join(', ')
       return `${p.removed ? 'Removido: ' : ''}${str(p.item)}${filters ? ` (${filters})` : ''}`
     }
+    case 'ENEMY_GUILD_UPDATED':
+      return `${p.removed ? 'Removida: ' : 'Adicionada: '}${str(p.guild)}`
     case 'MEME_VIDEO_SENT':
       return `${str(p.video)}${p.start ? ` (a partir de ${str(p.start)} s)` : ''}`
     case 'ROULETTE_SPUN':

@@ -3,6 +3,7 @@ package com.guild.app.raid.service;
 import com.guild.app.auth.security.MemberPrincipal;
 import com.guild.app.common.enums.Role;
 import com.guild.app.common.exception.AppException;
+import com.guild.app.enemy.service.EnemyRadarService;
 import com.guild.app.member.entity.Member;
 import com.guild.app.member.repository.MemberRepository;
 import com.guild.app.raid.service.RaidService.RaidView;
@@ -45,6 +46,7 @@ public class RaidLiveService {
     private final MemberRepository members;
     private final WebSocketPublisher ws;
     private final RaidAccessService access;
+    private final EnemyRadarService enemies;
     Clock clock = Clock.systemUTC();
 
     public record Vitals(int level, int hp, int hpMax, int fp, int fpMax, int sp, int spMax) {}
@@ -62,7 +64,8 @@ public class RaidLiveService {
      * jogador, monstro...) e serial dele; null = tirar a seta.
      */
     record TargetAction(Integer kind, Long serial) {}
-    record Report(Vitals vitals, List<Effect> effects, Position position, FlagAction flag, TargetAction target) {}
+    record Report(Vitals vitals, List<Effect> effects, Position position, FlagAction flag, TargetAction target,
+                  List<EnemyRadarService.Seen> enemies) {}
     private record Mark(int kind, long serial, Instant at) {}
     private record Live(Vitals vitals, List<Effect> effects, Position position, Instant at) {}
     private record Flag(Position position, Instant at) {}
@@ -92,13 +95,15 @@ public class RaidLiveService {
      * Depois (DLL com fx=2), uma linha "L<TAB>mapa<TAB>x<TAB>z" com o índice do mapa e a posição no mundo.
      * Só no envio em que o jogador marca (DLL com fx=3), uma linha "F<TAB>mapa<TAB>x<TAB>z" coloca a bandeira
      * dele no mapa e "F<TAB>-" tira. Só no envio em que o líder marca (DLL com fx=4), "T<TAB>tipo<TAB>serial" põe a
-     * seta da raid nesse objeto do jogo e "T<TAB>-" tira.
+     * seta da raid nesse objeto do jogo e "T<TAB>-" tira. A DLL com fx=6 manda também uma linha
+     * "X<TAB>nick<TAB>guild<TAB>x<TAB>z" por jogador de guild inimiga por perto (posição no mundo, no mapa da linha L).
      */
     static Report parse(String body) {
         if (body == null) throw invalid();
         String[] lines = body.strip().split("\r?\n", -1);
-        if (lines.length > 5) throw invalid();
+        if (lines.length > 5 + EnemyRadarService.MAX_PER_REPORT) throw invalid();
         List<Effect> effects = List.of();
+        var enemies = new ArrayList<EnemyRadarService.Seen>();
         Position position = null;
         FlagAction flag = null;
         TargetAction target = null;
@@ -111,9 +116,11 @@ public class RaidLiveService {
             else if (line.startsWith("F\t")) flag = new FlagAction(parsePosition(line.substring(2)));
             else if (line.equals("T\t-")) target = new TargetAction(null, null);
             else if (line.startsWith("T\t")) target = parseTarget(line.substring(2));
+            else if (line.startsWith("X\t") && enemies.size() < EnemyRadarService.MAX_PER_REPORT) enemies.add(parseEnemy(line.substring(2)));
             else throw invalid();
         }
-        return new Report(parseVitals(lines[0]), effects, position, flag, target);
+        if (lines.length - enemies.size() > 5) throw invalid();
+        return new Report(parseVitals(lines[0]), effects, position, flag, target, List.copyOf(enemies));
     }
 
     static Position parsePosition(String text) {
@@ -124,6 +131,20 @@ public class RaidLiveService {
             if (map < 0 || map > 1000 || Math.abs(x) > 1_000_000 || Math.abs(z) > 1_000_000) throw invalid();
             return new Position(map, x, z);
         } catch (NumberFormatException e) { throw invalid(); }
+    }
+
+    /** "nick<TAB>guild<TAB>x<TAB>z": nick e guild como o jogo escreve (até 16 caracteres, sem espaço). */
+    static EnemyRadarService.Seen parseEnemy(String text) {
+        String[] f = text.split("\t", -1);
+        if (f.length != 4 || !gameName(f[0]) || !gameName(f[1])) throw invalid();
+        try {
+            int x = Integer.parseInt(f[2]), z = Integer.parseInt(f[3]);
+            if (Math.abs(x) > 1_000_000 || Math.abs(z) > 1_000_000) throw invalid();
+            return new EnemyRadarService.Seen(f[0], f[1], x, z);
+        } catch (NumberFormatException e) { throw invalid(); }
+    }
+    private static boolean gameName(String text) {
+        return !text.isEmpty() && text.length() <= 16 && text.chars().allMatch(c -> c > 0x20 && c < 0x7F);
     }
 
     static TargetAction parseTarget(String text) {
@@ -195,6 +216,7 @@ public class RaidLiveService {
      * 3 (1.8.1+): também as linhas "F" das bandeiras no mapa, depois dos integrantes.
      * 5 (1.34.0+): também os pontos de todos os membros no mapa ("G") e as bandeiras da guild ("B"), em raid ou
      * não; fora de raid a resposta é "N" (sem raid) seguida dessas linhas, em vez de 204.
+     * 6 (1.53.0+): também as guilds inimigas ("W") e os inimigos vistos por perto ("X").
      */
     public Optional<String> report(String character, String body, int fx) {
         boolean withEffects = fx >= 1;
@@ -206,6 +228,8 @@ public class RaidLiveService {
             if (!RaidService.eligible(member)) continue;
             if (report.position() != null) seen.put(member.getId(), new Seen(member.getNickname(), report.position(), now));
             else seen.remove(member.getId());
+            Position here = report.position();
+            enemies.report(member, here == null ? null : new EnemyRadarService.Spot(here.map(), here.x(), here.z()), report.enemies());
             RaidView raid = current.byMember().get(member.getId());
             if (raid == null) {
                 // Fora de raid: Administrador e Líder põem ou tiram a bandeira da guild (de outro, ignorado).
@@ -214,14 +238,14 @@ public class RaidLiveService {
                     else guildFlags.put(member.getId(), new Flag(report.flag().position(), now));
                 }
                 if (fx < 5) continue;
-                return Optional.of("N\n" + guildLines(now));
+                return Optional.of("N\n" + guildLines(now, fx));
             }
             live.put(member.getId(), new Live(report.vitals(), report.effects(), report.position(), now));
             dirty.add(raid.id());
             // Oculto: continua enviando a cada 1 s (DLL 1.7.0+ recebe "O"), mas sem raid para mostrar.
             // A DLL 1.6.0 recebe 204 e passa a enviar a cada 10 s.
             boolean hidden = raid.members().stream().anyMatch(m -> m.id().equals(member.getId()) && m.hidden());
-            if (hidden) return withEffects ? Optional.of(fx >= 5 ? OBSERVED + guildLines(now) : OBSERVED) : Optional.empty();
+            if (hidden) return withEffects ? Optional.of(fx >= 5 ? OBSERVED + guildLines(now, fx) : OBSERVED) : Optional.empty();
             // Oculto não marca o mapa (nem vê a raid); qualquer outro integrante coloca ou tira a própria bandeira.
             if (report.flag() != null) {
                 if (report.flag().position() == null) flags.remove(member.getId());
@@ -232,15 +256,20 @@ public class RaidLiveService {
                 if (report.target().kind() == null) marks.remove(raid.id());
                 else marks.put(raid.id(), new Mark(report.target().kind(), report.target().serial(), now));
             }
-            return Optional.of(fx >= 5 ? render(raid, now, fx) + guildLines(now) : render(raid, now, fx));
+            return Optional.of(fx >= 5 ? render(raid, now, fx) + guildLines(now, fx) : render(raid, now, fx));
         }
         return Optional.empty();
     }
 
     /**
      * fx=5: "G<TAB>nick<TAB>mapa,x,z<TAB>idade" de cada membro com posição recente (todos, em raid ou não; a DLL
-     * pula o próprio) e "B<TAB>nick<TAB>mapa,x,z<TAB>idade" de cada bandeira da guild.
+     * pula o próprio) e "B<TAB>nick<TAB>mapa,x,z<TAB>idade" de cada bandeira da guild. fx=6: também as guilds
+     * inimigas ("W") e os inimigos vistos ("X"), ver {@link EnemyRadarService#gameLines()}.
      */
+    private String guildLines(Instant now, int fx) {
+        return fx >= 6 ? guildLines(now) + enemies.gameLines() : guildLines(now);
+    }
+
     private String guildLines(Instant now) {
         var out = new StringBuilder();
         for (Seen s : seen.values()) {

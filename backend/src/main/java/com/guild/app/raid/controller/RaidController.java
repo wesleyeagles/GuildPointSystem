@@ -142,7 +142,8 @@ public class RaidController {
         // fx=4 (DLL 1.14.0+): também a seta da raid (linha "T" no fim).
         // fx=5 (DLL 1.34.0+): também os pontos de todos os membros ("G") e as bandeiras da guild ("B");
         // fora de raid responde "N" + essas linhas em vez de 204.
-        return live.report(character, body, Math.max(0, Math.min(fx, 5))).map(ResponseEntity::ok)
+        // fx=6 (DLL 1.53.0+): também as guilds inimigas ("W") e os inimigos vistos ("X") do radar.
+        return live.report(character, body, Math.max(0, Math.min(fx, 6))).map(ResponseEntity::ok)
             .orElseGet(() -> ResponseEntity.noContent().build());
     }
 }
