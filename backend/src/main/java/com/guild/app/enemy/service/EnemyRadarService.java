@@ -38,6 +38,10 @@ public class EnemyRadarService {
     public static final Duration GAME_FRESH = Duration.ofSeconds(15);
     /** Lista "vistos agora" do site: some depois disso. */
     public static final Duration SITE_KEEP = Duration.ofMinutes(10);
+    /** Seta automática: inimigo visto há no máximo isso (depois disso saiu da visão de todos e a seta pula). */
+    public static final Duration AUTO_FRESH = Duration.ofSeconds(8);
+    /** Seta automática: inimigo que morreu não volta a ser escolhido por esse tempo (ele fica caído no chão). */
+    public static final Duration DEAD_SKIP = Duration.ofSeconds(90);
     private static final Pattern NAME = Pattern.compile("[\\x21-\\x7e]{1,16}");
 
     private final JdbcTemplate jdbc;
@@ -56,9 +60,13 @@ public class EnemyRadarService {
 
     /** Posição como o mapa do jogo usa: índice do mapa e X/Z no mundo. */
     public record Spot(int map, int x, int z) {}
-    /** Um inimigo que a DLL viu: nick e guild como o jogo escreve, X/Z no mundo (o mapa é o de quem viu). */
-    public record Seen(String nick, String guild, int x, int z) {}
-    private record Sighting(String nick, String guild, Spot spot, Instant at, long reporterId, String reporter) {}
+    /**
+     * Um inimigo que a DLL viu: nick e guild como o jogo escreve, X/Z no mundo (o mapa é o de quem viu) e o serial
+     * do jogador no servidor do jogo (igual em todos os clientes; 0 = DLL antiga, sem seta automática).
+     */
+    public record Seen(String nick, String guild, int x, int z, long serial) {}
+    private record Sighting(String nick, String guild, Spot spot, Instant at, long reporterId, String reporter,
+                            long serial, Spot from) {}
 
     public record EnemyGuild(long id, String name, Instant createdAt) {}
     /** Para o site: onde = mapa/região de quem viu (último envio de local da DLL dele). */
@@ -68,6 +76,9 @@ public class EnemyRadarService {
 
     private final Map<String, Sighting> sightings = new ConcurrentHashMap<>();
     private volatile List<String> names;
+    /** Seta automática: serial do inimigo que está com ela (0 = nenhum) e os que morreram há pouco. */
+    private long autoSerial;
+    private final Map<Long, Instant> dead = new HashMap<>();
 
     // ---------------------------------------------------------------- DLL
 
@@ -95,8 +106,44 @@ public class EnemyRadarService {
             if (taken++ >= MAX_PER_REPORT) break;
             if (!watched.contains(s.guild())) continue;
             sightings.put(s.nick().toLowerCase(Locale.ROOT),
-                new Sighting(s.nick(), s.guild(), new Spot(here.map(), s.x(), s.z()), now, reporter.getId(), reporter.getNickname()));
+                new Sighting(s.nick(), s.guild(), new Spot(here.map(), s.x(), s.z()), now, reporter.getId(), reporter.getNickname(),
+                    s.serial(), here));
         }
+    }
+
+    /**
+     * Seta automática (MarkerService, quando nenhum Líder/Admin marcou na mão): fica no mesmo inimigo enquanto
+     * algum membro ainda o vê; quando ele morre ou some da visão de todos, vai para o inimigo mais perto de quem
+     * o viu. Vazio = nenhum inimigo com serial visto agora.
+     */
+    public synchronized OptionalLong autoTarget() {
+        Instant now = clock.instant();
+        dead.values().removeIf(until -> !until.isAfter(now));
+        var watched = new HashSet<>(guildNames());
+        Sighting keep = null, best = null;
+        long bestDistance = Long.MAX_VALUE;
+        for (Sighting s : sightings.values()) {
+            if (s.serial() <= 0 || !watched.contains(s.guild()) || dead.containsKey(s.serial())) continue;
+            if (Duration.between(s.at(), now).compareTo(AUTO_FRESH) > 0) continue;
+            if (s.serial() == autoSerial) keep = s;
+            long dx = (long) s.spot().x() - s.from().x(), dz = (long) s.spot().z() - s.from().z();
+            long distance = dx * dx + dz * dz;
+            if (distance < bestDistance || (distance == bestDistance && best != null && s.serial() < best.serial())) {
+                best = s;
+                bestDistance = distance;
+            }
+        }
+        Sighting pick = keep != null ? keep : best;
+        autoSerial = pick == null ? 0 : pick.serial();
+        return pick == null ? OptionalLong.empty() : OptionalLong.of(pick.serial());
+    }
+
+    /** Uma DLL viu o alvo da seta automática morto: a seta vai para o próximo. */
+    public synchronized void killed(long serial) {
+        if (serial <= 0) return;
+        if (dead.size() > 1000) dead.clear();
+        dead.put(serial, clock.instant().plus(DEAD_SKIP));
+        if (autoSerial == serial) autoSerial = 0;
     }
 
     /**

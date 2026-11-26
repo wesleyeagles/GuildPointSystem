@@ -133,14 +133,18 @@ public class RaidLiveService {
         } catch (NumberFormatException e) { throw invalid(); }
     }
 
-    /** "nick<TAB>guild<TAB>x<TAB>z": nick e guild como o jogo escreve (até 16 caracteres, sem espaço). */
+    /**
+     * "nick<TAB>guild<TAB>x<TAB>z[<TAB>serial]": nick e guild como o jogo escreve (até 16 caracteres, sem espaço);
+     * o serial do jogador (DLL 1.54.0+) é o que a seta automática usa.
+     */
     static EnemyRadarService.Seen parseEnemy(String text) {
         String[] f = text.split("\t", -1);
-        if (f.length != 4 || !gameName(f[0]) || !gameName(f[1])) throw invalid();
+        if ((f.length != 4 && f.length != 5) || !gameName(f[0]) || !gameName(f[1])) throw invalid();
         try {
             int x = Integer.parseInt(f[2]), z = Integer.parseInt(f[3]);
-            if (Math.abs(x) > 1_000_000 || Math.abs(z) > 1_000_000) throw invalid();
-            return new EnemyRadarService.Seen(f[0], f[1], x, z);
+            long serial = f.length == 5 ? Long.parseLong(f[4]) : 0;
+            if (Math.abs(x) > 1_000_000 || Math.abs(z) > 1_000_000 || serial < 0 || serial > 4_000_000_000L) throw invalid();
+            return new EnemyRadarService.Seen(f[0], f[1], x, z, serial);
         } catch (NumberFormatException e) { throw invalid(); }
     }
     private static boolean gameName(String text) {

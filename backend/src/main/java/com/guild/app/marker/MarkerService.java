@@ -1,5 +1,6 @@
 package com.guild.app.marker;
 
+import com.guild.app.enemy.service.EnemyRadarService;
 import com.guild.app.member.entity.Member;
 import com.guild.app.common.enums.MemberStatus;
 import com.guild.app.member.repository.MemberRepository;
@@ -21,6 +22,8 @@ import java.util.concurrent.atomic.AtomicReference;
  * Ctrl+Espaço) e a DLL de todos os membros desenha a seta em cima dele. Uma marcação só por vez, em memória: toda
  * DLL pergunta a cada 1 s. O alvo vai como tipo (0 jogador, 1 monstro) e serial do servidor do jogo, iguais em
  * todos os clientes. Some sozinha depois de {@link #LIFETIME}.
+ * Sem marcação manual, a seta vai sozinha num jogador de guild inimiga (radar, {@link EnemyRadarService#autoTarget()})
+ * até ele morrer; a DLL que vê o alvo morto avisa (GET com dead=id) e a seta pula para o próximo.
  */
 @Service
 @RequiredArgsConstructor
@@ -36,17 +39,46 @@ public class MarkerService {
 
     private final ShoutService shouts;
     private final MemberRepository members;
+    private final EnemyRadarService enemies;
     Clock clock = Clock.systemUTC();
 
     private final AtomicLong ids = new AtomicLong(System.currentTimeMillis());
     private final AtomicReference<Mark> current = new AtomicReference<>();
+    /** Seta automática do radar (só quando não há marcação manual); o id muda quando o alvo muda. */
+    private final AtomicReference<Mark> auto = new AtomicReference<>();
     private final Map<String, Membership> membership = new ConcurrentHashMap<>();
 
     /** Marcação para a DLL deste personagem (só membro aprovado). */
     public Optional<Mark> forGame(String character) {
+        return forGame(character, null);
+    }
+
+    /**
+     * Marcação para a DLL deste personagem (só membro aprovado). deadId = a DLL viu morto o alvo da marcação com esse
+     * id: a manual some; na automática, o radar escolhe o próximo inimigo.
+     */
+    public Optional<Mark> forGame(String character, Long deadId) {
+        if (!member(character)) return Optional.empty();
+        if (deadId != null) {
+            Mark manual = current.get();
+            if (manual != null && manual.id() == deadId && manual.kind() >= 0) current.compareAndSet(manual, null);
+            Mark radar = auto.get();
+            if (radar != null && radar.id() == deadId) enemies.killed(radar.serial());
+        }
         Mark mark = current.get();
-        if (mark == null || mark.kind() < 0 || !clock.instant().isBefore(mark.at().plus(LIFETIME))) return Optional.empty();
-        return member(character) ? Optional.of(mark) : Optional.empty();
+        if (mark != null && mark.kind() >= 0 && clock.instant().isBefore(mark.at().plus(LIFETIME))) return Optional.of(mark);
+        return autoMark();
+    }
+
+    private synchronized Optional<Mark> autoMark() {
+        var serial = enemies.autoTarget();
+        if (serial.isEmpty()) { auto.set(null); return Optional.empty(); }
+        Mark radar = auto.get();
+        if (radar == null || radar.serial() != serial.getAsLong()) {
+            radar = new Mark(ids.incrementAndGet(), 0, serial.getAsLong(), "radar", clock.instant());
+            auto.set(radar);
+        }
+        return Optional.of(radar);
     }
 
     /** Marca (kind 0/1, serial &gt; 0) ou tira (kind -1). Vazio = personagem sem permissão. */

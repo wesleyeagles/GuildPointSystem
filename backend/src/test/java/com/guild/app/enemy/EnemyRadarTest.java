@@ -51,6 +51,8 @@ class EnemyRadarTest {
         otherId = member(otherNick, "MEMBRO");
     }
     @AfterEach void cleanup() {
+        // Tirar pela tela apaga também os inimigos vistos, que ficam só em memória.
+        for (var g : radar.view(as(adminId)).guilds()) radar.remove(g.id(), as(adminId));
         jdbc.update("DELETE FROM enemy_guild");
         for (long id : created) {
             jdbc.update("DELETE FROM audit_log WHERE actor_id=? OR target_id=?", id, id);
@@ -104,6 +106,44 @@ class EnemyRadarTest {
         radar.remove(id, as(adminId));
         String after = report(otherNick, 6, VITALS);
         assertFalse(after.contains("Judas") || after.contains("W\t"), after);
+    }
+
+    String marker(String character, String dead) throws Exception {
+        var request = get("/api/marker/game").param("character", character);
+        if (dead != null) request = request.param("dead", dead);
+        var result = mvc.perform(request).andReturn().getResponse();
+        return result.getStatus() == 204 ? null : result.getContentAsString().strip();
+    }
+
+    @Test void theArrowGoesByItselfToTheClosestEnemyUntilHeDies() throws Exception {
+        String adminNick = members.findById(adminId).orElseThrow().getNickname();
+        mvc.perform(post("/api/marker/game").param("character", adminNick).contentType("text/plain").content("clear"));
+        assertNull(marker(otherNick, null), "sem guild na lista, sem seta");
+        radar.add(new EnemyRadarService.NewGuild("Betrayed"), as(adminId));
+        // Sem serial (DLL 1.53.x) o inimigo aparece no mapa, mas não ganha seta.
+        report(scoutNick, 6, VITALS + "\nL\t3\t0\t0\nX\tOld\tBetrayed\t1\t1");
+        assertNull(marker(otherNick, null));
+        // Vai no mais perto de quem viu.
+        report(scoutNick, 6, VITALS + "\nL\t3\t0\t0\nX\tJudas\tBetrayed\t100\t0\t111\nX\tMaterWelon\tBetrayed\t50\t0\t222");
+        String first = marker(otherNick, null);
+        assertTrue(first.endsWith("\t0\t222"), first);
+        // Fica nele enquanto alguém o vê, mesmo que outro chegue mais perto.
+        report(scoutNick, 6, VITALS + "\nL\t3\t0\t0\nX\tJudas\tBetrayed\t10\t0\t111\nX\tMaterWelon\tBetrayed\t50\t0\t222");
+        assertEquals(first, marker(otherNick, null));
+        // Uma DLL viu o alvo morto: a seta pula para o próximo, com id novo.
+        String next = marker(otherNick, first.split("\t")[0]);
+        assertTrue(next.endsWith("\t0\t111"), next);
+        assertNotEquals(first.split("\t")[0], next.split("\t")[0]);
+        // A marcação manual ganha; quando o alvo dela morre, a automática volta.
+        mvc.perform(post("/api/marker/game").param("character", adminNick).contentType("text/plain").content("1\t5"))
+            .andExpect(status().isNoContent());
+        String manual = marker(otherNick, null);
+        assertTrue(manual.endsWith("\t1\t5"), manual);
+        assertTrue(marker(otherNick, manual.split("\t")[0]).endsWith("\t0\t111"));
+        // Serial inválido é recusado.
+        mvc.perform(post("/api/raids/game/status").param("character", scoutNick).param("fx", "6")
+                .contentType(MediaType.TEXT_PLAIN).content(VITALS + "\nL\t3\t0\t0\nX\tJudas\tBetrayed\t1\t1\t-5"))
+            .andExpect(status().isBadRequest());
     }
 
     @Test void malformedEnemyLinesAreRejected() throws Exception {
