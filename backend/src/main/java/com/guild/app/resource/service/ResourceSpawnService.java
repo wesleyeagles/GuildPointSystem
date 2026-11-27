@@ -20,7 +20,6 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Mapa de recursos (flores, minério e cactos). A DLL de todo membro aprovado olha os monstros por perto e,
@@ -55,7 +54,6 @@ public class ResourceSpawnService {
     private final MemberRepository members;
     private final AuditLogService audit;
     private final WebSocketPublisher websocket;
-    private final Map<String, Instant> recent = new ConcurrentHashMap<>();
     Clock clock = Clock.systemUTC();
 
     public record View(int areaW, int areaH, int offX, int offY, int minX, int maxZ, double scaleX, double scaleY) {}
@@ -158,17 +156,8 @@ public class ResourceSpawnService {
             name, map, Timestamp.from(now));
         Integer tier = jdbc.queryForObject("SELECT tier FROM resource_mob WHERE name=?", Integer.class, name);
         if (tier != null && tier == 0) return false;
-        // Primeiro na memória (dois membros vendo o mesmo mob ao mesmo tempo), depois no banco (depois de um reinício).
-        String key = map + ":" + serial + ":" + name;
+        // game() holds the map row lock; only committed database rows may suppress a retry.
         Instant cut = now.minus(SAME_MOB);
-        boolean[] fresh = {false};
-        recent.compute(key, (k, seen) -> {
-            if (seen != null && seen.isAfter(cut)) return seen;
-            fresh[0] = true;
-            return now;
-        });
-        if (!fresh[0]) return false;
-        if (recent.size() > 50_000) recent.entrySet().removeIf(e -> e.getValue().isBefore(cut));
         boolean known = Boolean.TRUE.equals(jdbc.queryForObject(
             "SELECT EXISTS(SELECT 1 FROM resource_spawn WHERE map_code=? AND serial=? AND mob_name=? AND found_at>?)",
             Boolean.class, map, serial, name, Timestamp.from(cut)));
