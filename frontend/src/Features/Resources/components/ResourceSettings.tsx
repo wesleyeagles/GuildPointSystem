@@ -20,8 +20,8 @@ export function ResourceSettings({ overview }: { overview: ResourceOverview }) {
       <ResourceMobs overview={overview} />
       {/* A chave recria o formulário com a lista salva sempre que ela muda no servidor. */}
       <div className="resources__tabs" role="tablist" aria-label="Permissões do mapa">
-        <button type="button" role="tab" aria-selected={!gr} onClick={() => setGr(false)}>Plantas</button>
-        <button type="button" role="tab" aria-selected={gr} onClick={() => setGr(true)}>GR4 / GR5 / GR6</button>
+        <button type="button" role="tab" className={`resources__tab${!gr ? ' resources__tab--active' : ''}`} aria-selected={!gr} onClick={() => setGr(false)}>Plantas</button>
+        <button type="button" role="tab" className={`resources__tab${gr ? ' resources__tab--active' : ''}`} aria-selected={gr} onClick={() => setGr(true)}>GR4 / GR5 / GR6</button>
       </div>
       <ResourceAccess key={String(gr) + list.map((t) => t.id).join(',')} overview={{...overview, trackers: list}} gr={gr} />
     </>
