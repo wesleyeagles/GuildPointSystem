@@ -20,7 +20,6 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Mapa de recursos (flores, minério e cactos). A DLL de todo membro aprovado olha os monstros por perto e,
@@ -40,6 +39,7 @@ public class ResourceSpawnService {
         MAPS.put(11, "Sette Desert");
         MAPS.put(2, "Crag Mind Field");
         MAPS.put(10, "Ether of Heaven");
+        MAPS.put(GrCatalog.MAP, "Mechanoids Matrix");
     }
     public static final int MAX_LINES = 200, MAX_NAME = 64, MAX_COORDINATE = 1_000_000;
     /** No jogo: no máximo esta quantidade de pontos de grau 1 (os mais novos); graus 2, 3 e desconhecidos vão todos. */
@@ -55,7 +55,6 @@ public class ResourceSpawnService {
     private final MemberRepository members;
     private final AuditLogService audit;
     private final WebSocketPublisher websocket;
-    private final Map<String, Instant> recent = new ConcurrentHashMap<>();
     Clock clock = Clock.systemUTC();
 
     public record View(int areaW, int areaH, int offX, int offY, int minX, int maxZ, double scaleX, double scaleY) {}
@@ -64,11 +63,11 @@ public class ResourceSpawnService {
     public record MobView(String name, int map, Integer tier, long spawns, Instant firstSeenAt) {}
     public record Tracker(Long id, String nickname) {}
     /** canView = canConfigure: a página do site é só de Administrador+. */
-    public record Overview(boolean canView, boolean canConfigure, List<MapView> maps, List<MobView> mobs, List<Tracker> trackers) {}
+    public record Overview(boolean canView, boolean canConfigure, List<MapView> maps, List<MobView> mobs, List<Tracker> trackers, List<Tracker> grTrackers) {}
     /** diedAt: quando morreu (null = vivo ou não se sabe). */
     public record SpawnView(long id, String name, Integer tier, int x, int z, Instant foundAt, String foundBy, Instant diedAt) {}
     public record HistoryEntry(long revision, String kind, long id, long serial, String name, Integer tier,
-                               int x, int z, Instant foundAt, String foundBy, Instant diedAt) {}
+                               int x, int z, Instant foundAt, String foundBy, Instant diedAt, Integer code, Integer y) {}
     public record HistoryPage(int map, long nextCursor, boolean hasMore, List<HistoryEntry> entries) {}
 
     private static boolean eligible(Member m) {
@@ -110,18 +109,20 @@ public class ResourceSpawnService {
         Instant now = clock.instant();
         // Lock before touching spawn/mob rows: a late-committing writer must not fall behind a saved cursor.
         // Empty-body polls and map projection updates do not take this lock.
-        if (lines.stream().anyMatch(l -> l.startsWith("S\t") || l.startsWith("D\t")))
+        if (lines.stream().anyMatch(l -> l.startsWith("S\t") || l.startsWith("D\t") || l.startsWith("G\t")))
             jdbc.queryForObject("SELECT revision FROM resource_history_cursor WHERE map_code=? FOR UPDATE", Long.class, map);
         boolean changed = false;
         for (String line : lines) {
             String[] f = line.split("\t", -1);
-            if (f.length == 5 && f[0].equals("S")) changed |= sighting(member, map, f, now);
-            else if (f.length == 3 && f[0].equals("D")) changed |= death(map, f, now);
+            if (map == GrCatalog.MAP && f.length == 7 && f[0].equals("G")) changed |= grSighting(member, f, now);
+            else if (map != GrCatalog.MAP && f.length == 5 && f[0].equals("S")) changed |= sighting(member, map, f, now);
+            else if (map != GrCatalog.MAP && f.length == 3 && f[0].equals("D")) changed |= death(map, f, now);
             else if (f.length == 9 && f[0].equals("V")) saveView(map, f, now);
         }
         if (changed) websocket.publishResourcesChanged(map);
-        if (!listed(member.getId())) return NO_DOTS;
-        return "A\t1\n" + dots(map, Math.max(0, since)) + deaths(map, now);
+        if (!(map == GrCatalog.MAP ? grListed(member.getId()) : listed(member.getId()))) return NO_DOTS;
+        String result = dots(map, Math.max(0, since));
+        return "A\t1\n" + result + (map == GrCatalog.MAP ? grIdentities(result) : deaths(map, now));
     }
 
     /** O mob sumiu da lista com o personagem perto: morreu. Só a primeira notícia vale. */
@@ -145,6 +146,10 @@ public class ResourceSpawnService {
     }
 
     private boolean sighting(Member member, int map, String[] f, Instant now) {
+        return sighting(member, map, f, now, null, null);
+    }
+
+    private boolean sighting(Member member, int map, String[] f, Instant now, Integer code, Integer y) {
         long serial;
         int x, z;
         try {
@@ -153,28 +158,19 @@ public class ResourceSpawnService {
             z = Integer.parseInt(f[3]);
         } catch (NumberFormatException e) { return false; }
         String name = f[4].strip();
-        if (serial < 0 || Math.abs((long) x) > MAX_COORDINATE || Math.abs((long) z) > MAX_COORDINATE || !validName(name)) return false;
+        if (serial < 0 || Math.abs((long) x) > MAX_COORDINATE || Math.abs((long) z) > MAX_COORDINATE || !(map == GrCatalog.MAP ? GrCatalog.valid(name) : validName(name))) return false;
         jdbc.update("INSERT INTO resource_mob(name,map_code,first_seen_at) VALUES(?,?,?) ON CONFLICT (name) DO NOTHING",
             name, map, Timestamp.from(now));
         Integer tier = jdbc.queryForObject("SELECT tier FROM resource_mob WHERE name=?", Integer.class, name);
         if (tier != null && tier == 0) return false;
-        // Primeiro na memória (dois membros vendo o mesmo mob ao mesmo tempo), depois no banco (depois de um reinício).
-        String key = map + ":" + serial + ":" + name;
+        // game() holds the map row lock; only committed database rows may suppress a retry.
         Instant cut = now.minus(SAME_MOB);
-        boolean[] fresh = {false};
-        recent.compute(key, (k, seen) -> {
-            if (seen != null && seen.isAfter(cut)) return seen;
-            fresh[0] = true;
-            return now;
-        });
-        if (!fresh[0]) return false;
-        if (recent.size() > 50_000) recent.entrySet().removeIf(e -> e.getValue().isBefore(cut));
         boolean known = Boolean.TRUE.equals(jdbc.queryForObject(
             "SELECT EXISTS(SELECT 1 FROM resource_spawn WHERE map_code=? AND serial=? AND mob_name=? AND found_at>?)",
             Boolean.class, map, serial, name, Timestamp.from(cut)));
         if (known) return false;
-        jdbc.update("INSERT INTO resource_spawn(map_code,mob_name,serial,x,z,found_at,found_by) VALUES(?,?,?,?,?,?,?)",
-            map, name, serial, x, z, Timestamp.from(now), member.getId());
+        jdbc.update("INSERT INTO resource_spawn(map_code,mob_name,serial,x,z,found_at,found_by,mob_code,y) VALUES(?,?,?,?,?,?,?,?,?)",
+            map, name, serial, x, z, Timestamp.from(now), member.getId(), code, y);
         return true;
     }
 
@@ -185,7 +181,7 @@ public class ResourceSpawnService {
         if (!MAPS.containsKey(map) || after < 0 || limit < 1 || limit > 1000)
             throw new AppException("Mapa, cursor ou limite inválido", HttpStatus.BAD_REQUEST);
         List<HistoryEntry> rows = jdbc.query("""
-            SELECT h.revision,h.kind,s.id,s.serial,s.mob_name,m.tier,s.x,s.z,s.found_at,s.died_at,f.nickname
+            SELECT h.revision,h.kind,s.id,s.serial,s.mob_name,m.tier,s.x,s.z,s.found_at,s.died_at,f.nickname,s.mob_code,s.y
             FROM resource_spawn_change h JOIN resource_spawn s ON s.id=h.spawn_id
             JOIN resource_mob m ON m.name=s.mob_name LEFT JOIN member f ON f.id=s.found_by
             WHERE h.map_code=? AND h.revision>? ORDER BY h.revision LIMIT ?
@@ -193,11 +189,48 @@ public class ResourceSpawnService {
                 Timestamp died = r.getTimestamp("died_at");
                 return new HistoryEntry(r.getLong("revision"),r.getString("kind"),r.getLong("id"),r.getLong("serial"),
                     r.getString("mob_name"),(Integer)r.getObject("tier"),r.getInt("x"),r.getInt("z"),
-                    r.getTimestamp("found_at").toInstant(),r.getString("nickname"),died == null ? null : died.toInstant());
+                    r.getTimestamp("found_at").toInstant(),r.getString("nickname"),died == null ? null : died.toInstant(),(Integer)r.getObject("mob_code"),(Integer)r.getObject("y"));
             }, map, after, limit + 1);
         boolean more = rows.size() > limit;
         List<HistoryEntry> page = List.copyOf(rows.subList(0, Math.min(limit, rows.size())));
         return new HistoryPage(map, page.isEmpty() ? after : page.get(page.size()-1).revision(), more, page);
+    }
+
+    private String grIdentities(String result) {
+        List<Long> ids = result.lines().filter(l -> l.startsWith("R\t")).map(l -> Long.parseLong(l.split("\t")[1])).toList();
+        if (ids.isEmpty()) return "";
+        String marks = String.join(",", Collections.nCopies(ids.size(), "?"));
+        return String.join("", jdbc.query("SELECT id,serial,mob_code,y FROM resource_spawn WHERE map_code=55 AND id IN ("+marks+") ORDER BY id",
+            (r,n) -> "I\t"+r.getLong("id")+"\t"+r.getLong("serial")+"\t"+r.getInt("mob_code")+"\t"+r.getInt("y")+"\n", ids.toArray()));
+    }
+
+    private boolean grSighting(Member member, String[] f, Instant now) {
+        try {
+            int code = Integer.parseInt(f[2]), y = Integer.parseInt(f[4]);
+            long serial = Long.parseLong(f[1]);
+            var mob = GrCatalog.MOBS.get(code);
+            if (mob == null || !mob.name().equals(f[6]) || serial < 0 || serial >= 4294967295L || Math.abs((long)y) > MAX_COORDINATE) return false;
+            return sighting(member, GrCatalog.MAP, new String[]{"S",f[1],f[3],f[5],f[6]}, now, code, y);
+        } catch (NumberFormatException e) { return false; }
+    }
+
+    private boolean grListed(Long id) {
+        return Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM gr_tracker WHERE member_id=?)", Boolean.class, id));
+    }
+    private List<Tracker> grTrackers() {
+        return jdbc.query("SELECT m.id,m.nickname FROM gr_tracker t JOIN member m ON m.id=t.member_id ORDER BY lower(m.nickname)",
+            (r,n) -> new Tracker(r.getLong("id"),r.getString("nickname")));
+    }
+    @Transactional
+    public Overview updateGrAccess(List<Long> memberIds, MemberPrincipal actor) {
+        Member admin = configurerOrThrow(actor);
+        var ids = new LinkedHashSet<>(memberIds == null ? List.<Long>of() : memberIds);
+        if (ids.size() > 500 || ids.contains(null)) throw new AppException("Lista inválida", HttpStatus.BAD_REQUEST);
+        for (Long id : ids) if (!members.existsById(id)) throw new AppException("Membro não encontrado", HttpStatus.NOT_FOUND);
+        jdbc.update("DELETE FROM gr_tracker");
+        for (Long id : ids) jdbc.update("INSERT INTO gr_tracker(member_id,added_by) VALUES(?,?)", id, admin.getId());
+        audit.log(AuditLogType.RESOURCE_ACCESS_UPDATED, admin, admin, Map.of("scope","GR","trackers",grTrackers().stream().map(Tracker::nickname).toList()));
+        return overview(actor);
     }
 
     static boolean validName(String name) {
@@ -258,9 +291,9 @@ public class ResourceSpawnService {
     @Transactional(readOnly = true)
     public Overview overview(MemberPrincipal actor) {
         Member member = member(actor);
-        if (!viewer(member)) return new Overview(false, false, List.of(), List.of(), List.of());
+        if (!viewer(member)) return new Overview(false, false, List.of(), List.of(), List.of(), List.of());
         boolean configure = configurer(member);
-        return new Overview(true, configure, maps(), mobs(), configure ? trackers() : List.of());
+        return new Overview(true, configure, maps(), mobs(), configure ? trackers() : List.of(), configure ? grTrackers() : List.of());
     }
 
     private List<MapView> maps() {
@@ -324,7 +357,7 @@ public class ResourceSpawnService {
             "SELECT count(DISTINCT date_trunc('hour', found_at)) FROM resource_spawn WHERE map_code=? AND found_at>?", Long.class, map, since);
         long observed = hours == null ? 0 : hours;
         List<TierStats> tiers = new ArrayList<>();
-        for (int tier = 1; tier <= 3; tier++) {
+        for (int tier = (map == GrCatalog.MAP ? 5 : 1); tier <= (map == GrCatalog.MAP ? 7 : 3); tier++) {
             int t = tier;
             int[] byMinute = new int[12], byHour = new int[24];
             long[] total = {0};
@@ -345,7 +378,7 @@ public class ResourceSpawnService {
                     WHERE s.map_code=? AND m.tier=? AND s.found_at>?) x WHERE g IS NOT NULL""", Double.class, map, t, since);
             Long medianGap = gap == null ? null : Math.round(gap);
             Instant lastAt = last == null ? null : last.toInstant();
-            Instant next = lastAt == null || medianGap == null ? null : lastAt.plusSeconds(medianGap);
+            Instant next = map == GrCatalog.MAP || lastAt == null || medianGap == null ? null : lastAt.plusSeconds(medianGap);
             tiers.add(new TierStats(t, total[0], observed == 0 ? 0 : (double) total[0] / observed, EXPECTED_PER_HOUR.get(t),
                 lastAt, medianGap, next, byMinute, byHour));
         }
@@ -378,6 +411,7 @@ public class ResourceSpawnService {
     @Transactional
     public Overview setTier(String name, int tier, MemberPrincipal actor) {
         Member member = configurerOrThrow(actor);
+        if (GrCatalog.valid(name)) throw new AppException("Categoria GR definida pelo catálogo", HttpStatus.BAD_REQUEST);
         if (tier < 0 || tier > 4) throw new AppException("Grau inválido.", HttpStatus.BAD_REQUEST);
         if (jdbc.update("UPDATE resource_mob SET tier=? WHERE name=?", tier, name) == 0)
             throw new AppException("Mob não encontrado", HttpStatus.NOT_FOUND);

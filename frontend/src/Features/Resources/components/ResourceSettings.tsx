@@ -13,11 +13,17 @@ import { useAppToast } from '@/Shared/ui/components/AppToast/AppToast'
 
 /** Administrador+: grau de cada mob e quem vê o mapa de recursos (no site e no jogo). */
 export function ResourceSettings({ overview }: { overview: ResourceOverview }) {
+  const [gr, setGr] = useState(false)
+  const list = gr ? (overview.grTrackers ?? []) : overview.trackers
   return (
     <>
       <ResourceMobs overview={overview} />
       {/* A chave recria o formulário com a lista salva sempre que ela muda no servidor. */}
-      <ResourceAccess key={overview.trackers.map((t) => t.id).join(',')} overview={overview} />
+      <div className="resources__tabs" role="tablist" aria-label="Permissões do mapa">
+        <button type="button" role="tab" className={`resources__tab${!gr ? ' resources__tab--active' : ''}`} aria-selected={!gr} onClick={() => setGr(false)}>Plantas</button>
+        <button type="button" role="tab" className={`resources__tab${gr ? ' resources__tab--active' : ''}`} aria-selected={gr} onClick={() => setGr(true)}>GR4 / GR5 / GR6 / GR7</button>
+      </div>
+      <ResourceAccess key={String(gr) + list.map((t) => t.id).join(',')} overview={{...overview, trackers: list}} gr={gr} />
     </>
   )
 }
@@ -41,7 +47,7 @@ function ResourceMobs({ overview }: { overview: ResourceOverview }) {
           <tr><th>Mob</th><th>Mapa</th><th>Pontos</th><th>Grau</th></tr>
         </thead>
         <tbody>
-          {overview.mobs.map((m) => (
+          {overview.mobs.filter((m) => m.map !== 55).map((m) => (
             <tr key={m.name} className={m.tier == null ? 'resources__mob--unknown' : m.tier === 0 ? 'resources__mob--ignored' : ''}>
               <td>{m.name}</td>
               <td>{mapLabel(overview.maps.find((x) => x.code === m.map)?.name ?? String(m.map))}</td>
@@ -69,10 +75,10 @@ function ResourceMobs({ overview }: { overview: ResourceOverview }) {
   )
 }
 
-function ResourceAccess({ overview }: { overview: ResourceOverview }) {
+function ResourceAccess({ overview, gr }: { overview: ResourceOverview; gr: boolean }) {
   const { showToast } = useAppToast()
   const { data: members = [] } = useMemberRanking()
-  const update = useUpdateResourceAccess()
+  const update = useUpdateResourceAccess(gr)
   const [trackers, setTrackers] = useState(overview.trackers)
   const [search, setSearch] = useState('')
 
@@ -88,7 +94,7 @@ function ResourceAccess({ overview }: { overview: ResourceOverview }) {
   })
 
   return (
-    <Panel title="Quem vê os recursos no jogo" code={`${overview.trackers.length}`}>
+    <Panel title={gr ? "Quem vê GR4 / GR5 / GR6 / GR7 no jogo" : "Quem vê os recursos no jogo"} code={`${overview.trackers.length}`}>
       <p className="resources__muted">
         Todos os membros com a DLL enviam os recursos que veem. Só os membros desta lista veem as bolinhas no mapa do
         jogo (DLL 1.16.0 ou mais nova). Esta página é só para Administradores.

@@ -64,6 +64,12 @@ public class ResourceSpawnController {
     }
 
     @PreAuthorize("isAuthenticated()")
+    @PutMapping("/gr-access")
+    public Overview updateGrAccess(@Valid @RequestBody AccessRequest body) {
+        return service.updateGrAccess(body.memberIds(), SecurityUtils.currentMember());
+    }
+
+    @PreAuthorize("isAuthenticated()")
     @PutMapping("/mobs")
     public Overview setTier(@Valid @RequestBody TierRequest body) {
         return service.setTier(body.name(), body.tier(), SecurityUtils.currentMember());
