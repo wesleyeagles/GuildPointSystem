@@ -103,6 +103,20 @@ class GrTrackingTest {
         assertThrows(AppException.class,()->service.updateGrAccess(List.of(senderId),as(senderId)));
         send(pendingNick,55,0,"").andExpect(status().isForbidden());
     }
+    @Test void gr7CollectsWithoutViewingAndUsesSamePermission() throws Exception {
+        String name="[gr7] Mech. Commander";
+        String body="G\t"+serial+"\t627202\t100\t-20\t200\t"+name;
+        assertEquals("A\t0\n",ok(senderNick,55,0,body));
+        assertEquals(1,spawns(name));
+        assertEquals("A\t0\n",ok(viewerNick,55,0,body));
+        assertEquals(1,spawns(name));
+        service.updateGrAccess(List.of(viewerId),as(adminId));
+        String response=ok(viewerNick,55,0,"");
+        assertTrue(response.contains("\t8\t"));assertTrue(response.contains("\t627202\t"));
+        assertEquals(627202,service.history(55,0,500,as(adminId)).entries().getFirst().code());
+        service.updateGrAccess(List.of(),as(adminId));assertEquals("A\t0\n",ok(viewerNick,55,0,""));
+        assertEquals("A\t0\n",ok(senderNick,55,0,body));assertEquals(1,spawns(name));
+    }
     @Test void adminAccessEndpointAndAllGrades() throws Exception {
         mvc.perform(put("/api/resources/gr-access").with(user(as(senderId))).contentType("application/json").content("{\"memberIds\":[]}"))
             .andExpect(status().isForbidden());
@@ -113,6 +127,6 @@ class GrTrackingTest {
             String response=ok(senderNick,55,0,row);
             assertTrue(response.contains("\t"+entry.getValue().category()+"\t"));
         }
-        assertEquals(9,service.history(55,0,500,as(adminId)).entries().size());
+        assertEquals(10,service.history(55,0,500,as(adminId)).entries().size());
     }
 }

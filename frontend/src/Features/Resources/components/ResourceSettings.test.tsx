@@ -13,7 +13,7 @@ afterEach(() => { cleanup(); vi.clearAllMocks() })
 it('keeps GR permissions separate from plants when editing and switching tabs', () => {
   render(<ResourceSettings overview={{ canView: true, canConfigure: true, maps: [], mobs: [], trackers: [{id:1,nickname:'PlantViewer'}], grTrackers:[{id:2,nickname:'Assassino'},{id:3,nickname:'meow'}] }} />)
   expect(screen.getByText('PlantViewer')).toBeInTheDocument()
-  fireEvent.click(screen.getByRole('tab', {name:'GR4 / GR5 / GR6'}))
+  fireEvent.click(screen.getByRole('tab', {name:'GR4 / GR5 / GR6 / GR7'}))
   expect(screen.queryByText('PlantViewer')).not.toBeInTheDocument()
   expect(screen.getByText('Assassino')).toBeInTheDocument()
   fireEvent.click(screen.getByTitle('Tirar meow'))

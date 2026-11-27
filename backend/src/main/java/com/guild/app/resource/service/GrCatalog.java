@@ -14,6 +14,7 @@ public final class GrCatalog {
         Map.entry(20388, new Mob("[gr5](typeC) Mech. Sword Defend", 6)),
         Map.entry(71449, new Mob("[gr6](typeA) Mech. Black Sign", 7)),
         Map.entry(84772, new Mob("[gr6](typeB) Mech. Bazooka", 7)),
-        Map.entry(18955, new Mob("[gr6](typeC) Mech. Chip", 7)));
+        Map.entry(18955, new Mob("[gr6](typeC) Mech. Chip", 7)),
+        Map.entry(627202, new Mob("[gr7] Mech. Commander", 8)));
     public static boolean valid(String name) { return MOBS.values().stream().anyMatch(m -> m.name().equals(name)); }
 }

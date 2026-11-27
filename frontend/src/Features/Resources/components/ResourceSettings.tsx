@@ -21,7 +21,7 @@ export function ResourceSettings({ overview }: { overview: ResourceOverview }) {
       {/* A chave recria o formulário com a lista salva sempre que ela muda no servidor. */}
       <div className="resources__tabs" role="tablist" aria-label="Permissões do mapa">
         <button type="button" role="tab" className={`resources__tab${!gr ? ' resources__tab--active' : ''}`} aria-selected={!gr} onClick={() => setGr(false)}>Plantas</button>
-        <button type="button" role="tab" className={`resources__tab${gr ? ' resources__tab--active' : ''}`} aria-selected={gr} onClick={() => setGr(true)}>GR4 / GR5 / GR6</button>
+        <button type="button" role="tab" className={`resources__tab${gr ? ' resources__tab--active' : ''}`} aria-selected={gr} onClick={() => setGr(true)}>GR4 / GR5 / GR6 / GR7</button>
       </div>
       <ResourceAccess key={String(gr) + list.map((t) => t.id).join(',')} overview={{...overview, trackers: list}} gr={gr} />
     </>
@@ -94,7 +94,7 @@ function ResourceAccess({ overview, gr }: { overview: ResourceOverview; gr: bool
   })
 
   return (
-    <Panel title={gr ? "Quem vê GR4 / GR5 / GR6 no jogo" : "Quem vê os recursos no jogo"} code={`${overview.trackers.length}`}>
+    <Panel title={gr ? "Quem vê GR4 / GR5 / GR6 / GR7 no jogo" : "Quem vê os recursos no jogo"} code={`${overview.trackers.length}`}>
       <p className="resources__muted">
         Todos os membros com a DLL enviam os recursos que veem. Só os membros desta lista veem as bolinhas no mapa do
         jogo (DLL 1.16.0 ou mais nova). Esta página é só para Administradores.

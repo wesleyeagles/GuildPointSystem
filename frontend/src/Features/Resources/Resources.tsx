@@ -23,13 +23,13 @@ import './Resources.styles.scss'
 
 /** Grau -> chave das cores (iguais às bolinhas do mapa no jogo); null = desconhecido. */
 /** 1..3 = grau, 4 = Tower Rift Metal (Crag Mind Field); null/0 = desconhecido. */
-const tierKey = (tier: number | null) => (tier && tier >= 1 && tier <= 7 ? String(tier) : 'u')
+const tierKey = (tier: number | null) => (tier && tier >= 1 && tier <= 8 ? String(tier) : 'u')
 const TIERS: { key: string; label: string }[] = [
   { key: '1', label: TIER_LABEL[1] },
   { key: '2', label: TIER_LABEL[2] },
   { key: '3', label: TIER_LABEL[3] },
   { key: '4', label: TIER_LABEL[4] },
-  { key: '5', label: 'GR4' }, { key: '6', label: 'GR5' }, { key: '7', label: 'GR6' },
+  { key: '5', label: 'GR4' }, { key: '6', label: 'GR5' }, { key: '7', label: 'GR6' }, { key: '8', label: 'GR7' },
   { key: 'u', label: 'Desconhecido' },
 ]
 const RADIUS: Record<string, number> = { '1': 2.2, '2': 3.6, '3': 5.5, '4': 4.4, '5': 3.6, '6': 4.4, '7': 5.5, u: 3.6 }
