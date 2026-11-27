@@ -33,12 +33,12 @@ export function ResourceRespawn({ map }: { map: number }) {
   const { data, isLoading } = useResourceStats(map, days)
   const now = useServerNow(30_000)
   return (
-    <Panel title="Previsão de respawn" code={data ? `${data.observedHours} h observadas` : undefined}>
+    <Panel title={map === 55 ? "Histórico de avistamentos GR" : "Previsão de respawn"} code={data ? `${data.observedHours} h observadas` : undefined}>
       <div className="resources__filters">
         <p className="resources__muted resources__respawn-note">
-          O servidor sorteia a hora e a chance: em média, por hora neste mapa, 500 de grau 1, 50 de grau 2 e 0,33 de
+          {map === 55 ? 'Horários de avistamento, não de nascimento. Mobs móveis podem ser vistos longe do ponto de origem; desaparecimento não confirma morte.' : <>O servidor sorteia a hora e a chance: em média, por hora neste mapa, 500 de grau 1, 50 de grau 2 e 0,33 de
           grau 3 (pode vir metade ou o dobro). Sem ninguém matando, o mapa enche em 80. Horas observadas = horas em que
-          alguém com a DLL estava aqui achando recursos. O horário é de quando a DLL viu, não de quando nasceu.
+          alguém com a DLL estava aqui achando recursos. O horário é de quando a DLL viu, não de quando nasceu.</>}
         </p>
         <select className="resources__period" value={days} onChange={(e) => setDays(Number(e.target.value))} aria-label="Período da previsão">
           {DAYS.map((d) => <option key={d} value={d}>{d === 1 ? '24 horas' : `${d} dias`}</option>)}

@@ -47,6 +47,7 @@ export interface ResourceOverview {
   maps: ResourceMap[]
   mobs: ResourceMob[]
   trackers: { id: number; nickname: string }[]
+  grTrackers?: { id: number; nickname: string }[]
 }
 
 export interface ResourceSpawn {
@@ -131,9 +132,9 @@ function useResourceMutation<V>(request: (vars: V) => Promise<ResourceOverview>)
   })
 }
 
-export function useUpdateResourceAccess() {
+export function useUpdateResourceAccess(gr = false) {
   return useResourceMutation((body: { memberIds: number[] }) =>
-    apiClient<ResourceOverview>('/resources/access', { method: 'PUT', body }))
+    apiClient<ResourceOverview>(gr ? '/resources/gr-access' : '/resources/access', { method: 'PUT', body }))
 }
 
 export function useSetResourceTier() {
@@ -150,7 +151,7 @@ export function mapPoint(view: ResourceMapScale, x: number, z: number) {
 }
 
 /** 4 = Tower Rift Metal (Crag Mind Field): rastreado como recurso, com categoria própria. */
-export const TIER_LABEL: Record<number, string> = { 1: 'Grau 1', 2: 'Grau 2', 3: 'Grau 3', 4: 'Tower Rift Metal' }
+export const TIER_LABEL: Record<number, string> = { 1: 'Grau 1', 2: 'Grau 2', 3: 'Grau 3', 4: 'Tower Rift Metal', 5: 'GR4', 6: 'GR5', 7: 'GR6' }
 
 /** Estatística de respawn de um grau num mapa (ver ResourceSpawnService.stats). */
 export interface ResourceTierStats {
